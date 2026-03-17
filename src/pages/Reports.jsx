@@ -169,7 +169,7 @@ export default function Reports() {
         {/* Chart */}
         {tableData.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-foreground mb-1">{PRESETS[preset].label}</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-1">{cfg.label}</h3>
             <p className="text-xs text-muted-foreground mb-3">{dateFrom} → {dateTo}</p>
             {cfg.rows === 'category' || cfg.rows === 'method' || cfg.rows === 'person' ? (
               <div className="h-48">
