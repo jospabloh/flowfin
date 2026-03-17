@@ -9,6 +9,7 @@ import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import CategoryDot from '@/components/CategoryDot';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useFamily } from '@/lib/FamilyContext';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
