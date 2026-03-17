@@ -90,6 +90,8 @@ export default function Capture() {
 
   const handleSave = async () => {
     if (!amount || isNaN(parseFloat(amount))) return;
+    if (!categoryId) { alert('Debes seleccionar un Rubro'); return; }
+    if (!personId) { alert('Debes seleccionar una Persona'); return; }
     setSaving(true);
     const week = getWeekNumber(date);
     await base44.entities.Transaction.create({
