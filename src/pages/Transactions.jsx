@@ -10,14 +10,7 @@ import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-function exportToCSV(rows, filename) {
-  const headers = Object.keys(rows[0]);
-  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
+import * as XLSX from 'xlsx';
 
 function groupByDate(transactions) {
   const groups = {};
@@ -69,16 +62,19 @@ export default function Transactions() {
   const handleExport = () => {
     const rows = filtered.map(t => ({
       Fecha: t.date, Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso',
-      Monto: t.amount, Descripcion: t.description || '',
+      Monto: t.amount, Descripción: t.description || '',
       Rubro: categories.find(c => c.id === t.category_id)?.name || '',
       SubRubro: subcategories.find(s => s.id === t.subcategory_id)?.name || '',
       Quien: persons.find(p => p.id === t.person_id)?.name || '',
       Forma: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '',
       Requerido: t.required_type || '',
-      Factura: t.has_invoice ? 'Si' : 'No',
+      Factura: t.has_invoice ? 'Sí' : 'No',
       Notas: t.notes || '',
     }));
-    exportToCSV(rows, `FamilyFlow_${new Date().toISOString().slice(0,10)}.csv`);
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+    XLSX.writeFile(wb, `FamilyFlow_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
