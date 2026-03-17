@@ -16,7 +16,8 @@ const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 export default function Capture() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { categories, subcategories, persons, paymentMethods } = useCatalog();
+  const { familyId } = useFamily();
+  const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
 
   const today = new Date().toISOString().split('T')[0];
