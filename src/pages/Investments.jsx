@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
 import EmptyState from '@/components/EmptyState';
+import { useFamily } from '@/lib/FamilyContext';
 import { format, addMonths, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,13 +30,14 @@ function statusColor(diff) {
 
 export default function Investments() {
   const queryClient = useQueryClient();
+  const { familyId } = useFamily();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
   const [form, setForm] = useState({ name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: new Date().toISOString().slice(0,10), payment_day: '28' });
   const [payForm, setPayForm] = useState({ amount: '', date: new Date().toISOString().slice(0,10), notes: '' });
 
-  const { data: investments = [], isLoading } = useQuery({ queryKey: ['investments'], queryFn: () => base44.entities.Investment.list('-created_date') });
+  const { data: investments = [], isLoading } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list('-date') });
 
   const selectedPayments = selected ? allPayments.filter(p => p.investment_id === selected.id) : [];
@@ -43,8 +45,8 @@ export default function Investments() {
 
   const handleCreate = async () => {
     if (!form.name || !form.total_amount) return;
-    await base44.entities.Investment.create({ ...form, total_amount: +form.total_amount, total_payments: +form.total_payments, payment_amount: +form.payment_amount, payment_day: +form.payment_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['investments'] });
+    await base44.entities.Investment.create({ ...form, family_id: familyId, total_amount: +form.total_amount, total_payments: +form.total_payments, payment_amount: +form.payment_amount, payment_day: +form.payment_day, is_active: true });
+    queryClient.invalidateQueries({ queryKey: ['investments', familyId] });
     setShowForm(false);
     setForm({ name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: new Date().toISOString().slice(0,10), payment_day: '28' });
   };
