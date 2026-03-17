@@ -145,7 +145,7 @@ export default function Capture() {
       <div className="px-4 mt-3">
         <div className="relative">
           <input type="text" value={description} onChange={e => handleDescriptionChange(e.target.value)}
-            placeholder="¿En qué gastaste? (gasolina, mandado...)"
+            placeholder={type === 'expense' ? '¿En qué gastaste? (gasolina, mandado...)' : '¿De dónde viene? (sueldo, renta...)'}
             className="w-full bg-card border border-border rounded-xl px-4 py-3 pr-24 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             <button onClick={isListening ? stopVoice : startVoice}
