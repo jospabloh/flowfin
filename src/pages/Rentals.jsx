@@ -4,25 +4,27 @@ import { base44 } from '@/api/base44Client';
 import { Plus, X, Building } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
+import { useFamily } from '@/lib/FamilyContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function Rentals() {
   const queryClient = useQueryClient();
+  const { familyId } = useFamily();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showPayForm, setShowPayForm] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   const [payForm, setPayForm] = useState({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
 
-  const { data: properties = [], isLoading } = useQuery({ queryKey: ['rentalProperties'], queryFn: () => base44.entities.RentalProperty.list('name') });
+  const { data: properties = [], isLoading } = useQuery({ queryKey: ['rentalProperties', familyId], queryFn: () => base44.entities.RentalProperty.filter({ family_id: familyId }, 'name'), enabled: !!familyId });
   const { data: payments = [] } = useQuery({ queryKey: ['rentalPayments'], queryFn: () => base44.entities.RentalPayment.list('-month') });
 
   const handleCreate = async () => {
     if (!form.name || !form.base_rent) return;
-    await base44.entities.RentalProperty.create({ ...form, base_rent: +form.base_rent, payment_day: +form.payment_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['rentalProperties'] });
+    await base44.entities.RentalProperty.create({ ...form, family_id: familyId, base_rent: +form.base_rent, payment_day: +form.payment_day, is_active: true });
+    queryClient.invalidateQueries({ queryKey: ['rentalProperties', familyId] });
     setShowForm(false);
     setForm({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   };
