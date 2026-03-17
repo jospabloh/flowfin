@@ -5,6 +5,7 @@ import { Share2, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useFamily } from '@/lib/FamilyContext';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
@@ -31,7 +32,8 @@ const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14
 
 export default function Reports() {
   const reportRef = useRef(null);
-  const { categories, persons, paymentMethods } = useCatalog();
+  const { familyId } = useFamily();
+  const { categories, persons, paymentMethods } = useCatalog(familyId);
 
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get('type');
@@ -40,10 +42,13 @@ export default function Reports() {
   const [dateFrom, setDateFrom] = useState(format(subMonths(new Date(), 2), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [sharing, setSharing] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterPerson, setFilterPerson] = useState('');
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 2000),
+    queryKey: ['transactions', familyId],
+    queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 2000),
+    enabled: !!familyId,
   });
 
   const cfg = PRESETS[reportType][preset];
@@ -51,8 +56,10 @@ export default function Reports() {
   const filtered = useMemo(() => transactions.filter(t => {
     if (!t.date) return false;
     if (cfg.type !== 'all' && t.type !== cfg.type) return false;
+    if (filterCategory && t.category_id !== filterCategory) return false;
+    if (filterPerson && t.person_id !== filterPerson) return false;
     return t.date >= dateFrom && t.date <= dateTo;
-  }), [transactions, cfg, dateFrom, dateTo]);
+  }), [transactions, cfg, dateFrom, dateTo, filterCategory, filterPerson]);
 
   const tableData = useMemo(() => {
     const map = {};
@@ -163,6 +170,20 @@ export default function Reports() {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 px-4 mb-4">
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
+          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
+          <option value="">Todas las categorías</option>
+          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+        </select>
+        <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)}
+          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
+          <option value="">Todas las personas</option>
+          {persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
       </div>
 
       <div ref={reportRef} className="px-4 space-y-4 bg-background">
