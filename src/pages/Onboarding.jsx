@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Key, Plus, Loader2, CheckCircle } from 'lucide-react';
-import { defaultCategories, defaultSubcategories, defaultPaymentMethods } from '@/lib/seedData';
+import { defaultCategories, defaultSubcategoriesByCategory, defaultPaymentMethods } from '@/lib/seedData';
 
 function generateCode(name) {
   const clean = name.toUpperCase().replace(/\s+/g, '').slice(0, 6);
