@@ -96,6 +96,14 @@ export default function Layout() {
         </div>
       </main>
 
+      {/* Floating Assistant Button — hidden on Assistant page */}
+      {!isAssistantPage && (
+        <Link to="/Assistant"
+          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105">
+          <MessageCircle className="w-5 h-5" />
+        </Link>
+      )}
+
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/90 backdrop-blur-xl border-t border-border pb-safe z-40">
         <div className="flex items-end justify-around px-2 pt-2 pb-1">
