@@ -94,6 +94,7 @@ export default function Capture() {
     const week = getWeekNumber(date);
     await base44.entities.Transaction.create({
       date, type, amount: parseFloat(amount), description,
+      family_id: familyId,
       category_id: categoryId || undefined,
       subcategory_id: subcategoryId || undefined,
       person_id: personId || undefined,
