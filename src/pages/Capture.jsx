@@ -212,8 +212,8 @@ export default function Capture() {
         <div className="flex gap-2 px-4 mt-3 overflow-x-auto hide-scrollbar">
           <button onClick={() => setPersonId('')}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap
-              ${!personId ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>
-            Sin asignar
+              ${!personId ? 'bg-expense/10 text-expense border-expense/40' : 'border-border text-muted-foreground'}`}>
+            Sin persona ⚠️
           </button>
           {persons.map(p => (
             <button key={p.id} onClick={() => setPersonId(p.id)}
