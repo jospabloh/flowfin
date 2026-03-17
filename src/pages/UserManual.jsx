@@ -132,6 +132,42 @@ Disponibilidad:
 Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
+    id: 'asistente', icon: '🤖', title: 'Asistente IA — Ventaja FamilyFlow',
+    content: `El Asistente IA es la característica estrella de FamilyFlow. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural.
+
+Ejemplos de uso:
+• "Gasté 500 pesos en gasolina hoy" → El asistente crea el egreso, detecta la categoría Transporte y la guarda.
+• "Recibí mi quincena de 8,500 pesos" → Registra el ingreso con la fecha de hoy.
+• "¿Cuánto gasté esta semana?" → El asistente consulta y te muestra un resumen.
+• "Registra 1,200 del súper pagado con TDC Banamex" → Detecta monto, rubro, método de pago.
+
+También funciona con voz:
+1. Toca el ícono del micrófono en el Asistente.
+2. Habla tu transacción naturalmente en español.
+3. El asistente confirma y guarda.
+
+Costo: El asistente consume ~3 créditos de integración Base44 por mensaje. Muy bajo costo para el beneficio que da.
+
+Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
+  },
+  {
+    id: 'familia', icon: '👨‍👩‍👧‍👦', title: 'Sistema de Familias y Acceso',
+    content: `FamilyFlow usa un sistema de códigos de familia para que solo las personas autorizadas puedan ver los datos de su familia.
+
+Cómo funciona:
+1. El administrador crea la familia y recibe un código único (ej: GARCIA123).
+2. Los demás integrantes ingresan ese código para solicitar acceso.
+3. El administrador aprueba o rechaza cada solicitud desde "Admin Familia".
+4. Solo miembros aprobados pueden ver los datos de la familia.
+
+Admin Familia:
+• Ver el código de invitación y copiarlo.
+• Aprobar o rechazar solicitudes pendientes.
+• Ver todos los miembros activos.
+
+Seguridad: Cada familia ve únicamente sus propios datos. Ninguna familia puede ver los datos de otra.`
+  },
+  {
     id: 'export', icon: '📤', title: 'Exportar datos',
     content: `Puedes exportar tus datos en cualquier momento desde la sección de Movimientos.
 
