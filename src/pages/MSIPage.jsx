@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
 import EmptyState from '@/components/EmptyState';
+import { useFamily } from '@/lib/FamilyContext';
 import { addMonths, parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,11 +23,12 @@ function getNextMSIPayment(msi, payments) {
 
 export default function MSIPage() {
   const queryClient = useQueryClient();
+  const { familyId } = useFamily();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
 
-  const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi'], queryFn: () => base44.entities.MSI.list('-created_date') });
+  const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list('-paid_date') });
 
   const selectedPayments = selected ? allPayments.filter(p => p.msi_id === selected.id) : [];
@@ -34,8 +36,8 @@ export default function MSIPage() {
 
   const handleCreate = async () => {
     if (!form.store || !form.total_amount) return;
-    await base44.entities.MSI.create({ ...form, total_amount: +form.total_amount, monthly_amount: +form.monthly_amount, total_months: +form.total_months, billing_day: +form.billing_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['msi'] });
+    await base44.entities.MSI.create({ ...form, family_id: familyId, total_amount: +form.total_amount, monthly_amount: +form.monthly_amount, total_months: +form.total_months, billing_day: +form.billing_day, is_active: true });
+    queryClient.invalidateQueries({ queryKey: ['msi', familyId] });
     setShowForm(false);
   };
 
