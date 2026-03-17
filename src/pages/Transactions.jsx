@@ -35,8 +35,9 @@ export default function Transactions() {
   const [editing, setEditing] = useState(null);
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 1000),
+    queryKey: ['transactions', familyId],
+    queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 1000),
+    enabled: !!familyId,
   });
 
   const filtered = useMemo(() => transactions.filter(t => {
