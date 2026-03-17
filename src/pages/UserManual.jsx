@@ -7,10 +7,12 @@ const sections = [
     content: `FamilyFlow está diseñado para que empieces a registrar en menos de 2 minutos.
 
 Pasos recomendados:
-1. Ve a "Mi Familia" → pon el nombre de tu familia y configura los tipos de gasto.
-2. Ve a "Catálogos" → Personas → Agrega tu nombre y el de tu pareja (con color e inicial).
-3. Ve a "Catálogos" → Formas de pago → Agrega tus tarjetas y métodos habituales.
-4. ¡Listo! Usa el botón "+" del centro para registrar tu primer movimiento.
+1. Al entrar por primera vez, crea tu familia con un nombre — se generará un código único (ej: GARCIA123).
+2. Comparte ese código con tu pareja o familiares para que se unan desde su dispositivo.
+3. Aprueba sus solicitudes de acceso desde "Admin Familia".
+4. Ve a "Catálogos" → Personas → Agrega los nombres de tu familia.
+5. Ve a "Catálogos" → Formas de pago → Agrega tus tarjetas y métodos habituales.
+6. ¡Listo! Usa el botón "+" o el Asistente IA para registrar tu primer movimiento.
 
 Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sistema los detecte automáticamente.`
   },

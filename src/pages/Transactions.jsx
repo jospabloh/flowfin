@@ -24,7 +24,8 @@ function groupByDate(transactions) {
 
 export default function Transactions() {
   const queryClient = useQueryClient();
-  const { categories, subcategories, persons, paymentMethods } = useCatalog();
+  const { familyId } = useFamily();
+  const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterCat, setFilterCat] = useState('');
