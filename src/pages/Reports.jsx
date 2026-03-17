@@ -10,12 +10,22 @@ import jsPDF from 'jspdf';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const PRESETS = [
-  { label: 'Gastos por Categoría', rows: 'category', cols: 'none', metric: 'sum', type: 'expense' },
-  { label: 'Por Persona', rows: 'person', cols: 'none', metric: 'sum', type: 'expense' },
-  { label: 'Evolución Mensual', rows: 'month', cols: 'type', metric: 'sum', type: 'all' },
-  { label: 'Métodos de Pago', rows: 'method', cols: 'none', metric: 'sum', type: 'expense' },
-];
+const PRESETS = {
+  expense: [
+    { label: 'Por Categoría', rows: 'category', cols: 'none', metric: 'sum', type: 'expense' },
+    { label: 'Por Persona', rows: 'person', cols: 'none', metric: 'sum', type: 'expense' },
+    { label: 'Mensual', rows: 'month', cols: 'none', metric: 'sum', type: 'expense' },
+    { label: 'Por Método Pago', rows: 'method', cols: 'none', metric: 'sum', type: 'expense' },
+  ],
+  income: [
+    { label: 'Por Categoría', rows: 'category', cols: 'none', metric: 'sum', type: 'income' },
+    { label: 'Por Persona', rows: 'person', cols: 'none', metric: 'sum', type: 'income' },
+    { label: 'Mensual', rows: 'month', cols: 'none', metric: 'sum', type: 'income' },
+  ],
+  all: [
+    { label: 'Comparativa', rows: 'month', cols: 'type', metric: 'sum', type: 'all' },
+  ]
+};
 
 const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14B8A6','#F43F5E'];
 
