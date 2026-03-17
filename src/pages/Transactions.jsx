@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Search, Filter, Download, Trash2, Pencil, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
