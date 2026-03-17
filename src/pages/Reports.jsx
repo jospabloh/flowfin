@@ -129,9 +129,20 @@ export default function Reports() {
     <div className="pb-6">
       <PageHeader title="Reportes" subtitle="Análisis dinámico" />
 
+      {/* Type selector */}
+      <div className="flex gap-2 px-4 mb-4">
+        {['expense', 'income', 'all'].map(t => (
+          <button key={t} onClick={() => { setReportType(t); setPreset(0); }}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all
+              ${reportType === t ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
+            {t === 'expense' ? '💸 Egresos' : t === 'income' ? '💰 Ingresos' : '⚖️ Comparativa'}
+          </button>
+        ))}
+      </div>
+
       {/* Presets */}
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
-        {PRESETS.map((p, i) => (
+        {PRESETS[reportType].map((p, i) => (
           <button key={i} onClick={() => setPreset(i)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
               ${preset === i ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
