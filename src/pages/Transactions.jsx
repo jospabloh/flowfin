@@ -187,6 +187,14 @@ export default function Transactions() {
                   const isExp = expanded === t.id;
                   return (
                     <div key={t.id} className={idx < txns.length - 1 ? 'border-b border-border' : ''}>
+                      {(!t.person_id || !t.category_id) && (
+                        <div className="flex items-center gap-1.5 px-4 pt-2 pb-0">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                            Pendiente de revisar — falta {!t.category_id && !t.person_id ? 'categoría y persona' : !t.category_id ? 'categoría' : 'persona'}
+                          </span>
+                        </div>
+                      )}
                       <button onClick={() => setExpanded(isExp ? null : t.id)}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left">
                         <div className="w-2 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: cat?.color || '#94a3b8' }} />
