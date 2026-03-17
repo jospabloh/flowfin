@@ -1,15 +1,17 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Share2, Download } from 'lucide-react';
+import { Share2, Download, X, ChevronDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
+import AmountDisplay from '@/components/AmountDisplay';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PRESETS = {
   expense: [
@@ -44,6 +46,7 @@ export default function Reports() {
   const [sharing, setSharing] = useState(false);
   const [filterCategory, setFilterCategory] = useState('');
   const [filterPerson, setFilterPerson] = useState('');
+  const [selectedDetail, setSelectedDetail] = useState(null);
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', familyId],
@@ -96,6 +99,35 @@ export default function Reports() {
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v);
 
   const totalVal = tableData.reduce((s, r) => s + r.value, 0);
+
+  const detailTransactions = useMemo(() => {
+    if (!selectedDetail) return [];
+    return filtered.filter(t => {
+      if (cfg.rows === 'category') return t.category_id === selectedDetail;
+      if (cfg.rows === 'person') return t.person_id === selectedDetail;
+      if (cfg.rows === 'method') return t.payment_method_id === selectedDetail;
+      if (cfg.rows === 'month') return t.date?.slice(0, 7) === selectedDetail;
+      return false;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [selectedDetail, filtered, cfg]);
+
+  const detailLabel = useMemo(() => {
+    if (!selectedDetail) return '';
+    if (cfg.rows === 'category') {
+      const c = categories.find(x => x.id === selectedDetail);
+      return c ? `${c.icon} ${c.name}` : 'Sin categoría';
+    }
+    if (cfg.rows === 'person') {
+      return persons.find(p => p.id === selectedDetail)?.name || 'Sin persona';
+    }
+    if (cfg.rows === 'method') {
+      return paymentMethods.find(m => m.id === selectedDetail)?.name || 'Sin forma';
+    }
+    if (cfg.rows === 'month') {
+      return format(parseISO(selectedDetail + '-01'), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase());
+    }
+    return '';
+  }, [selectedDetail, cfg, categories, persons, paymentMethods]);
 
   const shareAsPDF = async () => {
     if (!reportRef.current) return;
@@ -196,7 +228,19 @@ export default function Reports() {
               <div className="h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={tableData} dataKey="value" nameKey="row" cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={2}>
+                    <Pie data={tableData} dataKey="value" nameKey="row" cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={2} onClick={(state) => {
+                      const clicked = tableData[state.index];
+                      if (cfg.rows === 'category') {
+                        const c = categories.find(x => `${x.icon} ${x.name}` === clicked.row);
+                        setSelectedDetail(c?.id);
+                      } else if (cfg.rows === 'person') {
+                        const p = persons.find(x => x.name === clicked.row);
+                        setSelectedDetail(p?.id);
+                      } else if (cfg.rows === 'method') {
+                        const m = paymentMethods.find(x => x.name === clicked.row);
+                        setSelectedDetail(m?.id);
+                      }
+                    }} style={{ cursor: 'pointer' }}>
                       {tableData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={formatVal} />
@@ -230,14 +274,27 @@ export default function Reports() {
           {tableData.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-8">Sin datos para el período seleccionado</p>
           ) : tableData.map((row, i) => (
-            <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < tableData.length - 1 ? 'border-b border-border' : ''}`}>
+            <button key={i} onClick={() => {
+              if (cfg.rows === 'category') {
+                const c = categories.find(x => `${x.icon} ${x.name}` === row.row);
+                setSelectedDetail(c?.id);
+              } else if (cfg.rows === 'person') {
+                const p = persons.find(x => x.name === row.row);
+                setSelectedDetail(p?.id);
+              } else if (cfg.rows === 'method') {
+                const m = paymentMethods.find(x => x.name === row.row);
+                setSelectedDetail(m?.id);
+              } else if (cfg.rows === 'month') {
+                setSelectedDetail(row.row.split(' · ')[0]);
+              }
+            }} className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors ${i < tableData.length - 1 ? 'border-b border-border' : ''}`}>
               <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
               <span className="flex-1 text-sm text-foreground truncate">{row.row}</span>
               <div className="text-right">
                 <p className="text-sm font-semibold text-foreground">{formatVal(row.value)}</p>
                 {cfg.metric === 'sum' && <p className="text-xs text-muted-foreground">{((row.value / totalVal) * 100).toFixed(1)}%</p>}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -253,6 +310,58 @@ export default function Reports() {
           <Download className="w-4 h-4" /> PNG
         </button>
       </div>
+
+      {/* Detail modal */}
+      <AnimatePresence>
+        {selectedDetail && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-50" onClick={() => setSelectedDetail(null)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border max-h-[85vh] overflow-y-auto pb-safe">
+              <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-card">
+                <div>
+                  <h3 className="font-bold text-foreground text-base">{detailLabel}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">{detailTransactions.length} transacciones</p>
+                </div>
+                <button onClick={() => setSelectedDetail(null)} className="p-2 rounded-xl bg-muted">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {detailTransactions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Sin transacciones</p>
+                ) : (
+                  detailTransactions.map(t => {
+                    const cat = categories.find(c => c.id === t.category_id);
+                    const person = persons.find(p => p.id === t.person_id);
+                    const method = paymentMethods.find(m => m.id === t.payment_method_id);
+                    return (
+                      <div key={t.id} className="bg-muted rounded-2xl p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground truncate">{t.description || 'Sin descripción'}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {format(parseISO(t.date), 'dd MMM yyyy', { locale: es })}
+                            </p>
+                          </div>
+                          <AmountDisplay amount={t.amount} type={t.type} size="sm" />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {cat && <span className="text-[10px] bg-background px-2 py-1 rounded-full text-foreground">{cat.icon} {cat.name}</span>}
+                          {person && <span className="text-[10px] bg-background px-2 py-1 rounded-full text-foreground">{person.name}</span>}
+                          {method && <span className="text-[10px] bg-background px-2 py-1 rounded-full text-foreground">{method.name}</span>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
