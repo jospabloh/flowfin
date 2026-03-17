@@ -69,19 +69,16 @@ export default function Transactions() {
   const handleExport = () => {
     const rows = filtered.map(t => ({
       Fecha: t.date, Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso',
-      Monto: t.amount, Descripción: t.description || '',
+      Monto: t.amount, Descripcion: t.description || '',
       Rubro: categories.find(c => c.id === t.category_id)?.name || '',
       SubRubro: subcategories.find(s => s.id === t.subcategory_id)?.name || '',
       Quien: persons.find(p => p.id === t.person_id)?.name || '',
       Forma: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '',
       Requerido: t.required_type || '',
-      Factura: t.has_invoice ? 'Sí' : 'No',
+      Factura: t.has_invoice ? 'Si' : 'No',
       Notas: t.notes || '',
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
-    XLSX.writeFile(wb, `FamilyFlow_${new Date().toISOString().slice(0,10)}.xlsx`);
+    exportToCSV(rows, `FamilyFlow_${new Date().toISOString().slice(0,10)}.csv`);
   };
 
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
