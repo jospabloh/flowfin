@@ -1,57 +1,79 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import { ThemeProvider } from 'next-themes';
+import Layout from '@/components/Layout';
+import Dashboard from '@/pages/Dashboard';
+import Capture from '@/pages/Capture';
+import Transactions from '@/pages/Transactions';
+import Reports from '@/pages/Reports';
+import Investments from '@/pages/Investments';
+import MSIPage from '@/pages/MSIPage';
+import Rentals from '@/pages/Rentals';
+import Catalogs from '@/pages/Catalogs';
+import FamilySettings from '@/pages/FamilySettings';
+import UserManual from '@/pages/UserManual';
+import About from '@/pages/About';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
+            <span className="text-white font-bold text-2xl">F</span>
+          </div>
+          <p className="text-sm text-muted-foreground">Cargando FamilyFlow...</p>
+        </div>
       </div>
     );
   }
 
-  // Handle authentication errors
   if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
+    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
+    else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
   }
 
-  // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+      <Route element={<Layout />}>
+        <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/Capture" element={<Capture />} />
+        <Route path="/Transactions" element={<Transactions />} />
+        <Route path="/Reports" element={<Reports />} />
+        <Route path="/Investments" element={<Investments />} />
+        <Route path="/MSI" element={<MSIPage />} />
+        <Route path="/Rentals" element={<Rentals />} />
+        <Route path="/Catalogs" element={<Catalogs />} />
+        <Route path="/FamilySettings" element={<FamilySettings />} />
+        <Route path="/UserManual" element={<UserManual />} />
+        <Route path="/About" element={<About />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
 };
 
-
 function App() {
-
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
-  )
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <AuthenticatedApp />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;
