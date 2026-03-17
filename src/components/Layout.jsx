@@ -43,6 +43,8 @@ const sideNavItems = [
 export default function Layout() {
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
+  const pendingCount = usePendingCount();
+  const isAssistantPage = location.pathname === '/Assistant';
 
   return (
     <div className="min-h-screen bg-background flex">
