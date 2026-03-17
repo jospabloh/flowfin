@@ -31,16 +31,18 @@ function getRange(key) {
 export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
-  const { categories, subcategories, persons } = useCatalog();
+  const { familyId } = useFamily();
+  const { categories, persons } = useCatalog(familyId);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => base44.entities.Transaction.list('-date', 500),
+    queryKey: ['transactions', familyId],
+    queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500),
+    enabled: !!familyId,
   });
 
-  const { data: investments = [] } = useQuery({ queryKey: ['investments'], queryFn: () => base44.entities.Investment.list() });
+  const { data: investments = [] } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }), enabled: !!familyId });
   const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list() });
-  const { data: msiList = [] } = useQuery({ queryKey: ['msi'], queryFn: () => base44.entities.MSI.list() });
+  const { data: msiList = [] } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }), enabled: !!familyId });
   const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list() });
 
   const range = getRange(period);
