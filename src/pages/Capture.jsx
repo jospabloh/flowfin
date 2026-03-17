@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Mic, MicOff, Camera, Check, ChevronDown, Receipt } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useFamily } from '@/lib/FamilyContext';
 import { matchCategory, parseVoiceText, getWeekNumber } from '@/lib/categoryMatcher';
 import { useUsageStats } from '@/lib/useUsageStats';
 import confetti from 'canvas-confetti';
