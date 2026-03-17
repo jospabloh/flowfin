@@ -22,7 +22,12 @@ const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14
 export default function Reports() {
   const reportRef = useRef(null);
   const { categories, persons, paymentMethods } = useCatalog();
-  const [preset, setPreset] = useState(0);
+
+  // Read ?type= param to auto-select preset
+  const urlParams = new URLSearchParams(window.location.search);
+  const typeParam = urlParams.get('type'); // 'income' | 'expense'
+  const initialPreset = typeParam === 'income' ? 2 : 0; // 'income' → Evolución Mensual (all), 'expense' → Gastos por Categoría
+  const [preset, setPreset] = useState(initialPreset);
   const [dateFrom, setDateFrom] = useState(format(subMonths(new Date(), 2), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [sharing, setSharing] = useState(false);
