@@ -145,18 +145,27 @@ export default function Dashboard() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 px-4 mb-4">
         {[
-          { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp },
-          { label: 'Egresos', amount: expense, type: 'expense', icon: TrendingDown },
-          { label: 'Balance', amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet },
+          { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
+          { label: 'Egresos', amount: expense, type: 'expense', icon: TrendingDown, link: '/Reports?type=expense' },
+          { label: 'Balance', amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet, link: null },
         ].map(card => {
           const Icon = card.icon;
-          return (
-            <div key={card.label} className="bg-card border border-border rounded-2xl p-3 shadow-sm">
+          const content = (
+            <>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Icon className={`w-3.5 h-3.5 ${card.type === 'income' ? 'text-income' : 'text-expense'}`} />
                 <span className="text-xs text-muted-foreground">{card.label}</span>
               </div>
               <AmountDisplay amount={card.amount} type={card.type} size="sm" showSign={false} />
+            </>
+          );
+          return card.link ? (
+            <Link key={card.label} to={card.link} className="bg-card border border-border rounded-2xl p-3 shadow-sm hover:border-primary/40 transition-colors">
+              {content}
+            </Link>
+          ) : (
+            <div key={card.label} className="bg-card border border-border rounded-2xl p-3 shadow-sm">
+              {content}
             </div>
           );
         })}
@@ -165,7 +174,8 @@ export default function Dashboard() {
       {/* Top categories bar */}
       {topCategories.length > 0 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Top Categorías</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-1">Top Categorías</h3>
+          <p className="text-xs text-muted-foreground mb-3">Top 5 de {Object.keys((() => { const m = {}; filtered.filter(t => t.type === 'expense').forEach(t => { m[t.category_id || 'x'] = 1; }); return m; })()).length} categorías</p>
           <div className="h-36">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topCategories} layout="vertical" margin={{ left: 0, right: 8 }}>
@@ -177,6 +187,10 @@ export default function Dashboard() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">Total egresos</span>
+            <AmountDisplay amount={expense} type="expense" size="sm" showSign={false} />
           </div>
         </div>
       )}
@@ -202,7 +216,9 @@ export default function Dashboard() {
                     <PersonAvatar person={entry.person} size="xs" />
                     <span className="text-xs text-muted-foreground">{entry.name}</span>
                   </div>
-                  <AmountDisplay amount={entry.value} type="expense" size="sm" showSign={false} />
+                  <span className="text-sm font-semibold tabular-nums" style={{ color: entry.person?.color || 'hsl(var(--expense))' }}>
+                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(entry.value)}
+                  </span>
                 </div>
               ))}
             </div>
