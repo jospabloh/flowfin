@@ -188,6 +188,9 @@ const glossary = [
   { term: 'Inversión', def: 'Compromiso de pago mensual para un inmueble, fondo o cualquier activo financiero.' },
   { term: 'Semáforo', def: 'Indicador visual de color: verde (al corriente), amarillo (vence pronto), rojo (vencido).' },
   { term: 'Motor de reglas', def: 'Sistema que detecta palabras clave en la descripción y sugiere Rubro/SubRubro automáticamente, sin IA.' },
+  { term: 'Asistente IA', def: 'Chatbot inteligente que entiende lenguaje natural y registra transacciones automáticamente por texto o voz.' },
+  { term: 'Código de familia', def: 'Código único alfanumérico (ej: GARCIA123) que se comparte con los integrantes para que soliciten acceso a la familia.' },
+  { term: 'Admin Familia', def: 'Administrador de la familia con permisos para aprobar miembros y gestionar el acceso.' },
   { term: 'Mi Familia', def: 'Sección de configuración personal exclusiva de cada familia: nombre, moneda, tipos de gasto, etc.' },
   { term: 'Catálogos', def: 'Datos maestros de la app: Rubros, SubRubros, Personas y Formas de Pago.' },
 ];
