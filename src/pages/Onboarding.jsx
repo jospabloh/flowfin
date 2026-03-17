@@ -45,13 +45,11 @@ export default function Onboarding() {
     );
     const catMap = {};
     cats.forEach((c, i) => { catMap[defaultCategories[i].name] = c.id; });
-    await base44.entities.Subcategory.bulkCreate(
-      defaultSubcategories.map(s => ({
-        ...s,
-        family_id: family.id,
-        category_id: catMap[s.category_name] || '',
-      }))
-    );
+    const subsToCreate = [];
+    Object.entries(defaultSubcategoriesByCategory).forEach(([catName, subs]) => {
+      subs.forEach(s => subsToCreate.push({ ...s, family_id: family.id, category_id: catMap[catName] || '' }));
+    });
+    await base44.entities.Subcategory.bulkCreate(subsToCreate);
     await base44.entities.PaymentMethod.bulkCreate(
       defaultPaymentMethods.map(m => ({ ...m, family_id: family.id }))
     );
