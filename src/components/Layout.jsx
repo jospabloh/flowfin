@@ -13,11 +13,13 @@ const navItems = [
 ];
 
 const moreItems = [
+  { to: '/Assistant', icon: Sparkles, label: 'Asistente IA', color: 'text-primary' },
   { to: '/Investments', icon: TrendingUp, label: 'Inversiones', color: 'text-emerald-500' },
   { to: '/MSI', icon: CreditCard, label: 'MSI', color: 'text-purple-500' },
   { to: '/Rentals', icon: Building, label: 'Rentas', color: 'text-blue-500' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos', color: 'text-orange-500' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia', color: 'text-rose-500' },
+  { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500' },
   { to: '/UserManual', icon: HelpCircle, label: 'Manual', color: 'text-cyan-500' },
   { to: '/About', icon: Info, label: 'Acerca de', color: 'text-muted-foreground' },
 ];
@@ -25,12 +27,14 @@ const moreItems = [
 const sideNavItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
   { to: '/Transactions', icon: List, label: 'Movimientos' },
+  { to: '/Assistant', icon: Sparkles, label: 'Asistente IA' },
   { to: '/Reports', icon: BarChart2, label: 'Reportes' },
   { to: '/Investments', icon: TrendingUp, label: 'Inversiones' },
   { to: '/MSI', icon: CreditCard, label: 'MSI' },
   { to: '/Rentals', icon: Building, label: 'Rentas' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia' },
+  { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia' },
   { to: '/UserManual', icon: HelpCircle, label: 'Manual' },
   { to: '/About', icon: Info, label: 'Acerca de' },
 ];
