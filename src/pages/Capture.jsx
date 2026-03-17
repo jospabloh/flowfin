@@ -273,7 +273,7 @@ export default function Capture() {
 
       {/* Save button */}
       <div className="px-4 mt-4">
-        <button onClick={handleSave} disabled={!amount || saving}
+        <button onClick={handleSave} disabled={!amount || !categoryId || !personId || saving}
           className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all">
           {saving ? 'Guardando...' : 'Guardar'}
         </button>
