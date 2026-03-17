@@ -235,25 +235,29 @@ export default function Capture() {
         </div>
       )}
 
-      {/* Date + Required + Invoice */}
-      <div className="grid grid-cols-2 gap-2 px-4 mt-3">
+      {/* Date + Required (expense only) */}
+      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-        <select value={requiredType} onChange={e => setRequiredType(e.target.value)}
-          className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-          {REQUIRED_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
+        {type === 'expense' && (
+          <select value={requiredType} onChange={e => setRequiredType(e.target.value)}
+            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
+            {REQUIRED_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        )}
       </div>
 
-      {/* Invoice toggle */}
-      <div className="px-4 mt-2">
-        <button onClick={() => setHasInvoice(!hasInvoice)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all
-            ${hasInvoice ? 'bg-primary/10 border-primary text-primary' : 'border-border text-muted-foreground'}`}>
-          <Receipt className="w-3.5 h-3.5" />
-          Con factura
-        </button>
-      </div>
+      {/* Invoice toggle (expense only) */}
+      {type === 'expense' && (
+        <div className="px-4 mt-2">
+          <button onClick={() => setHasInvoice(!hasInvoice)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all
+              ${hasInvoice ? 'bg-primary/10 border-primary text-primary' : 'border-border text-muted-foreground'}`}>
+            <Receipt className="w-3.5 h-3.5" />
+            Con factura
+          </button>
+        </div>
+      )}
 
       {/* Notes */}
       <div className="px-4 mt-2">
