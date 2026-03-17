@@ -10,7 +10,14 @@ import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
+function exportToCSV(rows, filename) {
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 function groupByDate(transactions) {
   const groups = {};
