@@ -130,11 +130,19 @@ export default function Layout() {
             }
             const Icon = item.icon;
             const active = location.pathname === item.to;
+            const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
               <Link key={item.to} to={item.to}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
                   ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-                <Icon className="w-6 h-6" />
+                <div className="relative">
+                  <Icon className="w-6 h-6" />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             );
