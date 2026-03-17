@@ -9,6 +9,7 @@ import PersonAvatar from '@/components/PersonAvatar';
 import CategoryDot from '@/components/CategoryDot';
 import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
+import { useFamily } from '@/lib/FamilyContext';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 function groupByDate(transactions) {
