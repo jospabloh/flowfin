@@ -66,11 +66,19 @@ export default function Layout() {
           {sideNavItems.map(item => {
             const Icon = item.icon;
             const active = location.pathname === item.to;
+            const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
               <Link key={item.to} to={item.to}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
                   ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <div className="relative flex-shrink-0">
+                  <Icon className="w-4 h-4" />
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
+                      {pendingCount > 9 ? '9+' : pendingCount}
+                    </span>
+                  )}
+                </div>
                 {item.label}
               </Link>
             );
