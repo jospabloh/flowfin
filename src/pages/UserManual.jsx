@@ -135,16 +135,32 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
     id: 'asistente', icon: '🤖', title: 'Asistente IA — Ventaja FamilyFlow',
     content: `El Asistente IA es la característica estrella de FamilyFlow. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural.
 
+Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha para abrirlo directamente.
+
 Ejemplos de uso:
 • "Gasté 500 pesos en gasolina hoy" → El asistente crea el egreso, detecta la categoría Transporte y la guarda.
-• "Recibí mi quincena de 8,500 pesos" → Registra el ingreso con la fecha de hoy.
+• "Recibí 10,000 de DEPAS TOCHE" → Registra el ingreso de Silvia con la fuente correcta.
 • "¿Cuánto gasté esta semana?" → El asistente consulta y te muestra un resumen.
 • "Registra 1,200 del súper pagado con TDC Banamex" → Detecta monto, rubro, método de pago.
+• "¿Cuáles movimientos están incompletos?" → El asistente lista los que no tienen persona o categoría.
+
+Campos obligatorios que el asistente siempre pedirá antes de guardar:
+• Monto
+• Tipo (egreso o ingreso)
+• Categoría (Rubro)
+• Persona (Pablo o Silvia)
+• Fecha (si no se menciona, usa hoy)
+
+Si falta alguno, el asistente preguntará antes de guardar. Nunca asumirá datos.
 
 También funciona con voz:
 1. Toca el ícono del micrófono en el Asistente.
 2. Habla tu transacción naturalmente en español.
 3. El asistente confirma y guarda.
+
+Ingresos de Silvia: Todos los ingresos familiares históricos están registrados a nombre de Silvia. Las fuentes conocidas incluyen: DAYMAC BODEGAS, DEPAS TOCHE, BARISTOP, TRADUCCIONES, MY PLACE, ROSETA y ventas de propiedades.
+
+Acciones pendientes: Si un movimiento no tiene persona o categoría asignada, aparece marcado como "⚠️ Pendiente de revisar" en la sección de Movimientos con una sugerencia de acción. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes de revisar?".
 
 Costo: El asistente consume ~3 créditos de integración Base44 por mensaje. Muy bajo costo para el beneficio que da.
 

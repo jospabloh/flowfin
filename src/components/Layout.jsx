@@ -1,8 +1,9 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users } from 'lucide-react';
+import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
+import { usePendingCount } from '@/hooks/usePendingCount';
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
