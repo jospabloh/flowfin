@@ -194,7 +194,7 @@ export default function Capture() {
       {/* Category + Subcategory */}
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
-          className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
+          className={`bg-card border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none ${!categoryId ? 'border-expense/60 bg-expense/5' : 'border-border'}`}>
           <option value="">Rubro</option>
           {categories.filter(c => c.type === 'both' || c.type === type).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
