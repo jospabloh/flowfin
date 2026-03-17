@@ -33,11 +33,10 @@ export default function Reports() {
   const reportRef = useRef(null);
   const { categories, persons, paymentMethods } = useCatalog();
 
-  // Read ?type= param to auto-select preset
   const urlParams = new URLSearchParams(window.location.search);
-  const typeParam = urlParams.get('type'); // 'income' | 'expense'
-  const initialPreset = typeParam === 'income' ? 2 : 0; // 'income' → Evolución Mensual (all), 'expense' → Gastos por Categoría
-  const [preset, setPreset] = useState(initialPreset);
+  const typeParam = urlParams.get('type');
+  const [reportType, setReportType] = useState(typeParam === 'income' ? 'income' : typeParam === 'all' ? 'all' : 'expense');
+  const [preset, setPreset] = useState(0);
   const [dateFrom, setDateFrom] = useState(format(subMonths(new Date(), 2), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [sharing, setSharing] = useState(false);
@@ -47,7 +46,7 @@ export default function Reports() {
     queryFn: () => base44.entities.Transaction.list('-date', 2000),
   });
 
-  const cfg = PRESETS[preset];
+  const cfg = PRESETS[reportType][preset];
 
   const filtered = useMemo(() => transactions.filter(t => {
     if (!t.date) return false;
