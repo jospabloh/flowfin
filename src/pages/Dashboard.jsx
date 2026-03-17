@@ -269,13 +269,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* FAB mobile */}
-      <div className="md:hidden fixed bottom-24 right-4 z-30">
-        <Link to="/Capture"
-          className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform">
-          <Plus className="w-6 h-6" />
-        </Link>
-      </div>
+
     </div>
   );
 }
