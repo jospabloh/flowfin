@@ -20,7 +20,11 @@ export default function FamilyAdmin() {
   const approved = memberships.filter(m => m.status === 'approved');
 
   const handleApprove = async (m) => {
-    await base44.entities.FamilyMembership.update(m.id, { status: 'approved' });
+    await base44.functions.invoke('approveMember', {
+      membership_id: m.id,
+      family_id: m.family_id,
+      target_user_id: m.user_id,
+    });
     queryClient.invalidateQueries({ queryKey: ['memberships'] });
   };
 
