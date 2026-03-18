@@ -9,6 +9,9 @@ export default function FamilyAdmin() {
   const { family, familyId, isAdmin } = useFamily();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState('');
 
   const { data: memberships = [] } = useQuery({
     queryKey: ['memberships', familyId],
