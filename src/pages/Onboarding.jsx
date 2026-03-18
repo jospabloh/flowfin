@@ -61,34 +61,33 @@ export default function Onboarding() {
     if (!joinCode.trim()) return;
     setLoading(true);
     setError('');
-    const families = await base44.entities.Family.filter({ join_code: joinCode.trim().toUpperCase() });
-    if (!families.length) {
+
+    // Use backend function to bypass RLS when searching family by code
+    const res = await base44.functions.invoke('findFamilyByCode', {
+      join_code: joinCode.trim().toUpperCase(),
+      user_id: currentUser.id,
+    });
+
+    if (!res.data?.found) {
       setError('Código no encontrado. Verifica e intenta de nuevo.');
       setLoading(false);
       return;
     }
-    const family = families[0];
 
-    // Clean up any orphan memberships from old user_ids with the same email
-    const orphans = await base44.entities.FamilyMembership.filter({ family_id: family.id, user_email: currentUser.email });
-    for (const orphan of orphans) {
-      if (orphan.user_id !== currentUser.id) {
-        await base44.entities.FamilyMembership.delete(orphan.id);
-      }
-    }
+    const { family_id, existing_membership } = res.data;
 
-    const existing = await base44.entities.FamilyMembership.filter({ family_id: family.id, user_id: currentUser.id });
-    if (existing.length) {
-      if (existing[0].status === 'approved') { refetchMembership(); return; }
-      if (existing[0].status === 'pending') { setPendingApproval(true); setLoading(false); return; }
-      if (existing[0].status === 'rejected') {
+    if (existing_membership) {
+      if (existing_membership.status === 'approved') { refetchMembership(); setLoading(false); return; }
+      if (existing_membership.status === 'pending') { setPendingApproval(true); setLoading(false); return; }
+      if (existing_membership.status === 'rejected') {
         setError('Tu solicitud fue rechazada. Contacta al administrador.');
         setLoading(false);
         return;
       }
     }
+
     await base44.entities.FamilyMembership.create({
-      family_id: family.id,
+      family_id,
       user_id: currentUser.id,
       user_email: currentUser.email,
       user_name: currentUser.full_name,
