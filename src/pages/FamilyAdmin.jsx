@@ -90,6 +90,32 @@ export default function FamilyAdmin() {
         <p className="text-xs text-muted-foreground mt-2">Comparte este código con los miembros de tu familia para que puedan solicitar acceso.</p>
       </div>
 
+      {/* Invitar miembro */}
+      <div className="mx-4 mt-4">
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+          <UserPlus className="w-4 h-4 text-muted-foreground" />
+          Invitar miembro
+        </h3>
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">El invitado recibirá un correo para acceder a la app. Luego deberá unirse con el código de familia.</p>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}
+              className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
+              {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              Invitar
+            </button>
+          </div>
+          {inviteMsg && <p className="text-xs text-muted-foreground">{inviteMsg}</p>}
+        </div>
+      </div>
+
       {/* Solicitudes pendientes */}
       {pending.length > 0 && (
         <div className="mx-4 mt-4">
