@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -34,11 +35,13 @@ export default function Dashboard() {
   const { familyId } = useFamily();
   const { categories, persons } = useCatalog(familyId);
 
-  const { data: transactions = [] } = useQuery({
+  const { data: transactions = [], refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500),
     enabled: !!familyId,
   });
+
+  const { refreshing } = usePullToRefresh(refetchTx);
 
   const { data: investments = [] } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }), enabled: !!familyId });
   const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list() });
@@ -112,6 +115,11 @@ export default function Dashboard() {
 
   return (
     <div className="pb-4">
+      {refreshing && (
+        <div className="flex justify-center py-3">
+          <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
+        </div>
+      )}
       <PageHeader
         title={format(new Date(), "MMMM yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
         subtitle="Resumen familiar"

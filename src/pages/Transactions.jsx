@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle } from 'lucide-react';
@@ -35,11 +36,13 @@ export default function Transactions() {
   const [expanded, setExpanded] = useState(null);
   const [editing, setEditing] = useState(null);
 
-  const { data: transactions = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading, refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 1000),
     enabled: !!familyId,
   });
+
+  const { refreshing } = usePullToRefresh(refetchTx);
 
   const filtered = useMemo(() => transactions.filter(t => {
     if (filterType !== 'all' && t.type !== filterType) return false;
@@ -84,6 +87,11 @@ export default function Transactions() {
 
   return (
     <div className="pb-4">
+      {refreshing && (
+        <div className="flex justify-center py-3">
+          <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
+        </div>
+      )}
       <PageHeader title="Movimientos" subtitle={`${filtered.length} registros`}
         action={
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-xl text-xs font-medium text-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
