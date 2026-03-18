@@ -47,6 +47,20 @@ export default function FamilyAdmin() {
     queryClient.invalidateQueries({ queryKey: ['memberships'] });
   };
 
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteMsg('');
+    try {
+      await base44.users.inviteUser(inviteEmail.trim().toLowerCase(), 'user');
+      setInviteMsg('✓ Invitación enviada. El usuario debe abrir el correo para acceder a la app.');
+      setInviteEmail('');
+    } catch (e) {
+      setInviteMsg('Error: ' + (e.message || 'No se pudo invitar'));
+    }
+    setInviting(false);
+  };
+
   const copyCode = () => {
     navigator.clipboard.writeText(family?.join_code || '');
     setCopied(true);
