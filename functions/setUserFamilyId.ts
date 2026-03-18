@@ -8,10 +8,9 @@ Deno.serve(async (req) => {
 
     const { target_user_id, family_id } = await req.json();
 
-    const targetUser = await base44.asServiceRole.entities.User.get(target_user_id);
-    const currentData = targetUser.data || {};
+    // Set family_id directly — never spread existing data to avoid nested corruption
     await base44.asServiceRole.entities.User.update(target_user_id, {
-      data: { ...currentData, family_id }
+      data: { family_id, admin_family_ids: null }
     });
 
     return Response.json({ success: true });
