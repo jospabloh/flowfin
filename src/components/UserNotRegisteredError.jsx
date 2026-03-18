@@ -4,29 +4,25 @@ import { Loader2, Key } from 'lucide-react';
 
 export default function UserNotRegisteredError() {
   const [joinCode, setJoinCode] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const handleJoin = async () => {
-    if (!joinCode.trim()) return;
+    if (!joinCode.trim() || !email.trim()) return;
     setLoading(true);
     setError('');
 
-    // Get current user info from token (even if not app-registered)
-    let userEmail = '';
-    let userName = '';
+    let userName = email;
     try {
       const me = await base44.auth.me();
-      userEmail = me.email;
-      userName = me.full_name;
-    } catch {
-      // Can't get user info — will use email from input if needed
-    }
+      userName = me.full_name || me.email;
+    } catch { /* ignore */ }
 
     const res = await base44.functions.invoke('selfJoin', {
       join_code: joinCode.trim().toUpperCase(),
-      user_email: userEmail,
+      user_email: email.trim().toLowerCase(),
       user_name: userName,
     });
 
