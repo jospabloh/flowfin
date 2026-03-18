@@ -49,7 +49,10 @@ export default function FamilyAdmin() {
 
   const handleRemoveMember = async (m) => {
     if (!confirm(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) return;
-    await base44.entities.FamilyMembership.delete(m.id);
+    await base44.functions.invoke('removeMember', {
+      membership_id: m.id,
+      target_user_id: m.user_id,
+    });
     queryClient.invalidateQueries({ queryKey: ['memberships'] });
   };
 
