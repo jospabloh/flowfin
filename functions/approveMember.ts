@@ -11,11 +11,9 @@ Deno.serve(async (req) => {
     // Update membership status
     await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
 
-    // Update the user's family_id so RLS rules allow data access
-    const targetUser = await base44.asServiceRole.entities.User.get(target_user_id);
-    const currentData = targetUser.data || {};
+    // Set family_id directly — do NOT spread existing data to avoid nested corruption
     await base44.asServiceRole.entities.User.update(target_user_id, {
-      data: { ...currentData, family_id }
+      data: { family_id, admin_family_ids: null }
     });
 
     return Response.json({ success: true });
