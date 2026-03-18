@@ -87,25 +87,28 @@ export default function Onboarding() {
     setLoading(true);
     setError('');
 
-    const res = await base44.functions.invoke('selfJoin', {
-      join_code: joinCode.trim().toUpperCase(),
-      user_email: currentUser.email,
-      user_name: currentUser.full_name,
-    });
+    try {
+      const res = await base44.functions.invoke('selfJoin', {
+        join_code: joinCode.trim().toUpperCase(),
+        user_email: currentUser.email,
+        user_name: currentUser.full_name,
+      });
 
-    setLoading(false);
+      if (res.data?.already_member) {
+        refetchMembership();
+        return;
+      }
 
-    if (!res.data?.success && !res.data?.pending) {
-      setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
-      return;
+      if (res.data?.success || res.data?.pending) {
+        setPendingApproval(true);
+      } else {
+        setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
+      }
+    } catch (e) {
+      setError('Error al conectar. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
     }
-
-    if (res.data?.already_member) {
-      refetchMembership();
-      return;
-    }
-
-    setPendingApproval(true);
   };
 
   if (pendingApproval) {
