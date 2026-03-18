@@ -47,6 +47,12 @@ export default function FamilyAdmin() {
     queryClient.invalidateQueries({ queryKey: ['memberships'] });
   };
 
+  const handleRemoveMember = async (m) => {
+    if (!confirm(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) return;
+    await base44.entities.FamilyMembership.delete(m.id);
+    queryClient.invalidateQueries({ queryKey: ['memberships'] });
+  };
+
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
