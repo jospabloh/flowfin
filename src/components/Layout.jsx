@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users, MessageCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
@@ -45,6 +45,18 @@ export default function Layout() {
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
   const isAssistantPage = location.pathname === '/Assistant';
+
+  // Independent scroll position per route (tab memory)
+  const scrollPositions = useRef({});
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    const el = document.getElementById('main-scroll');
+    if (!el) return;
+    scrollPositions.current[prevPath.current] = el.scrollTop;
+    prevPath.current = location.pathname;
+    el.scrollTop = scrollPositions.current[location.pathname] || 0;
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -99,7 +111,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <div className="flex-1 overflow-y-auto mb-nav md:mb-0">
+        <div id="main-scroll" className="flex-1 overflow-y-auto mb-nav md:mb-0">
           <Outlet />
         </div>
       </main>

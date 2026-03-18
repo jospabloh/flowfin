@@ -99,3 +99,10 @@
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   .mb-nav { margin-bottom: calc(72px + env(safe-area-inset-bottom, 8px)); }
 }
+
+@layer base {
+  button, [role="tab"], [role="button"], nav a {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
