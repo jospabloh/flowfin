@@ -12,23 +12,23 @@ export function FamilyProvider({ children }) {
     base44.auth.me().then(u => { setCurrentUser(u); setLoadingUser(false); }).catch(() => setLoadingUser(false));
   }, []);
 
-  const { data: membership, isLoading: loadingMembership, refetch: refetchMembership } = useQuery({
+  const { data: membershipData, isLoading: loadingMembership, refetch: refetchMembership } = useQuery({
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return null;
-      const results = await base44.entities.FamilyMembership.filter({ user_id: currentUser.id, status: 'approved' });
-      return results[0] || null;
+      const res = await base44.functions.invoke('getMyMembership', {});
+      return res.data || null;
     },
     enabled: !!currentUser,
+    staleTime: 0,
+    gcTime: 0,
   });
 
-  const { data: family, isLoading: loadingFamily } = useQuery({
-    queryKey: ['family', membership?.family_id],
-    queryFn: () => base44.functions.invoke('getMyFamily', { family_id: membership.family_id }).then(r => r.data?.family || null),
-    enabled: !!membership?.family_id,
-  });
+  const membership = membershipData?.membership || null;
+  const family = membershipData?.family || null;
+  const loadingFamily = false;
 
-  const isLoading = loadingUser || loadingMembership || (!!membership && loadingFamily);
+  const isLoading = loadingUser || loadingMembership;
   const familyId = family?.id || null;
   const isAdmin = membership?.role === 'admin';
 
