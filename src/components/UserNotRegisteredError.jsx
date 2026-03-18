@@ -85,7 +85,7 @@ export default function UserNotRegisteredError() {
           {error && <p className="text-xs text-destructive text-center">{error}</p>}
           <button
             onClick={handleJoin}
-            disabled={loading || !joinCode.trim()}
+            disabled={loading || !joinCode.trim() || !email.trim()}
             className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
