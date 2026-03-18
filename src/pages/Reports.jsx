@@ -7,6 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import AmountDisplay from '@/components/AmountDisplay';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { startOfMonth, endOfMonth, subMonths, format, parseISO } from 'date-fns';
@@ -206,16 +207,28 @@ export default function Reports() {
 
       {/* Filters */}
       <div className="flex gap-2 px-4 mb-4">
-        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-          <option value="">Todas las categorías</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-        </select>
-        <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)}
-          className="flex-1 bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-          <option value="">Todas las personas</option>
-          {persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <div className="flex-1">
+          <Select value={filterCategory || '__all__'} onValueChange={v => setFilterCategory(v === '__all__' ? '' : v)}>
+            <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card">
+              <SelectValue placeholder="Todas las categorías" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas las categorías</SelectItem>
+              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1">
+          <Select value={filterPerson || '__all__'} onValueChange={v => setFilterPerson(v === '__all__' ? '' : v)}>
+            <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card">
+              <SelectValue placeholder="Todas las personas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Todas las personas</SelectItem>
+              {persons.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div ref={reportRef} className="px-4 space-y-4 bg-background">

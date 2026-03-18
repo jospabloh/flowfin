@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Save, Plus, X } from 'lucide-react';
+import { Save, Plus, X, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -29,6 +29,15 @@ export default function FamilySettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    await base44.functions.invoke('deleteAccount', {});
+    base44.auth.logout();
+  };
   const [config, setConfig] = useState({
     family_name: 'Mi Familia', currency: 'MXN', currency_symbol: '$',
     required_types: ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'],
@@ -113,6 +122,34 @@ export default function FamilySettings() {
           <p className="text-xs text-muted-foreground text-center">
             Esta configuración es exclusiva de su familia y no afecta a otros usuarios de la plataforma.
           </p>
+        </div>
+
+        {/* Danger zone */}
+        <div className="bg-card border border-destructive/30 rounded-2xl p-4 space-y-3 shadow-sm">
+          <h3 className="text-sm font-bold text-destructive flex items-center gap-2">
+            <Trash2 className="w-4 h-4" /> Zona de Peligro
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Al eliminar tu cuenta, se borrarán tus membresías familiares y serás desconectado. Los datos compartidos de la familia no se eliminan.
+          </p>
+          {confirmDelete && (
+            <p className="text-xs font-semibold text-destructive bg-destructive/10 rounded-xl px-3 py-2">
+              ¿Estás seguro? Esta acción no se puede deshacer. Presiona nuevamente para confirmar.
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button onClick={handleDeleteAccount} disabled={deleting}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-xs font-semibold disabled:opacity-50 transition-colors hover:bg-destructive/90">
+              <Trash2 className="w-3.5 h-3.5" />
+              {deleting ? 'Eliminando...' : confirmDelete ? 'Confirmar eliminación' : 'Eliminar mi cuenta'}
+            </button>
+            {confirmDelete && (
+              <button onClick={() => setConfirmDelete(false)}
+                className="px-4 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-semibold hover:bg-muted/70 transition-colors">
+                Cancelar
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
