@@ -1,31 +1,98 @@
-import React from 'react';
+import { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Loader2, Key } from 'lucide-react';
 
-const UserNotRegisteredError = () => {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-white to-slate-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg border border-slate-100">
+export default function UserNotRegisteredError() {
+  const [joinCode, setJoinCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const handleJoin = async () => {
+    if (!joinCode.trim()) return;
+    setLoading(true);
+    setError('');
+
+    // Get current user info from token (even if not app-registered)
+    let userEmail = '';
+    let userName = '';
+    try {
+      const me = await base44.auth.me();
+      userEmail = me.email;
+      userName = me.full_name;
+    } catch {
+      // Can't get user info — will use email from input if needed
+    }
+
+    const res = await base44.functions.invoke('selfJoin', {
+      join_code: joinCode.trim().toUpperCase(),
+      user_email: userEmail,
+      user_name: userName,
+    });
+
+    if (res.data?.success) {
+      setSuccess(true);
+      // Reload to re-authenticate with the now-registered account
+      setTimeout(() => window.location.reload(), 1500);
+    } else {
+      setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
+    }
+    setLoading(false);
+  };
+
+  const handleLogout = () => {
+    base44.auth.logout();
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-orange-100">
-            <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <span className="text-primary-foreground font-black text-3xl">F</span>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-4">Access Restricted</h1>
-          <p className="text-slate-600 mb-8">
-            You are not registered to use this application. Please contact the app administrator to request access.
-          </p>
-          <div className="p-4 bg-slate-50 rounded-md text-sm text-slate-600">
-            <p>If you believe this is an error, you can:</p>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>Verify you are logged in with the correct account</li>
-              <li>Contact the app administrator for access</li>
-              <li>Try logging out and back in again</li>
-            </ul>
+          <h2 className="text-xl font-bold text-foreground mb-2">¡Bienvenida!</h2>
+          <p className="text-sm text-muted-foreground">Acceso concedido. Cargando la app...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
+            <span className="text-primary-foreground font-black text-3xl">F</span>
           </div>
+          <h1 className="text-2xl font-black text-foreground">FamilyFlow</h1>
+          <p className="text-muted-foreground text-sm mt-1">Finanzas Familiares Inteligentes</p>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-foreground text-center">Unirme a una familia</h2>
+          <p className="text-xs text-muted-foreground text-center">Ingresa el código que te compartió el administrador de tu familia</p>
+          <input
+            type="text"
+            value={joinCode}
+            onChange={e => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="Ej: GARCIA123"
+            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 tracking-widest font-mono text-center uppercase"
+          />
+          {error && <p className="text-xs text-destructive text-center">{error}</p>}
+          <button
+            onClick={handleJoin}
+            disabled={loading || !joinCode.trim()}
+            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+            {loading ? 'Verificando...' : 'Acceder a mi familia'}
+          </button>
+          <button onClick={handleLogout} className="w-full py-2 text-xs text-muted-foreground">
+            Cerrar sesión y usar otra cuenta
+          </button>
         </div>
       </div>
     </div>
   );
-};
-
-export default UserNotRegisteredError;
+}
