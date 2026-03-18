@@ -87,40 +87,25 @@ export default function Onboarding() {
     setLoading(true);
     setError('');
 
-    // Use backend function to bypass RLS when searching family by code
-    const res = await base44.functions.invoke('findFamilyByCode', {
+    const res = await base44.functions.invoke('selfJoin', {
       join_code: joinCode.trim().toUpperCase(),
-      user_id: currentUser.id,
+      user_email: currentUser.email,
+      user_name: currentUser.full_name,
     });
 
-    if (!res.data?.found) {
-      setError('Código no encontrado. Verifica e intenta de nuevo.');
-      setLoading(false);
+    setLoading(false);
+
+    if (!res.data?.success && !res.data?.pending) {
+      setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
       return;
     }
 
-    const { family_id, existing_membership } = res.data;
-
-    if (existing_membership) {
-      if (existing_membership.status === 'approved') { refetchMembership(); setLoading(false); return; }
-      if (existing_membership.status === 'pending') { setPendingApproval(true); setLoading(false); return; }
-      if (existing_membership.status === 'rejected') {
-        setError('Tu solicitud fue rechazada. Contacta al administrador.');
-        setLoading(false);
-        return;
-      }
+    if (res.data?.already_member) {
+      refetchMembership();
+      return;
     }
 
-    await base44.entities.FamilyMembership.create({
-      family_id,
-      user_id: currentUser.id,
-      user_email: currentUser.email,
-      user_name: currentUser.full_name,
-      role: 'member',
-      status: 'pending',
-    });
     setPendingApproval(true);
-    setLoading(false);
   };
 
   if (pendingApproval) {
