@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { CheckCircle, XCircle, Users, Copy, Check } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 
