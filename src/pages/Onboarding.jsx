@@ -21,18 +21,14 @@ export default function Onboarding() {
   const [pendingApproval, setPendingApproval] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
 
-  // On mount, check if user already has a pending or approved membership
-  // This handles the case where user refreshes the page after submitting a request
+  // On mount, check via backend function (bypasses RLS/token caching)
   useEffect(() => {
     if (!currentUser) return;
-    base44.entities.FamilyMembership.filter({ user_id: currentUser.id })
-      .then(memberships => {
-        const approved = memberships.find(m => m.status === 'approved');
-        const pending = memberships.find(m => m.status === 'pending');
-        if (approved) {
+    base44.functions.invoke('getMyMembership', {})
+      .then(res => {
+        const { membership } = res.data || {};
+        if (membership) {
           refetchMembership();
-        } else if (pending) {
-          setPendingApproval(true);
         }
       })
       .catch(() => {})
