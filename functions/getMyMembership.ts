@@ -6,7 +6,6 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Use service role to bypass RLS and token caching issues
     const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
       user_id: user.id,
       status: 'approved',

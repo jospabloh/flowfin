@@ -26,10 +26,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Delete the membership
     await base44.asServiceRole.entities.FamilyMembership.delete(membership_id);
 
-    // Clear family_id from the user's data
     if (target_user_id) {
       const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
       if (users && users[0]) {

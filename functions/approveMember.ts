@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
     const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
     if (users && users[0]) {
       const existing = users[0].data || {};
-      // Flatten: avoid nested data.data
       const newData = { ...existing, family_id };
       delete newData.data;
       await base44.asServiceRole.entities.User.update(target_user_id, { data: newData });
