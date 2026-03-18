@@ -67,7 +67,14 @@ export default function UserNotRegisteredError() {
 
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-foreground text-center">Unirme a una familia</h2>
-          <p className="text-xs text-muted-foreground text-center">Ingresa el código que te compartió el administrador de tu familia</p>
+          <p className="text-xs text-muted-foreground text-center">Ingresa tu correo y el código que te compartió el administrador</p>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="tu@correo.com"
+            className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+          />
           <input
             type="text"
             value={joinCode}
