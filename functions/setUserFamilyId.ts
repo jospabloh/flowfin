@@ -8,10 +8,8 @@ Deno.serve(async (req) => {
 
     const { target_user_id, family_id } = await req.json();
 
-    // Set family_id directly — never spread existing data to avoid nested corruption
-    await base44.asServiceRole.entities.User.update(target_user_id, {
-      data: { family_id, admin_family_ids: null }
-    });
+    // Update family_id as a top-level field on the user record (not nested under data)
+    await base44.asServiceRole.entities.User.update(target_user_id, { family_id });
 
     return Response.json({ success: true });
   } catch (error) {
