@@ -16,8 +16,8 @@ Deno.serve(async (req) => {
     }
     const family = families[0];
 
-    // Invite the user to the app so they can access it
-    await base44.asServiceRole.users.inviteUser(user_email, 'user');
+    // Invite the user to the app so they can access it (must use base44.auth, not asServiceRole)
+    await base44.auth.inviteUser(user_email, 'user');
 
     // Find the new user record
     const users = await base44.asServiceRole.entities.User.filter({ email: user_email });
