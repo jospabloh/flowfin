@@ -164,6 +164,11 @@ export default function FamilyAdmin() {
                 <p className="text-sm font-medium text-foreground">{m.user_name || m.user_email}</p>
                 <p className="text-xs text-muted-foreground">{m.role === 'admin' ? '👑 Administrador' : 'Miembro'}</p>
               </div>
+              {m.role !== 'admin' && (
+                <button onClick={() => handleRemoveMember(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>
