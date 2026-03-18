@@ -24,7 +24,7 @@ export function FamilyProvider({ children }) {
 
   const { data: family, isLoading: loadingFamily } = useQuery({
     queryKey: ['family', membership?.family_id],
-    queryFn: () => base44.entities.Family.filter({ id: membership.family_id }).then(r => r[0] || null),
+    queryFn: () => base44.functions.invoke('getMyFamily', { family_id: membership.family_id }).then(r => r.data?.family || null),
     enabled: !!membership?.family_id,
   });
 
