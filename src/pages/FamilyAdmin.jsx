@@ -16,8 +16,19 @@ export default function FamilyAdmin() {
     enabled: !!familyId,
   });
 
-  const pending = memberships.filter(m => m.status === 'pending');
-  const approved = memberships.filter(m => m.status === 'approved');
+  // Deduplicate by email: keep only the most recent membership per email
+  const dedupedMemberships = Object.values(
+    memberships.reduce((acc, m) => {
+      const key = m.user_email;
+      if (!acc[key] || new Date(m.created_date) > new Date(acc[key].created_date)) {
+        acc[key] = m;
+      }
+      return acc;
+    }, {})
+  );
+
+  const pending = dedupedMemberships.filter(m => m.status === 'pending');
+  const approved = dedupedMemberships.filter(m => m.status === 'approved');
 
   const handleApprove = async (m) => {
     await base44.functions.invoke('approveMember', {

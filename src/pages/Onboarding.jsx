@@ -68,6 +68,15 @@ export default function Onboarding() {
       return;
     }
     const family = families[0];
+
+    // Clean up any orphan memberships from old user_ids with the same email
+    const orphans = await base44.entities.FamilyMembership.filter({ family_id: family.id, user_email: currentUser.email });
+    for (const orphan of orphans) {
+      if (orphan.user_id !== currentUser.id) {
+        await base44.entities.FamilyMembership.delete(orphan.id);
+      }
+    }
+
     const existing = await base44.entities.FamilyMembership.filter({ family_id: family.id, user_id: currentUser.id });
     if (existing.length) {
       if (existing[0].status === 'approved') { refetchMembership(); return; }
