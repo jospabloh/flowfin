@@ -62,12 +62,31 @@ export default function Assistant() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState('');
+
   const quickActions = [
     '💸 Gasté $500 en gasolina hoy',
     '🛒 $1,200 en el súper',
     '💰 Recibí mi quincena de $8,500',
     '📊 ¿Cuánto gasté esta semana?',
   ];
+
+  const handleSendWithConfirmation = async (text) => {
+    setPendingMessage(text);
+    setShowConfirmation(true);
+  };
+
+  const confirmSend = async () => {
+    await sendMessage(pendingMessage);
+    setShowConfirmation(false);
+    setPendingMessage('');
+  };
+
+  const cancelSend = () => {
+    setShowConfirmation(false);
+    setPendingMessage('');
+  };
 
   if (!conversation) return (
     <div className="flex items-center justify-center h-[60vh]">
@@ -153,18 +172,42 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
+      {/* Confirmation */}
+      <AnimatePresence>
+        {showConfirmation && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className="px-4 pt-2 pb-2 border-t border-border bg-muted/30">
+            <p className="text-xs text-muted-foreground mb-2">¿Confirmas este movimiento?</p>
+            <div className="flex gap-2">
+              <button onClick={confirmSend}
+                className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
+                Sí
+              </button>
+              <button onClick={cancelSend}
+                className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
+                No (Modificar)
+              </button>
+              <button onClick={() => { setShowConfirmation(false); setPendingMessage(''); setInput(''); }}
+                className="flex-1 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input */}
       <div className="px-4 pb-4 pt-2 border-t border-border">
         <div className="flex gap-2">
           <input type="text" value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
+            onKeyDown={e => e.key === 'Enter' && !showConfirmation && handleSendWithConfirmation(input)}
             placeholder="Escribe o habla tu transacción..."
             className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           <button onClick={isListening ? stopVoice : startVoice}
             className={`p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
-          <button onClick={() => sendMessage()} disabled={!input.trim() || sending}
+          <button onClick={() => handleSendWithConfirmation(input)} disabled={!input.trim() || sending}
             className="p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
             <Send className="w-5 h-5" />
           </button>
