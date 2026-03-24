@@ -238,7 +238,7 @@ export default function Dashboard() {
       <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Últimos movimientos</h3>
-          <Link to="/Transactions" className="text-xs text-primary font-medium flex items-center gap-0.5">
+          <Link to="/Transactions" aria-label="Ver todos los movimientos recientes" className="text-xs text-primary font-medium flex items-center gap-0.5">
             Ver todos <ChevronRight className="w-3 h-3" />
           </Link>
         </div>

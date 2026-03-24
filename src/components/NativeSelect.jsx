@@ -30,6 +30,7 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
+        aria-label={`Seleccionar ${placeholder}${selected ? `, opción actual: ${selected.label}` : ''}`}
         className={`flex items-center justify-between gap-2 text-left ${className}`}
       >
         <span className={selected ? 'text-foreground' : 'text-muted-foreground'}>

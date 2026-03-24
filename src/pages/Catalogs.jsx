@@ -93,7 +93,7 @@ export default function Catalogs() {
 
   return (
     <div className="pb-4">
-      <PageHeader title="Catálogos" subtitle="Gestión de datos maestros" />
+      <PageHeader title="Catálogos" subtitle="Gestión de datos maestros" aria-label="Página de catálogos" />
 
       <Tabs defaultValue="categories" className="px-4">
         <TabsList className="w-full mb-4 grid grid-cols-4 h-auto p-1">
@@ -105,7 +105,7 @@ export default function Catalogs() {
 
         {/* Categories */}
         <TabsContent value="categories" className="space-y-2">
-          <button onClick={() => setAddingTab('cat')} className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+          <button onClick={() => setAddingTab('cat')} aria-label="Agregar nueva categoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva categoría
           </button>
           {addingTab === 'cat' && (
@@ -130,7 +130,7 @@ export default function Catalogs() {
                 <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
               </div>
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-              <button onClick={() => deleteItem('Category', cat.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+              <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -139,7 +139,7 @@ export default function Catalogs() {
 
         {/* Subcategories */}
         <TabsContent value="subcategories" className="space-y-2">
-          <button onClick={() => setAddingTab('sub')} className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+          <button onClick={() => setAddingTab('sub')} aria-label="Agregar nueva subcategoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva subcategoría
           </button>
           {addingTab === 'sub' && (
@@ -164,7 +164,7 @@ export default function Catalogs() {
                     <div key={sub.id} className="bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground">{sub.name}</p>
-                        <button onClick={() => deleteItem('Subcategory', sub.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -185,7 +185,7 @@ export default function Catalogs() {
 
         {/* Persons */}
         <TabsContent value="persons" className="space-y-2">
-          <button onClick={() => setAddingTab('person')} className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+          <button onClick={() => setAddingTab('person')} aria-label="Agregar nueva persona" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva persona
           </button>
           {addingTab === 'person' && (
@@ -205,7 +205,7 @@ export default function Catalogs() {
                 {p.avatar_initial || p.name?.charAt(0)}
               </div>
               <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
-              <button onClick={() => deleteItem('Person', p.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+              <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -214,7 +214,7 @@ export default function Catalogs() {
 
         {/* Payment methods */}
         <TabsContent value="methods" className="space-y-2">
-          <button onClick={() => setAddingTab('method')} className="flex items-center gap-2 text-primary text-sm font-medium mb-2">
+          <button onClick={() => setAddingTab('method')} aria-label="Agregar nueva forma de pago" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva forma de pago
           </button>
           {addingTab === 'method' && (
@@ -237,7 +237,7 @@ export default function Catalogs() {
                   <p className="text-sm font-medium text-foreground">{m.name}</p>
                   <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
                 </div>
-                <button onClick={() => deleteItem('PaymentMethod', m.id)} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors">
+                <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>

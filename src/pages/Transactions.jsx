@@ -122,10 +122,11 @@ export default function Transactions() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar..." className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-          {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="w-4 h-4 text-muted-foreground" /></button>}
+          {search && <button onClick={() => setSearch('')} aria-label="Limpiar búsqueda" className="absolute right-2 top-1/2 -translate-y-1/2 touch-target"><X className="w-4 h-4 text-muted-foreground" /></button>}
         </div>
         <button onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all
+          aria-label={`${showFilters ? 'Cerrar' : 'Abrir'} filtros${activeFilters > 0 ? `, ${activeFilters} activos` : ''}`}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all touch-target
             ${activeFilters > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'}`}>
           <Filter className="w-4 h-4" />
           {activeFilters > 0 && <span className="text-xs">{activeFilters}</span>}
@@ -259,14 +260,14 @@ export default function Transactions() {
                           <div className="flex gap-2 mt-1">
                             <button
                               onClick={() => handleEdit(t)}
-                              aria-label={`Editar ${desc}`}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+                              aria-label={`Editar movimiento: ${desc}`}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors touch-target">
                               <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> Editar
                             </button>
                             <button
                               onClick={() => handleDelete(t.id)}
-                              aria-label={`Eliminar ${desc}`}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors">
+                              aria-label={`Eliminar movimiento: ${desc}`}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors touch-target">
                               <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> Eliminar
                             </button>
                           </div>
