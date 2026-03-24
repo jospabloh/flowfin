@@ -23,6 +23,23 @@ export default function Capture() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  const createTransactionMutation = useMutation({
+    mutationFn: (data) => base44.entities.Transaction.create(data),
+    onMutate: async (newTx) => {
+      await queryClient.cancelQueries({ queryKey: ['transactions', familyId] });
+      const previous = queryClient.getQueryData(['transactions', familyId]);
+      const optimistic = { ...newTx, id: `optimistic-${Date.now()}`, created_date: new Date().toISOString() };
+      queryClient.setQueryData(['transactions', familyId], (old = []) => [optimistic, ...old]);
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['transactions', familyId], ctx.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    },
+  });
+
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
