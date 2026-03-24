@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -8,20 +9,23 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ThemeProvider } from 'next-themes';
 import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
-import Dashboard from '@/pages/Dashboard';
-import Capture from '@/pages/Capture';
-import Transactions from '@/pages/Transactions';
-import Reports from '@/pages/Reports';
-import Investments from '@/pages/Investments';
-import MSIPage from '@/pages/MSIPage';
-import Rentals from '@/pages/Rentals';
-import Catalogs from '@/pages/Catalogs';
-import FamilySettings from '@/pages/FamilySettings';
-import UserManual from '@/pages/UserManual';
-import About from '@/pages/About';
-import Onboarding from '@/pages/Onboarding';
-import FamilyAdmin from '@/pages/FamilyAdmin';
-import Assistant from '@/pages/Assistant';
+import LoadingFallback from '@/components/LoadingFallback';
+
+// Lazy-loaded pages
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Capture = lazy(() => import('@/pages/Capture'));
+const Transactions = lazy(() => import('@/pages/Transactions'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Investments = lazy(() => import('@/pages/Investments'));
+const MSIPage = lazy(() => import('@/pages/MSIPage'));
+const Rentals = lazy(() => import('@/pages/Rentals'));
+const Catalogs = lazy(() => import('@/pages/Catalogs'));
+const FamilySettings = lazy(() => import('@/pages/FamilySettings'));
+const UserManual = lazy(() => import('@/pages/UserManual'));
+const About = lazy(() => import('@/pages/About'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const FamilyAdmin = lazy(() => import('@/pages/FamilyAdmin'));
+const Assistant = lazy(() => import('@/pages/Assistant'));
 
 const FamilyGate = ({ children }) => {
   const { isLoading, membership, family } = useFamily();
@@ -68,25 +72,27 @@ const AuthenticatedApp = () => {
   return (
     <FamilyProvider>
       <FamilyGate>
-        <Routes>
-          <Route path="/" element={<Navigate to="/Dashboard" replace />} />
-          <Route element={<Layout />}>
-            <Route path="/Dashboard" element={<Dashboard />} />
-            <Route path="/Capture" element={<Capture />} />
-            <Route path="/Assistant" element={<Assistant />} />
-            <Route path="/Transactions" element={<Transactions />} />
-            <Route path="/Reports" element={<Reports />} />
-            <Route path="/Investments" element={<Investments />} />
-            <Route path="/MSI" element={<MSIPage />} />
-            <Route path="/Rentals" element={<Rentals />} />
-            <Route path="/Catalogs" element={<Catalogs />} />
-            <Route path="/FamilySettings" element={<FamilySettings />} />
-            <Route path="/FamilyAdmin" element={<FamilyAdmin />} />
-            <Route path="/UserManual" element={<UserManual />} />
-            <Route path="/About" element={<About />} />
-          </Route>
-          <Route path="*" element={<PageNotFound />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/Dashboard" replace />} />
+            <Route element={<Layout />}>
+              <Route path="/Dashboard" element={<Suspense fallback={<LoadingFallback />}><Dashboard /></Suspense>} />
+              <Route path="/Capture" element={<Suspense fallback={<LoadingFallback />}><Capture /></Suspense>} />
+              <Route path="/Assistant" element={<Suspense fallback={<LoadingFallback />}><Assistant /></Suspense>} />
+              <Route path="/Transactions" element={<Suspense fallback={<LoadingFallback />}><Transactions /></Suspense>} />
+              <Route path="/Reports" element={<Suspense fallback={<LoadingFallback />}><Reports /></Suspense>} />
+              <Route path="/Investments" element={<Suspense fallback={<LoadingFallback />}><Investments /></Suspense>} />
+              <Route path="/MSI" element={<Suspense fallback={<LoadingFallback />}><MSIPage /></Suspense>} />
+              <Route path="/Rentals" element={<Suspense fallback={<LoadingFallback />}><Rentals /></Suspense>} />
+              <Route path="/Catalogs" element={<Suspense fallback={<LoadingFallback />}><Catalogs /></Suspense>} />
+              <Route path="/FamilySettings" element={<Suspense fallback={<LoadingFallback />}><FamilySettings /></Suspense>} />
+              <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><FamilyAdmin /></Suspense>} />
+              <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
+              <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
+            </Route>
+            <Route path="*" element={<PageNotFound />} />
+          </Routes>
+        </Suspense>
       </FamilyGate>
     </FamilyProvider>
   );
