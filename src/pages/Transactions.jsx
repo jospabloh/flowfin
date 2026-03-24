@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import TransactionEditModal from '@/components/TransactionEditModal';
+import { Virtuoso } from 'react-virtuoso';
 function groupByDate(transactions) {
   const groups = {};
   transactions.forEach(t => {
