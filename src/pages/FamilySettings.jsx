@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Save, Plus, X, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
@@ -28,16 +28,7 @@ function TagField({ label, value = [], onChange }) {
 export default function FamilySettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDeleteAccount = async () => {
-    if (!confirmDelete) { setConfirmDelete(true); return; }
-    setDeleting(true);
-    await base44.functions.invoke('deleteAccount', {});
-    base44.auth.logout();
-  };
   const [config, setConfig] = useState({
     family_name: 'Mi Familia', currency: 'MXN', currency_symbol: '$',
     required_types: ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'],
@@ -53,16 +44,72 @@ export default function FamilySettings() {
     if (configs.length > 0) setConfig({ ...config, ...configs[0] });
   }, [configs]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    if (configs.length > 0) {
-      await base44.entities.FamilyConfig.update(configs[0].id, config);
-    } else {
-      await base44.entities.FamilyConfig.create(config);
-    }
-    queryClient.invalidateQueries({ queryKey: ['familyConfig'] });
-    setSaving(false);
-    toast({ title: 'Configuración guardada ✓', description: 'Los cambios se han guardado exitosamente.' });
+  // FamilyConfig save mutation
+  const saveFamilyConfigMutation = useMutation({
+    mutationFn: (configData) => {
+      return configs.length > 0
+        ? base44.entities.FamilyConfig.update(configs[0].id, configData)
+        : base44.entities.FamilyConfig.create(configData);
+    },
+    onMutate: async (newConfig) => {
+      await queryClient.cancelQueries({ queryKey: ['familyConfig'] });
+      const previous = queryClient.getQueryData(['familyConfig']);
+      // Optimistic update
+      if (configs.length > 0) {
+        queryClient.setQueryData(['familyConfig'], (old = []) => 
+          old.map(c => c.id === configs[0].id ? { ...c, ...newConfig } : c)
+        );
+      } else {
+        queryClient.setQueryData(['familyConfig'], (old = []) => 
+          [...old, { ...newConfig, id: `opt_${Date.now()}` }]
+        );
+      }
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['familyConfig'], ctx.previous);
+      toast({
+        title: 'Error al guardar',
+        description: err?.message || 'No se pudo guardar la configuración. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['familyConfig'] });
+      toast({
+        title: 'Configuración guardada ✓',
+        description: 'Los cambios se han guardado exitosamente.',
+      });
+    },
+  });
+
+  // Account deletion mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('deleteAccount', {}),
+    onError: (err) => {
+      toast({
+        title: 'Error al eliminar cuenta',
+        description: err?.message || 'No se pudo eliminar tu cuenta. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+      setConfirmDelete(false);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Cuenta eliminada',
+        description: 'Tu cuenta ha sido eliminada exitosamente. Serás desconectado.',
+      });
+      setTimeout(() => base44.auth.logout(), 1500);
+    },
+  });
+
+  const handleSave = () => {
+    saveFamilyConfigMutation.mutate(config);
+  };
+
+  const handleDeleteAccount = () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    deleteAccountMutation.mutate();
   };
 
   const Field = ({ label, field, type = 'text', placeholder = '' }) => (
@@ -78,9 +125,9 @@ export default function FamilySettings() {
     <div className="pb-6">
       <PageHeader title="Mi Familia" subtitle="Configuración personal"
         action={
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave} disabled={saveFamilyConfigMutation.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
-            <Save className="w-3.5 h-3.5" /> {saving ? 'Guardando...' : 'Guardar'}
+            <Save className="w-3.5 h-3.5" /> {saveFamilyConfigMutation.isPending ? 'Guardando...' : 'Guardar'}
           </button>
         } />
 
@@ -138,10 +185,10 @@ export default function FamilySettings() {
             </p>
           )}
           <div className="flex gap-2">
-            <button onClick={handleDeleteAccount} disabled={deleting}
+            <button onClick={handleDeleteAccount} disabled={deleteAccountMutation.isPending}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-xs font-semibold disabled:opacity-50 transition-colors hover:bg-destructive/90">
               <Trash2 className="w-3.5 h-3.5" />
-              {deleting ? 'Eliminando...' : confirmDelete ? 'Confirmar eliminación' : 'Eliminar mi cuenta'}
+              {deleteAccountMutation.isPending ? 'Eliminando...' : confirmDelete ? 'Confirmar eliminación' : 'Eliminar mi cuenta'}
             </button>
             {confirmDelete && (
               <button onClick={() => setConfirmDelete(false)}
