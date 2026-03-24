@@ -79,7 +79,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-3" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
+        <div className="px-5 py-4 space-y-3 overflow-y-auto overscroll-none hide-scrollbar max-h-[calc(90vh-80px)]" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
           {/* Type */}
           <div className="flex rounded-xl bg-muted p-1 gap-1">
             {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
@@ -184,7 +184,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
           {/* Save */}
           <button onClick={handleSave} disabled={saving || !form.amount}
-            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all">
+            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>

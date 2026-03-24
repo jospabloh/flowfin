@@ -64,14 +64,14 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
                 <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3" />
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                   <span className="text-sm font-semibold text-foreground">{placeholder}</span>
-                  <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                  <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {/* Options list — scrollable */}
-              <div className="overflow-y-auto overscroll-contain">
+              <div className="overflow-y-auto overscroll-none hide-scrollbar">
                 {options.map(opt => {
                   const isSelected = String(opt.value) === String(value);
                   return (
@@ -79,7 +79,7 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
                       key={opt.value}
                       type="button"
                       onClick={() => handleSelect(opt.value)}
-                      className={`w-full flex items-center justify-between px-5 py-3.5 text-sm transition-colors active:bg-muted
+                      className={`w-full flex items-center justify-between px-5 py-3.5 text-sm transition-colors active:bg-muted touch-target
                         ${isSelected ? 'text-primary font-semibold bg-primary/5' : 'text-foreground'}`}
                     >
                       <span>{opt.label}</span>
