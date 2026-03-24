@@ -33,7 +33,9 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
   const { familyId } = useFamily();
-  const { categories = [], persons = [] } = useCatalog(familyId) || {};
+  const catalog = useCatalog(familyId);
+  const categories = catalog?.categories || [];
+  const persons = catalog?.persons || [];
 
   const { data: transactions = [], refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
