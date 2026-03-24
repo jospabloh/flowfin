@@ -112,10 +112,10 @@ export default function Layout() {
             const active = location.pathname === item.to;
             const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
-              <Link key={item.to} to={item.to}
+              <button key={item.to} onClick={() => handleNavClick(item.to)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 w-full text-left
                   ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
                 <div className="relative flex-shrink-0">
                   <Icon className="w-4 h-4" aria-hidden="true" />
@@ -135,11 +135,11 @@ export default function Layout() {
           <div className="flex items-center justify-between mb-3">
             <ThemeToggle />
           </div>
-          <Link to="/Capture"
+          <button onClick={() => handleNavClick('/Capture')}
             className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
             <Plus className="w-4 h-4" />
             Registrar
-          </Link>
+          </button>
         </div>
       </aside>
 
@@ -196,17 +196,17 @@ export default function Layout() {
             }
             if (item.isCenter) {
               return (
-                <Link key={item.to} to={item.to} aria-label="Registrar nuevo movimiento"
+                <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label="Registrar nuevo movimiento"
                   className="flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/30 -mt-4 transition-transform active:scale-95">
                   <Plus className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
-                </Link>
+                </button>
               );
             }
             const Icon = item.icon;
             const active = location.pathname === item.to;
             const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
-              <Link key={item.to} to={item.to}
+              <button key={item.to} onClick={() => handleNavClick(item.to)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
