@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -42,11 +42,36 @@ export default function Transactions() {
   const handleEdit = (t) => { setEditing(t); };
   const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions'] }); };
 
-  const { data: transactions = [], isLoading, refetch: refetchTx } = useQuery({
-    queryKey: ['transactions', familyId],
-    queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 1000),
+  const [hasMore, setHasMore] = useState(true);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const pageSize = 100;
+
+  const { data: paginatedData = { transactions: [], hasMore: true }, isLoading, refetch: refetchTx } = useQuery({
+    queryKey: ['transactions', familyId, 0],
+    queryFn: async () => {
+      const txs = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize);
+      setAllTransactions(txs);
+      return { transactions: txs, hasMore: txs.length === pageSize };
+    },
     enabled: !!familyId,
   });
+
+  // Handle infinite scroll: load more items when user scrolls near bottom
+  const handleLoadMore = useCallback(async () => {
+    if (!hasMore || !familyId) return;
+    const nextOffset = allTransactions.length;
+    const nextBatch = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize, nextOffset);
+    setAllTransactions(prev => [...prev, ...nextBatch]);
+    setHasMore(nextBatch.length === pageSize);
+  }, [hasMore, familyId, allTransactions.length]);
+
+  // Sync pagination data on query change
+  useEffect(() => {
+    setAllTransactions(paginatedData.transactions);
+    setHasMore(paginatedData.hasMore);
+  }, [paginatedData]);
+
+  const transactions = allTransactions;
 
   const { refreshing } = usePullToRefresh(refetchTx);
 
@@ -198,6 +223,8 @@ export default function Transactions() {
         <Virtuoso
           useWindowScroll
           data={groups}
+          endReached={() => handleLoadMore()}
+          overscan={5}
           itemContent={(_, [date, txns]) => (
             <div className="px-4 mb-4" key={date}>
               <div className="flex items-center gap-2 mb-2">

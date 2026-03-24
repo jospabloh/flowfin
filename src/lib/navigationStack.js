@@ -19,15 +19,36 @@ export function initializeNavigation(initialPath) {
     navigationStack = [initialPath];
   }
   
-  // Setup browser popstate listener
+  // Setup browser popstate listener (for desktop back button & browser back)
   window.addEventListener('popstate', handlePopState);
+  
+  // Setup Android hardware back button interception
+  // Use beforeunload to prevent default Android back behavior
+  document.addEventListener('backbutton', handleAndroidBack, false);
+  
+  // Fallback: Intercept keyboard events on Android
+  document.addEventListener('keydown', (e) => {
+    // On Android, ESC key sometimes maps to hardware back button
+    if (e.key === 'Escape') handleAndroidBack();
+  }, { capture: true });
   
   return navigationStack;
 }
 
+function handleAndroidBack() {
+  // Prevent default browser back behavior
+  if (window.history.length > 1) {
+    goBack();
+  }
+}
+
 function handlePopState(event) {
   const path = event.state?.path || '/Dashboard';
-  setNavigationStack([...navigationStack.filter(p => navigationStack.indexOf(p) < navigationStack.indexOf(path) + 1), path]);
+  // Sync internal stack with browser history
+  const currentIndex = navigationStack.indexOf(getCurrentPath());
+  if (currentIndex > 0) {
+    setNavigationStack(navigationStack.slice(0, currentIndex));
+  }
 }
 
 export function getCurrentPath() {
