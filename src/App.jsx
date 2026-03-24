@@ -26,6 +26,7 @@ const About = lazy(() => import('@/pages/About'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const FamilyAdmin = lazy(() => import('@/pages/FamilyAdmin'));
 const Assistant = lazy(() => import('@/pages/Assistant'));
+const AccountSettings = lazy(() => import('@/pages/AccountSettings'));
 
 const FamilyGate = ({ children }) => {
   const { isLoading, membership, family } = useFamily();
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
               <Route path="/Rentals" element={<Suspense fallback={<LoadingFallback />}><Rentals /></Suspense>} />
               <Route path="/Catalogs" element={<Suspense fallback={<LoadingFallback />}><Catalogs /></Suspense>} />
               <Route path="/FamilySettings" element={<Suspense fallback={<LoadingFallback />}><FamilySettings /></Suspense>} />
+              <Route path="/AccountSettings" element={<Suspense fallback={<LoadingFallback />}><AccountSettings /></Suspense>} />
               <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><FamilyAdmin /></Suspense>} />
               <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
