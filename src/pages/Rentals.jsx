@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 export default function Rentals() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showPayForm, setShowPayForm] = useState(false);
@@ -23,19 +24,61 @@ export default function Rentals() {
   const { data: properties = [], isLoading } = useQuery({ queryKey: ['rentalProperties', familyId], queryFn: () => base44.entities.RentalProperty.filter({ family_id: familyId }, 'name'), enabled: !!familyId });
   const { data: payments = [] } = useQuery({ queryKey: ['rentalPayments'], queryFn: () => base44.entities.RentalPayment.list('-month') });
 
+  const createPropertyMutation = useMutation({
+    mutationFn: (data) => base44.entities.RentalProperty.create(data),
+    onMutate: async (newProp) => {
+      await queryClient.cancelQueries({ queryKey: ['rentalProperties', familyId] });
+      const previous = queryClient.getQueryData(['rentalProperties', familyId]);
+      const optimistic = { ...newProp, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['rentalProperties', familyId], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['rentalProperties', familyId], ctx.previous);
+      toast({ title: 'Error al crear propiedad', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['rentalProperties', familyId] }),
+  });
+
+  const createPaymentMutation = useMutation({
+    mutationFn: (data) => base44.entities.RentalPayment.create(data),
+    onMutate: async (newPay) => {
+      await queryClient.cancelQueries({ queryKey: ['rentalPayments'] });
+      const previous = queryClient.getQueryData(['rentalPayments']);
+      const optimistic = { ...newPay, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['rentalPayments'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['rentalPayments'], ctx.previous);
+      toast({ title: 'Error al registrar cobro', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['rentalPayments'] }),
+  });
+
   const handleCreate = async () => {
     if (!form.name || !form.base_rent) return;
-    await base44.entities.RentalProperty.create({ ...form, family_id: familyId, base_rent: +form.base_rent, payment_day: +form.payment_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['rentalProperties', familyId] });
+    createPropertyMutation.mutate({ 
+      ...form, 
+      family_id: familyId, 
+      base_rent: +form.base_rent, 
+      payment_day: +form.payment_day, 
+      is_active: true 
+    });
     setShowForm(false);
     setForm({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   };
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
-    await base44.entities.RentalPayment.create({ ...payForm, property_id: selected.id, amount: +payForm.amount, is_paid: true });
-    queryClient.invalidateQueries({ queryKey: ['rentalPayments'] });
+    createPaymentMutation.mutate({ 
+      ...payForm, 
+      property_id: selected.id, 
+      amount: +payForm.amount, 
+      is_paid: true 
+    });
     setShowPayForm(false);
+    setPayForm({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
   };
 
   return (
