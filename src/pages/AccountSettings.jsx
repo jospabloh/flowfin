@@ -1,31 +1,67 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AlertTriangle, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
+import { useToast } from '@/components/ui/use-toast';
 
 const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
 export default function AccountSettings() {
+  const { toast } = useToast();
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleStartDeletion = async () => {
-    setError('');
-    setLoading(true);
-    try {
+  // Start deletion mutation
+  const startDeletionMutation = useMutation({
+    mutationFn: async () => {
       const user = await base44.auth.me();
-      setEmail(user.email);
+      return user.email;
+    },
+    onSuccess: (userEmail) => {
+      setEmail(userEmail);
       setStep(1);
-    } catch (err) {
-      setError('Error al verificar tu cuenta');
-    } finally {
-      setLoading(false);
-    }
+      setError('');
+    },
+    onError: (err) => {
+      setError('Error al verificar tu cuenta: ' + (err?.message || 'Intenta de nuevo'));
+      toast({
+        title: 'Error de verificación',
+        description: 'No pudimos verificar tu cuenta. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: (code) => base44.functions.invoke('deleteAccount', { verification_code: code }),
+    onSuccess: () => {
+      setStep(3);
+      toast({
+        title: 'Cuenta eliminada ✓',
+        description: 'Tu cuenta ha sido eliminada exitosamente.',
+      });
+      setTimeout(() => {
+        base44.auth.logout('/');
+      }, 2000);
+    },
+    onError: (err) => {
+      setError(err?.message || 'Error al eliminar la cuenta. Intenta de nuevo.');
+      toast({
+        title: 'Error al eliminar cuenta',
+        description: err?.message || 'No se pudo eliminar tu cuenta.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleStartDeletion = async () => {
+    startDeletionMutation.mutate();
   };
 
   const handleConfirmEmail = () => {
@@ -37,24 +73,12 @@ export default function AccountSettings() {
     setError('');
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = () => {
     if (!verificationCode) {
       setError('Ingresa el código de verificación');
       return;
     }
-    setLoading(true);
-    try {
-      await base44.functions.invoke('deleteAccount', { 
-        verification_code: verificationCode 
-      });
-      setStep(3);
-      setTimeout(() => {
-        base44.auth.logout('/');
-      }, 2000);
-    } catch (err) {
-      setError(err.message || 'Error al eliminar la cuenta');
-      setLoading(false);
-    }
+    deleteAccountMutation.mutate(verificationCode);
   };
 
   const handleCancel = () => {
@@ -184,10 +208,10 @@ export default function AccountSettings() {
                       </button>
                       <button
                         onClick={handleStartDeletion}
-                        disabled={loading}
+                        disabled={startDeletionMutation.isPending}
                         className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors touch-target"
                       >
-                        {loading ? 'Verificando...' : 'Continuar'}
+                        {startDeletionMutation.isPending ? 'Verificando...' : 'Continuar'}
                       </button>
                     </div>
                   </motion.div>
@@ -260,10 +284,10 @@ export default function AccountSettings() {
                       </button>
                       <button
                         onClick={handleDeleteAccount}
-                        disabled={loading || !verificationCode}
+                        disabled={deleteAccountMutation.isPending || !verificationCode}
                         className="flex-1 py-2.5 rounded-xl bg-destructive text-white text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors touch-target"
                       >
-                        {loading ? 'Eliminando...' : 'Eliminar cuenta'}
+                        {deleteAccountMutation.isPending ? 'Eliminando...' : 'Eliminar cuenta'}
                       </button>
                     </div>
                   </motion.div>
