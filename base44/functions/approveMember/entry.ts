@@ -8,6 +8,10 @@ Deno.serve(async (req) => {
 
     const { membership_id, family_id, target_user_id } = await req.json();
 
+    if (!membership_id || !family_id || !target_user_id) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
     // Verify caller is app admin OR family admin
     if (user.role !== 'admin') {
       const callerMemberships = await base44.asServiceRole.entities.FamilyMembership.filter({
@@ -19,6 +23,14 @@ Deno.serve(async (req) => {
       if (!callerMemberships.length) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
       }
+    }
+
+    // Verify the membership_id actually belongs to the claimed family_id
+    // This prevents a caller from approving memberships of other families
+    const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ id: membership_id });
+    const targetMembership = memberships?.[0];
+    if (!targetMembership || targetMembership.family_id !== family_id) {
+      return Response.json({ error: 'Forbidden: membership does not belong to this family' }, { status: 403 });
     }
 
     // Update membership status
