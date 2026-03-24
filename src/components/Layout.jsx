@@ -151,7 +151,7 @@ export default function Layout() {
         {showBack && (
           <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => { setNavigationDirection('backward'); navigate(-1); }}
               className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity"
             >
               <ChevronLeft className="w-5 h-5" />
