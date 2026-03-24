@@ -91,6 +91,17 @@ export default function Transactions() {
 
   return (
     <div className="pb-4">
+      {editing && (
+        <TransactionEditModal
+          transaction={editing}
+          categories={categories}
+          subcategories={subcategories}
+          persons={persons}
+          paymentMethods={paymentMethods}
+          onClose={() => setEditing(null)}
+          onSaved={handleEditSaved}
+        />
+      )}
       {refreshing && (
         <div className="flex justify-center py-3">
           <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
