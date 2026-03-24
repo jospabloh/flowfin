@@ -41,11 +41,17 @@ const sideNavItems = [
   { to: '/About', icon: Info, label: 'Acerca de' },
 ];
 
+// Root tabs — no back arrow shown here
+const ROOT_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports'];
+
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
   const isAssistantPage = location.pathname === '/Assistant';
+  const isRootTab = ROOT_TABS.includes(location.pathname);
+  const showBack = !isRootTab;
 
   // Independent scroll position per route (tab memory)
   const scrollPositions = useRef({});
