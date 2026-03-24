@@ -138,7 +138,7 @@ export default function Capture() {
     if (!personId) { alert('Debes seleccionar una Persona'); return; }
     setSaving(true);
     const week = getWeekNumber(date);
-    await base44.entities.Transaction.create({
+    const txData = {
       date, type, amount: parseFloat(amount), description,
       family_id: familyId,
       category_id: categoryId || undefined,
@@ -146,9 +146,10 @@ export default function Capture() {
       person_id: personId || undefined,
       payment_method_id: paymentMethodId || undefined,
       required_type: requiredType, has_invoice: hasInvoice, notes, week,
-    });
+    };
+    // Fire optimistic mutation — UI updates instantly
+    createTransactionMutation.mutate(txData);
     if (subcategoryId) increment(subcategoryId);
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
     setSaving(false);
     setShowSuccess(true);
     confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
