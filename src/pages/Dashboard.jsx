@@ -208,7 +208,7 @@ export default function Dashboard() {
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-3">Gasto por Persona</h3>
           <div className="flex items-center gap-4">
-            <div className="h-24 w-24 flex-shrink-0">
+            <div className="h-24 w-24 flex-shrink-0 min-h-[96px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={byPerson} dataKey="value" cx="50%" cy="50%" innerRadius={22} outerRadius={38}>
