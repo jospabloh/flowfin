@@ -190,18 +190,20 @@ export default function Layout() {
                 .some(p => location.pathname.includes(p));
               return (
                 <button key="more" onClick={() => setShowMore(true)}
+                  aria-label="Abrir más opciones"
+                  aria-haspopup="dialog"
                   className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
                     ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-                  <MoreHorizontal className="w-6 h-6" />
+                  <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
                   <span className="text-[10px] font-medium">Más</span>
                 </button>
               );
             }
             if (item.isCenter) {
               return (
-                <Link key={item.to} to={item.to}
+                <Link key={item.to} to={item.to} aria-label="Registrar nuevo movimiento"
                   className="flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/30 -mt-4 transition-transform active:scale-95">
-                  <Plus className="w-7 h-7 text-primary-foreground" />
+                  <Plus className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
                 </Link>
               );
             }
@@ -210,12 +212,14 @@ export default function Layout() {
             const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
               <Link key={item.to} to={item.to}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
                   ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                 <div className="relative">
-                  <Icon className="w-6 h-6" />
+                  <Icon className="w-6 h-6" aria-hidden="true" />
                   {showBadge && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
+                    <span aria-label={`${pendingCount} movimientos pendientes`} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
                       {pendingCount > 9 ? '9+' : pendingCount}
                     </span>
                   )}
