@@ -3,6 +3,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle, Pencil } from 'lucide-react';
+import NativeSelect from '@/components/NativeSelect';
 import * as XLSX from 'xlsx';
 import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
