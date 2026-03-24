@@ -73,6 +73,14 @@ export default function Dashboard() {
       .sort((a, b) => b.total - a.total).slice(0, 5);
   }, [filtered, categories]);
 
+  const expenseCategoriesCount = useMemo(() => {
+    const m = {};
+    filtered.filter(t => t.type === 'expense').forEach(t => {
+      m[t.category_id || 'x'] = 1;
+    });
+    return Object.keys(m).length;
+  }, [filtered]);
+
   const byPerson = useMemo(() => {
     const map = {};
     filtered.filter(t => t.type === 'expense').forEach(t => {
