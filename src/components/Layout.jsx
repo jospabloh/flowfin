@@ -57,41 +57,46 @@ export default function Layout() {
   // Independent scroll position per route (tab memory)
   const scrollPositions = useRef({});
   const prevPath = useRef(location.pathname);
-  // Track a simple history stack to detect forward vs back
-  const historyStack = useRef([location.pathname]);
+  // Persist history stack in sessionStorage so it survives hot reloads / StrictMode
+  const historyStack = useRef(() => {
+    try {
+      const stored = sessionStorage.getItem('ff_nav_stack');
+      return stored ? JSON.parse(stored) : [location.pathname];
+    } catch { return [location.pathname]; }
+  });
+  // Initialise as value (useRef lazy init calls fn only on first render)
+  if (typeof historyStack.current === 'function') {
+    historyStack.current = historyStack.current();
+  }
 
   useEffect(() => {
-    const el = document.getElementById('main-scroll');
-
-    // Save scroll for the page we're leaving
-    if (el) {
-      scrollPositions.current[prevPath.current] = el.scrollTop;
-    }
+    // Save scroll for the page we're leaving (window scroll, used by Virtuoso)
+    scrollPositions.current[prevPath.current] = window.scrollY;
 
     // Determine direction BEFORE updating the stack
     const stack = historyStack.current;
     const prevIndex = stack.lastIndexOf(prevPath.current);
     const nextIndex = stack.lastIndexOf(location.pathname);
 
-    if (nextIndex !== -1 && nextIndex < prevIndex) {
+    if (location.pathname === prevPath.current) {
+      // Same page — no change needed
+    } else if (nextIndex !== -1 && nextIndex < prevIndex) {
       // Going back to a page that exists earlier in the stack
       setNavigationDirection('backward');
       historyStack.current = stack.slice(0, nextIndex + 1);
     } else {
       setNavigationDirection('forward');
-      if (location.pathname !== prevPath.current) {
-        historyStack.current = [...stack, location.pathname];
-      }
+      historyStack.current = [...stack, location.pathname];
     }
+
+    // Persist stack
+    try { sessionStorage.setItem('ff_nav_stack', JSON.stringify(historyStack.current)); } catch {}
 
     prevPath.current = location.pathname;
 
-    // Restore scroll position after the transition settles
+    // Restore window scroll after the transition settles (used by Virtuoso useWindowScroll)
     const saved = scrollPositions.current[location.pathname] || 0;
-    if (el) {
-      // Use rAF to let the new page mount before restoring scroll
-      requestAnimationFrame(() => { el.scrollTop = saved; });
-    }
+    requestAnimationFrame(() => { window.scrollTo({ top: saved, behavior: 'instant' }); });
   }, [location.pathname]);
 
   return (
