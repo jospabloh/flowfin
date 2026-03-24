@@ -196,29 +196,7 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Confirmation */}
-      <AnimatePresence>
-        {showConfirmation && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            className="px-4 pt-2 pb-2 border-t border-border bg-muted/30">
-            <p className="text-xs text-muted-foreground mb-2">¿Confirmas este movimiento?</p>
-            <div className="flex gap-2">
-              <button onClick={confirmSend}
-                className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
-                Sí
-              </button>
-              <button onClick={cancelSend}
-                className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
-                No (Modificar)
-              </button>
-              <button onClick={() => { setShowConfirmation(false); setPendingMessage(''); setInput(''); }}
-                className="flex-1 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
-                Cancelar
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Input */}
       <div className="px-4 pb-4 pt-2 border-t border-border">
