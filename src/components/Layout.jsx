@@ -118,8 +118,24 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Mobile back header — only shown on non-root pages */}
+        {showBack && (
+          <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Atrás
+            </button>
+          </div>
+        )}
         <div id="main-scroll" className="flex-1 overflow-y-auto mb-nav md:mb-0">
-          <Outlet />
+          <AnimatePresence mode="wait" initial={false}>
+            <PageTransition key={location.pathname}>
+              <Outlet />
+            </PageTransition>
+          </AnimatePresence>
         </div>
       </main>
 
