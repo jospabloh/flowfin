@@ -82,50 +82,61 @@ export default function TransactionEditModal({ transaction, categories, subcateg
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Rubro</label>
-              <select value={form.category_id} onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
-                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none">
-                <option value="">— Rubro</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-              </select>
+              <NativeSelect
+                value={form.category_id}
+                onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
+                placeholder="— Rubro"
+                options={categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">SubRubro</label>
-              <select value={form.subcategory_id} onChange={e => set('subcategory_id', e.target.value)}
-                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none">
-                <option value="">— Sub</option>
-                {filteredSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <NativeSelect
+                value={form.subcategory_id}
+                onChange={e => set('subcategory_id', e.target.value)}
+                placeholder="— Sub"
+                options={filteredSubs.map(s => ({ value: s.id, label: s.name }))}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+              />
             </div>
           </div>
 
           {/* Person */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Persona</label>
-            <select value={form.person_id} onChange={e => set('person_id', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none">
-              <option value="">— Persona</option>
-              {persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <NativeSelect
+              value={form.person_id}
+              onChange={e => set('person_id', e.target.value)}
+              placeholder="— Persona"
+              options={persons.map(p => ({ value: p.id, label: p.name }))}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+            />
           </div>
 
           {/* Payment method */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Forma de pago</label>
-            <select value={form.payment_method_id} onChange={e => set('payment_method_id', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none">
-              <option value="">— Forma</option>
-              {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
+            <NativeSelect
+              value={form.payment_method_id}
+              onChange={e => set('payment_method_id', e.target.value)}
+              placeholder="— Forma"
+              options={paymentMethods.map(m => ({ value: m.id, label: m.name }))}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+            />
           </div>
 
           {/* Required type */}
           {form.type === 'expense' && (
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Clasificación</label>
-              <select value={form.required_type} onChange={e => set('required_type', e.target.value)}
-                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none">
-                {REQUIRED_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
+              <NativeSelect
+                value={form.required_type}
+                onChange={e => set('required_type', e.target.value)}
+                placeholder="Clasificación"
+                options={REQUIRED_TYPES.map(r => ({ value: r, label: r }))}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+              />
             </div>
           )}
 
