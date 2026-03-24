@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import PageTransition from './PageTransition';
-import { setNavigationDirection } from '@/lib/navigationDirection';
+import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
@@ -42,62 +42,53 @@ const sideNavItems = [
   { to: '/About', icon: Info, label: 'Acerca de' },
 ];
 
-// Root tabs — no back arrow shown here
-const ROOT_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports'];
-
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
   const isAssistantPage = location.pathname === '/Assistant';
-  const isRootTab = ROOT_TABS.includes(location.pathname);
-  const showBack = !isRootTab;
-
-  // Independent scroll position per route (tab memory)
-  const scrollPositions = useRef({});
+  const showBack = !isRootTab(location.pathname);
   const prevPath = useRef(location.pathname);
-  // Persist history stack in sessionStorage so it survives hot reloads / StrictMode
-  const historyStack = useRef(() => {
-    try {
-      const stored = sessionStorage.getItem('ff_nav_stack');
-      return stored ? JSON.parse(stored) : [location.pathname];
-    } catch { return [location.pathname]; }
-  });
-  // Initialise as value (useRef lazy init calls fn only on first render)
-  if (typeof historyStack.current === 'function') {
-    historyStack.current = historyStack.current();
-  }
 
+  // Handle page transitions with browser history sync
   useEffect(() => {
-    // Save scroll for the page we're leaving (window scroll, used by Virtuoso)
-    scrollPositions.current[prevPath.current] = window.scrollY;
+    // Save scroll position before leaving
+    saveScrollPosition(prevPath.current, window.scrollY);
 
-    // Determine direction BEFORE updating the stack
-    const stack = historyStack.current;
-    const prevIndex = stack.lastIndexOf(prevPath.current);
-    const nextIndex = stack.lastIndexOf(location.pathname);
-
-    if (location.pathname === prevPath.current) {
-      // Same page — no change needed
-    } else if (nextIndex !== -1 && nextIndex < prevIndex) {
-      // Going back to a page that exists earlier in the stack
-      setNavigationDirection('backward');
-      historyStack.current = stack.slice(0, nextIndex + 1);
-    } else {
-      setNavigationDirection('forward');
-      historyStack.current = [...stack, location.pathname];
-    }
-
-    // Persist stack
-    try { sessionStorage.setItem('ff_nav_stack', JSON.stringify(historyStack.current)); } catch {}
+    // Determine direction and update stack
+    const direction = getNavigationDirection(prevPath.current, location.pathname);
+    
+    // Restore scroll position for the new page
+    const savedScroll = getScrollPosition(location.pathname);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScroll, behavior: 'instant' });
+    });
 
     prevPath.current = location.pathname;
-
-    // Restore window scroll after the transition settles (used by Virtuoso useWindowScroll)
-    const saved = scrollPositions.current[location.pathname] || 0;
-    requestAnimationFrame(() => { window.scrollTo({ top: saved, behavior: 'instant' }); });
   }, [location.pathname]);
+
+  // Setup browser back gesture support
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const path = e.state?.path || location.pathname;
+      navigate(path);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate, location.pathname]);
+
+  const handleNavClick = (path) => {
+    if (path !== location.pathname) {
+      navigateTo(path);
+      navigate(path);
+    }
+  };
+
+  const handleBack = () => {
+    goBack();
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -135,7 +126,7 @@ export default function Layout() {
                   )}
                 </div>
                 {item.label}
-              </Link>
+              </button>
             );
           })}
         </nav>
@@ -158,7 +149,7 @@ export default function Layout() {
         {showBack && (
           <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
             <button
-              onClick={() => { setNavigationDirection('backward'); navigate(-1); }}
+              onClick={handleBack}
               aria-label="Regresar"
               className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity"
             >
@@ -178,10 +169,11 @@ export default function Layout() {
 
       {/* Floating Assistant Button — hidden on Assistant page */}
       {!isAssistantPage && (
-        <Link to="/Assistant"
-          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105">
+        <button onClick={() => handleNavClick('/Assistant')}
+          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105"
+          aria-label="Abrir asistente IA">
           <MessageCircle className="w-5 h-5" />
-        </Link>
+        </button>
       )}
 
       {/* Mobile Bottom Nav */}
@@ -228,7 +220,7 @@ export default function Layout() {
                   )}
                 </div>
                 <span className="text-[10px] font-medium">{item.label}</span>
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -259,13 +251,13 @@ export default function Layout() {
                 {moreItems.map(item => {
                   const Icon = item.icon;
                   return (
-                    <Link key={item.to} to={item.to} onClick={() => setShowMore(false)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/50 hover:bg-muted transition-colors">
+                    <button key={item.to} onClick={() => { handleNavClick(item.to); setShowMore(false); }}
+                      className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/50 hover:bg-muted transition-colors">
                       <div className={`w-10 h-10 rounded-xl bg-card flex items-center justify-center shadow-sm ${item.color}`}>
                         <Icon className="w-5 h-5" />
                       </div>
                       <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
-                    </Link>
+                    </button>
                   );
                 })}
               </div>
