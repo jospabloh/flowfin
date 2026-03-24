@@ -194,9 +194,9 @@ export default function Dashboard() {
           <p className="text-xs text-muted-foreground mb-3">Top 5 de {expenseCategoriesCount} categorías</p>
           <div className="h-36 min-h-[144px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topCategories} layout="vertical" margin={{ left: 0, right: 8 }}>
+              <BarChart data={topCategories.map(c => ({ name: c.cat?.name, total: c.total }))} layout="vertical" margin={{ left: 0, right: 8 }}>
                 <XAxis type="number" hide />
-                <YAxis type="category" dataKey="cat.name" width={80} tick={{ fontSize: 10, fill: 'currentColor' }} />
+                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: 'currentColor' }} />
                 <Tooltip formatter={v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v)} />
                 <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                   {topCategories.map((entry, i) => <Cell key={i} fill={entry.cat?.color || '#059669'} />)}
