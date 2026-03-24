@@ -234,6 +234,10 @@ export default function Transactions() {
                             {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground col-span-1">{t.notes}</span></>}
                           </div>
                           <div className="flex gap-2 mt-1">
+                            <button onClick={() => handleEdit(t)}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+                              <Pencil className="w-3.5 h-3.5" /> Editar
+                            </button>
                             <button onClick={() => handleDelete(t.id)}
                               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors">
                               <Trash2 className="w-3.5 h-3.5" /> Eliminar
