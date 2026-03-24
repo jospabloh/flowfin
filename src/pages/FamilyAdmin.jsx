@@ -1,17 +1,17 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function FamilyAdmin() {
   const { family, familyId, isAdmin } = useFamily();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviting, setInviting] = useState(false);
-  const [inviteMsg, setInviteMsg] = useState('');
 
   const { data: memberships = [] } = useQuery({
     queryKey: ['memberships', familyId],
@@ -33,41 +33,110 @@ export default function FamilyAdmin() {
   const pending = dedupedMemberships.filter(m => m.status === 'pending');
   const approved = dedupedMemberships.filter(m => m.status === 'approved');
 
-  const handleApprove = async (m) => {
-    await base44.functions.invoke('approveMember', {
+  // Approve membership mutation
+  const approveMemberMutation = useMutation({
+    mutationFn: (m) => base44.functions.invoke('approveMember', {
       membership_id: m.id,
       family_id: m.family_id,
       target_user_id: m.user_id,
-    });
-    queryClient.invalidateQueries({ queryKey: ['memberships'] });
-  };
+    }),
+    onMutate: async (m) => {
+      await queryClient.cancelQueries({ queryKey: ['memberships'] });
+      const previous = queryClient.getQueryData(['memberships']);
+      // Optimistic: update membership to approved
+      queryClient.setQueryData(['memberships'], (old = []) =>
+        old.map(mem => mem.id === m.id ? { ...mem, status: 'approved' } : mem)
+      );
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      toast({
+        title: 'Error al aprobar',
+        description: err?.message || 'No se pudo aprobar la solicitud.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+  });
 
-  const handleReject = async (m) => {
-    await base44.entities.FamilyMembership.update(m.id, { status: 'rejected' });
-    queryClient.invalidateQueries({ queryKey: ['memberships'] });
-  };
+  // Reject membership mutation
+  const rejectMemberMutation = useMutation({
+    mutationFn: (m) => base44.entities.FamilyMembership.update(m.id, { status: 'rejected' }),
+    onMutate: async (m) => {
+      await queryClient.cancelQueries({ queryKey: ['memberships'] });
+      const previous = queryClient.getQueryData(['memberships']);
+      // Optimistic: update membership to rejected
+      queryClient.setQueryData(['memberships'], (old = []) =>
+        old.map(mem => mem.id === m.id ? { ...mem, status: 'rejected' } : mem)
+      );
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      toast({
+        title: 'Error al rechazar',
+        description: err?.message || 'No se pudo rechazar la solicitud.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+  });
 
-  const handleRemoveMember = async (m) => {
-    if (!confirm(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) return;
-    await base44.functions.invoke('removeMember', {
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: (m) => base44.functions.invoke('removeMember', {
       membership_id: m.id,
       target_user_id: m.user_id,
-    });
-    queryClient.invalidateQueries({ queryKey: ['memberships'] });
-  };
+    }),
+    onMutate: async (m) => {
+      await queryClient.cancelQueries({ queryKey: ['memberships'] });
+      const previous = queryClient.getQueryData(['memberships']);
+      // Optimistic: remove membership
+      queryClient.setQueryData(['memberships'], (old = []) =>
+        old.filter(mem => mem.id !== m.id)
+      );
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      toast({
+        title: 'Error al eliminar miembro',
+        description: err?.message || 'No se pudo eliminar el miembro.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+  });
 
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
-    setInviting(true);
-    setInviteMsg('');
-    try {
-      await base44.users.inviteUser(inviteEmail.trim().toLowerCase(), 'user');
-      setInviteMsg('✓ Invitación enviada. El usuario debe abrir el correo para acceder a la app.');
+  // Invite user mutation
+  const inviteUserMutation = useMutation({
+    mutationFn: (email) => base44.users.inviteUser(email.trim().toLowerCase(), 'user'),
+    onSuccess: () => {
+      toast({
+        title: 'Invitación enviada ✓',
+        description: 'El usuario recibirá un correo para acceder a la app.',
+      });
       setInviteEmail('');
-    } catch (e) {
-      setInviteMsg('Error: ' + (e.message || 'No se pudo invitar'));
-    }
-    setInviting(false);
+    },
+    onError: (err) => {
+      toast({
+        title: 'Error al invitar',
+        description: err?.message || 'No se pudo enviar la invitación.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleApprove = (m) => approveMemberMutation.mutate(m);
+  const handleReject = (m) => rejectMemberMutation.mutate(m);
+  const handleRemoveMember = (m) => {
+    if (!confirm(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) return;
+    removeMemberMutation.mutate(m);
+  };
+  const handleInvite = () => {
+    if (!inviteEmail.trim()) return;
+    inviteUserMutation.mutate(inviteEmail);
   };
 
   const copyCode = () => {
@@ -115,13 +184,11 @@ export default function FamilyAdmin() {
               placeholder="correo@ejemplo.com"
               className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}
+            <button onClick={handleInvite} disabled={inviteUserMutation.isPending || !inviteEmail.trim()}
               className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
-              {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              {inviteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               Invitar
             </button>
-          </div>
-          {inviteMsg && <p className="text-xs text-muted-foreground">{inviteMsg}</p>}
         </div>
       </div>
 
