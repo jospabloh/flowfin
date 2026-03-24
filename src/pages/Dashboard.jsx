@@ -18,7 +18,7 @@ const PERIODS = [
   { label: 'Hoy', key: 'today' },
   { label: 'Ayer', key: 'yesterday' },
   { label: 'Semana', key: 'week' },
-  { label: 'Mes', key: 'month' },
+  { label: 'Mes', key: 'month' }
 ];
 
 function getRange(key) {
