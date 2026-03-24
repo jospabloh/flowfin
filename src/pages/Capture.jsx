@@ -233,17 +233,21 @@ export default function Capture() {
 
       {/* Category + Subcategory */}
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
-          className={`bg-card border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none ${!categoryId ? 'border-expense/60 bg-expense/5' : 'border-border'}`}>
-          <option value="">Rubro</option>
-          {categories.filter(c => c.type === 'both' || c.type === type).map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-        </select>
+        <NativeSelect
+          value={categoryId}
+          onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
+          placeholder="Rubro"
+          options={categories.filter(c => c.type === 'both' || c.type === type).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+          className={`bg-card border rounded-xl px-3 py-2.5 text-sm w-full ${!categoryId ? 'border-expense/60 bg-expense/5' : 'border-border'}`}
+        />
         {type === 'expense' && (
-          <select value={subcategoryId} onChange={e => setSubcategoryId(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-            <option value="">SubRubro</option>
-            {subcategories.filter(s => s.category_id === categoryId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <NativeSelect
+            value={subcategoryId}
+            onChange={e => setSubcategoryId(e.target.value)}
+            placeholder="SubRubro"
+            options={subcategories.filter(s => s.category_id === categoryId).map(s => ({ value: s.id, label: s.name }))}
+            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm w-full"
+          />
         )}
       </div>
 
