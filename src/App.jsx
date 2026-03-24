@@ -12,7 +12,7 @@ import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
 
 // Lazy-loaded pages
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Dashboard = lazy(() => import('@/pages/DashboardHome'));
 const Capture = lazy(() => import('@/pages/Capture'));
 const Transactions = lazy(() => import('@/pages/Transactions'));
 const Reports = lazy(() => import('@/pages/Reports'));
