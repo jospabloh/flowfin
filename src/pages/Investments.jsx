@@ -33,6 +33,7 @@ function statusColor(diff) {
 export default function Investments() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+  const { toast } = useToast();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
@@ -45,19 +46,64 @@ export default function Investments() {
   const selectedPayments = selected ? allPayments.filter(p => p.investment_id === selected.id) : [];
   const nextPayment = selected ? getNextPayment(selected, selectedPayments) : null;
 
+  const createInvestmentMutation = useMutation({
+    mutationFn: (data) => base44.entities.Investment.create(data),
+    onMutate: async (newInv) => {
+      await queryClient.cancelQueries({ queryKey: ['investments', familyId] });
+      const previous = queryClient.getQueryData(['investments', familyId]);
+      const optimistic = { ...newInv, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['investments', familyId], (old = []) => [optimistic, ...old]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['investments', familyId], ctx.previous);
+      toast({ title: 'Error al crear inversión', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['investments', familyId] }),
+  });
+
+  const createPaymentMutation = useMutation({
+    mutationFn: (data) => base44.entities.InvestmentPayment.create(data),
+    onMutate: async (newPay) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentPayments'] });
+      const previous = queryClient.getQueryData(['investmentPayments']);
+      const optimistic = { ...newPay, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['investmentPayments'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['investmentPayments'], ctx.previous);
+      toast({ title: 'Error al registrar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['investmentPayments'] }),
+  });
+
   const handleCreate = async () => {
     if (!form.name || !form.total_amount) return;
-    await base44.entities.Investment.create({ ...form, family_id: familyId, total_amount: +form.total_amount, total_payments: +form.total_payments, payment_amount: +form.payment_amount, payment_day: +form.payment_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['investments', familyId] });
+    createInvestmentMutation.mutate({ 
+      ...form, 
+      family_id: familyId, 
+      total_amount: +form.total_amount, 
+      total_payments: +form.total_payments, 
+      payment_amount: +form.payment_amount, 
+      payment_day: +form.payment_day, 
+      is_active: true 
+    });
     setShowForm(false);
     setForm({ name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: new Date().toISOString().slice(0,10), payment_day: '28' });
   };
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
-    await base44.entities.InvestmentPayment.create({ investment_id: selected.id, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes });
-    queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
+    createPaymentMutation.mutate({ 
+      investment_id: selected.id, 
+      payment_number: selectedPayments.length + 1, 
+      amount: +payForm.amount, 
+      date: payForm.date, 
+      notes: payForm.notes 
+    });
     setShowPayForm(false);
+    setPayForm({ amount: '', date: new Date().toISOString().slice(0,10), notes: '' });
   };
 
   return (
