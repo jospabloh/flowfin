@@ -111,10 +111,9 @@ export default function Transactions() {
 
   const groups = useMemo(() => groupByDate(filtered), [filtered]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
     if (!confirm('¿Eliminar este movimiento?')) return;
-    await base44.entities.Transaction.delete(id);
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    deleteTransactionMutation.mutate(id);
   };
 
   const handleExport = () => {
