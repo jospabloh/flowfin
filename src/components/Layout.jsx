@@ -164,7 +164,7 @@ export default function Layout() {
             </button>
           </div>
         )}
-        <div id="main-scroll" className="flex-1 overflow-y-auto mb-nav md:mb-0">
+        <div className="flex-1 mb-nav md:mb-0">
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={location.pathname}>
               <Outlet />
