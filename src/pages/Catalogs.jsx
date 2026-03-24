@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, Trash2, X } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
@@ -76,19 +76,143 @@ export default function Catalogs() {
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
-  const [editingId, setEditingId] = useState(null);
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['categories'] });
-    queryClient.invalidateQueries({ queryKey: ['subcategories'] });
-    queryClient.invalidateQueries({ queryKey: ['persons'] });
-    queryClient.invalidateQueries({ queryKey: ['paymentMethods'] });
-  };
+  // Category mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['categories'] });
+      const previous = queryClient.getQueryData(['categories']);
+      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['categories'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['categories'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id) => base44.entities.Category.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['categories'] });
+      const previous = queryClient.getQueryData(['categories']);
+      queryClient.setQueryData(['categories'], (old = []) => old.filter(c => c.id !== id));
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['categories'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+  });
+
+  // Subcategory mutations
+  const createSubcategoryMutation = useMutation({
+    mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['subcategories'] });
+      const previous = queryClient.getQueryData(['subcategories']);
+      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['subcategories'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['subcategories'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories'] }),
+  });
+
+  const deleteSubcategoryMutation = useMutation({
+    mutationFn: (id) => base44.entities.Subcategory.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['subcategories'] });
+      const previous = queryClient.getQueryData(['subcategories']);
+      queryClient.setQueryData(['subcategories'], (old = []) => old.filter(s => s.id !== id));
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['subcategories'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories'] }),
+  });
+
+  // Person mutations
+  const createPersonMutation = useMutation({
+    mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['persons'] });
+      const previous = queryClient.getQueryData(['persons']);
+      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['persons'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['persons'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons'] }),
+  });
+
+  const deletePersonMutation = useMutation({
+    mutationFn: (id) => base44.entities.Person.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['persons'] });
+      const previous = queryClient.getQueryData(['persons']);
+      queryClient.setQueryData(['persons'], (old = []) => old.filter(p => p.id !== id));
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['persons'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons'] }),
+  });
+
+  // Payment method mutations
+  const createPaymentMethodMutation = useMutation({
+    mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['paymentMethods'] });
+      const previous = queryClient.getQueryData(['paymentMethods']);
+      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['paymentMethods'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['paymentMethods'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods'] }),
+  });
+
+  const deletePaymentMethodMutation = useMutation({
+    mutationFn: (id) => base44.entities.PaymentMethod.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['paymentMethods'] });
+      const previous = queryClient.getQueryData(['paymentMethods']);
+      queryClient.setQueryData(['paymentMethods'], (old = []) => old.filter(m => m.id !== id));
+      return { previous };
+    },
+    onError: (_, __, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['paymentMethods'], ctx.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods'] }),
+  });
 
   const deleteItem = async (entity, id) => {
     if (!confirm('¿Eliminar este elemento?')) return;
-    await base44.entities[entity].delete(id);
-    invalidate();
+    switch (entity) {
+      case 'Category':
+        deleteCategoryMutation.mutate(id);
+        break;
+      case 'Subcategory':
+        deleteSubcategoryMutation.mutate(id);
+        break;
+      case 'Person':
+        deletePersonMutation.mutate(id);
+        break;
+      case 'PaymentMethod':
+        deletePaymentMethodMutation.mutate(id);
+        break;
+    }
   };
 
   return (
@@ -116,7 +240,7 @@ export default function Catalogs() {
                 { key: 'color', label: 'Color', type: 'color', default: '#059669' },
                 { key: 'type', label: 'Tipo', type: 'select', default: 'expense', options: [{ v: 'expense', l: 'Egreso' }, { v: 'income', l: 'Ingreso' }, { v: 'both', l: 'Ambos' }] },
               ]}
-              onSave={async (d) => { await base44.entities.Category.create(d); invalidate(); setAddingTab(null); }}
+              onSave={(d) => { createCategoryMutation.mutate(d); setAddingTab(null); }}
               onCancel={() => setAddingTab(null)}
             />
           )}
@@ -149,7 +273,7 @@ export default function Catalogs() {
                 { key: 'category_id', label: 'Categoría', type: 'select', default: categories[0]?.id || '', options: categories.map(c => ({ v: c.id, l: `${c.icon} ${c.name}` })) },
                 { key: 'keywords', label: 'Palabras clave', type: 'tags', default: [] },
               ]}
-              onSave={async (d) => { await base44.entities.Subcategory.create(d); invalidate(); setAddingTab(null); }}
+              onSave={(d) => { createSubcategoryMutation.mutate(d); setAddingTab(null); }}
               onCancel={() => setAddingTab(null)}
             />
           )}
@@ -195,7 +319,7 @@ export default function Catalogs() {
                 { key: 'avatar_initial', label: 'Inicial (ej: P)', default: '' },
                 { key: 'color', label: 'Color', type: 'color', default: '#059669' },
               ]}
-              onSave={async (d) => { await base44.entities.Person.create(d); invalidate(); setAddingTab(null); }}
+              onSave={(d) => { createPersonMutation.mutate(d); setAddingTab(null); }}
               onCancel={() => setAddingTab(null)}
             />
           )}
@@ -225,7 +349,7 @@ export default function Catalogs() {
                 { key: 'type', label: 'Tipo', type: 'select', default: 'credit', options: [{ v: 'credit', l: 'Crédito' }, { v: 'debit', l: 'Débito' }, { v: 'cash', l: 'Efectivo' }, { v: 'transfer', l: 'Transferencia' }] },
                 { key: 'identifier', label: 'Últimos 4 dígitos', default: '' },
               ]}
-              onSave={async (d) => { await base44.entities.PaymentMethod.create(d); invalidate(); setAddingTab(null); }}
+              onSave={(d) => { createPaymentMethodMutation.mutate(d); setAddingTab(null); }}
               onCancel={() => setAddingTab(null)}
             />
           )}
