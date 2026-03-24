@@ -143,16 +143,20 @@ export default function Transactions() {
               </button>
             ))}
           </div>
-          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-            className="w-full bg-muted border-none rounded-xl px-3 py-2 text-sm text-foreground outline-none">
-            <option value="">Todos los rubros</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-          </select>
-          <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)}
-            className="w-full bg-muted border-none rounded-xl px-3 py-2 text-sm text-foreground outline-none">
-            <option value="">Todas las personas</option>
-            {persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+          <NativeSelect
+            value={filterCat}
+            onChange={e => setFilterCat(e.target.value)}
+            placeholder="Todos los rubros"
+            options={[{ value: '', label: 'Todos los rubros' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))]}
+            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
+          />
+          <NativeSelect
+            value={filterPerson}
+            onChange={e => setFilterPerson(e.target.value)}
+            placeholder="Todas las personas"
+            options={[{ value: '', label: 'Todas las personas' }, ...persons.map(p => ({ value: p.id, label: p.name }))]}
+            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
+          />
           {activeFilters > 0 && (
             <button onClick={() => { setFilterType('all'); setFilterCat(''); setFilterPerson(''); }}
               className="w-full py-1.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted hover:bg-destructive/10 hover:text-destructive transition-colors">
