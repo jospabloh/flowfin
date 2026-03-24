@@ -85,31 +85,12 @@ export default function Assistant() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [pendingMessage, setPendingMessage] = useState('');
-
   const quickActions = [
     '💸 Gasté $500 en gasolina hoy',
     '🛒 $1,200 en el súper',
     '💰 Recibí mi quincena de $8,500',
     '📊 ¿Cuánto gasté esta semana?',
   ];
-
-  const handleSendWithConfirmation = async (text) => {
-    setPendingMessage(text);
-    setShowConfirmation(true);
-  };
-
-  const confirmSend = async () => {
-    await sendMessage(pendingMessage);
-    setShowConfirmation(false);
-    setPendingMessage('');
-  };
-
-  const cancelSend = () => {
-    setShowConfirmation(false);
-    setPendingMessage('');
-  };
 
   if (!conversation) return (
     <div className="flex items-center justify-center h-[60vh]">
