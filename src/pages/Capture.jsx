@@ -192,7 +192,7 @@ export default function Capture() {
 
         {/* Smart suggestions */}
         <AnimatePresence>
-          {suggestions.length > 0 && (
+          {(suggestions.length > 0 || (description.length > 2 && suggestions.length === 0 && !categoryId)) && (
             <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
               className="mt-1 flex flex-wrap gap-1.5">
               {suggestions.map((s, i) => (
@@ -202,6 +202,19 @@ export default function Capture() {
                   {s.category?.name} › {s.subcategory?.name}
                 </button>
               ))}
+              {description.length > 2 && suggestions.length === 0 && !categoryId && (
+                <button onClick={() => handleAddCategory(description)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-dashed border-border hover:bg-primary/10 hover:text-primary transition-colors">
+                  ＋ Crear rubro "{description}"
+                </button>
+              )}
+              {description.length > 2 && categoryId && subcategories.filter(s => s.category_id === categoryId).length > 0 &&
+               !subcategories.find(s => s.category_id === categoryId && s.name.toLowerCase().includes(description.toLowerCase())) && (
+                <button onClick={() => handleAddSubcategory(description)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-dashed border-border hover:bg-primary/10 hover:text-primary transition-colors">
+                  ＋ Agregar subrubro "{description}"
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
