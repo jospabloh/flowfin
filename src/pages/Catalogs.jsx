@@ -39,10 +39,14 @@ function InlineForm({ fields, onSave, onCancel }) {
             <TagInput value={data[f.key] || []} onChange={v => setData(d => ({...d, [f.key]: v}))} />
           </div>
         ) : f.type === 'select' ? (
-          <select key={f.key} value={data[f.key]} onChange={e => setData(d => ({...d, [f.key]: e.target.value}))}
-            className="w-full bg-muted rounded-xl px-3 py-2 text-sm text-foreground outline-none">
-            {f.options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-          </select>
+          <NativeSelect
+            key={f.key}
+            value={data[f.key]}
+            onChange={e => setData(d => ({...d, [f.key]: e.target.value}))}
+            placeholder={f.label}
+            options={f.options.map(o => ({ value: o.v, label: o.l }))}
+            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
+          />
         ) : f.type === 'color' ? (
           <div key={f.key}>
             <label className="text-xs text-muted-foreground mb-1 block">{f.label}</label>
