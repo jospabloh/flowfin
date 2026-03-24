@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFamily } from '@/lib/FamilyContext';
 import { X } from 'lucide-react';
+import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
 export default function TransactionEditModal({ transaction, categories, subcategories, persons, paymentMethods, onClose, onSaved }) {
+  const modalRef = useRef(null);
   const [form, setForm] = useState({
     date: transaction.date || '',
     type: transaction.type || 'expense',
@@ -24,6 +26,12 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+
+  useEffect(() => {
+    if (!modalRef.current) return;
+    const cleanup = createFocusTrap(modalRef);
+    return cleanup;
+  }, []);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -56,10 +64,17 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="w-full max-w-md bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto" 
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border">
-          <h2 className="text-base font-bold text-foreground">Editar movimiento</h2>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition-colors">
+          <h2 id="modal-title" className="text-base font-bold text-foreground">Editar movimiento</h2>
+          <button onClick={onClose} aria-label="Cerrar modal" className="p-2 rounded-xl hover:bg-muted transition-colors">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
