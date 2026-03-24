@@ -30,10 +30,10 @@ function getRange(key) {
 }
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState('month');
-  const [personFilter, setPersonFilter] = useState('all');
-  const { familyId } = useFamily();
-  const { categories, persons } = useCatalog(familyId);
+   const [period, setPeriod] = useState('month');
+   const [personFilter, setPersonFilter] = useState('all');
+   const { familyId } = useFamily();
+   const { categories, persons } = useCatalog(familyId) || { categories: [], persons: [] };
 
   const { data: transactions = [], refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
