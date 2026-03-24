@@ -148,7 +148,7 @@ export default function Capture() {
   const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId);
 
   return (
-    <div className="min-h-screen pb-4">
+    <div className="min-h-screen pb-4" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
         {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
