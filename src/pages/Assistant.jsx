@@ -49,24 +49,19 @@ export default function Assistant() {
   };
 
   const handleConfirmTransaction = async () => {
-    if (!pendingTransaction) return;
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo' });
-    setPendingTransaction(null);
+    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo y guarda el movimiento' });
     setSending(false);
   };
 
   const handleModifyTransaction = async () => {
-    if (!pendingTransaction) return;
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: 'No, quiero modificar' });
-    setPendingTransaction(null);
+    await base44.agents.addMessage(conversation, { role: 'user', content: 'No, quiero modificar los datos' });
     setSending(false);
   };
 
-  const handleCancelTransaction = async () => {
+  const handleCancelTransaction = () => {
     setMessages([]);
-    setPendingTransaction(null);
     setInput('');
   };
 
