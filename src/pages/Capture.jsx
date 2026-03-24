@@ -166,12 +166,12 @@ export default function Capture() {
   const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId);
 
   return (
-    <div className="min-h-screen pb-4" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
+   <div className="min-h-screen pb-4 overscroll-none" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
         {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
           <button key={t.key} onClick={() => setType(t.key)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all touch-target
               ${type === t.key ? (t.key === 'expense' ? 'bg-expense text-white shadow-sm' : 'bg-income text-white shadow-sm') : 'text-muted-foreground'}`}>
             {t.label}
           </button>
@@ -199,10 +199,10 @@ export default function Capture() {
             className="w-full bg-card border border-border rounded-xl px-4 py-3 pr-24 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             <button onClick={isListening ? stopVoice : startVoice}
-              className={`p-2 rounded-lg transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+              className={`p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
-            <button onClick={() => fileRef.current?.click()} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground">
+            <button onClick={() => fileRef.current?.click()} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
               <Camera className="w-4 h-4" />
             </button>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
@@ -339,7 +339,7 @@ export default function Capture() {
       {/* Save button */}
       <div className="px-4 mt-4">
         <button onClick={handleSave} disabled={!amount || !categoryId || !personId || saving}
-          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all">
+          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all touch-target">
           {saving ? 'Guardando...' : 'Guardar'}
         </button>
       </div>
