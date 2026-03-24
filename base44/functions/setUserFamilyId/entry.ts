@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Update family_id as a top-level field on the user record (not nested under data)
-    await base44.asServiceRole.entities.User.update(target_user_id, { family_id });
+    // Update family_id inside the data object to comply with RLS rules
+    await base44.asServiceRole.entities.User.update(target_user_id, { data: { family_id } });
 
     return Response.json({ success: true });
   } catch (error) {
