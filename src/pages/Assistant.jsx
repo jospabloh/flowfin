@@ -48,6 +48,28 @@ export default function Assistant() {
     setSending(false);
   };
 
+  const handleConfirmTransaction = async () => {
+    if (!pendingTransaction) return;
+    setSending(true);
+    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo' });
+    setPendingTransaction(null);
+    setSending(false);
+  };
+
+  const handleModifyTransaction = async () => {
+    if (!pendingTransaction) return;
+    setSending(true);
+    await base44.agents.addMessage(conversation, { role: 'user', content: 'No, quiero modificar' });
+    setPendingTransaction(null);
+    setSending(false);
+  };
+
+  const handleCancelTransaction = async () => {
+    setMessages([]);
+    setPendingTransaction(null);
+    setInput('');
+  };
+
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Tu navegador no soporta voz'); return; }
