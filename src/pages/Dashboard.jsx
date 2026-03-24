@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -9,7 +8,6 @@ import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import CategoryDot from '@/components/CategoryDot';
-import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -36,16 +34,26 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
   const { familyId } = useFamily();
-  
-  const { categories = [], persons = [] } = useCatalog(familyId) || {};
 
-  const { data: transactions = [], refetch: refetchTx } = useQuery({
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories', familyId],
+    queryFn: () => base44.entities.Category.filter({ family_id: familyId }),
+    enabled: !!familyId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: persons = [] } = useQuery({
+    queryKey: ['persons', familyId],
+    queryFn: () => base44.entities.Person.filter({ family_id: familyId }),
+    enabled: !!familyId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: transactions = [] } = useQuery({
     queryKey: ['transactions', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500),
     enabled: !!familyId,
   });
-
-  const { refreshing } = usePullToRefresh(refetchTx);
 
   const { data: investments = [] } = useQuery({
     queryKey: ['investments', familyId],
@@ -77,7 +85,7 @@ export default function Dashboard() {
     const inRange = isWithinInterval(d, { start: range.start, end: range.end });
     const inPerson = personFilter === 'all' || t.person_id === personFilter;
     return inRange && inPerson;
-  }), [transactions, period, personFilter, range.start, range.end]);
+  }), [transactions, period, personFilter, range]);
 
   const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
   const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
@@ -146,17 +154,11 @@ export default function Dashboard() {
 
   return (
     <div className="pb-4">
-      {refreshing && (
-        <div className="flex justify-center py-3">
-          <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
-        </div>
-      )}
       <PageHeader
         title={format(new Date(), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
         subtitle="Resumen familiar"
       />
 
-      {/* Period filter */}
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
         {PERIODS.map(p => (
           <button
@@ -192,7 +194,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 px-4 mb-4">
         {[
           { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
@@ -221,7 +222,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Top categories bar */}
       {topCategories.length > 0 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-1">Top Categorías</h3>
@@ -247,7 +247,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* By person pie */}
       {byPerson.length > 1 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-3">Gasto por Persona</h3>
@@ -280,7 +279,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent transactions */}
       <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Últimos movimientos</h3>
@@ -308,7 +306,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Upcoming payments */}
       {upcoming.length > 0 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-3">Próximos pagos</h3>
