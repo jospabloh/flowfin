@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
-import PageTransition from './PageTransition.jsx';
+import PageTransition from './PageTransition';
 import { setNavigationDirection } from '@/lib/navigationDirection';
 
 const navItems = [
