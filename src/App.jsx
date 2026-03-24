@@ -34,7 +34,7 @@ const FamilyGate = ({ children }) => {
           <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
             <span className="text-white font-bold text-4xl">F</span>
           </div>
-          <p className="text-sm text-muted-foreground">Cargando FlowFlin...</p>
+          <p className="text-sm text-muted-foreground">Cargando FlowFin...</p>
         </div>
       </div>
     );
@@ -54,7 +54,7 @@ const AuthenticatedApp = () => {
           <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
             <span className="text-white font-bold text-4xl">F</span>
           </div>
-          <p className="text-sm text-muted-foreground">Cargando FlowFlin...</p>
+          <p className="text-sm text-muted-foreground">Cargando FlowFin...</p>
         </div>
       </div>
     );
