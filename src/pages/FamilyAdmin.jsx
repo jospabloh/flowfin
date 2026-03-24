@@ -189,8 +189,9 @@ export default function FamilyAdmin() {
               {inviteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               Invitar
             </button>
-        </div>
-      </div>
+            </div>
+            </div>
+            </div>
 
       {/* Solicitudes pendientes */}
       {pending.length > 0 && (
