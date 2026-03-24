@@ -1,50 +1,99 @@
 /**
- * AUDIT: Navigation Stack & React Router Integration
+ * Tab-Scoped Navigation Stack Architecture
  * 
- * FINDINGS & ARCHITECTURE:
- * ✓ The navigation stack correctly maintains history independent of React Router
- * ✓ Android hardware back button is intercepted via 'backbutton' event + ESC fallback
- * ✓ popstate listener syncs custom stack with browser history
- * ✓ All navigation calls use both navigateTo() AND navigate() to sync both systems
+ * MULTI-TAB HISTORY PATTERN:
+ * Each primary bottom-tab maintains an independent navigation stack,
+ * scroll position cache, and history buffer. This mimics native iOS/Android
+ * behavior where each tab has its own navigation history.
  * 
- * CRITICAL: This dual-sync approach is necessary because:
- * - Custom navigationStack provides session persistence and tab memory
- * - React Router's internal history is the browser's source of truth
- * - Must keep both in sync to prevent desynchronization on Android back gesture
+ * PRIMARY TABS (root views):
+ * - /Dashboard (home)
+ * - /Transactions (list)
+ * - /Capture (plus/create)
+ * - /Reports (analytics)
+ * 
+ * SUB-PAGES: Any non-primary route pushes onto the CURRENT TAB's stack.
+ * 
+ * SYNC STRATEGY:
+ * - Dual-sync with React Router (pushState/popstate)
+ * - Active tab stack drives all navigation
+ * - When switching tabs, save active stack & restore target tab's stack
+ * - Scroll positions are per-page, not per-tab
  */
 
-const HISTORY_KEY = 'ff_nav_stack';
+const HISTORY_KEY = 'ff_nav_stacks';
 const SCROLL_KEY = 'ff_scroll_pos';
+const ACTIVE_TAB_KEY = 'ff_active_tab';
 
-// In-memory state (primary source of truth for session persistence)
-let navigationStack = [];
+// Primary tab routes (bottom navigation)
+const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports'];
+
+// Per-tab stacks: { [tabPath]: [page, page, ...] }
+let tabStacks = {};
 let scrollPositions = {};
+let activeTab = '/Dashboard';
 
 // Track if currently processing a back gesture to prevent loops
 let isProcessingBack = false;
 
 /**
- * Initialize navigation system with session history and Android back button support
- * Must be called once at app startup
+ * Get the primary tab for any given path
+ * e.g., /Reports -> /Reports, /Reports/Detail -> /Reports
+ */
+function getTabForPath(path) {
+  const tab = PRIMARY_TABS.find(t => path === t || path.startsWith(t + '/'));
+  return tab || '/Dashboard';
+}
+
+/**
+ * Initialize multi-tab navigation system
+ * Call once at app startup, passing initial route
  */
 export function initializeNavigation(initialPath) {
   try {
     const stored = sessionStorage.getItem(HISTORY_KEY);
-    navigationStack = stored ? JSON.parse(stored) : [initialPath];
+    if (stored) {
+      tabStacks = JSON.parse(stored);
+    } else {
+      // Initialize with empty stacks for all primary tabs
+      PRIMARY_TABS.forEach(tab => {
+        tabStacks[tab] = [tab]; // Each tab starts with itself
+      });
+    }
   } catch {
-    navigationStack = [initialPath];
+    PRIMARY_TABS.forEach(tab => {
+      tabStacks[tab] = [tab];
+    });
   }
   
-  // Listen for browser back (desktop, iOS swipe, or Android back via React Router)
+  // Restore active tab
+  try {
+    const storedTab = sessionStorage.getItem(ACTIVE_TAB_KEY);
+    activeTab = storedTab && PRIMARY_TABS.includes(storedTab) ? storedTab : '/Dashboard';
+  } catch {
+    activeTab = '/Dashboard';
+  }
+  
+  // Restore scroll positions
+  try {
+    const storedScroll = sessionStorage.getItem(SCROLL_KEY);
+    if (storedScroll) {
+      scrollPositions = JSON.parse(storedScroll);
+    }
+  } catch {
+    // Fallback
+  }
+  
+  // Browser history listeners
   window.addEventListener('popstate', handlePopState, false);
   
-  // Android hardware back button (fired by Cordova/Capacitor)
+  // Android hardware back button (Cordova/Capacitor)
   document.addEventListener('backbutton', handleAndroidBackButton, false);
   
-  // ESC key fallback for Android (some WebView implementations)
+  // ESC key fallback for Android WebView
   document.addEventListener('keydown', handleAndroidKeyboardBack, { capture: true });
   
-  return navigationStack;
+  return getActiveTabStack();
 }
 
 /**
@@ -78,100 +127,190 @@ function handleAndroidKeyboardBack(event) {
 }
 
 /**
- * Browser popstate handler (React Router's history change)
- * Syncs internal navigation stack with browser's actual history
- * 
- * IMPORTANT: This fires when:
- * - Browser back/forward buttons are clicked
- * - iOS swipe-back gesture is performed
- * - Android hardware back button triggers window.history.back()
- * - User navigates with browser controls
+ * Handle browser popstate (React Router history change)
+ * Syncs tab-scoped stack with browser history
  */
 function handlePopState(event) {
   if (isProcessingBack) return; // Prevent double-processing
   
   const path = event.state?.path;
-  if (!path) return; // Ignore events without path state
+  if (!path) return;
   
-  // Sync internal stack to match where browser history went
-  if (path !== getCurrentPath()) {
-    const index = navigationStack.indexOf(path);
+  // Detect if switching to a different primary tab
+  const targetTab = getTabForPath(path);
+  if (targetTab !== activeTab && PRIMARY_TABS.includes(targetTab)) {
+    switchTab(targetTab, path);
+  } else {
+    // Same tab: sync the stack to match where browser went
+    const currentStack = getActiveTabStack();
+    const index = currentStack.indexOf(path);
     if (index >= 0) {
-      setNavigationStack(navigationStack.slice(0, index + 1));
+      setActiveTabStack(currentStack.slice(0, index + 1));
     }
   }
 }
 
+/**
+ * Get current path in active tab's stack
+ */
 export function getCurrentPath() {
-  return navigationStack[navigationStack.length - 1] || '/Dashboard';
+  const stack = getActiveTabStack();
+  return stack[stack.length - 1] || activeTab;
 }
 
+/**
+ * Get previous path in active tab's stack
+ */
 export function getPreviousPath() {
-  return navigationStack[navigationStack.length - 2] || '/Dashboard';
+  const stack = getActiveTabStack();
+  return stack[stack.length - 2] || activeTab;
 }
 
+/**
+ * Check if path is a primary tab (root of navigation)
+ */
 export function isRootTab(path) {
-  const ROOT_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports'];
-  return ROOT_TABS.includes(path);
+  return PRIMARY_TABS.includes(path);
 }
 
+/**
+ * Get the current active tab
+ */
+export function getActiveTab() {
+  return activeTab;
+}
+
+/**
+ * Get the navigation stack for the active tab
+ */
+function getActiveTabStack() {
+  if (!tabStacks[activeTab]) {
+    tabStacks[activeTab] = [activeTab];
+  }
+  return tabStacks[activeTab];
+}
+
+/**
+ * Update the active tab's stack
+ */
+function setActiveTabStack(newStack) {
+  tabStacks[activeTab] = newStack;
+  persistTabStacks();
+}
+
+/**
+ * Switch to a different primary tab
+ * Saves current tab's stack and restores target tab's stack
+ */
+function switchTab(newTab, initialPath = null) {
+  // Ensure tabs are initialized
+  if (!tabStacks[activeTab]) tabStacks[activeTab] = [activeTab];
+  if (!tabStacks[newTab]) tabStacks[newTab] = [newTab];
+  
+  // Switch active tab
+  activeTab = newTab;
+  
+  // If initialPath is provided and not already in stack, add it
+  if (initialPath && !tabStacks[newTab].includes(initialPath)) {
+    tabStacks[newTab].push(initialPath);
+  }
+  
+  persistTabStacks();
+  persistActiveTab();
+}
+
+/**
+ * Determine navigation direction within active tab's stack
+ */
 export function getNavigationDirection(fromPath, toPath) {
   if (fromPath === toPath) return 'none';
-  const fromIndex = navigationStack.indexOf(fromPath);
-  const toIndex = navigationStack.lastIndexOf(toPath);
+  const stack = getActiveTabStack();
+  const fromIndex = stack.indexOf(fromPath);
+  const toIndex = stack.lastIndexOf(toPath);
   return toIndex !== -1 && toIndex < fromIndex ? 'backward' : 'forward';
 }
 
 /**
- * Navigate to a path with proper sync between custom stack and React Router
- * This is called by Layout's handleNavClick for all programmatic navigation
+ * Navigate to a path with tab-aware stack management
+ * Handles tab switching and intra-tab navigation
  */
 export function navigateTo(path) {
   if (path === getCurrentPath()) return;
   
-  const direction = getNavigationDirection(getCurrentPath(), path);
+  const targetTab = getTabForPath(path);
+  const currentTab = activeTab;
   
-  if (direction === 'backward') {
-    // Going back to existing history entry
-    const index = navigationStack.lastIndexOf(path);
-    setNavigationStack(navigationStack.slice(0, index + 1));
+  // Tab switch: save current, switch, then navigate within new tab
+  if (targetTab !== currentTab && PRIMARY_TABS.includes(targetTab)) {
+    switchTab(targetTab);
+    if (path !== targetTab) {
+      // Add sub-path to the tab's stack
+      const newStack = [...getActiveTabStack(), path];
+      setActiveTabStack(newStack);
+    }
   } else {
-    // Going forward to new or revisited path
-    setNavigationStack([...navigationStack, path]);
+    // Same tab: check if going back or forward
+    const direction = getNavigationDirection(getCurrentPath(), path);
+    const currentStack = getActiveTabStack();
+    
+    if (direction === 'backward') {
+      // Going back to existing entry in this tab's history
+      const index = currentStack.lastIndexOf(path);
+      setActiveTabStack(currentStack.slice(0, index + 1));
+    } else {
+      // Going forward within this tab
+      setActiveTabStack([...currentStack, path]);
+    }
   }
   
-  // CRITICAL: Push to browser history so React Router and back gestures work correctly
+  // Sync with browser history
   window.history.pushState({ path }, '', window.location.pathname);
 }
 
 /**
- * Go back one page in history
- * Syncs with both custom stack and browser history
- * Called by: back button, Android back button, iOS swipe-back
+ * Go back one step in active tab's history
+ * If at root of tab, doesn't go back (system can close app)
  */
 export function goBack() {
-  if (navigationStack.length <= 1) return;
+  const stack = getActiveTabStack();
+  if (stack.length <= 1) return;
   
   isProcessingBack = true;
-  setNavigationStack(navigationStack.slice(0, -1));
-  // This triggers popstate event via React Router, which will call handlePopState
+  setActiveTabStack(stack.slice(0, -1));
+  // Triggers popstate via React Router
   window.history.back();
   
-  // Allow popstate to complete
   requestAnimationFrame(() => {
     isProcessingBack = false;
   });
 }
 
-function setNavigationStack(newStack) {
-  navigationStack = newStack;
+/**
+ * Persist all tab stacks to sessionStorage
+ */
+function persistTabStacks() {
   try {
-    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(navigationStack));
+    sessionStorage.setItem(HISTORY_KEY, JSON.stringify(tabStacks));
   } catch {
     // Fallback if sessionStorage fails
   }
 }
 
+/**
+ * Persist active tab to sessionStorage
+ */
+function persistActiveTab() {
+  try {
+    sessionStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+  } catch {
+    // Fallback
+  }
+}
+
+/**
+ * Save scroll position for a path
+ * Scroll positions are global, not per-tab
+ */
 export function saveScrollPosition(path, position) {
   scrollPositions[path] = position;
   try {
@@ -181,6 +320,9 @@ export function saveScrollPosition(path, position) {
   }
 }
 
+/**
+ * Retrieve scroll position for a path
+ */
 export function getScrollPosition(path) {
   if (scrollPositions[path] !== undefined) return scrollPositions[path];
   try {
@@ -191,9 +333,15 @@ export function getScrollPosition(path) {
   }
 }
 
+/**
+ * Clear all navigation state
+ * Useful for logout or hard reset
+ */
 export function clearNavigation() {
-  navigationStack = [];
+  tabStacks = {};
   scrollPositions = {};
+  activeTab = '/Dashboard';
   sessionStorage.removeItem(HISTORY_KEY);
   sessionStorage.removeItem(SCROLL_KEY);
+  sessionStorage.removeItem(ACTIVE_TAB_KEY);
 }
