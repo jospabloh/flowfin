@@ -194,9 +194,11 @@ export default function Transactions() {
       ) : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (
-        <div className="px-4 space-y-4">
-          {groups.map(([date, txns]) => (
-            <div key={date}>
+        <Virtuoso
+          useWindowScroll
+          data={groups}
+          itemContent={(_, [date, txns]) => (
+            <div className="px-4 mb-4" key={date}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold text-muted-foreground">
                   {date !== 'Sin fecha' ? format(parseISO(date), "EEEE d 'de' MMMM", { locale: es }).replace(/^\w/, c => c.toUpperCase()) : 'Sin fecha'}
@@ -214,22 +216,26 @@ export default function Transactions() {
                   const sub = subcategories.find(s => s.id === t.subcategory_id);
                   const person = persons.find(p => p.id === t.person_id);
                   const isExp = expanded === t.id;
+                  const desc = t.description || cat?.name || 'Sin descripción';
                   return (
                     <div key={t.id} className={idx < txns.length - 1 ? 'border-b border-border' : ''}>
                       {(!t.person_id || !t.category_id) && (
-                        <div className="flex items-center gap-1.5 px-4 pt-2 pb-0">
-                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                        <div className="flex items-center gap-1.5 px-4 pt-2 pb-0" role="alert">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" aria-hidden="true" />
                           <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                             Pendiente de revisar — falta {!t.category_id && !t.person_id ? 'categoría y persona' : !t.category_id ? 'categoría' : 'persona'}
                           </span>
                         </div>
                       )}
-                      <button onClick={() => setExpanded(isExp ? null : t.id)}
+                      <button
+                        onClick={() => setExpanded(isExp ? null : t.id)}
+                        aria-expanded={isExp}
+                        aria-label={`${desc}, ${t.type === 'expense' ? 'egreso' : 'ingreso'} de ${t.amount}`}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left">
-                        <div className="w-2 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: cat?.color || '#94a3b8' }} />
+                        <div className="w-2 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: cat?.color || '#94a3b8' }} aria-hidden="true" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-foreground truncate">{t.description || cat?.name || 'Sin desc.'}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{desc}</p>
                             <AmountDisplay amount={t.amount} type={t.type} size="sm" />
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -238,7 +244,7 @@ export default function Transactions() {
                             {t.required_type && t.required_type !== 'Necesario' && <span className="text-[10px] text-muted-foreground">{t.required_type}</span>}
                           </div>
                         </div>
-                        {isExp ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                        {isExp ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" /> : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />}
                       </button>
                       {isExp && (
                         <div className="px-4 pb-3 bg-muted/30 border-t border-border">
@@ -251,13 +257,17 @@ export default function Transactions() {
                             {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground col-span-1">{t.notes}</span></>}
                           </div>
                           <div className="flex gap-2 mt-1">
-                            <button onClick={() => handleEdit(t)}
+                            <button
+                              onClick={() => handleEdit(t)}
+                              aria-label={`Editar ${desc}`}
                               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
-                              <Pencil className="w-3.5 h-3.5" /> Editar
+                              <Pencil className="w-3.5 h-3.5" aria-hidden="true" /> Editar
                             </button>
-                            <button onClick={() => handleDelete(t.id)}
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              aria-label={`Eliminar ${desc}`}
                               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors">
-                              <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> Eliminar
                             </button>
                           </div>
                         </div>
@@ -267,8 +277,8 @@ export default function Transactions() {
                 })}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );
