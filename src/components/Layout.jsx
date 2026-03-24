@@ -122,12 +122,14 @@ export default function Layout() {
             const showBadge = item.to === '/Transactions' && pendingCount > 0;
             return (
               <Link key={item.to} to={item.to}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150
                   ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
                 <div className="relative flex-shrink-0">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                   {showBadge && (
-                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
+                    <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
                       {pendingCount > 9 ? '9+' : pendingCount}
                     </span>
                   )}
