@@ -17,9 +17,10 @@ export default function ThemeToggle() {
         const Icon = t.icon;
         return (
           <button key={t.value} onClick={() => setTheme(t.value)}
-            title={t.label}
-            className={`p-1.5 rounded-md transition-all ${theme === t.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Icon className="w-3.5 h-3.5" />
+            aria-label={`Cambiar a tema ${t.label}`}
+            aria-pressed={theme === t.value}
+            className={`p-1.5 rounded-md transition-all touch-target ${theme === t.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         );
       })}

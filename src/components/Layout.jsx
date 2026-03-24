@@ -187,8 +187,8 @@ export default function Layout() {
       {!isAssistantPage && (
         <button onClick={() => handleNavClick('/Assistant')}
           className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
-          aria-label="Abrir asistente IA">
-          <MessageCircle className="w-5 h-5" />
+          aria-label="Abrir asistente inteligente para consultas">
+          <MessageCircle className="w-5 h-5" aria-hidden="true" />
         </button>
       )}
 
@@ -201,13 +201,14 @@ export default function Layout() {
                 .some(p => location.pathname.includes(p));
               return (
                 <button key="more" onClick={() => setShowMore(true)}
-                  aria-label="Abrir más opciones"
-                  aria-haspopup="dialog"
-                  className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
-                    ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-                  <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
-                  <span className="text-[10px] font-medium">Más</span>
-                </button>
+                    aria-label="Abrir más opciones de navegación"
+                    aria-haspopup="dialog"
+                    aria-expanded={showMore}
+                    className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
+                      ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
+                    <span className="text-[10px] font-medium">Más</span>
+                  </button>
               );
             }
             if (item.isCenter) {
@@ -252,14 +253,14 @@ export default function Layout() {
             <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="Más opciones de navegación"
+            aria-labelledby="more-options-title"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card rounded-t-3xl border-t border-border pb-safe overscroll-none">
-            <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-4" />
+            <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-4" aria-hidden="true" />
             <div className="flex items-center justify-between px-6 mb-4">
-              <h3 className="font-semibold text-foreground">Más opciones</h3>
-              <button onClick={() => setShowMore(false)} aria-label="Cerrar menú" className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+              <h3 id="more-options-title" className="font-semibold text-foreground">Más opciones</h3>
+              <button onClick={() => setShowMore(false)} aria-label="Cerrar panel de opciones adicionales" className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
@@ -268,9 +269,10 @@ export default function Layout() {
                   const Icon = item.icon;
                   return (
                     <button key={item.to} onClick={() => { handleNavClick(item.to); setShowMore(false); }}
+                      aria-label={item.label}
                       className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/50 hover:bg-muted transition-colors touch-target">
                       <div className={`w-10 h-10 rounded-xl bg-card flex items-center justify-center shadow-sm ${item.color}`}>
-                        <Icon className="w-5 h-5" />
+                        <Icon className="w-5 h-5" aria-hidden="true" />
                       </div>
                       <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
                     </button>

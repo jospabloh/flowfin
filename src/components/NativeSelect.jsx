@@ -65,8 +65,8 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
                 <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3" />
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                   <span className="text-sm font-semibold text-foreground">{placeholder}</span>
-                  <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
-                    <X className="w-4 h-4" />
+                  <button onClick={() => setOpen(false)} aria-label="Cerrar selector" className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
+                    <X className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
