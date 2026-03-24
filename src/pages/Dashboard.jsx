@@ -184,7 +184,7 @@ export default function Dashboard() {
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-1">Top Categorías</h3>
           <p className="text-xs text-muted-foreground mb-3">Top 5 de {Object.keys((() => { const m = {}; filtered.filter(t => t.type === 'expense').forEach(t => { m[t.category_id || 'x'] = 1; }); return m; })()).length} categorías</p>
-          <div className="h-36">
+          <div className="h-36 min-h-[144px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topCategories} layout="vertical" margin={{ left: 0, right: 8 }}>
                 <XAxis type="number" hide />
