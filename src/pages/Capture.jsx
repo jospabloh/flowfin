@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { base44 } from '@/api/base44Client';
 import { Mic, MicOff, Camera, Check, ChevronDown, Receipt } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
