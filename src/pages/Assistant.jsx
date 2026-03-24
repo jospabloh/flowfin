@@ -12,6 +12,7 @@ export default function Assistant() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [pendingTransaction, setPendingTransaction] = useState(null);
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
 
