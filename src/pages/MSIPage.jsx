@@ -26,6 +26,7 @@ function getNextMSIPayment(msi, payments) {
 export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+  const { toast } = useToast();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
@@ -36,18 +37,62 @@ export default function MSIPage() {
   const selectedPayments = selected ? allPayments.filter(p => p.msi_id === selected.id) : [];
   const nextPayment = selected ? getNextMSIPayment(selected, selectedPayments) : null;
 
+  const createMSIMutation = useMutation({
+    mutationFn: (data) => base44.entities.MSI.create(data),
+    onMutate: async (newMSI) => {
+      await queryClient.cancelQueries({ queryKey: ['msi', familyId] });
+      const previous = queryClient.getQueryData(['msi', familyId]);
+      const optimistic = { ...newMSI, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['msi', familyId], (old = []) => [optimistic, ...old]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['msi', familyId], ctx.previous);
+      toast({ title: 'Error al crear MSI', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['msi', familyId] }),
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: (data) => base44.entities.MSIPayment.create(data),
+    onMutate: async (newPay) => {
+      await queryClient.cancelQueries({ queryKey: ['msiPayments'] });
+      const previous = queryClient.getQueryData(['msiPayments']);
+      const optimistic = { ...newPay, id: `opt_${Date.now()}` };
+      queryClient.setQueryData(['msiPayments'], (old = []) => [...old, optimistic]);
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['msiPayments'], ctx.previous);
+      toast({ title: 'Error al marcar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['msiPayments'] }),
+  });
+
   const handleCreate = async () => {
     if (!form.store || !form.total_amount) return;
-    await base44.entities.MSI.create({ ...form, family_id: familyId, total_amount: +form.total_amount, monthly_amount: +form.monthly_amount, total_months: +form.total_months, billing_day: +form.billing_day, is_active: true });
-    queryClient.invalidateQueries({ queryKey: ['msi', familyId] });
+    createMSIMutation.mutate({ 
+      ...form, 
+      family_id: familyId, 
+      total_amount: +form.total_amount, 
+      monthly_amount: +form.monthly_amount, 
+      total_months: +form.total_months, 
+      billing_day: +form.billing_day, 
+      is_active: true 
+    });
     setShowForm(false);
+    setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
   };
 
   const handleMarkPaid = async (msi, payments) => {
     const next = getNextMSIPayment(msi, payments);
     if (!next) return;
-    await base44.entities.MSIPayment.create({ msi_id: msi.id, month_number: next.number, amount: msi.monthly_amount, paid_date: new Date().toISOString().slice(0,10) });
-    queryClient.invalidateQueries({ queryKey: ['msiPayments'] });
+    markPaidMutation.mutate({ 
+      msi_id: msi.id, 
+      month_number: next.number, 
+      amount: msi.monthly_amount, 
+      paid_date: new Date().toISOString().slice(0,10) 
+    });
   };
 
   return (
