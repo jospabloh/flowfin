@@ -45,7 +45,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-3">
+        <div className="px-5 py-4 space-y-3" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
           {/* Type */}
           <div className="flex rounded-xl bg-muted p-1 gap-1">
             {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
