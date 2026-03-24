@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
+import NativeSelect from '@/components/NativeSelect';
 import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCatalog } from '@/hooks/useCatalog';
