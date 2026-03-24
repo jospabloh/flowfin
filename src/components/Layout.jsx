@@ -91,9 +91,9 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex overscroll-none" id="main-app-wrapper">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl">
+      <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl overscroll-none">
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md">
@@ -106,7 +106,7 @@ export default function Layout() {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto overscroll-none hide-scrollbar">
           {sideNavItems.map(item => {
             const Icon = item.icon;
             const active = location.pathname === item.to;
@@ -115,7 +115,7 @@ export default function Layout() {
               <button key={item.to} onClick={() => handleNavClick(item.to)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 w-full text-left
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 w-full text-left touch-target
                   ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
                 <div className="relative flex-shrink-0">
                   <Icon className="w-4 h-4" aria-hidden="true" />
@@ -158,7 +158,7 @@ export default function Layout() {
             </button>
           </div>
         )}
-        <div className="flex-1 mb-nav md:mb-0">
+        <div className="flex-1 mb-nav md:mb-0 overflow-y-auto overscroll-none hide-scrollbar" id="main-scroll">
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={location.pathname}>
               <Outlet />
@@ -170,14 +170,14 @@ export default function Layout() {
       {/* Floating Assistant Button — hidden on Assistant page */}
       {!isAssistantPage && (
         <button onClick={() => handleNavClick('/Assistant')}
-          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105"
+          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
           aria-label="Abrir asistente IA">
           <MessageCircle className="w-5 h-5" />
         </button>
       )}
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/90 backdrop-blur-xl border-t border-border pb-safe z-40">
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/90 backdrop-blur-xl border-t border-border pb-safe z-40 overscroll-none">
         <div className="flex items-end justify-around px-2 pt-2 pb-1">
           {navItems.map(item => {
             if (item.to === '/more') {
@@ -187,7 +187,7 @@ export default function Layout() {
                 <button key="more" onClick={() => setShowMore(true)}
                   aria-label="Abrir más opciones"
                   aria-haspopup="dialog"
-                  className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
+                  className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
                     ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                   <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
                   <span className="text-[10px] font-medium">Más</span>
@@ -209,7 +209,7 @@ export default function Layout() {
               <button key={item.to} onClick={() => handleNavClick(item.to)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all
+                className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
                   ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                 <div className="relative">
                   <Icon className="w-6 h-6" aria-hidden="true" />
@@ -239,7 +239,7 @@ export default function Layout() {
             aria-label="Más opciones de navegación"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card rounded-t-3xl border-t border-border pb-safe">
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card rounded-t-3xl border-t border-border pb-safe overscroll-none">
             <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-4" />
             <div className="flex items-center justify-between px-6 mb-4">
               <h3 className="font-semibold text-foreground">Más opciones</h3>
@@ -247,12 +247,12 @@ export default function Layout() {
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
-              <div className="grid grid-cols-4 gap-3 px-4 pb-6">
+              <div className="grid grid-cols-4 gap-3 px-4 pb-6 overscroll-none">
                 {moreItems.map(item => {
                   const Icon = item.icon;
                   return (
                     <button key={item.to} onClick={() => { handleNavClick(item.to); setShowMore(false); }}
-                      className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/50 hover:bg-muted transition-colors">
+                      className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl bg-muted/50 hover:bg-muted transition-colors touch-target">
                       <div className={`w-10 h-10 rounded-xl bg-card flex items-center justify-center shadow-sm ${item.color}`}>
                         <Icon className="w-5 h-5" />
                       </div>

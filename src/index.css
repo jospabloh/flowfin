@@ -98,6 +98,17 @@
   .pb-safe { padding-bottom: env(safe-area-inset-bottom, 8px); }
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   .mb-nav { margin-bottom: calc(72px + env(safe-area-inset-bottom, 8px)); }
+  .overscroll-none { overscroll-behavior-y: none; }
+  .touch-target { min-width: 44px; min-height: 44px; }
+}
+
+html {
+  overscroll-behavior-y: none;
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
 }
 
 @layer base {
