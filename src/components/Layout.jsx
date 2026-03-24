@@ -240,16 +240,19 @@ export default function Layout() {
               className="fixed inset-0 bg-black/40 z-50 md:hidden"
               onClick={() => setShowMore(false)} />
             <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card rounded-t-3xl border-t border-border pb-safe">
-              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-4" />
-              <div className="flex items-center justify-between px-6 mb-4">
-                <h3 className="font-semibold text-foreground">Más opciones</h3>
-                <button onClick={() => setShowMore(false)} className="p-1.5 rounded-lg bg-muted text-muted-foreground">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            role="dialog"
+            aria-modal="true"
+            aria-label="Más opciones de navegación"
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card rounded-t-3xl border-t border-border pb-safe">
+            <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-4" />
+            <div className="flex items-center justify-between px-6 mb-4">
+              <h3 className="font-semibold text-foreground">Más opciones</h3>
+              <button onClick={() => setShowMore(false)} aria-label="Cerrar menú" className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
               <div className="grid grid-cols-4 gap-3 px-4 pb-6">
                 {moreItems.map(item => {
                   const Icon = item.icon;
