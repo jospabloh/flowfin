@@ -3,7 +3,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { Plus, TrendingUp, TrendingDown, Wallet, ChevronRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
@@ -23,8 +23,11 @@ const PERIODS = [
 
 function getRange(key) {
   const now = new Date();
-  if (key === 'today') return { start: new Date(now.setHours(0,0,0,0)), end: new Date() };
-  if (key === 'yesterday') { const d = subDays(new Date(), 1); return { start: new Date(d.setHours(0,0,0,0)), end: new Date(d.setHours(23,59,59,999)) }; }
+  if (key === 'today') return { start: new Date(now.setHours(0, 0, 0, 0)), end: new Date() };
+  if (key === 'yesterday') {
+    const d = subDays(new Date(), 1);
+    return { start: new Date(d.setHours(0, 0, 0, 0)), end: new Date(d.setHours(23, 59, 59, 999)) };
+  }
   if (key === 'week') return { start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) };
   return { start: startOfMonth(new Date()), end: endOfMonth(new Date()) };
 }
@@ -33,9 +36,9 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
   const { familyId } = useFamily();
-  const catalog = useCatalog(familyId);
-  const categories = catalog?.categories || [];
-  const persons = catalog?.persons || [];
+  const catalogData = useCatalog(familyId);
+  const categories = catalogData?.categories || [];
+  const persons = catalogData?.persons || [];
 
   const { data: transactions = [], refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
@@ -45,10 +48,27 @@ export default function Dashboard() {
 
   const { refreshing } = usePullToRefresh(refetchTx);
 
-  const { data: investments = [] } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }), enabled: !!familyId });
-  const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list() });
-  const { data: msiList = [] } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }), enabled: !!familyId });
-  const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list() });
+  const { data: investments = [] } = useQuery({
+    queryKey: ['investments', familyId],
+    queryFn: () => base44.entities.Investment.filter({ family_id: familyId }),
+    enabled: !!familyId
+  });
+
+  const { data: investmentPayments = [] } = useQuery({
+    queryKey: ['investmentPayments'],
+    queryFn: () => base44.entities.InvestmentPayment.list()
+  });
+
+  const { data: msiList = [] } = useQuery({
+    queryKey: ['msi', familyId],
+    queryFn: () => base44.entities.MSI.filter({ family_id: familyId }),
+    enabled: !!familyId
+  });
+
+  const { data: msiPayments = [] } = useQuery({
+    queryKey: ['msiPayments'],
+    queryFn: () => base44.entities.MSIPayment.list()
+  });
 
   const range = getRange(period);
 
@@ -72,7 +92,8 @@ export default function Dashboard() {
     });
     return Object.entries(map)
       .map(([id, total]) => ({ cat: categories.find(c => c.id === id), total }))
-      .sort((a, b) => b.total - a.total).slice(0, 5);
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
   }, [filtered, categories]);
 
   const expenseCategoriesCount = useMemo(() => {
@@ -91,7 +112,8 @@ export default function Dashboard() {
     });
     return Object.entries(map).map(([id, value]) => ({
       person: persons.find(p => p.id === id),
-      value, name: persons.find(p => p.id === id)?.name || 'Sin asignar'
+      value,
+      name: persons.find(p => p.id === id)?.name || 'Sin asignar'
     }));
   }, [filtered, persons]);
 
@@ -131,30 +153,41 @@ export default function Dashboard() {
         </div>
       )}
       <PageHeader
-        title={format(new Date(), "MMMM yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
+        title={format(new Date(), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
         subtitle="Resumen familiar"
       />
 
       {/* Period filter */}
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
         {PERIODS.map(p => (
-          <button key={p.key} onClick={() => setPeriod(p.key)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
-              ${period === p.key ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              period === p.key ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
             {p.label}
           </button>
         ))}
         <div className="w-px h-5 bg-border self-center mx-1" />
-        <button onClick={() => setPersonFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
-            ${personFilter === 'all' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
+        <button
+          onClick={() => setPersonFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            personFilter === 'all' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'
+          }`}
+        >
           Todos
         </button>
         {persons.map(p => (
-          <button key={p.id} onClick={() => setPersonFilter(p.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
-              ${personFilter === p.id ? 'text-white shadow-sm' : 'bg-muted text-muted-foreground'}`}
-            style={personFilter === p.id ? { backgroundColor: p.color } : {}}>
+          <button
+            key={p.id}
+            onClick={() => setPersonFilter(p.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              personFilter === p.id ? 'text-white shadow-sm' : 'bg-muted text-muted-foreground'
+            }`}
+            style={personFilter === p.id ? { backgroundColor: p.color } : {}}
+          >
             {p.name}
           </button>
         ))}
@@ -165,7 +198,7 @@ export default function Dashboard() {
         {[
           { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
           { label: 'Egresos', amount: expense, type: 'expense', icon: TrendingDown, link: '/Reports?type=expense' },
-          { label: 'Balance', amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet, link: null },
+          { label: 'Balance', amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet, link: null }
         ].map(card => {
           const Icon = card.icon;
           const content = (
@@ -201,7 +234,9 @@ export default function Dashboard() {
                 <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10, fill: 'currentColor' }} />
                 <Tooltip formatter={v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v)} />
                 <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                  {topCategories.map((entry, i) => <Cell key={i} fill={entry.cat?.color || '#059669'} />)}
+                  {topCategories.map((entry, i) => (
+                    <Cell key={i} fill={entry.cat?.color || '#059669'} />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -222,7 +257,9 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={byPerson} dataKey="value" cx="50%" cy="50%" innerRadius={22} outerRadius={38}>
-                    {byPerson.map((entry, i) => <Cell key={i} fill={entry.person?.color || '#94a3b8'} />)}
+                    {byPerson.map((entry, i) => (
+                      <Cell key={i} fill={entry.person?.color || '#94a3b8'} />
+                    ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
@@ -254,20 +291,22 @@ export default function Dashboard() {
         </div>
         {recent.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">Sin movimientos aún</p>
-        ) : recent.map(t => {
-          const cat = categories.find(c => c.id === t.category_id);
-          const person = persons.find(p => p.id === t.person_id);
-          return (
-            <div key={t.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
-              <CategoryDot category={cat} size="md" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{t.description || cat?.name || 'Sin descripción'}</p>
-                <p className="text-xs text-muted-foreground">{t.date} {person && `· ${person.name}`}</p>
+        ) : (
+          recent.map(t => {
+            const cat = categories.find(c => c.id === t.category_id);
+            const person = persons.find(p => p.id === t.person_id);
+            return (
+              <div key={t.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                <CategoryDot category={cat} size="md" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{t.description || cat?.name || 'Sin descripción'}</p>
+                  <p className="text-xs text-muted-foreground">{t.date} {person && `· ${person.name}`}</p>
+                </div>
+                <AmountDisplay amount={t.amount} type={t.type} size="sm" />
               </div>
-              <AmountDisplay amount={t.amount} type={t.type} size="sm" />
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Upcoming payments */}
@@ -279,15 +318,15 @@ export default function Dashboard() {
               <span className="text-xl">{item.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                <p className="text-xs text-muted-foreground">{format(item.date, 'dd MMM', { locale: es })} · {item.diff <= 0 ? '¡Hoy!' : item.diff === 1 ? 'Mañana' : `En ${item.diff} días`}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(item.date, 'dd MMM', { locale: es })} · {item.diff <= 0 ? '¡Hoy!' : item.diff === 1 ? 'Mañana' : `En ${item.diff} días`}
+                </p>
               </div>
               {item.amount && <AmountDisplay amount={item.amount} type="expense" size="sm" showSign={false} />}
             </div>
           ))}
         </div>
       )}
-
-
     </div>
   );
 }
