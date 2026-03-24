@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronDown, X } from 'lucide-react';
+import { createFocusTrap } from '@/lib/focusTrap';
 
 /**
  * NativeSelect — iOS-style bottom-sheet picker.
@@ -9,7 +10,14 @@ import { Check, ChevronDown, X } from 'lucide-react';
  */
 export default function NativeSelect({ value, onChange, options = [], placeholder = '—', className = '', disabled = false }) {
   const [open, setOpen] = useState(false);
+  const sheetRef = useRef(null);
   const selected = options.find(o => String(o.value) === String(value));
+
+  useEffect(() => {
+    if (!open || !sheetRef.current) return;
+    const cleanup = createFocusTrap(sheetRef);
+    return cleanup;
+  }, [open]);
 
   const handleSelect = (val) => {
     onChange({ target: { value: val } });
@@ -42,6 +50,10 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
             />
             {/* Sheet */}
             <motion.div
+              ref={sheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={placeholder}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 320 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border pb-safe max-h-[70vh] flex flex-col"
