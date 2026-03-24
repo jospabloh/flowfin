@@ -59,10 +59,14 @@ export default function Transactions() {
   // Handle infinite scroll: load more items when user scrolls near bottom
   const handleLoadMore = useCallback(async () => {
     if (!hasMore || !familyId) return;
-    const nextOffset = allTransactions.length;
-    const nextBatch = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize, nextOffset);
-    setAllTransactions(prev => [...prev, ...nextBatch]);
-    setHasMore(nextBatch.length === pageSize);
+    try {
+      const nextOffset = allTransactions.length;
+      const nextBatch = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize, nextOffset);
+      setAllTransactions(prev => [...prev, ...nextBatch]);
+      setHasMore(nextBatch.length === pageSize);
+    } catch (err) {
+      console.error('Error loading more transactions:', err);
+    }
   }, [hasMore, familyId, allTransactions.length]);
 
   // Sync pagination data on query change
