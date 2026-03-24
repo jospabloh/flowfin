@@ -289,10 +289,13 @@ export default function Capture() {
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
         {type === 'expense' && (
-          <select value={requiredType} onChange={e => setRequiredType(e.target.value)}
-            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 appearance-none">
-            {REQUIRED_TYPES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          <NativeSelect
+            value={requiredType}
+            onChange={e => setRequiredType(e.target.value)}
+            placeholder="Clasificación"
+            options={REQUIRED_TYPES.map(r => ({ value: r, label: r }))}
+            className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm w-full"
+          />
         )}
       </div>
 
