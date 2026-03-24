@@ -31,10 +31,10 @@ const FamilyGate = ({ children }) => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
-            <span className="text-white font-bold text-2xl">F</span>
+          <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
+            <span className="text-white font-bold text-4xl">F</span>
           </div>
-          <p className="text-sm text-muted-foreground">Cargando FamilyFlow...</p>
+          <p className="text-sm text-muted-foreground">Cargando FlowFlin...</p>
         </div>
       </div>
     );
@@ -51,10 +51,10 @@ const AuthenticatedApp = () => {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
-            <span className="text-white font-bold text-2xl">F</span>
+          <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
+            <span className="text-white font-bold text-4xl">F</span>
           </div>
-          <p className="text-sm text-muted-foreground">Cargando FamilyFlow...</p>
+          <p className="text-sm text-muted-foreground">Cargando FlowFlin...</p>
         </div>
       </div>
     );
