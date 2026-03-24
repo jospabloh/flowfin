@@ -57,13 +57,41 @@ export default function Layout() {
   // Independent scroll position per route (tab memory)
   const scrollPositions = useRef({});
   const prevPath = useRef(location.pathname);
+  // Track a simple history stack to detect forward vs back
+  const historyStack = useRef([location.pathname]);
 
   useEffect(() => {
     const el = document.getElementById('main-scroll');
-    if (!el) return;
-    scrollPositions.current[prevPath.current] = el.scrollTop;
+
+    // Save scroll for the page we're leaving
+    if (el) {
+      scrollPositions.current[prevPath.current] = el.scrollTop;
+    }
+
+    // Determine direction BEFORE updating the stack
+    const stack = historyStack.current;
+    const prevIndex = stack.lastIndexOf(prevPath.current);
+    const nextIndex = stack.lastIndexOf(location.pathname);
+
+    if (nextIndex !== -1 && nextIndex < prevIndex) {
+      // Going back to a page that exists earlier in the stack
+      setNavigationDirection('backward');
+      historyStack.current = stack.slice(0, nextIndex + 1);
+    } else {
+      setNavigationDirection('forward');
+      if (location.pathname !== prevPath.current) {
+        historyStack.current = [...stack, location.pathname];
+      }
+    }
+
     prevPath.current = location.pathname;
-    el.scrollTop = scrollPositions.current[location.pathname] || 0;
+
+    // Restore scroll position after the transition settles
+    const saved = scrollPositions.current[location.pathname] || 0;
+    if (el) {
+      // Use rAF to let the new page mount before restoring scroll
+      requestAnimationFrame(() => { el.scrollTop = saved; });
+    }
   }, [location.pathname]);
 
   return (
