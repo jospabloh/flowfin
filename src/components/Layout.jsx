@@ -22,6 +22,7 @@ const moreItems = [
   { to: '/Rentals', icon: Building, label: 'Rentas', color: 'text-blue-500' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos', color: 'text-orange-500' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia', color: 'text-rose-500' },
+  { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta', color: 'text-pink-500' },
   { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500' },
   { to: '/UserManual', icon: HelpCircle, label: 'Manual', color: 'text-cyan-500' },
   { to: '/About', icon: Info, label: 'Acerca de', color: 'text-muted-foreground' },
@@ -37,6 +38,7 @@ const sideNavItems = [
   { to: '/Rentals', icon: Building, label: 'Rentas' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia' },
+  { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta' },
   { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia' },
   { to: '/UserManual', icon: HelpCircle, label: 'Manual' },
   { to: '/About', icon: Info, label: 'Acerca de' },
@@ -67,6 +69,20 @@ export default function Layout() {
 
     prevPath.current = location.pathname;
   }, [location.pathname]);
+
+  // Handle system deep links and intent handling
+  useEffect(() => {
+    const handleAppIntent = (e) => {
+      const path = e.detail?.path || new URLSearchParams(window.location.search).get('path');
+      if (path && path !== location.pathname) {
+        navigateTo(path);
+        navigate(path);
+      }
+    };
+
+    window.addEventListener('app-intent', handleAppIntent);
+    return () => window.removeEventListener('app-intent', handleAppIntent);
+  }, [navigate, location.pathname]);
 
   // Setup browser back gesture support
   useEffect(() => {
@@ -181,7 +197,7 @@ export default function Layout() {
         <div className="flex items-end justify-around px-2 pt-2 pb-1">
           {navItems.map(item => {
             if (item.to === '/more') {
-              const active = ['Investments','MSI','Rentals','Catalogs','FamilySettings','UserManual','About']
+              const active = ['Investments','MSI','Rentals','Catalogs','FamilySettings','AccountSettings','UserManual','About']
                 .some(p => location.pathname.includes(p));
               return (
                 <button key="more" onClick={() => setShowMore(true)}
