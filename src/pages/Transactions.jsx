@@ -31,6 +31,7 @@ function groupByDate(transactions) {
 export default function Transactions() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+  const { toast } = useToast();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -42,6 +43,21 @@ export default function Transactions() {
 
   const handleEdit = (t) => { setEditing(t); };
   const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions'] }); };
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: (id) => base44.entities.Transaction.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      const previous = queryClient.getQueryData(['transactions']);
+      queryClient.setQueryData(['transactions'], (old = []) => old.filter(t => t.id !== id));
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['transactions'], ctx.previous);
+      toast({ title: 'Error al eliminar', description: err?.message || 'No se pudo eliminar el movimiento.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
 
   const [hasMore, setHasMore] = useState(true);
   const [allTransactions, setAllTransactions] = useState([]);
