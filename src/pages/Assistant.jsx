@@ -136,30 +136,50 @@ export default function Assistant() {
         )}
 
         <AnimatePresence>
-          {messages.map((msg, i) => {
-            const isUser = msg.role === 'user';
-            return (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                {!isUser && (
-                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Bot className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                )}
-                <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm
-                  ${isUser ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-card border border-border text-foreground rounded-tl-sm'}`}>
-                  {isUser ? (
-                    <p>{msg.content}</p>
-                  ) : (
-                    <ReactMarkdown className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      {msg.content}
-                    </ReactMarkdown>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+           {messages.map((msg, i) => {
+             const isUser = msg.role === 'user';
+             const isLastMessage = i === messages.length - 1;
+             const isConfirmationMessage = !isUser && msg.content?.includes('¿Confirmas');
+
+             return (
+               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                 <div className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                   {!isUser && (
+                     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                       <Bot className="w-3.5 h-3.5 text-primary" />
+                     </div>
+                   )}
+                   <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm
+                     ${isUser ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-card border border-border text-foreground rounded-tl-sm'}`}>
+                     {isUser ? (
+                       <p>{msg.content}</p>
+                     ) : (
+                       <ReactMarkdown className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                         {msg.content}
+                       </ReactMarkdown>
+                     )}
+                   </div>
+                 </div>
+                 {isLastMessage && isConfirmationMessage && !pendingTransaction && (
+                   <div className="flex gap-2 mt-3 ml-9">
+                     <button onClick={handleConfirmTransaction}
+                       className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
+                       Sí, guardar
+                     </button>
+                     <button onClick={handleModifyTransaction}
+                       className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
+                       No, modificar
+                     </button>
+                     <button onClick={handleCancelTransaction}
+                       className="flex-1 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
+                       Cancelar
+                     </button>
+                   </div>
+                 )}
+               </motion.div>
+             );
+           })}
+         </AnimatePresence>
 
         {sending && (
           <div className="flex gap-2">
