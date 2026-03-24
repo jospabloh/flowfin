@@ -58,6 +58,32 @@ export default function Capture() {
     setSuggestions([]);
   };
 
+  const handleAddSubcategory = async (name) => {
+    if (!categoryId) { alert('Selecciona primero un Rubro'); return; }
+    await base44.entities.Subcategory.create({
+      name,
+      family_id: familyId,
+      category_id: categoryId,
+      keywords: [name.toLowerCase()],
+      usage_count: 0,
+    });
+    queryClient.invalidateQueries({ queryKey: ['subcategories'] });
+    setSuggestions([]);
+  };
+
+  const handleAddCategory = async (name) => {
+    const cat = await base44.entities.Category.create({
+      name,
+      family_id: familyId,
+      icon: '📁',
+      color: '#059669',
+      type,
+    });
+    setCategoryId(cat.id);
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+    setSuggestions([]);
+  };
+
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Tu navegador no soporta reconocimiento de voz'); return; }
