@@ -67,7 +67,8 @@ function InlineForm({ fields, onSave, onCancel }) {
 
 export default function Catalogs() {
   const queryClient = useQueryClient();
-  const { categories, subcategories, persons, paymentMethods } = useCatalog();
+  const { familyId } = useFamily();
+  const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
