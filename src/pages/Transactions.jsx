@@ -37,6 +37,9 @@ export default function Transactions() {
   const [expanded, setExpanded] = useState(null);
   const [editing, setEditing] = useState(null);
 
+  const handleEdit = (t) => { setEditing(t); };
+  const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions'] }); };
+
   const { data: transactions = [], isLoading, refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 1000),
