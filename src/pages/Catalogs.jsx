@@ -198,15 +198,15 @@ export default function Catalogs() {
   const deletePaymentMethodMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentMethod.delete(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['paymentMethods'] });
-      const previous = queryClient.getQueryData(['paymentMethods']);
-      queryClient.setQueryData(['paymentMethods'], (old = []) => old.filter(m => m.id !== id));
+      await queryClient.cancelQueries({ queryKey: ['paymentMethods', familyId] });
+      const previous = queryClient.getQueryData(['paymentMethods', familyId]);
+      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => old.filter(m => m.id !== id));
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['paymentMethods'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['paymentMethods', familyId], ctx.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] }),
   });
 
   const deleteItem = async (entity, id) => {
