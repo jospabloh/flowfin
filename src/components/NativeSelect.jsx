@@ -2,15 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, ChevronDown, X } from 'lucide-react';
 import { createFocusTrap } from '@/lib/focusTrap';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * NativeSelect — iOS-style bottom-sheet picker.
+ * NativeSelect — Bottom-sheet picker on mobile, dropdown on desktop.
  * Props mirror a standard <select>:
  *   value, onChange, options: [{value, label}], placeholder, className, disabled
  */
 export default function NativeSelect({ value, onChange, options = [], placeholder = '—', className = '', disabled = false }) {
   const [open, setOpen] = useState(false);
   const sheetRef = useRef(null);
+  const isMobile = useIsMobile();
   const selected = options.find(o => String(o.value) === String(value));
 
   useEffect(() => {
