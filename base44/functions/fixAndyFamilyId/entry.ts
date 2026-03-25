@@ -5,32 +5,35 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     
-    // Only admins can fix user data
     if (user?.role !== 'admin') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Get current Andy data
-    const currentAndyData = await base44.asServiceRole.entities.User.filter({
-      email: 'andyramirez005@gmail.com',
-    });
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const token = req.headers.get('authorization')?.replace('Bearer ', '') || '';
 
-    if (!currentAndyData.length) {
-      return Response.json({ error: 'Andy not found' }, { status: 404 });
+    // Update Andy using the API with full data replacement
+    const response = await fetch(
+      `https://api.base44.com/api/apps/${appId}/entities/User/69c40ee765cf8b828ad12a8d`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            family_id: '69c40e9a8ea547f19057c84c',
+          },
+        }),
+      }
+    );
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      return Response.json({ error: 'API error', details: result }, { status: 500 });
     }
-
-    const andy = currentAndyData[0];
-    const andyId = andy.id;
-
-    // Flatten the nested structure - rebuild data cleanly
-    const cleanData = {
-      family_id: '69c40e9a8ea547f19057c84c',
-    };
-
-    // Update with clean structure
-    const result = await base44.asServiceRole.entities.User.update(andyId, {
-      data: cleanData,
-    });
 
     return Response.json({ success: true, data: result });
   } catch (error) {
