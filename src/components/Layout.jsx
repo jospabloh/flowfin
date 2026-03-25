@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
+import { useFamily } from '@/lib/FamilyContext';
 import PageTransition from './PageTransition';
 import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
 
