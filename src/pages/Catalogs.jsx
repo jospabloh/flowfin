@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, Trash2, X } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
@@ -89,11 +89,10 @@ function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
 
 export default function Catalogs() {
   const queryClient = useQueryClient();
-  const { familyId } = useFamily(); 
+  const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
 
-  // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
     onSuccess: () => {
@@ -109,7 +108,6 @@ export default function Catalogs() {
     },
   });
 
-  // Subcategory mutations
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
     onSuccess: () => {
@@ -125,7 +123,6 @@ export default function Catalogs() {
     },
   });
 
-  // Person mutations
   const createPersonMutation = useMutation({
     mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
     onSuccess: () => {
@@ -141,7 +138,6 @@ export default function Catalogs() {
     },
   });
 
-  // Payment method mutations
   const createPaymentMethodMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
     onSuccess: () => {
@@ -187,7 +183,6 @@ export default function Catalogs() {
           <TabsTrigger value="methods" className="text-xs py-1.5">Formas</TabsTrigger>
         </TabsList>
 
-        {/* Categories */}
         <TabsContent value="categories" className="space-y-2">
           <button onClick={() => setAddingTab('cat')} aria-label="Agregar nueva categoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva categoría
@@ -233,7 +228,6 @@ export default function Catalogs() {
           )}
         </TabsContent>
 
-        {/* Subcategories */}
         <TabsContent value="subcategories" className="space-y-2">
           <button onClick={() => setAddingTab('sub')} aria-label="Agregar nueva subcategoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva subcategoría
@@ -291,7 +285,6 @@ export default function Catalogs() {
           )}
         </TabsContent>
 
-        {/* Persons */}
         <TabsContent value="persons" className="space-y-2">
           <button onClick={() => setAddingTab('person')} aria-label="Agregar nueva persona" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva persona
@@ -332,7 +325,6 @@ export default function Catalogs() {
           )}
         </TabsContent>
 
-        {/* Payment methods */}
         <TabsContent value="methods" className="space-y-2">
           <button onClick={() => setAddingTab('method')} aria-label="Agregar nueva forma de pago" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
             <Plus className="w-4 h-4" /> Nueva forma de pago
