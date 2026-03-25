@@ -65,10 +65,9 @@ export default function Transactions() {
   const pageSize = 100;
 
   const { data: paginatedData = { transactions: [], hasMore: true }, isLoading, refetch: refetchTx } = useQuery({
-    queryKey: ['transactions', familyId, 0],
+    queryKey: ['transactions', familyId],
     queryFn: async () => {
       const txs = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize);
-      setAllTransactions(txs);
       return { transactions: txs, hasMore: txs.length === pageSize };
     },
     enabled: !!familyId,
