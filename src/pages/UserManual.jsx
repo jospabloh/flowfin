@@ -137,34 +137,35 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
     id: 'asistente', icon: '🤖', title: 'Asistente IA — Ventaja FamilyFlow',
     content: `El Asistente IA es la característica estrella de FamilyFlow. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural en español.
 
-Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha para abrirlo directamente.
+  Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha para abrirlo directamente.
 
-Ejemplos de uso:
-• "Gasté 500 pesos en gasolina hoy" → El asistente crea el egreso, detecta la categoría y la guarda.
-• "Recibí 10,000 de un cliente" → Registra el ingreso con la fuente que menciones.
-• "¿Cuánto gasté esta semana?" → El asistente consulta y te muestra un resumen.
-• "Registra 1,200 del súper pagado con tarjeta" → Detecta monto, rubro, método de pago.
-• "¿Cuáles movimientos están incompletos?" → El asistente lista los que faltan información.
+  Ejemplos de uso:
+  • "Gasté 500 pesos en gasolina hoy" → El asistente crea el egreso, detecta la categoría y la guarda.
+  • "Recibí 10,000 de un cliente" → Registra el ingreso con la fuente que menciones.
+  • "¿Cuánto gasté esta semana?" → El asistente consulta y te muestra un resumen.
+  • "Registra 1,200 del súper pagado con tarjeta" → Detecta monto, rubro, método de pago.
+  • "¿Cuáles movimientos están incompletos?" → El asistente lista los que faltan información.
+  • "Completa los datos pendientes" → El asistente detecta movimientos sin persona o categoría y te ayuda a completarlos.
 
-Campos obligatorios que el asistente siempre pedirá antes de guardar:
-• Monto
-• Tipo (egreso o ingreso)
-• Categoría (Rubro)
-• Persona (uno de los integrantes de la familia)
-• Fecha (si no se menciona, usa hoy)
+  Campos obligatorios que el asistente siempre pedirá antes de guardar:
+  • Monto
+  • Tipo (egreso o ingreso)
+  • Categoría (Rubro)
+  • Persona (uno de los integrantes de la familia)
+  • Fecha (si no se menciona, usa hoy)
 
-Si falta alguno, el asistente preguntará antes de guardar. Nunca asumirá datos.
+  Si falta alguno, el asistente preguntará antes de guardar. Nunca asumirá datos.
 
-También funciona con voz:
-1. Toca el ícono del micrófono en el Asistente.
-2. Habla tu transacción naturalmente en español.
-3. El asistente confirma y guarda.
+  También funciona con voz:
+  1. Toca el ícono del micrófono en el Asistente.
+  2. Habla tu transacción naturalmente en español.
+  3. El asistente confirma y guarda.
 
-Acciones pendientes: Si un movimiento no tiene persona o categoría asignada, aparece marcado como "⚠️ Pendiente de revisar" en la sección de Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes de revisar?".
+  Acciones pendientes: Si un movimiento no tiene persona o categoría asignada, aparece marcado como "⚠️ Pendiente de revisar" en la sección de Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes de revisar?".
 
-Costo: El asistente consume ~3 créditos de integración Base44 por mensaje. Muy bajo costo para el beneficio que da.
+  Costo: El asistente consume créditos Base44 por mensaje. El costo es muy bajo para el beneficio que proporciona.
 
-Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
+  Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
   },
   {
     id: 'familia', icon: '👨‍👩‍👧‍👦', title: 'Sistema de Familias y Acceso',
