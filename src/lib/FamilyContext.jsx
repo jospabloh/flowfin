@@ -9,7 +9,11 @@ export function FamilyProvider({ children }) {
   const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    base44.auth.me().then(u => { setCurrentUser(u); setLoadingUser(false); }).catch(() => setLoadingUser(false));
+    const timeout = setTimeout(() => setLoadingUser(false), 5000);
+    base44.auth.me()
+      .then(u => { setCurrentUser(u); setLoadingUser(false); })
+      .catch(() => setLoadingUser(false))
+      .finally(() => clearTimeout(timeout));
   }, []);
 
   const { data: membershipData, isLoading: loadingMembership, refetch: refetchMembership } = useQuery({
