@@ -1,4 +1,3 @@
-// Force refresh
 import { useState, useMemo } from 'react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery } from '@tanstack/react-query';
@@ -127,7 +126,6 @@ export default function Dashboard() {
         subtitle="Resumen familiar"
       />
 
-      {/* Period filter */}
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
         {PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)}
@@ -152,7 +150,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 px-4 mb-4">
         {[
           { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
@@ -181,7 +178,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Top categories bar */}
       {topCategories.length > 0 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-1">Top Categorías</h3>
@@ -205,7 +201,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* By person pie */}
       {byPerson.length > 1 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-3">Gasto por Persona</h3>
@@ -236,7 +231,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent transactions */}
       <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Últimos movimientos</h3>
@@ -262,7 +256,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Upcoming payments */}
       {upcoming.length > 0 && (
         <div className="mx-4 bg-card border border-border rounded-2xl p-4 mb-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground mb-3">Próximos pagos</h3>
@@ -278,8 +271,6 @@ export default function Dashboard() {
           ))}
         </div>
       )}
-
-
     </div>
   );
 }
