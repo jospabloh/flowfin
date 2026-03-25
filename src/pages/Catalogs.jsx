@@ -182,17 +182,17 @@ export default function Catalogs() {
   const createPaymentMethodMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['paymentMethods'] });
-      const previous = queryClient.getQueryData(['paymentMethods']);
+      await queryClient.cancelQueries({ queryKey: ['paymentMethods', familyId] });
+      const previous = queryClient.getQueryData(['paymentMethods', familyId]);
       const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['paymentMethods'], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => [...old, optimistic]);
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['paymentMethods'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['paymentMethods', familyId], ctx.previous);
     },
     onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] }),
   });
 
   const deletePaymentMethodMutation = useMutation({
