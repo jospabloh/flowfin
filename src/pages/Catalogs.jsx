@@ -105,15 +105,15 @@ export default function Catalogs() {
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Category.delete(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['categories'] });
-      const previous = queryClient.getQueryData(['categories']);
-      queryClient.setQueryData(['categories'], (old = []) => old.filter(c => c.id !== id));
+      await queryClient.cancelQueries({ queryKey: ['categories', familyId] });
+      const previous = queryClient.getQueryData(['categories', familyId]);
+      queryClient.setQueryData(['categories', familyId], (old = []) => old.filter(c => c.id !== id));
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['categories'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['categories', familyId], ctx.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
   });
 
   // Subcategory mutations
