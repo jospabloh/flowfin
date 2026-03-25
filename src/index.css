@@ -108,7 +108,6 @@ html {
 
 body {
   overscroll-behavior: none;
-  -webkit-touch-callout: none;
 }
 
 @layer base {
