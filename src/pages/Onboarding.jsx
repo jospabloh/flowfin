@@ -49,37 +49,27 @@ export default function Onboarding() {
     if (!familyName.trim()) return;
     setLoading(true);
     setError('');
-    const code = generateCode(familyName);
-    const family = await base44.entities.Family.create({
-      name: familyName.trim(),
-      join_code: code,
-      admin_user_id: currentUser.id,
-      is_active: true,
-    });
-    await base44.entities.FamilyMembership.create({
-      family_id: family.id,
-      user_id: currentUser.id,
-      user_email: currentUser.email,
-      user_name: currentUser.full_name,
-      role: 'admin',
-      status: 'approved',
-    });
-    // Seed categories for this family
-    const cats = await base44.entities.Category.bulkCreate(
-      defaultCategories.map(c => ({ ...c, family_id: family.id }))
-    );
-    const catMap = {};
-    cats.forEach((c, i) => { catMap[defaultCategories[i].name] = c.id; });
-    const subsToCreate = [];
+
+    // Flatten subcategories with _category_name for the backend
+    const flatSubs = [];
     Object.entries(defaultSubcategoriesByCategory).forEach(([catName, subs]) => {
-      subs.forEach(s => subsToCreate.push({ ...s, family_id: family.id, category_id: catMap[catName] || '' }));
+      subs.forEach(s => flatSubs.push({ ...s, _category_name: catName }));
     });
-    await base44.entities.Subcategory.bulkCreate(subsToCreate);
-    await base44.entities.PaymentMethod.bulkCreate(
-      defaultPaymentMethods.map(m => ({ ...m, family_id: family.id }))
-    );
-    setLoading(false);
-    // Reload the page so FamilyContext picks up the new membership cleanly
+
+    const res = await base44.functions.invoke('createFamily', {
+      family_name: familyName.trim(),
+      default_categories: defaultCategories,
+      default_subcategories: flatSubs,
+      default_payment_methods: defaultPaymentMethods,
+    });
+
+    if (res.data?.error) {
+      setError(res.data.error);
+      setLoading(false);
+      return;
+    }
+
+    // Reload so FamilyContext picks up the new membership cleanly
     window.location.reload();
   };
 
