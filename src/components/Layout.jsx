@@ -196,6 +196,11 @@ export default function Layout() {
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/90 backdrop-blur-xl border-t border-border pb-safe z-40 overscroll-none">
+        {family?.name && (
+          <div className="flex justify-center pt-1.5">
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-3 py-0.5 rounded-full">{family.name}</span>
+          </div>
+        )}
         <div className="flex items-end justify-around px-2 pt-2 pb-1">
           {navItems.map(item => {
             if (item.to === '/more') {
