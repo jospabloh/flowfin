@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
       status: 'approved',
     });
 
-    // Fallback: search by email in case user_id wasn't stored
     if (!memberships.length) {
       memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         user_email: user.email,
@@ -26,10 +25,19 @@ Deno.serve(async (req) => {
     const families = await base44.asServiceRole.entities.Family.filter({ id: membership.family_id });
     const family = families[0] || null;
 
-    // Auto-fix: if user.data.family_id is missing or nested incorrectly, self-heal using updateMe
-    // auth.me() returns user.data at the true flat level — if family_id is wrong, fix it
-    if (user.data?.family_id !== membership.family_id) {
-      await base44.auth.updateMe({ data: { family_id: membership.family_id } });
+    // Auto-fix: if user.data.family_id is missing or wrong, self-heal using direct REST PUT
+    // IMPORTANT: use REST PUT (not SDK) to avoid deep-merge nesting bug
+    const currentFamilyId = user.data?.family_id || user.data?.data?.family_id;
+    if (currentFamilyId !== membership.family_id) {
+      const appId = Deno.env.get('BASE44_APP_ID');
+      await fetch(`https://api.base44.com/api/apps/${appId}/entities/User/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'X-API-Key': user.api_key || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: { family_id: membership.family_id } }),
+      });
     }
 
     return Response.json({ membership, family });
