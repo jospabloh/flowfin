@@ -16,12 +16,17 @@ export function FamilyProvider({ children }) {
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return null;
-      const res = await base44.functions.invoke('getMyMembership', {});
-      return res.data || null;
+      try {
+        const res = await base44.functions.invoke('getMyMembership', {});
+        return res.data || null;
+      } catch {
+        return null;
+      }
     },
     enabled: !!currentUser,
     staleTime: 0,
     gcTime: 0,
+    retry: false,
   });
 
   const membership = membershipData?.membership || null;
