@@ -203,8 +203,10 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['paymentMethods', familyId], ctx.previous);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => 
+        [...(old || []).filter(m => !m.id.startsWith('opt_')), data]
+      );
       setAddingTab(null);
     },
   });
