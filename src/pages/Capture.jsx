@@ -17,7 +17,7 @@ const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 export default function Capture() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, currency, currencySymbol } = useFamily();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
 
