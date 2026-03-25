@@ -151,17 +151,17 @@ export default function Catalogs() {
   const createPersonMutation = useMutation({
     mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['persons'] });
-      const previous = queryClient.getQueryData(['persons']);
+      await queryClient.cancelQueries({ queryKey: ['persons', familyId] });
+      const previous = queryClient.getQueryData(['persons', familyId]);
       const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['persons'], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(['persons', familyId], (old = []) => [...old, optimistic]);
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['persons'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['persons', familyId], ctx.previous);
     },
     onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
   });
 
   const deletePersonMutation = useMutation({
