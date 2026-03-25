@@ -35,14 +35,24 @@ export function FamilyProvider({ children }) {
 
   const membership = membershipData?.membership || null;
   const family = membershipData?.family || null;
-  const loadingFamily = false;
-
-  const isLoading = loadingUser || loadingMembership;
   const familyId = family?.id || null;
   const isAdmin = membership?.role === 'admin';
 
+  // Fetch FamilyConfig so ALL members (not just admin) get currency/symbol
+  const { data: familyConfigs = [], refetch: refetchConfig } = useQuery({
+    queryKey: ['familyConfig', familyId],
+    queryFn: () => base44.entities.FamilyConfig.filter({ family_id: familyId }),
+    enabled: !!familyId,
+    staleTime: 2 * 60 * 1000,
+  });
+  const familyConfig = familyConfigs[0] || null;
+  const currency = familyConfig?.currency || family?.currency || 'MXN';
+  const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
+
+  const isLoading = loadingUser || loadingMembership;
+
   return (
-    <FamilyContext.Provider value={{ currentUser, family, familyId, membership, isAdmin, isLoading, refetchMembership }}>
+    <FamilyContext.Provider value={{ currentUser, family, familyId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol }}>
       {children}
     </FamilyContext.Provider>
   );
