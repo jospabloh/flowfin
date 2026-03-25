@@ -50,8 +50,6 @@ export default function FamilySettings() {
     if (configs.length > 0) setConfig(prev => ({ ...prev, ...configs[0] }));
   }, [configs]);
 
-  const { familyId } = useFamily();
-
   // FamilyConfig save mutation
   const saveFamilyConfigMutation = useMutation({
     mutationFn: (configData) => {
