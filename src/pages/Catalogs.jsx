@@ -418,11 +418,13 @@ export default function Catalogs() {
                 <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
-              </div>
-            );
-          })}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+                </div>
+                );
+                })}
+                </div>
+                )}
+                </TabsContent>
+                </Tabs>
+                </div>
+                );
+                }
