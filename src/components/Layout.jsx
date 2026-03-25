@@ -293,6 +293,7 @@ export default function Layout() {
           </>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
