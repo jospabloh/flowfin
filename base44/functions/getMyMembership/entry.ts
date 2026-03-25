@@ -6,32 +6,48 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    console.log('getMyMembership: user =', user.email);
+
     // Try by user_id first, fallback to user_email
     let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
       user_id: user.id,
       status: 'approved',
     });
 
+    console.log('getMyMembership: memberships by user_id =', memberships.length);
+
     if (!memberships.length) {
       memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         user_email: user.email,
         status: 'approved',
       });
+      console.log('getMyMembership: memberships by user_email =', memberships.length);
     }
 
     const membership = memberships[0] || null;
-    if (!membership) return Response.json({ membership: null, family: null });
+    if (!membership) {
+      console.log('getMyMembership: no membership found, returning null');
+      return Response.json({ membership: null, family: null });
+    }
+
+    console.log('getMyMembership: membership found =', membership.id);
 
     const families = await base44.asServiceRole.entities.Family.filter({ id: membership.family_id });
     const family = families[0] || null;
 
+    console.log('getMyMembership: family =', family?.name);
+
     // Auto-fix: if user.data.family_id is missing or wrong, sync it
     const currentFamilyId = user.data?.family_id || user.data?.data?.family_id;
+    console.log('getMyMembership: currentFamilyId =', currentFamilyId, ', expected =', membership.family_id);
+    
     if (currentFamilyId !== membership.family_id) {
       try {
+        console.log('getMyMembership: updating user family_id...');
         await base44.auth.updateMe({ family_id: membership.family_id });
+        console.log('getMyMembership: update successful');
       } catch (err) {
-        console.error('Failed to update family_id:', err.message);
+        console.error('getMyMembership: Failed to update family_id:', err.message);
       }
     }
 
@@ -39,8 +55,10 @@ Deno.serve(async (req) => {
     const configs = await base44.asServiceRole.entities.FamilyConfig.filter({ family_id: membership.family_id });
     const familyConfig = configs[0] || null;
 
+    console.log('getMyMembership: returning data successfully');
     return Response.json({ membership, family, familyConfig });
   } catch (error) {
+    console.error('getMyMembership error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
