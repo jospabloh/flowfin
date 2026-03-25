@@ -82,7 +82,7 @@ function InlineForm({ fields, mutation, onCancel }) {
 export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
-  const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
+  const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
 
   // Category mutations
