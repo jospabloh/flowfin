@@ -137,10 +137,18 @@ export default function FamilySettings() {
         <div className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground">🏠 Datos de la Familia</h3>
           <Field label="Nombre de la familia" field="family_name" placeholder="Mi Familia" />
+          <LocaleSelector
+            value={config.locale}
+            onChange={locale => setConfig(c => ({ ...c, locale }))}
+            onLocaleChange={({ currency, symbol }) =>
+              setConfig(c => ({ ...c, currency, currency_symbol: symbol }))
+            }
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Moneda" field="currency" placeholder="MXN" />
             <Field label="Símbolo" field="currency_symbol" placeholder="$" />
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-1 ml-1">Puedes ajustar manualmente la moneda y símbolo si lo necesitas.</p>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Inicio de semana</label>
             <div className="flex gap-2">
