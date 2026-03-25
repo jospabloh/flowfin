@@ -300,7 +300,16 @@ export default function Catalogs() {
               onCancel={() => setAddingTab(null)}
             />
           )}
-          {categories.map(cat => {
+          {isLoading ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">Cargando subrubros...</div>
+          ) : subcategories.length === 0 ? (
+            <div className="text-center py-8 bg-muted/30 rounded-xl">
+              <p className="text-sm text-muted-foreground mb-2">No hay subrubros aún</p>
+              <p className="text-xs text-muted-foreground">Crea uno para comenzar</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {categories.map(cat => {
             const subs = subcategories.filter(s => s.category_id === cat.id);
             if (subs.length === 0) return null;
             return (
