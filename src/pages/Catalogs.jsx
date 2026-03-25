@@ -323,7 +323,7 @@ export default function Catalogs() {
                 { key: 'avatar_initial', label: 'Inicial (ej: P)', default: '' },
                 { key: 'color', label: 'Color', type: 'color', default: '#059669' },
               ]}
-              onSave={(d) => { createPersonMutation.mutate(d); setAddingTab(null); }}
+              onSave={(d) => createPersonMutation.mutate(d)}
               onCancel={() => setAddingTab(null)}
             />
           )}
