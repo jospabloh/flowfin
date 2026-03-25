@@ -32,6 +32,7 @@ export default function FamilySettings() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [config, setConfig] = useState({
     family_name: 'Mi Familia', currency: 'MXN', currency_symbol: '$',
+    locale: 'es-MX',
     required_types: ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'],
     transfer_destinations: ['Actinver', 'Ahorro'], week_start: 'monday',
   });
