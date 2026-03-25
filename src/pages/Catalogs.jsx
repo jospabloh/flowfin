@@ -78,8 +78,8 @@ function InlineForm({ fields, onSave, onCancel }) {
         )
       ))}
       <div className="flex gap-2 pt-1">
-        <button onClick={onCancel} className="flex-1 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium">Cancelar</button>
-        <button onClick={handleSave} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold">Guardar</button>
+        <button onClick={onCancel} disabled={isSaving} className="flex-1 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium disabled:opacity-50">Cancelar</button>
+        <button onClick={handleSave} disabled={isSaving} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">{isSaving ? 'Guardando...' : 'Guardar'}</button>
       </div>
     </div>
   );
