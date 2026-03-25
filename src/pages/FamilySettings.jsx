@@ -31,6 +31,7 @@ export default function FamilySettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [config, setConfig] = useState({
     family_name: 'Mi Familia', currency: 'MXN', currency_symbol: '$',
     locale: 'es-MX',
@@ -81,12 +82,12 @@ export default function FamilySettings() {
         variant: 'destructive',
       });
     },
+    onSuccess: () => {
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 3000);
+    },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['familyConfig'] });
-      toast({
-        title: 'Configuración guardada ✓',
-        description: 'Los cambios se han guardado exitosamente.',
-      });
     },
   });
 
@@ -130,6 +131,30 @@ export default function FamilySettings() {
 
   return (
     <div className="pb-6">
+      {/* Modal de configuración guardada */}
+      {showSaveSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
+                  <span className="text-lg">✓</span>
+                </div>
+                <h3 className="font-semibold text-foreground">Configuración guardada ✓</h3>
+              </div>
+              <button
+                onClick={() => setShowSaveSuccess(false)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">Los cambios se han guardado exitosamente.</p>
+          </div>
+        </div>
+      )}
+      
       <PageHeader title="Mi Familia" subtitle="Configuración personal"
         action={
           <button onClick={handleSave} disabled={saveFamilyConfigMutation.isPending}
