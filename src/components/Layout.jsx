@@ -125,7 +125,7 @@ export default function Layout() {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto overscroll-none hide-scrollbar">
-          {sideNavItems.map(item => {
+          {sideNavItems.filter(item => item.to !== '/FamilyAdmin' || isAdmin).map(item => {
             const Icon = item.icon;
             const active = location.pathname === item.to;
             const showBadge = item.to === '/Transactions' && pendingCount > 0;
