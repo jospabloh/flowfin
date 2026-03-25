@@ -100,7 +100,10 @@ export default function Catalogs() {
   const [addingTab, setAddingTab] = useState(null);
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
+    mutationFn: (data) => {
+      if (!familyId) throw new Error('family_id no disponible');
+      return base44.entities.Category.create({ ...data, family_id: familyId });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories', familyId], exact: true });
       setAddingTab(null);
