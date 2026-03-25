@@ -213,62 +213,115 @@ const glossary = [
 ];
 
 export default function UserManual() {
-  return (
-    <div className="pb-8">
-      <PageHeader title="Manual de Usuario" subtitle="Guía completa de FamilyFlow" />
+   const [search, setSearch] = useState('');
 
-      <div className="px-4 space-y-4">
-        {/* Intro card */}
-        <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">F</span>
-            </div>
-            <div>
-              <h2 className="font-bold text-foreground">FamilyFlow</h2>
-              <p className="text-xs text-muted-foreground">Finanzas Familiares Inteligentes</p>
-            </div>
-          </div>
-          <p className="text-sm text-foreground/80">
-            Esta guía te ayudará a aprovechar al máximo todas las funciones de la app.
-            Diseñada para parejas y familias que quieren tener control real de sus finanzas sin complicaciones.
-          </p>
-        </div>
+   const filteredSections = useMemo(() => {
+     if (!search.trim()) return sections;
+     const query = search.toLowerCase();
+     return sections.filter(s => s.title.toLowerCase().includes(query) || s.content.toLowerCase().includes(query));
+   }, [search]);
 
-        {/* Sections */}
-        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-          <Accordion type="single" collapsible className="divide-y divide-border">
-            {sections.map(s => (
-              <AccordionItem key={s.id} value={s.id} className="border-0">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 text-left">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{s.icon}</span>
-                    <span className="text-sm font-semibold text-foreground">{s.title}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed pl-8">
-                    {s.content}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
+   const filteredGlossary = useMemo(() => {
+     if (!search.trim()) return glossary;
+     const query = search.toLowerCase();
+     return glossary.filter(g => g.term.toLowerCase().includes(query) || g.def.toLowerCase().includes(query));
+   }, [search]);
 
-        {/* Glossary */}
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-foreground mb-3">📖 Glosario</h3>
-          <div className="space-y-3">
-            {glossary.map(g => (
-              <div key={g.term} className="border-b border-border last:border-0 pb-3 last:pb-0">
-                <p className="text-sm font-semibold text-foreground">{g.term}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{g.def}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+   const hasResults = filteredSections.length > 0 || filteredGlossary.length > 0;
+
+   return (
+     <div className="pb-8">
+       <PageHeader title="Manual de Usuario" subtitle="Guía completa de FamilyFlow" />
+
+       <div className="px-4 space-y-4">
+         {/* Intro card */}
+         <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
+           <div className="flex items-center gap-3 mb-2">
+             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+               <span className="text-primary-foreground font-bold text-lg">F</span>
+             </div>
+             <div>
+               <h2 className="font-bold text-foreground">FamilyFlow</h2>
+               <p className="text-xs text-muted-foreground">Finanzas Familiares Inteligentes</p>
+             </div>
+           </div>
+           <p className="text-sm text-foreground/80">
+             Esta guía te ayudará a aprovechar al máximo todas las funciones de la app.
+             Diseñada para parejas y familias que quieren tener control real de sus finanzas sin complicaciones.
+           </p>
+         </div>
+
+         {/* Search box */}
+         <div className="relative">
+           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+           <input
+             type="text"
+             value={search}
+             onChange={e => setSearch(e.target.value)}
+             placeholder="Buscar tópicos..."
+             className="w-full pl-9 pr-9 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+           />
+           {search && (
+             <button
+               onClick={() => setSearch('')}
+               aria-label="Limpiar búsqueda"
+               className="absolute right-2 top-1/2 -translate-y-1/2 touch-target"
+             >
+               <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+             </button>
+           )}
+         </div>
+
+         {/* No results */}
+         {!hasResults && search && (
+           <div className="text-center py-8 bg-muted/30 rounded-2xl">
+             <p className="text-sm font-medium text-muted-foreground">No se encontraron resultados para "{search}"</p>
+             <p className="text-xs text-muted-foreground mt-1">Intenta con otras palabras clave</p>
+           </div>
+         )}
+
+         {hasResults && (
+           <>
+             {/* Sections */}
+             {filteredSections.length > 0 && (
+               <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                 <Accordion type="single" collapsible className="divide-y divide-border">
+                   {filteredSections.map(s => (
+                     <AccordionItem key={s.id} value={s.id} className="border-0">
+                       <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 text-left">
+                         <div className="flex items-center gap-3">
+                           <span className="text-xl">{s.icon}</span>
+                           <span className="text-sm font-semibold text-foreground">{s.title}</span>
+                         </div>
+                       </AccordionTrigger>
+                       <AccordionContent className="px-4 pb-4">
+                         <div className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed pl-8">
+                           {s.content}
+                         </div>
+                       </AccordionContent>
+                     </AccordionItem>
+                   ))}
+                 </Accordion>
+               </div>
+             )}
+
+             {/* Glossary */}
+             {filteredGlossary.length > 0 && (
+               <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+                 <h3 className="text-sm font-bold text-foreground mb-3">📖 Glosario</h3>
+                 <div className="space-y-3">
+                   {filteredGlossary.map(g => (
+                     <div key={g.term} className="border-b border-border last:border-0 pb-3 last:pb-0">
+                       <p className="text-sm font-semibold text-foreground">{g.term}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">{g.def}</p>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+           </>
+         )}
+       </div>
+     </div>
+   );
+ }
