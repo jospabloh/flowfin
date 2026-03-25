@@ -96,64 +96,64 @@ export default function Catalogs() {
   // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['categories', familyId], (old = []) => [...old, data]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', familyId], exact: true });
       setAddingTab(null);
     },
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Category.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(['categories', familyId], (old = []) => old.filter(c => c.id !== id));
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', familyId], exact: true });
     },
   });
 
   // Subcategory mutations
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['subcategories', familyId], (old = []) => [...old, data]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subcategories', familyId], exact: true });
       setAddingTab(null);
     },
   });
 
   const deleteSubcategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Subcategory.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(['subcategories', familyId], (old = []) => old.filter(s => s.id !== id));
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subcategories', familyId], exact: true });
     },
   });
 
   // Person mutations
   const createPersonMutation = useMutation({
     mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['persons', familyId], (old = []) => [...old, data]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['persons', familyId], exact: true });
       setAddingTab(null);
     },
   });
 
   const deletePersonMutation = useMutation({
     mutationFn: (id) => base44.entities.Person.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(['persons', familyId], (old = []) => old.filter(p => p.id !== id));
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['persons', familyId], exact: true });
     },
   });
 
   // Payment method mutations
   const createPaymentMethodMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => [...old, data]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId], exact: true });
       setAddingTab(null);
     },
   });
 
   const deletePaymentMethodMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentMethod.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => old.filter(m => m.id !== id));
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId], exact: true });
     },
   });
 
