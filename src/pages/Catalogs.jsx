@@ -28,21 +28,15 @@ function TagInput({ value = [], onChange }) {
   );
 }
 
-function InlineForm({ fields, onSave, onCancel }) {
+function InlineForm({ fields, mutation, onCancel }) {
   const [data, setData] = useState(fields.reduce((acc, f) => ({ ...acc, [f.key]: f.default || '' }), {}));
-  const [isSaving, setIsSaving] = useState(false);
-  const handleSave = async () => {
+  const handleSave = () => {
     const nameField = fields.find(f => f.key === 'name');
     if (nameField && !data.name?.trim()) {
       alert('El nombre es requerido');
       return;
     }
-    setIsSaving(true);
-    try {
-      await onSave(data);
-    } finally {
-      setIsSaving(false);
-    }
+    mutation.mutate(data);
   };
   return (
     <div className="bg-accent/30 rounded-xl p-3 border border-border space-y-2">
