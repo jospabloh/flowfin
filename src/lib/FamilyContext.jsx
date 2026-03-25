@@ -42,16 +42,7 @@ export function FamilyProvider({ children }) {
   const familyId = family?.id || null;
   const isAdmin = membership?.role === 'admin';
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[FamilyContext]', {
-      isLoading,
-      currentUser: currentUser?.email,
-      membership: membership?.id,
-      family: family?.name,
-      familyId,
-    });
-  }, [isLoading, currentUser?.email, membership?.id, family?.name, familyId]);
+
 
   // familyConfig comes directly from getMyMembership (service role) — works for ALL members
   const familyConfig = membershipData?.familyConfig || null;
