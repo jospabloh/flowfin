@@ -174,7 +174,7 @@ export default function Layout() {
             </button>
           </div>
         )}
-        <div className="flex-1 mb-nav md:mb-0 overflow-y-auto overscroll-none hide-scrollbar" id="main-scroll">
+        <div className="flex-1 mb-nav md:mb-0 overflow-y-auto hide-scrollbar" id="main-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={location.pathname}>
               <Outlet />
