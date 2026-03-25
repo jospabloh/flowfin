@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Save, Plus, X, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
+import LocaleSelector from '@/components/LocaleSelector';
 
 function TagField({ label, value = [], onChange }) {
   const [input, setInput] = useState('');
