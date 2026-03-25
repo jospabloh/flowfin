@@ -3,6 +3,7 @@ import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Bu
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
+import InternetBanner from './InternetBanner';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import PageTransition from './PageTransition';
 import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
