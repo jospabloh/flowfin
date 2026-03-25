@@ -183,6 +183,7 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['paymentMethods'], ctx.previous);
     },
+    onSuccess: () => setAddingTab(null),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods'] }),
   });
 
