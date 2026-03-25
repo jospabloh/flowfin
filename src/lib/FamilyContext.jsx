@@ -21,11 +21,11 @@ export function FamilyProvider({ children }) {
     queryFn: async () => {
       if (!currentUser) return null;
       try {
-        // Sync family_id first
-        await base44.functions.invoke('syncUserFamily', {});
+        // Call getMyMembership which handles syncing internally
         const res = await base44.functions.invoke('getMyMembership', {});
         return res.data || null;
-      } catch {
+      } catch (err) {
+        console.error('FamilyContext: getMyMembership failed:', err);
         return null;
       }
     },
