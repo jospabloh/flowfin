@@ -32,7 +32,8 @@ function getRange(key) {
 export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
-  const { familyId } = useFamily();
+  const { familyId, currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
   const { categories, persons } = useCatalog(familyId);
 
   const { data: transactions = [], refetch: refetchTx } = useQuery({
