@@ -120,17 +120,17 @@ export default function Catalogs() {
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['subcategories'] });
-      const previous = queryClient.getQueryData(['subcategories']);
+      await queryClient.cancelQueries({ queryKey: ['subcategories', familyId] });
+      const previous = queryClient.getQueryData(['subcategories', familyId]);
       const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['subcategories'], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(['subcategories', familyId], (old = []) => [...old, optimistic]);
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['subcategories'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['subcategories', familyId], ctx.previous);
     },
     onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] }),
   });
 
   const deleteSubcategoryMutation = useMutation({
