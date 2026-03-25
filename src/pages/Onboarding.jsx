@@ -5,12 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Key, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { defaultCategories, defaultSubcategoriesByCategory, defaultPaymentMethods } from '@/lib/seedData';
 
-function generateCode(name) {
-  const clean = name.toUpperCase().replace(/\s+/g, '').slice(0, 6);
-  const num = Math.floor(100 + Math.random() * 900);
-  return `${clean}${num}`;
-}
-
 export default function Onboarding() {
   const { currentUser, refetchMembership } = useFamily();
   const [mode, setMode] = useState(null); // 'create' | 'join'
