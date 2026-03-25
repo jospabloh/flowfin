@@ -40,7 +40,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ membership, family });
+    // Fetch FamilyConfig via service role so ALL members get it regardless of RLS
+    const configs = await base44.asServiceRole.entities.FamilyConfig.filter({ family_id: membership.family_id });
+    const familyConfig = configs[0] || null;
+
+    return Response.json({ membership, family, familyConfig });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
