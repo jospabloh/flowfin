@@ -110,7 +110,9 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex overscroll-none" id="main-app-wrapper">
+    <div className="min-h-screen bg-background flex flex-col overscroll-none" id="main-app-wrapper">
+      <InternetBanner />
+      <div className="flex flex-1 overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl overscroll-none">
         <div className="p-6 border-b border-border">
