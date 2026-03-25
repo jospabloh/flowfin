@@ -278,6 +278,7 @@ export default function Catalogs() {
               ]}
               mutation={createCategoryMutation}
               onCancel={() => setAddingTab(null)}
+              existingItems={categories}
             />
           )}
           {isLoading ? (
