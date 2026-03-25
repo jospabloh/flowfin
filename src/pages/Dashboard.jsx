@@ -29,6 +29,7 @@ function getRange(key) {
   return { start: startOfMonth(new Date()), end: endOfMonth(new Date()) };
 }
 
+// Cache bust v2
 export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [personFilter, setPersonFilter] = useState('all');
