@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
     if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { user_id } = await req.json();
+    const { user_id, family_id: override_family_id } = await req.json();
     if (!user_id) return Response.json({ error: 'user_id required' }, { status: 400 });
 
     // Fetch users via serviceRole SDK (has full access)
@@ -19,8 +19,8 @@ Deno.serve(async (req) => {
 
     const d = rawUser.data || {};
 
-    // Extract family_id from wherever it ended up due to SDK deep-merge
-    const family_id = d.family_id || d.data?.family_id || d.data?.data?.family_id;
+    // Use override if provided, else extract from wherever it ended up due to SDK deep-merge
+    const family_id = override_family_id || d.family_id || d.data?.family_id || d.data?.data?.family_id;
     const role = d.role || d.data?.role || 'user';
 
     if (!family_id) {
