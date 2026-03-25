@@ -37,18 +37,21 @@ Deno.serve(async (req) => {
 
     console.log('getMyMembership: family =', family?.name);
 
-    // Auto-fix: if user.data.family_id is missing or wrong, sync it
+    // Auto-sync: ensure user.data.family_id is set correctly
     const currentFamilyId = user.data?.family_id || user.data?.data?.family_id;
     console.log('getMyMembership: currentFamilyId =', currentFamilyId, ', expected =', membership.family_id);
     
     if (currentFamilyId !== membership.family_id) {
       try {
-        console.log('getMyMembership: updating user family_id...');
+        console.log('getMyMembership: AUTO-SYNCING family_id...');
         await base44.auth.updateMe({ family_id: membership.family_id });
-        console.log('getMyMembership: update successful');
+        console.log('getMyMembership: AUTO-SYNC successful');
       } catch (err) {
-        console.error('getMyMembership: Failed to update family_id:', err.message);
+        console.error('getMyMembership: AUTO-SYNC failed:', err.message);
+        // Don't return error - continue anyway, user might still be able to access catalogs
       }
+    } else {
+      console.log('getMyMembership: family_id already correct');
     }
 
     // Fetch FamilyConfig via service role so ALL members get it regardless of RLS
