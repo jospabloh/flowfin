@@ -336,7 +336,9 @@ export default function Catalogs() {
                 </div>
               </div>
             );
-          })}
+              })}
+            </div>
+          )}
         </TabsContent>
 
         {/* Persons */}
