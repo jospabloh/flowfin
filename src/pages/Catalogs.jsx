@@ -360,23 +360,23 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-2">
               {paymentMethods.map(m => {
-            const typeLabel = { credit: '💳 Crédito', debit: '🏧 Débito', cash: '💵 Efectivo', transfer: '📲 Transferencia' }[m.type] || m.type;
-            return (
-              <div key={m.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{m.name}</p>
-                  <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
-                </div>
-                <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-                </div>
+                const typeLabel = { credit: '💳 Crédito', debit: '🏧 Débito', cash: '💵 Efectivo', transfer: '📲 Transferencia' }[m.type] || m.type;
+                return (
+                  <div key={m.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{m.name}</p>
+                      <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
+                    </div>
+                    <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 );
-                })}
-                </div>
-                )}
-                </TabsContent>
-                </Tabs>
-                </div>
-                );
-                }
+              })}
+              </div>
+              )}
+              </TabsContent>
+              </Tabs>
+              </div>
+              );
+              }
