@@ -277,7 +277,7 @@ export default function Catalogs() {
                 { key: 'category_id', label: 'Categoría', type: 'select', default: categories[0]?.id || '', options: categories.map(c => ({ v: c.id, l: `${c.icon} ${c.name}` })) },
                 { key: 'keywords', label: 'Palabras clave', type: 'tags', default: [] },
               ]}
-              onSave={(d) => { createSubcategoryMutation.mutate(d); setAddingTab(null); }}
+              onSave={(d) => createSubcategoryMutation.mutate(d)}
               onCancel={() => setAddingTab(null)}
             />
           )}
