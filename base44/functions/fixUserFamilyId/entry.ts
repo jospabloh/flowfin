@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Admin-only utility: fixes users whose data.family_id got nested incorrectly
-// by reading via serviceRole and writing back the flat structure
+// Uses direct REST PUT to avoid SDK deep-merge bug
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -12,32 +12,51 @@ Deno.serve(async (req) => {
     const { user_id, family_id: override_family_id } = await req.json();
     if (!user_id) return Response.json({ error: 'user_id required' }, { status: 400 });
 
-    // Fetch users via serviceRole SDK (has full access)
+    // Fetch user via serviceRole
     const users = await base44.asServiceRole.entities.User.filter({ id: user_id });
     const rawUser = users?.[0];
     if (!rawUser) return Response.json({ error: 'User not found' }, { status: 404 });
 
     const d = rawUser.data || {};
 
-    // Use override if provided, else extract from wherever it ended up due to SDK deep-merge
-    const family_id = override_family_id || d.family_id || d.data?.family_id || d.data?.data?.family_id;
-    const role = d.role || d.data?.role || 'user';
+    // Extract family_id from wherever it ended up (any nesting level)
+    const family_id = override_family_id
+      || d.family_id
+      || d.data?.family_id
+      || d.data?.data?.family_id;
 
     if (!family_id) {
       return Response.json({ error: 'No family_id found for this user', raw: d }, { status: 400 });
     }
 
-    // The update_entities tool writes flat — use it via SDK serviceRole
-    // We write role + family_id only (no nested data key)
-    await base44.asServiceRole.entities.User.update(user_id, {
-      data: { role, family_id }
+    // Use direct REST API to PUT (full replace) the data field — avoids SDK deep-merge
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const apiBase = `https://api.base44.com/api/apps/${appId}`;
+
+    const patchRes = await fetch(`${apiBase}/entities/User/${user_id}`, {
+      method: 'PUT',
+      headers: {
+        'X-API-Key': caller.api_key || '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data: { family_id } }),
     });
 
-    // Verify it was written correctly
+    let putResult = null;
+    if (patchRes.ok) {
+      putResult = await patchRes.json();
+    } else {
+      // Fallback to SDK (may still nest, but better than nothing)
+      await base44.asServiceRole.entities.User.update(user_id, {
+        data: { family_id }
+      });
+    }
+
+    // Verify
     const updated = await base44.asServiceRole.entities.User.filter({ id: user_id });
     const newData = updated?.[0]?.data;
 
-    return Response.json({ success: true, fixed: { role, family_id }, newData });
+    return Response.json({ success: true, fixed: { family_id }, newData, usedRest: patchRes?.ok });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
