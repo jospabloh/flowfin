@@ -323,6 +323,7 @@ export default function Catalogs() {
               ]}
               mutation={createSubcategoryMutation}
               onCancel={() => setAddingTab(null)}
+              existingItems={subcategories}
             />
           )}
           {isLoading ? (
