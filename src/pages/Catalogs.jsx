@@ -381,6 +381,7 @@ export default function Catalogs() {
               ]}
               mutation={createPersonMutation}
               onCancel={() => setAddingTab(null)}
+              existingItems={persons}
             />
           )}
           {isLoading ? (
