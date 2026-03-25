@@ -35,6 +35,8 @@ export function FamilyProvider({ children }) {
     retry: false,
   });
 
+  const isLoading = loadingUser || loadingMembership;
+
   const membership = membershipData?.membership || null;
   const family = membershipData?.family || null;
   const familyId = family?.id || null;
@@ -55,8 +57,6 @@ export function FamilyProvider({ children }) {
   const familyConfig = membershipData?.familyConfig || null;
   const currency = familyConfig?.currency || family?.currency || 'MXN';
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
-
-  const isLoading = loadingUser || loadingMembership;
 
   return (
     <FamilyContext.Provider value={{ currentUser, family, familyId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol }}>
