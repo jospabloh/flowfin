@@ -29,10 +29,17 @@ const Assistant = lazy(() => import('@/pages/Assistant'));
 const AccountSettings = lazy(() => import('@/pages/AccountSettings'));
 
 const FamilyGate = ({ children }) => {
-  const { isLoading, membership, family } = useFamily();
+  const { isLoading, membership, family, currentUser } = useFamily();
   const { isLoadingAuth } = useAuth();
 
-  if (isLoading || isLoadingAuth) {
+  // Safety timeout: if loading takes too long, show onboarding anyway
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if ((isLoading || isLoadingAuth) && !timedOut) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
