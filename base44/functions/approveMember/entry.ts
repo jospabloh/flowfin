@@ -36,8 +36,11 @@ Deno.serve(async (req) => {
     // Update membership status
     await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
 
-    // Update family_id — write only family_id to avoid nesting issues with SDK
-    await base44.asServiceRole.entities.User.update(target_user_id, { data: { family_id } });
+    // Update family_id at the correct level in user.data
+    // We set family_id directly and also null out any nested .data to clean up
+    await base44.asServiceRole.entities.User.update(target_user_id, {
+      data: { family_id, data: null }
+    });
 
     return Response.json({ success: true });
   } catch (error) {
