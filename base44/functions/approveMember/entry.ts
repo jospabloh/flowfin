@@ -39,13 +39,14 @@ Deno.serve(async (req) => {
     // Update family_id inside user's data object
     const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
     if (users && users[0]) {
-      // Flatten: get the real data object (unwrap nested .data if present)
-      const raw = users[0].data || {};
-      const flat = raw.data ? { ...raw.data } : { ...raw };
-      // Remove any nested data key to prevent re-nesting
-      delete flat.data;
-      flat.family_id = family_id;
-      await base44.asServiceRole.entities.User.update(target_user_id, { data: flat });
+      const targetUser = users[0];
+      // The SDK wraps entity fields under .data, but User entity exposes fields directly
+      // We need to read the actual stored data field and set family_id correctly
+      const currentData = targetUser.data || {};
+      // Strip any accidentally nested .data key
+      const { data: _nested, ...cleanData } = currentData;
+      const newData = { ...cleanData, family_id };
+      await base44.asServiceRole.entities.User.update(target_user_id, { data: newData });
     }
 
     return Response.json({ success: true });
