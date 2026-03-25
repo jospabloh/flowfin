@@ -96,8 +96,8 @@ export default function Catalogs() {
   // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['categories', familyId], (old = []) => [...old, data]);
       setAddingTab(null);
     },
   });
@@ -110,8 +110,8 @@ export default function Catalogs() {
   // Subcategory mutations
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['subcategories', familyId], (old = []) => [...old, data]);
       setAddingTab(null);
     },
   });
@@ -124,8 +124,8 @@ export default function Catalogs() {
   // Person mutations
   const createPersonMutation = useMutation({
     mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['persons', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['persons', familyId], (old = []) => [...old, data]);
       setAddingTab(null);
     },
   });
@@ -138,8 +138,8 @@ export default function Catalogs() {
   // Payment method mutations
   const createPaymentMethodMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => [...old, data]);
       setAddingTab(null);
     },
   });
