@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -25,8 +25,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Verify the membership_id actually belongs to the claimed family_id
-    // This prevents a caller from approving memberships of other families
+    // Verify the membership actually belongs to the claimed family_id
     const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ id: membership_id });
     const targetMembership = memberships?.[0];
     if (!targetMembership || targetMembership.family_id !== family_id) {
@@ -36,11 +35,36 @@ Deno.serve(async (req) => {
     // Update membership status
     await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
 
-    // Update family_id at the correct level in user.data
-    // We set family_id directly and also null out any nested .data to clean up
-    await base44.asServiceRole.entities.User.update(target_user_id, {
-      data: { family_id, data: null }
+    // Fix user's family_id using direct REST API to avoid SDK deep-merge nesting bug
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const apiBase = `https://api.base44.com/api/apps/${appId}`;
+
+    // Get the current raw user data first
+    const getRes = await fetch(`${apiBase}/entities/User/${target_user_id}`, {
+      headers: { 'X-User-Token': user.api_key || '', 'Content-Type': 'application/json' },
     });
+
+    // Build flat data payload — role preserved, family_id at correct level
+    let currentRole = 'user';
+    if (getRes.ok) {
+      const rawUser = await getRes.json();
+      // Dig out role regardless of nesting
+      currentRole = rawUser.data?.role || rawUser.data?.data?.role || 'user';
+    }
+
+    // Use REST PATCH directly to write the full data object as a flat replace
+    const patchRes = await fetch(`${apiBase}/entities/User/${target_user_id}`, {
+      method: 'PUT',
+      headers: { 'X-User-Token': user.api_key || '', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: { role: currentRole, family_id } }),
+    });
+
+    if (!patchRes.ok) {
+      // Fallback: use SDK (may still nest, but better than nothing)
+      await base44.asServiceRole.entities.User.update(target_user_id, {
+        data: { role: currentRole, family_id }
+      });
+    }
 
     return Response.json({ success: true });
   } catch (error) {

@@ -117,7 +117,7 @@ export default function Layout() {
             </div>
             <div>
               <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
-              <p className="text-xs text-muted-foreground">Finanzas Familiares</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[140px]">{family?.name || 'Finanzas Familiares'}</p>
             </div>
           </div>
         </div>
