@@ -104,7 +104,9 @@ export default function Catalogs() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Category.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['categories', familyId], (old = []) => old.filter(c => c.id !== id));
+    },
   });
 
   // Subcategory mutations
@@ -118,7 +120,9 @@ export default function Catalogs() {
 
   const deleteSubcategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Subcategory.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] }),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['subcategories', familyId], (old = []) => old.filter(s => s.id !== id));
+    },
   });
 
   // Person mutations
@@ -132,7 +136,9 @@ export default function Catalogs() {
 
   const deletePersonMutation = useMutation({
     mutationFn: (id) => base44.entities.Person.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['persons', familyId], (old = []) => old.filter(p => p.id !== id));
+    },
   });
 
   // Payment method mutations
@@ -146,7 +152,9 @@ export default function Catalogs() {
 
   const deletePaymentMethodMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentMethod.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] }),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => old.filter(m => m.id !== id));
+    },
   });
 
   const deleteItem = async (entity, id) => {
@@ -165,14 +173,6 @@ export default function Catalogs() {
         deletePaymentMethodMutation.mutate(id);
         break;
     }
-  };
-
-  // Delete mutations - simple approach
-  const updateDeleteMutations = () => {
-    deleteCategoryMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
-    deleteSubcategoryMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] });
-    deletePersonMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] });
-    deletePaymentMethodMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] });
   };
 
   return (
