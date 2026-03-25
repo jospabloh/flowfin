@@ -181,9 +181,9 @@ export default function Capture() {
       {/* Amount input */}
       <div className="px-4 mt-4">
         <div className={`rounded-2xl border-2 transition-colors p-4 ${type === 'expense' ? 'border-expense/30 bg-expense/5' : 'border-income/30 bg-income/5'}`}>
-          <p className="text-xs text-muted-foreground mb-1">Monto (MXN)</p>
+          <p className="text-xs text-muted-foreground mb-1">Monto ({currency})</p>
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-light text-muted-foreground">$</span>
+            <span className="text-2xl font-light text-muted-foreground">{currencySymbol}</span>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0.00" inputMode="decimal"
               className="flex-1 text-4xl font-black bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
