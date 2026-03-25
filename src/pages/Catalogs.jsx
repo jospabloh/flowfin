@@ -398,7 +398,16 @@ export default function Catalogs() {
               onCancel={() => setAddingTab(null)}
             />
           )}
-          {paymentMethods.map(m => {
+          {isLoading ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">Cargando formas de pago...</div>
+          ) : paymentMethods.length === 0 ? (
+            <div className="text-center py-8 bg-muted/30 rounded-xl">
+              <p className="text-sm text-muted-foreground mb-2">No hay formas de pago aún</p>
+              <p className="text-xs text-muted-foreground">Crea una para comenzar</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {paymentMethods.map(m => {
             const typeLabel = { credit: '💳 Crédito', debit: '🏧 Débito', cash: '💵 Efectivo', transfer: '📲 Transferencia' }[m.type] || m.type;
             return (
               <div key={m.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
