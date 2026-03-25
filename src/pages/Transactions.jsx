@@ -96,13 +96,13 @@ export default function Transactions() {
 
   const { refreshing } = usePullToRefresh(refetchTx);
 
-  const filtered = useMemo(() => transactions.filter(t => {
+  const filtered = useMemo(() => (transactions || []).filter(t => {
     if (filterType !== 'all' && t.type !== filterType) return false;
     if (filterCat && t.category_id !== filterCat) return false;
     if (filterPerson && t.person_id !== filterPerson) return false;
     if (search) {
       const q = search.toLowerCase();
-      const cat = categories.find(c => c.id === t.category_id);
+      const cat = (categories || []).find(c => c.id === t.category_id);
       return (t.description || '').toLowerCase().includes(q) ||
         (cat?.name || '').toLowerCase().includes(q);
     }
