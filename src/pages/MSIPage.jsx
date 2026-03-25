@@ -28,6 +28,7 @@ export default function MSIPage() {
   const { toast } = useToast();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
 
   const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
@@ -80,6 +81,8 @@ export default function MSIPage() {
       is_active: true 
     });
     setShowForm(false);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
     setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
   };
 
@@ -96,6 +99,30 @@ export default function MSIPage() {
 
   return (
     <div className="pb-4">
+      {/* Modal de MSI creado */}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
+                  <span className="text-lg">✓</span>
+                </div>
+                <h3 className="font-semibold text-foreground">MSI creado ✓</h3>
+              </div>
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">El registro se ha guardado correctamente.</p>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="MSI" subtitle="Meses Sin Intereses"
         action={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold">

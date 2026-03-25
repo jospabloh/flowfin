@@ -17,6 +17,7 @@ export default function Rentals() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showPayForm, setShowPayForm] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   const [payForm, setPayForm] = useState({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
 
@@ -65,6 +66,8 @@ export default function Rentals() {
       is_active: true 
     });
     setShowForm(false);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
     setForm({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   };
 
@@ -77,11 +80,37 @@ export default function Rentals() {
       is_paid: true 
     });
     setShowPayForm(false);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
     setPayForm({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
   };
 
   return (
     <div className="pb-4">
+      {/* Modal de éxito */}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
+                  <span className="text-lg">✓</span>
+                </div>
+                <h3 className="font-semibold text-foreground">Guardado ✓</h3>
+              </div>
+              <button
+                onClick={() => setShowSuccess(false)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">El registro se ha guardado correctamente.</p>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Rentas" subtitle="Cobro de propiedades"
         action={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold">

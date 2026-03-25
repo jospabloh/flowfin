@@ -36,6 +36,7 @@ export default function Investments() {
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
+  const [showPayFormSuccess, setShowPayFormSuccess] = useState(false);
   const [form, setForm] = useState({ name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: new Date().toISOString().slice(0,10), payment_day: '28' });
   const [payForm, setPayForm] = useState({ amount: '', date: new Date().toISOString().slice(0,10), notes: '' });
 
@@ -102,11 +103,37 @@ export default function Investments() {
       notes: payForm.notes 
     });
     setShowPayForm(false);
+    setShowPayFormSuccess(true);
+    setTimeout(() => setShowPayFormSuccess(false), 3000);
     setPayForm({ amount: '', date: new Date().toISOString().slice(0,10), notes: '' });
   };
 
   return (
     <div className="pb-4">
+      {/* Modal de pago guardado */}
+      {showPayFormSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
+                  <span className="text-lg">✓</span>
+                </div>
+                <h3 className="font-semibold text-foreground">Pago registrado ✓</h3>
+              </div>
+              <button
+                onClick={() => setShowPayFormSuccess(false)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">El pago se ha registrado correctamente.</p>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Inversiones" subtitle="Seguimiento de pagos"
         action={
           <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold">
@@ -214,7 +241,10 @@ export default function Investments() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-[60]" onClick={() => setShowPayForm(false)} />
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] bg-card rounded-2xl border border-border p-5 shadow-2xl">
-              <h3 className="font-bold text-foreground mb-4">Registrar Pago</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-foreground">Registrar Pago</h3>
+                <button onClick={() => setShowPayForm(false)} className="p-2 rounded-xl bg-muted hover:bg-border transition-colors"><X className="w-4 h-4" /></button>
+              </div>
               <div className="space-y-3">
                 <input type="number" placeholder="Monto" value={payForm.amount} onChange={e => setPayForm(p => ({...p, amount: e.target.value}))}
                   className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
