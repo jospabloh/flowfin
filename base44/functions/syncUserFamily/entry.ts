@@ -27,20 +27,14 @@ Deno.serve(async (req) => {
     const membership = memberships[0];
     const currentFamilyId = user.data?.family_id;
 
-    // Update if different (use direct REST PUT to avoid deep-merge issues)
+    // Only update if different
     if (currentFamilyId !== membership.family_id) {
-      const appId = Deno.env.get('BASE44_APP_ID');
-      await fetch(`https://api.base44.com/api/apps/${appId}/entities/User/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'X-API-Key': user.api_key || '',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: { family_id: membership.family_id } }),
-      }).catch(() => {
-        // Fallback to SDK if REST fails
-        return base44.auth.updateMe({ family_id: membership.family_id });
-      });
+      try {
+        await base44.auth.updateMe({ family_id: membership.family_id });
+      } catch (err) {
+        // If updateMe fails, log but continue
+        console.error('Failed to update family_id:', err.message);
+      }
     }
 
     return Response.json({ success: true, family_id: membership.family_id });
