@@ -98,7 +98,7 @@ export default function Reports() {
   }, [filtered, cfg, categories, persons, paymentMethods]);
 
   const formatVal = (v) => cfg.metric === 'count' ? v :
-    new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v);
+    new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(v);
 
   const totalVal = tableData.reduce((s, r) => s + r.value, 0);
 

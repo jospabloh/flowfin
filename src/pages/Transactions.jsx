@@ -254,7 +254,7 @@ export default function Transactions() {
                 </span>
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground">
-                  {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(
                     txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
                   )}
                 </span>
