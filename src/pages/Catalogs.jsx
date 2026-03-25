@@ -167,15 +167,15 @@ export default function Catalogs() {
   const deletePersonMutation = useMutation({
     mutationFn: (id) => base44.entities.Person.delete(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['persons'] });
-      const previous = queryClient.getQueryData(['persons']);
-      queryClient.setQueryData(['persons'], (old = []) => old.filter(p => p.id !== id));
+      await queryClient.cancelQueries({ queryKey: ['persons', familyId] });
+      const previous = queryClient.getQueryData(['persons', familyId]);
+      queryClient.setQueryData(['persons', familyId], (old = []) => old.filter(p => p.id !== id));
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['persons'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['persons', familyId], ctx.previous);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
   });
 
   // Payment method mutations
