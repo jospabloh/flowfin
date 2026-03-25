@@ -74,10 +74,11 @@ function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
             </div>
           </div>
         ) : (
-          <input key={f.key} placeholder={f.label} value={data[f.key]} onChange={e => setData(d => ({...d, [f.key]: e.target.value}))}
+          <input key={f.key} placeholder={f.label} value={data[f.key]} onChange={e => { setData(d => ({...d, [f.key]: e.target.value})); setError(''); }}
             className="w-full bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none" />
         )
       ))}
+      {error && <div className="text-xs text-destructive font-medium">{error}</div>}
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel} disabled={mutation.isPending} className="flex-1 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium disabled:opacity-50">Cancelar</button>
         <button onClick={handleSave} disabled={mutation.isPending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">{mutation.isPending ? 'Guardando...' : 'Guardar'}</button>
