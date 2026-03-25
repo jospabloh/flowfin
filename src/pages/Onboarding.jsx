@@ -79,7 +79,8 @@ export default function Onboarding() {
       defaultPaymentMethods.map(m => ({ ...m, family_id: family.id }))
     );
     setLoading(false);
-    refetchMembership();
+    // Reload the page so FamilyContext picks up the new membership cleanly
+    window.location.reload();
   };
 
   const handleJoin = async () => {
