@@ -50,6 +50,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
+  const { family } = useFamily();
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !isRootTab(location.pathname);
   const prevPath = useRef(location.pathname);
