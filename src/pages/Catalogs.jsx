@@ -357,7 +357,16 @@ export default function Catalogs() {
               onCancel={() => setAddingTab(null)}
             />
           )}
-          {persons.map(p => (
+          {isLoading ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">Cargando personas...</div>
+          ) : persons.length === 0 ? (
+            <div className="text-center py-8 bg-muted/30 rounded-xl">
+              <p className="text-sm text-muted-foreground mb-2">No hay personas aún</p>
+              <p className="text-xs text-muted-foreground">Crea una para comenzar</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {persons.map(p => (
             <div key={p.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
               <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: p.color }}>
                 {p.avatar_initial || p.name?.charAt(0)}
