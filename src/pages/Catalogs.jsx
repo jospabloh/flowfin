@@ -164,8 +164,10 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['persons', familyId], ctx.previous);
     },
-    onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['persons', familyId] });
+      setAddingTab(null);
+    },
   });
 
   const deletePersonMutation = useMutation({
