@@ -10,11 +10,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Update Andy's family_id using service role
-    const result = await base44.asServiceRole.entities.User.update('69c40ee765cf8b828ad12a8d', {
-      data: {
-        family_id: '69c40e9a8ea547f19057c84c',
-      },
+    // Get current Andy data
+    const currentAndyData = await base44.asServiceRole.entities.User.filter({
+      email: 'andyramirez005@gmail.com',
+    });
+
+    if (!currentAndyData.length) {
+      return Response.json({ error: 'Andy not found' }, { status: 404 });
+    }
+
+    const andy = currentAndyData[0];
+    const andyId = andy.id;
+
+    // Flatten the nested structure - rebuild data cleanly
+    const cleanData = {
+      family_id: '69c40e9a8ea547f19057c84c',
+    };
+
+    // Update with clean structure
+    const result = await base44.asServiceRole.entities.User.update(andyId, {
+      data: cleanData,
     });
 
     return Response.json({ success: true, data: result });
