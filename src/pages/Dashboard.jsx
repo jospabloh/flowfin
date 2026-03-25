@@ -190,7 +190,7 @@ export default function Dashboard() {
               <BarChart data={topCategories} layout="vertical" margin={{ left: 0, right: 8 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="cat.name" width={80} tick={{ fontSize: 10, fill: 'currentColor' }} />
-                <Tooltip formatter={v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v)} />
+                <Tooltip formatter={v => new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(v)} />
                 <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                   {topCategories.map((entry, i) => <Cell key={i} fill={entry.cat?.color || '#059669'} />)}
                 </Bar>
