@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AlertTriangle, LogOut } from 'lucide-react';
@@ -15,6 +15,13 @@ export default function AccountSettings() {
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [error, setError] = useState('');
+
+  // Load user email on mount
+  useEffect(() => {
+    base44.auth.me().then(user => {
+      if (user?.email) setEmail(user.email);
+    }).catch(() => {});
+  }, []);
 
   // Start deletion mutation
   const startDeletionMutation = useMutation({
