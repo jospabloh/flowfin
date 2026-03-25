@@ -44,7 +44,12 @@ function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
       return;
     }
     setError('');
-    mutation.mutate(data);
+    mutation.mutate(data, {
+      onError: (err) => {
+        console.error('Error guardando:', err);
+        setError(err?.message || 'Error al guardar. Intenta de nuevo.');
+      },
+    });
   };
   return (
     <div className="bg-accent/30 rounded-xl p-3 border border-border space-y-2">
