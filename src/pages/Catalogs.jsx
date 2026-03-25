@@ -423,6 +423,7 @@ export default function Catalogs() {
               ]}
               mutation={createPaymentMethodMutation}
               onCancel={() => setAddingTab(null)}
+              existingItems={paymentMethods}
             />
           )}
           {isLoading ? (
