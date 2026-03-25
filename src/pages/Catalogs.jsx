@@ -121,6 +121,7 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['subcategories'], ctx.previous);
     },
+    onSuccess: () => setAddingTab(null),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories'] }),
   });
 
