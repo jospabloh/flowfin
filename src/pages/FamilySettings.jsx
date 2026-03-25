@@ -38,13 +38,16 @@ export default function FamilySettings() {
     transfer_destinations: ['Actinver', 'Ahorro'], week_start: 'monday',
   });
 
+  const { familyId } = useFamily();
+
   const { data: configs = [] } = useQuery({
-    queryKey: ['familyConfig'],
-    queryFn: () => base44.entities.FamilyConfig.list(),
+    queryKey: ['familyConfig', familyId],
+    queryFn: () => familyId ? base44.entities.FamilyConfig.filter({ family_id: familyId }) : Promise.resolve([]),
+    enabled: !!familyId,
   });
 
   useEffect(() => {
-    if (configs.length > 0) setConfig({ ...config, ...configs[0] });
+    if (configs.length > 0) setConfig(prev => ({ ...prev, ...configs[0] }));
   }, [configs]);
 
   const { familyId } = useFamily();
