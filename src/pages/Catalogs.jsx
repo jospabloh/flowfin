@@ -30,6 +30,14 @@ function TagInput({ value = [], onChange }) {
 
 function InlineForm({ fields, onSave, onCancel }) {
   const [data, setData] = useState(fields.reduce((acc, f) => ({ ...acc, [f.key]: f.default || '' }), {}));
+  const handleSave = () => {
+    const nameField = fields.find(f => f.key === 'name');
+    if (nameField && !data.name?.trim()) {
+      alert('El nombre es requerido');
+      return;
+    }
+    onSave(data);
+  };
   return (
     <div className="bg-accent/30 rounded-xl p-3 border border-border space-y-2">
       {fields.map(f => (
@@ -65,7 +73,7 @@ function InlineForm({ fields, onSave, onCancel }) {
       ))}
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel} className="flex-1 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium">Cancelar</button>
-        <button onClick={() => onSave(data)} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold">Guardar</button>
+        <button onClick={handleSave} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold">Guardar</button>
       </div>
     </div>
   );
