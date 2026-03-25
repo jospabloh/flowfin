@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -6,10 +6,20 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+    // Try by user_id first, fallback to user_email
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
       user_id: user.id,
       status: 'approved',
     });
+
+    // Fallback: search by email in case user_id wasn't stored
+    if (!memberships.length) {
+      memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+        user_email: user.email,
+        status: 'approved',
+      });
+    }
+
     const membership = memberships[0] || null;
     if (!membership) return Response.json({ membership: null, family: null });
 
