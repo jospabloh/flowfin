@@ -272,7 +272,7 @@ export default function Layout() {
               </button>
             </div>
               <div className="grid grid-cols-4 gap-3 px-4 pb-6 overscroll-none">
-                {moreItems.map(item => {
+                {moreItems.filter(item => item.to !== '/FamilyAdmin' || isAdmin).map(item => {
                   const Icon = item.icon;
                   return (
                     <button key={item.to} onClick={() => { handleNavClick(item.to); setShowMore(false); }}
