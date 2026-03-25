@@ -35,7 +35,8 @@ const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14
 
 export default function Reports() {
   const reportRef = useRef(null);
-  const { familyId } = useFamily();
+  const { familyId, currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
   const { categories, persons, paymentMethods } = useCatalog(familyId);
 
   const urlParams = new URLSearchParams(window.location.search);

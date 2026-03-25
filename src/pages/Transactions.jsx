@@ -30,7 +30,8 @@ function groupByDate(transactions) {
 
 export default function Transactions() {
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
   const { toast } = useToast();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const [search, setSearch] = useState('');
