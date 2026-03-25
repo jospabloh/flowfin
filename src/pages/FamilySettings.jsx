@@ -46,12 +46,15 @@ export default function FamilySettings() {
     if (configs.length > 0) setConfig({ ...config, ...configs[0] });
   }, [configs]);
 
+  const { familyId } = useFamily();
+
   // FamilyConfig save mutation
   const saveFamilyConfigMutation = useMutation({
     mutationFn: (configData) => {
+      const dataWithFamily = { ...configData, family_id: familyId };
       return configs.length > 0
-        ? base44.entities.FamilyConfig.update(configs[0].id, configData)
-        : base44.entities.FamilyConfig.create(configData);
+        ? base44.entities.FamilyConfig.update(configs[0].id, dataWithFamily)
+        : base44.entities.FamilyConfig.create(dataWithFamily);
     },
     onMutate: async (newConfig) => {
       await queryClient.cancelQueries({ queryKey: ['familyConfig'] });
