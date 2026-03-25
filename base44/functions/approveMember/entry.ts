@@ -36,18 +36,8 @@ Deno.serve(async (req) => {
     // Update membership status
     await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
 
-    // Update family_id inside user's data object
-    const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
-    if (users && users[0]) {
-      const targetUser = users[0];
-      // The SDK wraps entity fields under .data, but User entity exposes fields directly
-      // We need to read the actual stored data field and set family_id correctly
-      const currentData = targetUser.data || {};
-      // Strip any accidentally nested .data key
-      const { data: _nested, ...cleanData } = currentData;
-      const newData = { ...cleanData, family_id };
-      await base44.asServiceRole.entities.User.update(target_user_id, { data: newData });
-    }
+    // Update family_id — write only family_id to avoid nesting issues with SDK
+    await base44.asServiceRole.entities.User.update(target_user_id, { data: { family_id } });
 
     return Response.json({ success: true });
   } catch (error) {
