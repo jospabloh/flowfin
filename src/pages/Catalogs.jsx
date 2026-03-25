@@ -91,7 +91,7 @@ export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
-  const [addingTab, setAddingTab] = useState(null);
+  const [addingTab, setAddingTab] = useState(null); 
 
   // Category mutations
   const createCategoryMutation = useMutation({
