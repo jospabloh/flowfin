@@ -26,6 +26,14 @@ Deno.serve(async (req) => {
     const families = await base44.asServiceRole.entities.Family.filter({ id: membership.family_id });
     const family = families[0] || null;
 
+    // Auto-fix: if user.data.family_id is missing or nested incorrectly, self-heal using updateMe
+    // user.data from auth.me() is the true flat object — if family_id is missing here, fix it
+    const currentFamilyId = user.data?.family_id;
+    if (currentFamilyId !== membership.family_id) {
+      // Use auth.updateMe which correctly sets data at the right level
+      await base44.auth.updateMe({ data: { ...user.data, family_id: membership.family_id } });
+    }
+
     return Response.json({ membership, family });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
