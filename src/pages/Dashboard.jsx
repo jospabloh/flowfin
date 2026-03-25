@@ -226,7 +226,7 @@ export default function Dashboard() {
                     <span className="text-xs text-muted-foreground">{entry.name}</span>
                   </div>
                   <span className="text-sm font-semibold tabular-nums" style={{ color: entry.person?.color || 'hsl(var(--expense))' }}>
-                    {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(entry.value)}
+                    {new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(entry.value)}
                   </span>
                 </div>
               ))}
