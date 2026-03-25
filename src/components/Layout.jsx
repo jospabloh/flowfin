@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
+import { useFamily } from '@/lib/FamilyContext';
 import PageTransition from './PageTransition';
 import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
-import { useFamily } from '@/lib/FamilyContext';
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
@@ -119,7 +119,7 @@ export default function Layout() {
             </div>
             <div>
               <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
-              <p className="text-xs text-muted-foreground">Finanzas Familiares</p>
+              <p className="text-xs text-muted-foreground truncate max-w-[140px]">{family?.name || 'Finanzas Familiares'}</p>
             </div>
           </div>
         </div>
@@ -163,9 +163,9 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Mobile back header — only shown on non-root pages */}
-        {showBack && (
-          <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+        {/* Mobile top bar — always shown on mobile */}
+        <div className="md:hidden flex items-center justify-between px-4 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+          {showBack ? (
             <button
               onClick={handleBack}
               aria-label="Regresar"
@@ -174,8 +174,16 @@ export default function Layout() {
               <ChevronLeft className="w-5 h-5" aria-hidden="true" />
               Atrás
             </button>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xs">F</span>
+              </div>
+              <span className="text-sm font-semibold text-foreground">{family?.name || 'FlowFin'}</span>
+            </div>
+          )}
+          <div />
+        </div>
         <div className="flex-1 mb-nav md:mb-0 overflow-y-auto hide-scrollbar" id="main-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={location.pathname}>
