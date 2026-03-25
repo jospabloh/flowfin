@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,6 +12,7 @@ export default function FamilyAdmin() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [showInviteSuccess, setShowInviteSuccess] = useState(false);
 
   const { data: memberships = [] } = useQuery({
     queryKey: ['memberships', familyId],
@@ -113,11 +114,9 @@ export default function FamilyAdmin() {
   const inviteUserMutation = useMutation({
     mutationFn: (email) => base44.users.inviteUser(email.trim().toLowerCase(), 'user'),
     onSuccess: () => {
-      toast({
-        title: 'Invitación enviada ✓',
-        description: 'El usuario recibirá un correo para acceder a la app.',
-      });
+      setShowInviteSuccess(true);
       setInviteEmail('');
+      setTimeout(() => setShowInviteSuccess(false), 3000);
     },
     onError: (err) => {
       toast({
@@ -153,6 +152,30 @@ export default function FamilyAdmin() {
 
   return (
     <div className="pb-6">
+      {/* Modal de invitación enviada */}
+      {showInviteSuccess && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-income" />
+                </div>
+                <h3 className="font-semibold text-foreground">Invitación enviada ✓</h3>
+              </div>
+              <button
+                onClick={() => setShowInviteSuccess(false)}
+                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">El usuario recibirá un correo para acceder a la app.</p>
+          </div>
+        </div>
+      )}
+
       <PageHeader title="Admin Familia" subtitle={family?.name} />
 
       {/* Código de invitación */}
