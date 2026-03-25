@@ -39,10 +39,13 @@ Deno.serve(async (req) => {
     // Update family_id inside user's data object
     const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
     if (users && users[0]) {
-      const existing = users[0].data || {};
-      const newData = { ...existing, family_id };
-      delete newData.data;
-      await base44.asServiceRole.entities.User.update(target_user_id, { data: newData });
+      // Flatten: get the real data object (unwrap nested .data if present)
+      const raw = users[0].data || {};
+      const flat = raw.data ? { ...raw.data } : { ...raw };
+      // Remove any nested data key to prevent re-nesting
+      delete flat.data;
+      flat.family_id = family_id;
+      await base44.asServiceRole.entities.User.update(target_user_id, { data: flat });
     }
 
     return Response.json({ success: true });
