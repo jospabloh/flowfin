@@ -1,5 +1,7 @@
+import { useState, useMemo } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Search, X } from 'lucide-react';
 
 const sections = [
   {
