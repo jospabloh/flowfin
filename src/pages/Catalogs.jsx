@@ -152,6 +152,7 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['persons'], ctx.previous);
     },
+    onSuccess: () => setAddingTab(null),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons'] }),
   });
 
