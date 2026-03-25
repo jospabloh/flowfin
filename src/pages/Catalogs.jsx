@@ -96,141 +96,57 @@ export default function Catalogs() {
   // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['categories', familyId] });
-      const previous = queryClient.getQueryData(['categories', familyId]);
-      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['categories', familyId], (old = []) => [...old, optimistic]);
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['categories', familyId], ctx.previous);
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['categories', familyId], (old = []) => 
-        (old || []).map(c => c.id.startsWith('opt_') ? data : c)
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
       setAddingTab(null);
     },
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Category.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['categories', familyId] });
-      const previous = queryClient.getQueryData(['categories', familyId]);
-      queryClient.setQueryData(['categories', familyId], (old = []) => old.filter(c => c.id !== id));
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['categories', familyId], ctx.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
   });
 
   // Subcategory mutations
   const createSubcategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Subcategory.create({ ...data, family_id: familyId }),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['subcategories', familyId] });
-      const previous = queryClient.getQueryData(['subcategories', familyId]);
-      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['subcategories', familyId], (old = []) => [...old, optimistic]);
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['subcategories', familyId], ctx.previous);
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['subcategories', familyId], (old = []) => 
-        (old || []).map(s => s.id.startsWith('opt_') ? data : s)
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] });
       setAddingTab(null);
     },
   });
 
   const deleteSubcategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.Subcategory.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['subcategories', familyId] });
-      const previous = queryClient.getQueryData(['subcategories', familyId]);
-      queryClient.setQueryData(['subcategories', familyId], (old = []) => old.filter(s => s.id !== id));
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['subcategories', familyId], ctx.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] }),
   });
 
   // Person mutations
   const createPersonMutation = useMutation({
     mutationFn: (data) => base44.entities.Person.create({ ...data, family_id: familyId }),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['persons', familyId] });
-      const previous = queryClient.getQueryData(['persons', familyId]);
-      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['persons', familyId], (old = []) => [...old, optimistic]);
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['persons', familyId], ctx.previous);
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['persons', familyId], (old = []) => 
-        (old || []).map(p => p.id.startsWith('opt_') ? data : p)
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['persons', familyId] });
       setAddingTab(null);
     },
   });
 
   const deletePersonMutation = useMutation({
     mutationFn: (id) => base44.entities.Person.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['persons', familyId] });
-      const previous = queryClient.getQueryData(['persons', familyId]);
-      queryClient.setQueryData(['persons', familyId], (old = []) => old.filter(p => p.id !== id));
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['persons', familyId], ctx.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] }),
   });
 
   // Payment method mutations
   const createPaymentMethodMutation = useMutation({
     mutationFn: (data) => base44.entities.PaymentMethod.create({ ...data, family_id: familyId }),
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['paymentMethods', familyId] });
-      const previous = queryClient.getQueryData(['paymentMethods', familyId]);
-      const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => [...old, optimistic]);
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['paymentMethods', familyId], ctx.previous);
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => 
-        (old || []).map(m => m.id.startsWith('opt_') ? data : m)
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] });
       setAddingTab(null);
     },
   });
 
   const deletePaymentMethodMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentMethod.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['paymentMethods', familyId] });
-      const previous = queryClient.getQueryData(['paymentMethods', familyId]);
-      queryClient.setQueryData(['paymentMethods', familyId], (old = []) => old.filter(m => m.id !== id));
-      return { previous };
-    },
-    onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['paymentMethods', familyId], ctx.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] }),
   });
 
   const deleteItem = async (entity, id) => {
@@ -249,6 +165,14 @@ export default function Catalogs() {
         deletePaymentMethodMutation.mutate(id);
         break;
     }
+  };
+
+  // Delete mutations - simple approach
+  const updateDeleteMutations = () => {
+    deleteCategoryMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
+    deleteSubcategoryMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] });
+    deletePersonMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['persons', familyId] });
+    deletePaymentMethodMutation.onSuccess = () => queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId] });
   };
 
   return (
