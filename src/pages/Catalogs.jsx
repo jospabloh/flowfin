@@ -98,8 +98,10 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['categories', familyId], ctx.previous);
     },
-    onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
+      setAddingTab(null);
+    },
   });
 
   const deleteCategoryMutation = useMutation({
