@@ -21,7 +21,7 @@ export function FamilyProvider({ children }) {
     queryFn: async () => {
       if (!currentUser) return null;
       try {
-        // Call getMyMembership which handles syncing internally
+        // Call getMyMembership which auto-syncs family_id if needed
         const res = await base44.functions.invoke('getMyMembership', {});
         return res.data || null;
       } catch (err) {
@@ -32,7 +32,7 @@ export function FamilyProvider({ children }) {
     enabled: !!currentUser,
     staleTime: 0,
     gcTime: 0,
-    retry: false,
+    retry: 2,
   });
 
   const isLoading = loadingUser || loadingMembership;
