@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import { usePendingCount } from '@/hooks/usePendingCount';
-import { useFamily } from '@/lib/FamilyContext';
 import PageTransition from './PageTransition';
 import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
+import { useFamily } from '@/lib/FamilyContext';
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
@@ -50,7 +50,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
-  const { family } = useFamily();
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !isRootTab(location.pathname);
   const prevPath = useRef(location.pathname);
@@ -119,7 +118,7 @@ export default function Layout() {
             </div>
             <div>
               <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
-              <p className="text-xs text-muted-foreground truncate max-w-[140px]">{family?.name || 'Finanzas Familiares'}</p>
+              <p className="text-xs text-muted-foreground">Finanzas Familiares</p>
             </div>
           </div>
         </div>
