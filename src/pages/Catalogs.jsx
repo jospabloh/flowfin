@@ -361,7 +361,7 @@ export default function Catalogs() {
                 { key: 'type', label: 'Tipo', type: 'select', default: 'credit', options: [{ v: 'credit', l: 'Crédito' }, { v: 'debit', l: 'Débito' }, { v: 'cash', l: 'Efectivo' }, { v: 'transfer', l: 'Transferencia' }] },
                 { key: 'identifier', label: 'Últimos 4 dígitos', default: '' },
               ]}
-              onSave={(d) => createPaymentMethodMutation.mutate(d)}
+              mutation={createPaymentMethodMutation}
               onCancel={() => setAddingTab(null)}
             />
           )}
