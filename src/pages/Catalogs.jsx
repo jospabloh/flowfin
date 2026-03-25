@@ -28,14 +28,21 @@ function TagInput({ value = [], onChange }) {
   );
 }
 
-function InlineForm({ fields, mutation, onCancel }) {
+function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
   const [data, setData] = useState(fields.reduce((acc, f) => ({ ...acc, [f.key]: f.default || '' }), {}));
+  const [error, setError] = useState('');
   const handleSave = () => {
     const nameField = fields.find(f => f.key === 'name');
     if (nameField && !data.name?.trim()) {
-      alert('El nombre es requerido');
+      setError('El nombre es requerido');
       return;
     }
+    const isDuplicate = existingItems.some(item => item.name.toLowerCase() === data.name.toLowerCase());
+    if (isDuplicate) {
+      setError('Este elemento ya existe');
+      return;
+    }
+    setError('');
     mutation.mutate(data);
   };
   return (
