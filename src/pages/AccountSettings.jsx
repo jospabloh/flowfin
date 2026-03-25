@@ -107,7 +107,7 @@ export default function AccountSettings() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Email</span>
-              <span className="text-foreground font-medium" id="account-email">—</span>
+              <span className="text-foreground font-medium">{email || '—'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Estado</span>
