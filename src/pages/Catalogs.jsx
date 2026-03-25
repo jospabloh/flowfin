@@ -252,7 +252,7 @@ export default function Catalogs() {
                 { key: 'color', label: 'Color', type: 'color', default: '#059669' },
                 { key: 'type', label: 'Tipo', type: 'select', default: 'expense', options: [{ v: 'expense', l: 'Egreso' }, { v: 'income', l: 'Ingreso' }, { v: 'both', l: 'Ambos' }] },
               ]}
-              onSave={(d) => createCategoryMutation.mutate(d)}
+              mutation={createCategoryMutation}
               onCancel={() => setAddingTab(null)}
             />
           )}
