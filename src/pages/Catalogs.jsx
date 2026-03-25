@@ -133,8 +133,10 @@ export default function Catalogs() {
     onError: (_, __, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['subcategories', familyId], ctx.previous);
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['subcategories', familyId] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['subcategories', familyId], (old = []) => 
+        [...(old || []).filter(s => !s.id.startsWith('opt_')), data]
+      );
       setAddingTab(null);
     },
   });
