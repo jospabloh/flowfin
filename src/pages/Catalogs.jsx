@@ -89,17 +89,17 @@ export default function Catalogs() {
   const createCategoryMutation = useMutation({
     mutationFn: (data) => base44.entities.Category.create({ ...data, family_id: familyId }),
     onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['categories'] });
-      const previous = queryClient.getQueryData(['categories']);
+      await queryClient.cancelQueries({ queryKey: ['categories', familyId] });
+      const previous = queryClient.getQueryData(['categories', familyId]);
       const optimistic = { ...newData, family_id: familyId, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['categories'], (old = []) => [...old, optimistic]);
+      queryClient.setQueryData(['categories', familyId], (old = []) => [...old, optimistic]);
       return { previous };
     },
     onError: (_, __, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['categories'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['categories', familyId], ctx.previous);
     },
     onSuccess: () => setAddingTab(null),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['categories', familyId] }),
   });
 
   const deleteCategoryMutation = useMutation({
