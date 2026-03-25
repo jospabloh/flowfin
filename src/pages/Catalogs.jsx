@@ -91,7 +91,7 @@ export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
-  const [addingTab, setAddingTab] = useState(null); 
+  const [addingTab, setAddingTab] = useState(null);
 
   // Category mutations
   const createCategoryMutation = useMutation({
@@ -215,19 +215,19 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-2">
               {categories.map(cat => (
-            <div key={cat.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ backgroundColor: cat.color + '20' }}>
-                {cat.icon || '📁'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{cat.name}</p>
-                <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
-              </div>
-              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-              <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                <div key={cat.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ backgroundColor: cat.color + '20' }}>
+                    {cat.icon || '📁'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{cat.name}</p>
+                    <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
+                  </div>
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                  <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -260,32 +260,32 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-3">
               {categories.map(cat => {
-            const subs = subcategories.filter(s => s.category_id === cat.id);
-            if (subs.length === 0) return null;
-            return (
-              <div key={cat.id} className="mb-3">
-                <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.icon} {cat.name}</p>
-                <div className="space-y-1.5 pl-2">
-                  {subs.map(sub => (
-                    <div key={sub.id} className="bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">{sub.name}</p>
-                        <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      {sub.keywords?.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
-                          {sub.keywords.map((kw, i) => (
-                            <span key={i} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{kw}</span>
-                          ))}
+                const subs = subcategories.filter(s => s.category_id === cat.id);
+                if (subs.length === 0) return null;
+                return (
+                  <div key={cat.id} className="mb-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.icon} {cat.name}</p>
+                    <div className="space-y-1.5 pl-2">
+                      {subs.map(sub => (
+                        <div key={sub.id} className="bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-foreground">{sub.name}</p>
+                            <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {sub.keywords?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {sub.keywords.map((kw, i) => (
+                                <span key={i} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{kw}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
+                  </div>
+                );
               })}
             </div>
           )}
@@ -318,15 +318,15 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-2">
               {persons.map(p => (
-            <div key={p.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: p.color }}>
-                {p.avatar_initial || p.name?.charAt(0)}
-              </div>
-              <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
-              <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                <div key={p.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: p.color }}>
+                    {p.avatar_initial || p.name?.charAt(0)}
+                  </div>
+                  <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
+                  <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
