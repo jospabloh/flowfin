@@ -52,7 +52,17 @@ const FamilyGate = ({ children }) => {
     );
   }
 
-  if (!membership || !family) return <Onboarding />;
+  if (!membership || !family) return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-16 h-16 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring">
+          <span className="text-white font-bold text-2xl">F</span>
+        </div>
+      </div>
+    }>
+      <Onboarding />
+    </Suspense>
+  );
   return children;
 };
 
