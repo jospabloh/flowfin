@@ -26,6 +26,24 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
     setOpen(false);
   };
 
+  // Desktop mode: use native <select>
+  if (!isMobile) {
+    return (
+      <select
+        value={value || ''}
+        onChange={onChange}
+        disabled={disabled}
+        className={`w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer ${className}`}
+      >
+        <option value="">{placeholder}</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    );
+  }
+
+  // Mobile mode: bottom-sheet picker
   return (
     <>
       <button
