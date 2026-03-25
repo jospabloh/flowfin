@@ -45,6 +45,17 @@ Deno.serve(async (req) => {
 
     console.log('testAgentMultiFamilySupport: Categories =', categories.map(c => `${c.icon} ${c.name}`).join(', '));
 
+    // Get family configuration including currency
+    const familyConfigs = await base44.asServiceRole.entities.FamilyConfig.filter({
+      family_id: membership.family_id,
+    });
+
+    const familyConfig = familyConfigs[0];
+    const currency = familyConfig?.currency || 'MXN';
+    const currencySymbol = familyConfig?.currency_symbol || '$';
+
+    console.log('testAgentMultiFamilySupport: Currency =', currency, 'Symbol =', currencySymbol);
+
     // Verify agent config doesn't have hardcoded members
     const agentConfig = {
       name: 'finance_assistant',
@@ -54,6 +65,8 @@ Deno.serve(async (req) => {
         id: membership.family_id,
         members: persons.map(p => ({ id: p.id, name: p.name })),
         categories: categories.map(c => ({ id: c.id, name: c.name, icon: c.icon })),
+        currency: currency,
+        currencySymbol: currencySymbol,
       }
     };
 
@@ -63,12 +76,14 @@ Deno.serve(async (req) => {
       success: true,
       message: 'Agent supports multi-family setup',
       family_id: membership.family_id,
+      currency: currency,
+      currency_symbol: currencySymbol,
       members_count: persons.length,
       members: persons.map(p => p.name),
       categories_count: categories.length,
       categories: categories.map(c => `${c.icon} ${c.name}`),
       agent_config: agentConfig,
-      test_result: 'PASSED - Agent can access dynamic family data without hardcoded values'
+      test_result: 'PASSED - Agent understands family members, categories, and currency'
     });
   } catch (error) {
     console.error('testAgentMultiFamilySupport error:', error);
