@@ -108,7 +108,7 @@ export default function Catalogs() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['categories', familyId], (old = []) => 
-        [...(old || []).filter(c => !c.id.startsWith('opt_')), data]
+        (old || []).map(c => c.id.startsWith('opt_') ? data : c)
       );
       setAddingTab(null);
     },
@@ -143,7 +143,7 @@ export default function Catalogs() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['subcategories', familyId], (old = []) => 
-        [...(old || []).filter(s => !s.id.startsWith('opt_')), data]
+        (old || []).map(s => s.id.startsWith('opt_') ? data : s)
       );
       setAddingTab(null);
     },
@@ -178,7 +178,7 @@ export default function Catalogs() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['persons', familyId], (old = []) => 
-        [...(old || []).filter(p => !p.id.startsWith('opt_')), data]
+        (old || []).map(p => p.id.startsWith('opt_') ? data : p)
       );
       setAddingTab(null);
     },
@@ -213,7 +213,7 @@ export default function Catalogs() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['paymentMethods', familyId], (old = []) => 
-        [...(old || []).filter(m => !m.id.startsWith('opt_')), data]
+        (old || []).map(m => m.id.startsWith('opt_') ? data : m)
       );
       setAddingTab(null);
     },
