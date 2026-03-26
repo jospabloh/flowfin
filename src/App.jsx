@@ -15,7 +15,7 @@ import LoadingFallback from '@/components/LoadingFallback';
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Capture = lazy(() => import('@/pages/Capture'));
 const Transactions = lazy(() => import('@/pages/Transactions'));
-const Reports = lazy(() => import('@/pages/Reports.jsx'));
+const Reports = lazy(() => import('@/pages/Reports'));
 const Investments = lazy(() => import('@/pages/Investments'));
 const MSIPage = lazy(() => import('@/pages/MSIPage'));
 const Rentals = lazy(() => import('@/pages/Rentals'));
