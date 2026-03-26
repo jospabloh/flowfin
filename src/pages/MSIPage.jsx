@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, X, CreditCard } from 'lucide-react';
+import { Plus, X, CreditCard, ChevronRight } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
@@ -156,8 +156,8 @@ export default function MSIPage() {
                     <p className="text-xs text-muted-foreground">{payments.length}/{msi.total_months} meses</p>
                   </div>
                 </div>
-                <ProgressBar value={payments.length} max={msi.total_months} className="mb-2" />
-                <div className="flex items-center justify-between">
+                 <ProgressBar value={payments.length} max={msi.total_months} className="mb-2" />
+                <button onClick={() => setSelected(msi)} className="w-full flex items-center justify-between text-left">
                   <div>
                     {!done && next && (
                       <p className={`text-xs ${next.diff <= 7 ? 'text-yellow-500 font-semibold' : 'text-muted-foreground'}`}>
@@ -166,18 +166,72 @@ export default function MSIPage() {
                     )}
                     {done && <p className="text-xs text-income font-semibold">✓ Pagado completamente</p>}
                   </div>
-                  {!done && (
-                    <button onClick={() => handleMarkPaid(msi, payments)}
-                      className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
-                      Marcar pagado
-                    </button>
-                  )}
-                </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </button>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* Detail modal */}
+      <AnimatePresence>
+        {selected && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setSelected(null)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border max-h-[85vh] overflow-y-auto pb-safe">
+              <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-card">
+                <div>
+                  <h3 className="font-bold text-foreground text-base">{selected.store}</h3>
+                  {selected.concept && <p className="text-xs text-muted-foreground mt-0.5">{selected.concept}</p>}
+                </div>
+                <button onClick={() => setSelected(null)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4">
+                <ProgressBar value={selectedPayments.length} max={selected.total_months} className="mb-3 h-3" />
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="bg-muted rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground">Pagados</p>
+                    <p className="text-xl font-bold text-foreground">{selectedPayments.length}</p>
+                  </div>
+                  <div className="bg-muted rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground">Pendientes</p>
+                    <p className="text-xl font-bold text-foreground">{selected.total_months - selectedPayments.length}</p>
+                  </div>
+                  <div className="bg-muted rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground">Mensualidad</p>
+                    <p className="text-sm font-bold text-foreground">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.monthly_amount)}</p>
+                  </div>
+                </div>
+                {nextPayment && (
+                  <div className={`rounded-xl p-3 mb-4 ${nextPayment.diff < 0 ? 'bg-expense/10' : nextPayment.diff <= 7 ? 'bg-yellow-500/10' : 'bg-income/10'}`}>
+                    <p className="text-xs font-semibold text-foreground">Próximo pago #{nextPayment.number}</p>
+                    <p className="text-sm text-muted-foreground">{format(nextPayment.date, "dd 'de' MMMM yyyy", { locale: es })}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{nextPayment.diff < 0 ? `¡${Math.abs(nextPayment.diff)} días vencido!` : nextPayment.diff === 0 ? '¡Hoy!' : `En ${nextPayment.diff} días`}</p>
+                  </div>
+                )}
+                <button onClick={() => { handleMarkPaid(selected, selectedPayments); setSelected(null); }} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-4">
+                  Registrar Pago
+                </button>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>
+                <div className="space-y-2">
+                  {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
+                    : selectedPayments.map(p => (
+                      <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                        <div>
+                          <p className="text-sm text-foreground">Mes #{p.month_number}</p>
+                          <p className="text-xs text-muted-foreground">{format(parseISO(p.paid_date), 'dd MMM yyyy', { locale: es })}</p>
+                        </div>
+                        <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* New MSI form */}
       <AnimatePresence>
