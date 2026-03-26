@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import TransactionEditModal from '@/components/TransactionEditModal';
+import { Virtuoso } from 'react-virtuoso';
 function groupByDate(transactions) {
   const groups = {};
   transactions.forEach(t => {
@@ -239,8 +240,12 @@ export default function Transactions() {
       ) : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (
-        <div>
-          {groups.map(([date, txns]) => (
+        <Virtuoso
+          useWindowScroll
+          data={groups}
+          endReached={() => handleLoadMore()}
+          overscan={5}
+          itemContent={(_, [date, txns]) => (
             <div className="px-4 mb-4" key={date}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold text-muted-foreground">
@@ -320,8 +325,8 @@ export default function Transactions() {
                 })}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );
