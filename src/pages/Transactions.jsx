@@ -250,7 +250,6 @@ export default function Transactions() {
         }
       />
 
-      {/* Search & filter bar */}
       <div className="flex gap-2 px-4 mb-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -277,7 +276,6 @@ export default function Transactions() {
         </button>
       </div>
 
-      {/* Filters panel */}
       {showFilters && (
         <div className="mx-4 mb-3 p-3 bg-card border border-border rounded-2xl space-y-2">
           <div className="flex gap-2">
@@ -317,7 +315,6 @@ export default function Transactions() {
         </div>
       )}
 
-      {/* Pending banner */}
       {pending.length > 0 && (
         <div className="mx-4 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
