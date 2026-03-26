@@ -34,7 +34,7 @@ export default function MSIPage() {
   const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list('-paid_date') });
 
-  const selectedPayments = selected ? allPayments.filter(p => p.msi_id === selected.id && (!p.paid_date || p.paid_date <= new Date().toISOString().slice(0, 10))) : [];
+  const selectedPayments = selected ? allPayments.filter(p => p.msi_id === selected.id && p.paid_date && p.paid_date <= new Date().toISOString().slice(0, 10)) : [];
   const nextPayment = selected ? getNextMSIPayment(selected, selectedPayments) : null;
 
   const createMSIMutation = useMutation({
