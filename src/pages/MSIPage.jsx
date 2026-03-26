@@ -15,12 +15,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
   if (n >= msi.total_months) return null;
-  const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
-  const base = lastPayment ? parseISO(lastPayment.paid_date) : parseISO(msi.start_date);
-  const next = new Date(base);
-  next.setMonth(next.getMonth() + 1);
-  next.setDate(Math.min(msi.billing_day || 2, 28));
-  const diff = Math.ceil((next - new Date()) / 86400000);
+  const today = new Date();
+  const next = new Date(today.getFullYear(), today.getMonth() + 1, Math.min(msi.billing_day || 2, 28));
+  const diff = Math.ceil((next - today) / 86400000);
   return { number: n + 1, date: next, diff, remaining: msi.total_months - n };
 }
 
