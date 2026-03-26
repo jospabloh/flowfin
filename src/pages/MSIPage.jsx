@@ -204,6 +204,16 @@ export default function MSIPage() {
                     <p className="text-sm font-bold text-foreground">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.monthly_amount)}</p>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-income/10 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground">Monto total</p>
+                    <p className="text-lg font-bold text-income">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.total_amount)}</p>
+                  </div>
+                  <div className="bg-expense/10 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground">Monto pendiente</p>
+                    <p className="text-lg font-bold text-expense">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format((selected.total_months - selectedPayments.length) * selected.monthly_amount)}</p>
+                  </div>
+                </div>
                 {nextPayment && (
                   <div className={`rounded-xl p-3 mb-4 ${nextPayment.diff < 0 ? 'bg-expense/10' : nextPayment.diff <= 7 ? 'bg-yellow-500/10' : 'bg-income/10'}`}>
                     <p className="text-xs font-semibold text-foreground">Próximo pago #{nextPayment.number}</p>
