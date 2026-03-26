@@ -211,7 +211,7 @@ export default function MSIPage() {
                   </div>
                   <div className="bg-expense/10 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Monto pendiente</p>
-                    <p className="text-lg font-bold text-expense">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format((selected.total_months - selectedPayments.length) * selected.monthly_amount)}</p>
+                    <p className="text-lg font-bold text-expense">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.total_amount - selectedPayments.reduce((s, p) => s + p.amount, 0))}</p>
                   </div>
                 </div>
                 {nextPayment && (
