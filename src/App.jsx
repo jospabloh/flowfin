@@ -14,7 +14,7 @@ import LoadingFallback from '@/components/LoadingFallback';
 // Lazy-loaded pages
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Capture = lazy(() => import('@/pages/Capture'));
-const Transactions = lazy(() => import('@/pages/Transactions'));
+import Transactions from '@/pages/Transactions';
 const Reports = lazy(() => import('@/pages/Reports'));
 const Investments = lazy(() => import('@/pages/Investments'));
 const MSIPage = lazy(() => import('@/pages/MSIPage'));
@@ -97,7 +97,7 @@ const AuthenticatedApp = () => {
               <Route path="/Dashboard" element={<Suspense fallback={<LoadingFallback />}><Dashboard /></Suspense>} />
               <Route path="/Capture" element={<Suspense fallback={<LoadingFallback />}><Capture /></Suspense>} />
               <Route path="/Assistant" element={<Suspense fallback={<LoadingFallback />}><Assistant /></Suspense>} />
-              <Route path="/Transactions" element={<Suspense fallback={<LoadingFallback />}><Transactions /></Suspense>} />
+              <Route path="/Transactions" element={<Transactions />} />
               <Route path="/Reports" element={<Suspense fallback={<LoadingFallback />}><Reports /></Suspense>} />
               <Route path="/Investments" element={<Suspense fallback={<LoadingFallback />}><Investments /></Suspense>} />
               <Route path="/MSI" element={<Suspense fallback={<LoadingFallback />}><MSIPage /></Suspense>} />
