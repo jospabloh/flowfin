@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, TrendingUp, ChevronRight, X } from 'lucide-react';
+import { Plus, TrendingUp, ChevronRight, X, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
@@ -37,6 +37,8 @@ export default function Investments() {
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
   const [showPayFormSuccess, setShowPayFormSuccess] = useState(false);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [editPayForm, setEditPayForm] = useState({ amount: '', date: '', notes: '' });
   const [form, setForm] = useState({ name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: new Date().toISOString().slice(0,10), payment_day: '28' });
   const [payForm, setPayForm] = useState({ amount: '', date: new Date().toISOString().slice(0,10), notes: '' });
 
@@ -74,6 +76,36 @@ export default function Investments() {
     onError: (err, _, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['investmentPayments'], ctx.previous);
       toast({ title: 'Error al registrar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['investmentPayments'] }),
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.InvestmentPayment.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentPayments'] });
+      const previous = queryClient.getQueryData(['investmentPayments']);
+      queryClient.setQueryData(['investmentPayments'], (old = []) => old.map(p => p.id === id ? { ...p, ...data } : p));
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['investmentPayments'], ctx.previous);
+      toast({ title: 'Error al actualizar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['investmentPayments'] }),
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (id) => base44.entities.InvestmentPayment.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['investmentPayments'] });
+      const previous = queryClient.getQueryData(['investmentPayments']);
+      queryClient.setQueryData(['investmentPayments'], (old = []) => old.filter(p => p.id !== id));
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['investmentPayments'], ctx.previous);
+      toast({ title: 'Error al eliminar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['investmentPayments'] }),
   });
@@ -230,11 +262,19 @@ export default function Investments() {
                   {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
                     : selectedPayments.map(p => (
                       <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                        <div>
+                        <div className="flex-1">
                           <p className="text-sm text-foreground">Pago #{p.payment_number}</p>
                           <p className="text-xs text-muted-foreground">{p.date}</p>
                         </div>
-                        <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
+                        <div className="flex items-center gap-2">
+                          <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
+                          <button onClick={() => { setEditingPayment(p); setEditPayForm({ amount: p.amount.toString(), date: p.date, notes: p.notes || '' }); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                          <button onClick={() => { if (confirm('¿Eliminar este pago?')) deletePaymentMutation.mutate(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -242,6 +282,34 @@ export default function Investments() {
             </motion.div>
           </>
         )}
+      </AnimatePresence>
+
+      {/* Edit payment modal */}
+      <AnimatePresence>
+       {editingPayment && (
+         <>
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-[60]" onClick={() => setEditingPayment(null)} />
+           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+             className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] bg-card rounded-2xl border border-border p-5 shadow-2xl">
+             <div className="flex items-center justify-between mb-4">
+               <h3 className="font-bold text-foreground">Editar Pago</h3>
+               <button onClick={() => setEditingPayment(null)} className="p-2 rounded-xl bg-muted hover:bg-border transition-colors"><X className="w-4 h-4" /></button>
+             </div>
+             <div className="space-y-3">
+               <input type="number" placeholder="Monto" value={editPayForm.amount} onChange={e => setEditPayForm(p => ({...p, amount: e.target.value}))}
+                 className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+               <input type="date" value={editPayForm.date} onChange={e => setEditPayForm(p => ({...p, date: e.target.value}))}
+                 className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+               <input type="text" placeholder="Notas (opcional)" value={editPayForm.notes} onChange={e => setEditPayForm(p => ({...p, notes: e.target.value}))}
+                 className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+             </div>
+             <div className="flex gap-2 mt-4">
+               <button onClick={() => setEditingPayment(null)} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">Cancelar</button>
+               <button onClick={() => { updatePaymentMutation.mutate({ id: editingPayment.id, data: { amount: +editPayForm.amount, date: editPayForm.date, notes: editPayForm.notes } }); setEditingPayment(null); }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">Guardar</button>
+             </div>
+           </motion.div>
+         </>
+       )}
       </AnimatePresence>
 
       {/* Pay form */}
