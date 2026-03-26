@@ -79,13 +79,17 @@ El dashboard muestra los próximos vencimientos.`
     id: 'msi', icon: '💳', title: 'Meses Sin Intereses (MSI)',
     content: `Controla todas tus compras a meses sin intereses en un solo lugar.
 
-Para cada MSI registra:
-• Tienda y concepto
-• Monto total y mensualidad
-• Número de meses
-• Fecha de inicio y día de cargo
+  Para cada MSI registra:
+  • Tienda y concepto
+  • Monto total y mensualidad
+  • Número de meses
+  • Fecha de inicio y día de cargo
 
-El sistema calcula automáticamente el próximo cargo y cuántos meses faltan. Usa el botón "Marcar pagado" cada mes para mantener el seguimiento actualizado.`
+  El sistema calcula automáticamente el próximo cargo basándose en hoy y el día de cobro especificado. Usa el botón "Registrar Pago" cada mes para mantener el seguimiento actualizado.
+
+  Estado del MSI:
+  • Activo — El MSI está vigente y se pueden registrar pagos.
+  • Pausa — El MSI está pausado (puedes reactivarlo cuando sea necesario). Toca el botón "Pausar" o "Reactivar" en los detalles del MSI para cambiar su estado.`
   },
   {
     id: 'rentas', icon: '🏠', title: 'Rentas (cobro de propiedades)',
