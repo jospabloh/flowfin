@@ -1,13 +1,13 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users, MessageCircle, ChevronLeft } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
 import { usePendingCount } from '@/hooks/usePendingCount';
-import PageTransition from './PageTransition';
-import { navigateTo, goBack, getNavigationDirection, saveScrollPosition, getScrollPosition, isRootTab } from '@/lib/navigationStack';
 import { useFamily } from '@/lib/FamilyContext';
+
+const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports', '/Assistant'];
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
@@ -53,60 +53,14 @@ export default function Layout() {
   const pendingCount = usePendingCount();
   const { family, isAdmin } = useFamily();
   const isAssistantPage = location.pathname === '/Assistant';
-  const showBack = !isRootTab(location.pathname);
-  const prevPath = useRef(location.pathname);
-
-  // Handle page transitions with browser history sync
-  useEffect(() => {
-    // Save scroll position before leaving
-    saveScrollPosition(prevPath.current, window.scrollY);
-
-    // Determine direction and update stack
-    const direction = getNavigationDirection(prevPath.current, location.pathname);
-    
-    // Restore scroll position for the new page
-    const savedScroll = getScrollPosition(location.pathname);
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: savedScroll, behavior: 'instant' });
-    });
-
-    prevPath.current = location.pathname;
-  }, [location.pathname]);
-
-  // Handle system deep links and intent handling
-  useEffect(() => {
-    const handleAppIntent = (e) => {
-      const path = e.detail?.path || new URLSearchParams(window.location.search).get('path');
-      if (path && path !== location.pathname) {
-        navigateTo(path);
-        navigate(path);
-      }
-    };
-
-    window.addEventListener('app-intent', handleAppIntent);
-    return () => window.removeEventListener('app-intent', handleAppIntent);
-  }, [navigate, location.pathname]);
-
-  // Setup browser back gesture support
-  useEffect(() => {
-    const handlePopState = (e) => {
-      const path = e.state?.path || location.pathname;
-      navigate(path);
-    };
-    
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate, location.pathname]);
+  const showBack = !PRIMARY_TABS.includes(location.pathname);
 
   const handleNavClick = (path) => {
-    if (path !== location.pathname) {
-      navigateTo(path);
-      navigate(path);
-    }
+    if (path !== location.pathname) navigate(path);
   };
 
   const handleBack = () => {
-    goBack();
+    navigate(-1);
   };
 
   return (
@@ -180,11 +134,7 @@ export default function Layout() {
           </div>
         )}
         <div className="flex-1 mb-nav md:mb-0 overflow-y-auto hide-scrollbar" id="main-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <AnimatePresence mode="wait" initial={false}>
-            <PageTransition key={location.pathname}>
-              <Outlet />
-            </PageTransition>
-          </AnimatePresence>
+          <Outlet />
         </div>
       </main>
 
