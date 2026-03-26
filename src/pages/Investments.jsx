@@ -43,7 +43,7 @@ export default function Investments() {
   const { data: investments = [], isLoading } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list('-date') });
 
-  const selectedPayments = selected ? allPayments.filter(p => p.investment_id === selected.id) : [];
+  const selectedPayments = selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= new Date().toISOString().slice(0, 10))) : [];
   const nextPayment = selected ? getNextPayment(selected, selectedPayments) : null;
 
   const createInvestmentMutation = useMutation({
@@ -148,8 +148,8 @@ export default function Investments() {
       ) : (
         <div className="px-4 space-y-3">
           {investments.map(inv => {
-            const paid = allPayments.filter(p => p.investment_id === inv.id).length;
-            const next = getNextPayment(inv, allPayments.filter(p => p.investment_id === inv.id));
+            const paid = allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= new Date().toISOString().slice(0, 10))).length;
+            const next = getNextPayment(inv, allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= new Date().toISOString().slice(0, 10))));
             const done = paid >= inv.total_payments;
             return (
               <button key={inv.id} onClick={() => setSelected(inv)} className="w-full bg-card border border-border rounded-2xl p-4 text-left shadow-sm hover:shadow-md transition-shadow">
