@@ -37,7 +37,7 @@ export default function Dashboard() {
   const { categories, persons } = useCatalog(familyId);
 
   const { data: transactions = [], refetch: refetchTx } = useQuery({
-    queryKey: ['transactions', familyId],
+    queryKey: ['transactions_dashboard', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500),
     enabled: !!familyId,
   });
@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const range = getRange(period);
 
-  const filtered = useMemo(() => transactions.filter(t => {
+  const filtered = useMemo(() => (Array.isArray(transactions) ? transactions : []).filter(t => {
     if (!t.date) return false;
     const d = parseISO(t.date);
     const inRange = isWithinInterval(d, { start: range.start, end: range.end });
