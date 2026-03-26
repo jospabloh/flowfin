@@ -51,14 +51,14 @@ export default function Reports() {
   const [selectedDetail, setSelectedDetail] = useState(null);
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions', familyId],
+    queryKey: ['transactions_reports', familyId],
     queryFn: () => base44.entities.Transaction.filter({ family_id: familyId }, '-date', 2000),
     enabled: !!familyId,
   });
 
   const cfg = PRESETS[reportType][preset];
 
-  const filtered = useMemo(() => transactions.filter(t => {
+  const filtered = useMemo(() => (Array.isArray(transactions) ? transactions : []).filter(t => {
     if (!t.date) return false;
     if (cfg.type !== 'all' && t.type !== cfg.type) return false;
     if (filterCategory && t.category_id !== filterCategory) return false;
