@@ -100,6 +100,21 @@ export default function MSIPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['msiPayments'] }),
   });
 
+  const toggleMSIStatusMutation = useMutation({
+    mutationFn: (msi) => base44.entities.MSI.update(msi.id, { is_active: !msi.is_active }),
+    onMutate: async (msi) => {
+      await queryClient.cancelQueries({ queryKey: ['msi', familyId] });
+      const previous = queryClient.getQueryData(['msi', familyId]);
+      queryClient.setQueryData(['msi', familyId], (old = []) => old.map(m => m.id === msi.id ? { ...m, is_active: !m.is_active } : m));
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['msi', familyId], ctx.previous);
+      toast({ title: 'Error al actualizar estado', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['msi', familyId] }),
+  });
+
   const handleCreate = async () => {
     if (!form.store || !form.total_amount) return;
     createMSIMutation.mutate({ 
@@ -218,11 +233,16 @@ export default function MSIPage() {
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border max-h-[85vh] overflow-y-auto pb-safe">
               <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-card">
-                <div>
+                <div className="flex-1">
                   <h3 className="font-bold text-foreground text-base">{selected.store}</h3>
                   {selected.concept && <p className="text-xs text-muted-foreground mt-0.5">{selected.concept}</p>}
                 </div>
-                <button onClick={() => setSelected(null)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => toggleMSIStatusMutation.mutate(selected)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected.is_active ? 'bg-income/10 text-income hover:bg-income/20' : 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'}`}>
+                    {selected.is_active ? 'Pausar' : 'Reactivar'}
+                  </button>
+                  <button onClick={() => setSelected(null)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
+                </div>
               </div>
               <div className="p-4">
                 <ProgressBar value={selectedPayments.length} max={selected.total_months} className="mb-3 h-3" />
