@@ -32,7 +32,7 @@ export default function Transactions() {
   const { familyId, currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { toast } = useToast();
-  const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
+  const { categories = [], subcategories = [], persons = [], paymentMethods = [] } = useCatalog(familyId);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterCat, setFilterCat] = useState('');
