@@ -245,8 +245,8 @@ export default function Transactions() {
           data={groups}
           endReached={() => handleLoadMore()}
           overscan={5}
-          itemContent={(_, [date, txns]) => (
-            <div className="px-4 mb-4" key={date}>
+          itemContent={(_, [date, txns]) => {
+            return <div className="px-4 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-semibold text-muted-foreground">
                   {date !== 'Sin fecha' ? format(parseISO(date), "EEEE d 'de' MMMM", { locale: es }).replace(/^\w/, c => c.toUpperCase()) : 'Sin fecha'}
@@ -324,8 +324,8 @@ export default function Transactions() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            </div>;
+          }}
         />
       )}
     </div>
