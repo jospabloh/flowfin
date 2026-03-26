@@ -15,9 +15,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
   if (n >= msi.total_months) return null;
-  const base = parseISO(msi.start_date);
-  const next = addMonths(base, n);
-  if (msi.billing_day) next.setDate(Math.min(msi.billing_day, 28));
+  const lastPayment = payments.length > 0 ? payments[payments.length - 1] : null;
+  const base = lastPayment ? parseISO(lastPayment.paid_date) : parseISO(msi.start_date);
+  const next = new Date(base);
+  next.setMonth(next.getMonth() + 1);
+  next.setDate(Math.min(msi.billing_day || 2, 28));
   const diff = Math.ceil((next - new Date()) / 86400000);
   return { number: n + 1, date: next, diff, remaining: msi.total_months - n };
 }
@@ -179,8 +181,13 @@ export default function MSIPage() {
                   <div className="flex items-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${statusBg}`} />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{msi.store}</p>
-                      {msi.concept && <p className="text-xs text-muted-foreground">{msi.concept}</p>}
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-foreground">{msi.store}</p>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${msi.is_active ? 'bg-income/10 text-income' : 'bg-amber-500/10 text-amber-600'}`}>
+                          {msi.is_active ? 'Activo' : 'Pausa'}
+                        </span>
+                      </div>
+                      {msi.concept && <p className="text-xs text-muted-foreground mt-0.5">{msi.concept}</p>}
                     </div>
                   </div>
                   <div className="text-right">
