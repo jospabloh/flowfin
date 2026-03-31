@@ -141,20 +141,21 @@ export default function Layout() {
       {/* Floating Assistant Button — hidden on Assistant page */}
       {!isAssistantPage && (
         <button onClick={() => handleNavClick('/Assistant')}
-          className="fixed bottom-28 right-4 md:bottom-6 md:right-6 z-30 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
+          className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-30 w-11 h-11 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}
           aria-label="Abrir asistente inteligente para consultas">
           <MessageCircle className="w-5 h-5" aria-hidden="true" />
         </button>
       )}
 
       {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/90 backdrop-blur-xl border-t border-border pb-safe z-40 overscroll-none">
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/95 backdrop-blur-xl border-t border-border z-40 overscroll-none" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {family?.name && (
-          <div className="flex justify-center pt-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-3 py-0.5 rounded-full">{family.name}</span>
+          <div className="flex justify-center pt-1">
+            <span className="text-[9px] font-semibold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">{family.name}</span>
           </div>
         )}
-        <div className="flex items-end justify-around px-2 pt-2 pb-1">
+        <div className="flex items-end justify-around px-1 pt-1 pb-1">
           {navItems.map(item => {
             if (item.to === '/more') {
               const active = ['Investments','MSI','Rentals','Catalogs','FamilySettings','AccountSettings','UserManual','About']
@@ -164,9 +165,9 @@ export default function Layout() {
                     aria-label="Abrir más opciones de navegación"
                     aria-haspopup="dialog"
                     aria-expanded={showMore}
-                    className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
+                    className={`flex flex-col items-center gap-0.5 px-2 py-1 min-w-[48px] transition-all touch-target
                       ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-                    <MoreHorizontal className="w-6 h-6" aria-hidden="true" />
+                    <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
                     <span className="text-[10px] font-medium">Más</span>
                   </button>
               );
@@ -174,8 +175,8 @@ export default function Layout() {
             if (item.isCenter) {
               return (
                 <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label="Registrar nuevo movimiento"
-                  className="flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg shadow-primary/30 -mt-4 transition-transform active:scale-95">
-                  <Plus className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
+                  className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30 -mt-3 transition-transform active:scale-95">
+                  <Plus className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
                 </button>
               );
             }
@@ -186,10 +187,10 @@ export default function Layout() {
               <button key={item.to} onClick={() => handleNavClick(item.to)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 min-w-[52px] transition-all touch-target
+                className={`flex flex-col items-center gap-0.5 px-2 py-1 min-w-[48px] transition-all touch-target
                   ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                 <div className="relative">
-                  <Icon className="w-6 h-6" aria-hidden="true" />
+                  <Icon className="w-5 h-5" aria-hidden="true" />
                   {showBadge && (
                     <span aria-label={`${pendingCount} movimientos pendientes`} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
                       {pendingCount > 9 ? '9+' : pendingCount}
