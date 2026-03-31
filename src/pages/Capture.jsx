@@ -95,10 +95,10 @@ export default function Capture() {
       family_id: familyId,
       icon: '📁',
       color: '#059669',
-      type,
+      type: 'both',
     });
+    await queryClient.invalidateQueries({ queryKey: ['categories'] });
     setCategoryId(cat.id);
-    queryClient.invalidateQueries({ queryKey: ['categories'] });
     setSuggestions([]);
   };
 

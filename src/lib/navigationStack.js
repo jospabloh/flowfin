@@ -105,9 +105,9 @@ function handleAndroidBackButton(event) {
     event.preventDefault?.();
   }
   // Only go back if there's history to go back to
-  if (navigationStack.length > 1) {
+  if (getActiveTabStack().length > 1) {
     goBack();
-  } else if (navigationStack.length === 1) {
+  } else {
     // At root: allow system to handle (close app or go to home)
     document.removeEventListener('backbutton', handleAndroidBackButton);
   }
@@ -120,7 +120,7 @@ function handleAndroidBackButton(event) {
 function handleAndroidKeyboardBack(event) {
   if (event.key === 'Escape' && !event.defaultPrevented) {
     event.preventDefault();
-    if (navigationStack.length > 1) {
+    if (getActiveTabStack().length > 1) {
       goBack();
     }
   }
