@@ -66,7 +66,7 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-50"
+              className="fixed inset-0 bg-black/40 z-[59]"
               onClick={() => setOpen(false)}
             />
             {/* Sheet */}
@@ -77,7 +77,8 @@ export default function NativeSelect({ value, onChange, options = [], placeholde
               aria-label={placeholder}
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border pb-safe max-h-[70vh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl border-t border-border pb-safe max-h-[75vh] flex flex-col"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
               onClick={e => e.stopPropagation()}
             >
               {/* Handle + header */}
