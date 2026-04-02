@@ -151,7 +151,9 @@ export default function Transactions() {
             const sub = subcategories.find(s => s.id === t.subcategory_id);
             const person = persons.find(p => p.id === t.person_id);
             const isExp = expanded === t.id;
-            const desc = t.description || cat?.name || 'Sin descripción';
+            const desc = t.description && t.notes
+              ? `${t.description} — ${t.notes}`
+              : t.description || t.notes || cat?.name || 'Sin descripción';
             return (
               <div key={t.id} className={idx < txns.length - 1 ? 'border-b border-border' : ''}>
                 {(!t.person_id || !t.category_id) && (

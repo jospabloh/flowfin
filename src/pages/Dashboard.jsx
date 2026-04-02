@@ -249,7 +249,9 @@ export default function Dashboard() {
             <div key={t.id} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
               <CategoryDot category={cat} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{t.description || cat?.name || 'Sin descripción'}</p>
+                <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+                  {t.description && t.notes ? `${t.description} — ${t.notes}` : t.description || t.notes || cat?.name || 'Sin descripción'}
+                </p>
                 <p className="text-xs text-muted-foreground">{t.date} {person && `· ${person.name}`}</p>
               </div>
               <AmountDisplay amount={t.amount} type={t.type} size="sm" />
