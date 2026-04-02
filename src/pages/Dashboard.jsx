@@ -3,7 +3,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { Plus, TrendingUp, TrendingDown, Wallet, ChevronRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Wallet, ChevronRight, Bell } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -49,6 +49,15 @@ export default function Dashboard() {
   const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list() });
   const { data: msiList = [] } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }), enabled: !!familyId });
   const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list() });
+
+  const CURRENT_MONTH = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const { data: scheduledPayments = [] } = useQuery({ queryKey: ['scheduledPayments', familyId], queryFn: () => base44.entities.ScheduledPayment.filter({ family_id: familyId }), enabled: !!familyId });
+  const { data: scheduledRecords = [] } = useQuery({ queryKey: ['scheduledPaymentRecords', familyId], queryFn: () => base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId }), enabled: !!familyId });
+
+  const pendingScheduled = useMemo(() => {
+    const paidIds = new Set(scheduledRecords.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id));
+    return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id));
+  }, [scheduledPayments, scheduledRecords, CURRENT_MONTH]);
 
   const range = getRange(period);
 
@@ -151,6 +160,24 @@ export default function Dashboard() {
           </button>
         ))}
       </div>
+
+      {/* Pending scheduled payments banner */}
+      {pendingScheduled.length > 0 && (
+        <Link to="/ScheduledPayments" className="mx-4 mb-4 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+          <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
+            <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+              {pendingScheduled.length} pago{pendingScheduled.length > 1 ? 's' : ''} programado{pendingScheduled.length > 1 ? 's' : ''} pendiente{pendingScheduled.length > 1 ? 's' : ''}
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 truncate">
+              {pendingScheduled.slice(0, 3).map(p => p.name).join(', ')}{pendingScheduled.length > 3 ? '…' : ''}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-amber-500 flex-shrink-0" />
+        </Link>
+      )}
 
       <div className="grid grid-cols-3 gap-3 px-4 mb-4">
         {[

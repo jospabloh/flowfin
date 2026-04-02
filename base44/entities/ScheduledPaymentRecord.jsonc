@@ -1,0 +1,91 @@
+{
+  "name": "ScheduledPaymentRecord",
+  "type": "object",
+  "properties": {
+    "scheduled_payment_id": {
+      "type": "string",
+      "description": "ID del pago programado"
+    },
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia"
+    },
+    "month": {
+      "type": "string",
+      "description": "Mes en formato YYYY-MM"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha real del pago"
+    },
+    "amount_paid": {
+      "type": "number",
+      "description": "Monto real pagado"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "paid_by": {
+      "type": "string",
+      "description": "Nombre o email de quien marc\u00f3 el pago"
+    }
+  },
+  "required": [
+    "scheduled_payment_id",
+    "family_id",
+    "month"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

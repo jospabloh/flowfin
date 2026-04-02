@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Home, List, Plus, BarChart2, MoreHorizontal, TrendingUp, CreditCard, Building, BookOpen, Settings, HelpCircle, Info, X, Sparkles, Users, MessageCircle, ChevronLeft, CalendarCheck } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
@@ -22,6 +22,7 @@ const moreItems = [
   { to: '/Investments', icon: TrendingUp, label: 'Inversiones', color: 'text-emerald-500' },
   { to: '/MSI', icon: CreditCard, label: 'MSI', color: 'text-purple-500' },
   { to: '/Rentals', icon: Building, label: 'Rentas', color: 'text-blue-500' },
+  { to: '/ScheduledPayments', icon: CalendarCheck, label: 'Pagos del Mes', color: 'text-teal-500' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos', color: 'text-orange-500' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia', color: 'text-rose-500' },
   { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta', color: 'text-pink-500' },
@@ -38,6 +39,7 @@ const sideNavItems = [
   { to: '/Investments', icon: TrendingUp, label: 'Inversiones' },
   { to: '/MSI', icon: CreditCard, label: 'MSI' },
   { to: '/Rentals', icon: Building, label: 'Rentas' },
+  { to: '/ScheduledPayments', icon: CalendarCheck, label: 'Pagos del Mes' },
   { to: '/Catalogs', icon: BookOpen, label: 'Catálogos' },
   { to: '/FamilySettings', icon: Settings, label: 'Mi Familia' },
   { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta' },

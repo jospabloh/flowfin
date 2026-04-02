@@ -1,0 +1,80 @@
+{
+  "name": "ScheduledPayment",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del pago (ej: Luz, Tel\u00e9fono, Colegiatura)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n adicional"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto estimado del pago"
+    },
+    "due_day": {
+      "type": "number",
+      "description": "D\u00eda del mes en que vence (1-28)"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID de la categor\u00eda"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "Forma de pago habitual"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji representativo",
+      "default": "\ud83d\udcb0"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "family_id",
+    "name",
+    "due_day"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
