@@ -27,6 +27,7 @@ export function useRegisterPaymentWithTransaction() {
       category_id,
       payment_method_id,
       person_id,
+      type = 'expense',
     } = txFields;
 
     const week = getWeekNumber(date);
@@ -37,13 +38,13 @@ export function useRegisterPaymentWithTransaction() {
       base44.entities.Transaction.create({
         family_id: familyId,
         date,
-        type: 'expense',
+        type,
         amount: parseFloat(amount) || 0,
         description: description || '',
         category_id: category_id || undefined,
         payment_method_id: payment_method_id || undefined,
         person_id: person_id || undefined,
-        required_type: 'Necesario',
+        required_type: type === 'income' ? 'Otro' : 'Necesario',
         week,
       }),
     ]);

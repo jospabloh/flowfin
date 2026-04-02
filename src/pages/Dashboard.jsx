@@ -49,6 +49,8 @@ export default function Dashboard() {
   const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list() });
   const { data: msiList = [] } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }), enabled: !!familyId });
   const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list() });
+  const { data: rentalProperties = [] } = useQuery({ queryKey: ['rentalProperties', familyId], queryFn: () => base44.entities.RentalProperty.filter({ family_id: familyId }), enabled: !!familyId });
+  const { data: rentalPayments = [] } = useQuery({ queryKey: ['rentalPayments'], queryFn: () => base44.entities.RentalPayment.list('-month') });
 
   const CURRENT_MONTH = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const { data: scheduledPayments = [] } = useQuery({ queryKey: ['scheduledPayments', familyId], queryFn: () => base44.entities.ScheduledPayment.filter({ family_id: familyId }), enabled: !!familyId });
@@ -58,6 +60,14 @@ export default function Dashboard() {
     const paidIds = new Set(scheduledRecords.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id));
     return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id));
   }, [scheduledPayments, scheduledRecords, CURRENT_MONTH]);
+
+  const pendingRentals = useMemo(() => {
+    return rentalProperties.filter(prop => {
+      if (prop.is_active === false) return false;
+      const paidThisMonth = rentalPayments.some(p => p.property_id === prop.id && p.month === CURRENT_MONTH && p.is_paid);
+      return !paidThisMonth;
+    });
+  }, [rentalProperties, rentalPayments, CURRENT_MONTH]);
 
   const pendingInvestments = useMemo(() => {
     const today = new Date();
@@ -196,7 +206,7 @@ export default function Dashboard() {
 
       {/* Pending investment payments banner */}
       {pendingInvestments.length > 0 && (
-        <Link to="/Investments" className="mx-4 mb-4 flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-300 dark:border-rose-700 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
+        <Link to="/Investments" className="mx-4 mb-3 flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-300 dark:border-rose-700 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
           <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
             <TrendingUp className="w-4 h-4 text-rose-600 dark:text-rose-400" />
           </div>
@@ -209,6 +219,24 @@ export default function Dashboard() {
             </p>
           </div>
           <ChevronRight className="w-4 h-4 text-rose-500 flex-shrink-0" />
+        </Link>
+      )}
+
+      {/* Pending rental collections banner */}
+      {pendingRentals.length > 0 && (
+        <Link to="/Rentals" className="mx-4 mb-4 flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+            <span className="text-base">🏠</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
+              {pendingRentals.length} renta{pendingRentals.length > 1 ? 's' : ''} sin confirmar este mes
+            </p>
+            <p className="text-xs text-blue-700 dark:text-blue-400 truncate">
+              {pendingRentals.slice(0, 3).map(p => p.name).join(', ')}{pendingRentals.length > 3 ? '…' : ''}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-blue-500 flex-shrink-0" />
         </Link>
       )}
 

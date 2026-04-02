@@ -9,11 +9,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 
 export default function Rentals() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
+  const registerPayment = useRegisterPaymentWithTransaction();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showPayForm, setShowPayForm] = useState(false);
@@ -73,12 +75,20 @@ export default function Rentals() {
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
-    createPaymentMutation.mutate({ 
-      ...payForm, 
-      property_id: selected.id, 
-      amount: +payForm.amount, 
-      is_paid: true 
-    });
+    const payData = { ...payForm, property_id: selected.id, amount: +payForm.amount, is_paid: true };
+    await registerPayment(
+      () => base44.entities.RentalPayment.create(payData),
+      {
+        type: 'income',
+        amount: +payForm.amount,
+        date: payForm.date_paid,
+        description: `🏠 Renta ${selected.name}${payForm.paid_by ? ` · ${payForm.paid_by}` : ''} (${payForm.month})`,
+        category_id: undefined,
+        payment_method_id: undefined,
+        person_id: undefined,
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: ['rentalPayments'] });
     setShowPayForm(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
