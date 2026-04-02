@@ -59,6 +59,21 @@ export default function Dashboard() {
     return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id));
   }, [scheduledPayments, scheduledRecords, CURRENT_MONTH]);
 
+  const pendingInvestments = useMemo(() => {
+    const today = new Date();
+    return investments.filter(inv => {
+      if (inv.is_active === false) return false;
+      const paid = investmentPayments.filter(p => p.investment_id === inv.id).length;
+      if (paid >= inv.total_payments) return false;
+      const base = new Date(inv.start_date);
+      const next = new Date(base);
+      next.setMonth(next.getMonth() + paid);
+      if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
+      const diff = Math.ceil((next - today) / 86400000);
+      return diff <= 7; // próximos 7 días o vencidos
+    });
+  }, [investments, investmentPayments]);
+
   const range = getRange(period);
 
   const filtered = useMemo(() => (Array.isArray(transactions) ? transactions : []).filter(t => {
@@ -163,7 +178,7 @@ export default function Dashboard() {
 
       {/* Pending scheduled payments banner */}
       {pendingScheduled.length > 0 && (
-        <Link to="/ScheduledPayments" className="mx-4 mb-4 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+        <Link to="/ScheduledPayments" className="mx-4 mb-3 flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
           <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
             <Bell className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
@@ -176,6 +191,24 @@ export default function Dashboard() {
             </p>
           </div>
           <ChevronRight className="w-4 h-4 text-amber-500 flex-shrink-0" />
+        </Link>
+      )}
+
+      {/* Pending investment payments banner */}
+      {pendingInvestments.length > 0 && (
+        <Link to="/Investments" className="mx-4 mb-4 flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-300 dark:border-rose-700 rounded-2xl hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-colors">
+          <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
+            <TrendingUp className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-rose-800 dark:text-rose-300">
+              {pendingInvestments.length} inversión{pendingInvestments.length > 1 ? 'es' : ''} con pago próximo
+            </p>
+            <p className="text-xs text-rose-700 dark:text-rose-400 truncate">
+              {pendingInvestments.slice(0, 3).map(p => p.name).join(', ')}{pendingInvestments.length > 3 ? '…' : ''}
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-rose-500 flex-shrink-0" />
         </Link>
       )}
 
