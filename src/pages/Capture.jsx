@@ -69,9 +69,7 @@ export default function Capture() {
   const applySuggestion = (s) => {
     setCategoryId(s.category?.id || '');
     setSubcategoryId(s.subcategory?.id || '');
-    // Auto-complete description with subcategory or category name
-    const completedDesc = s.subcategory?.name || s.category?.name || description;
-    setDescription(completedDesc);
+    // Keep the user's typed description as-is
     setSuggestions([]);
   };
 
