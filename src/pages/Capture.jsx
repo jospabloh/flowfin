@@ -177,7 +177,12 @@ export default function Capture() {
     const duplicates = existingOnDate.filter(t => {
       const sameAmount = Math.abs(t.amount - inputAmount) / Math.max(inputAmount, 1) < 0.05; // within 5%
       const sameCat = t.category_id === categoryId;
-      return sameAmount || sameCat;
+      const sameSubcat = subcategoryId && t.subcategory_id === subcategoryId;
+      const descA = (t.description || '').toLowerCase().trim();
+      const descB = description.toLowerCase().trim();
+      const sameDesc = descA.length > 2 && descB.length > 2 && (descA.includes(descB) || descB.includes(descA));
+      // Only flag as duplicate if amount is similar AND (same subcategory OR same description)
+      return sameAmount && sameCat && (sameSubcat || sameDesc);
     });
 
     if (duplicates.length > 0) {
