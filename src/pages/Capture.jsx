@@ -25,18 +25,13 @@ export default function Capture() {
 
   const createTransactionMutation = useMutation({
     mutationFn: (data) => base44.entities.Transaction.create(data),
-    onMutate: async (newTx) => {
-      await queryClient.cancelQueries({ queryKey: ['transactions', familyId] });
-      const previous = queryClient.getQueryData(['transactions', familyId]);
-      const optimistic = { ...newTx, id: `optimistic-${Date.now()}`, created_date: new Date().toISOString() };
-      queryClient.setQueryData(['transactions', familyId], (old = []) => [optimistic, ...old]);
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['transactions', familyId], ctx.previous);
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+    },
+    onError: (err) => {
+      alert(`Error al guardar: ${err?.message || 'No se pudo guardar el movimiento'}`);
+      setSaving(false);
     },
   });
 
@@ -137,17 +132,20 @@ export default function Capture() {
   };
 
   const doSave = (txData) => {
-    createTransactionMutation.mutate(txData);
-    if (subcategoryId) increment(subcategoryId);
-    setSaving(false);
     setDuplicateWarning(null);
-    setShowSuccess(true);
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
-    setTimeout(() => {
-      setShowSuccess(false);
-      setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
-      setNotes(''); setReceiptImage(null); setSuggestions([]);
-    }, 1500);
+    createTransactionMutation.mutate(txData, {
+      onSuccess: () => {
+        if (subcategoryId) increment(subcategoryId);
+        setSaving(false);
+        setShowSuccess(true);
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
+        setTimeout(() => {
+          setShowSuccess(false);
+          setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
+          setNotes(''); setReceiptImage(null); setSuggestions([]);
+        }, 1500);
+      },
+    });
   };
 
   const handleSave = async () => {
