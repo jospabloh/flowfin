@@ -37,18 +37,10 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Transaction.update(id, data),
-    onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: ['transactions', familyId] });
-      const previous = queryClient.getQueryData(['transactions', familyId]);
-      queryClient.setQueryData(['transactions', familyId], (old = []) =>
-        old.map(t => t.id === id ? { ...t, ...data } : t)
-      );
-      return { previous };
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
     },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['transactions', familyId], ctx.previous);
-    },
-    onSettled: () => {},
   });
 
   const handleSave = () => {
