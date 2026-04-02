@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Mic, MicOff, Camera, Check, Receipt } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -56,6 +56,7 @@ export default function Capture() {
   const [isListening, setIsListening] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(null); // { duplicates: [], pendingData: {} }
 
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
@@ -135,6 +136,20 @@ export default function Capture() {
     if (!description) handleDescriptionChange(`Ticket ${today}`);
   };
 
+  const doSave = (txData) => {
+    createTransactionMutation.mutate(txData);
+    if (subcategoryId) increment(subcategoryId);
+    setSaving(false);
+    setDuplicateWarning(null);
+    setShowSuccess(true);
+    confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
+    setTimeout(() => {
+      setShowSuccess(false);
+      setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
+      setNotes(''); setReceiptImage(null); setSuggestions([]);
+    }, 1500);
+  };
+
   const handleSave = async () => {
     if (!amount || isNaN(parseFloat(amount))) return;
     if (!categoryId) { alert('Debes seleccionar un Rubro'); return; }
@@ -150,17 +165,28 @@ export default function Capture() {
       payment_method_id: paymentMethodId || undefined,
       required_type: requiredType, has_invoice: hasInvoice, notes, week,
     };
-    // Fire optimistic mutation — UI updates instantly
-    createTransactionMutation.mutate(txData);
-    if (subcategoryId) increment(subcategoryId);
-    setSaving(false);
-    setShowSuccess(true);
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
-    setTimeout(() => {
-      setShowSuccess(false);
-      setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
-      setNotes(''); setReceiptImage(null); setSuggestions([]);
-    }, 1500);
+
+    // Check for duplicates on the same date
+    const existingOnDate = await base44.entities.Transaction.filter({
+      family_id: familyId,
+      date,
+      type,
+    });
+
+    const inputAmount = parseFloat(amount);
+    const duplicates = existingOnDate.filter(t => {
+      const sameAmount = Math.abs(t.amount - inputAmount) / Math.max(inputAmount, 1) < 0.05; // within 5%
+      const sameCat = t.category_id === categoryId;
+      return sameAmount || sameCat;
+    });
+
+    if (duplicates.length > 0) {
+      setSaving(false);
+      setDuplicateWarning({ duplicates, pendingData: txData });
+      return;
+    }
+
+    doSave(txData);
   };
 
   const selectedCategory = categories.find(c => c.id === categoryId);
@@ -307,8 +333,15 @@ export default function Capture() {
 
       {/* Date + Required (expense only) */}
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+        <div className="relative">
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          {date !== today && (
+            <span className="absolute -top-2 left-3 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
+              {date < today.slice(0, 7) ? 'Mes anterior' : 'Fecha pasada'}
+            </span>
+          )}
+        </div>
         {type === 'expense' && (
           <NativeSelect
             value={requiredType}
@@ -346,6 +379,67 @@ export default function Capture() {
           {saving ? 'Guardando...' : 'Guardar'}
         </button>
       </div>
+
+      {/* Duplicate warning modal */}
+      <AnimatePresence>
+        {duplicateWarning && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+              onClick={() => setDuplicateWarning(null)} />
+            <motion.div
+              initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border p-5"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+            >
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">¿Movimiento duplicado?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Ya existe{duplicateWarning.duplicates.length > 1 ? `n ${duplicateWarning.duplicates.length} movimientos similares` : ' un movimiento similar'} en esta fecha con monto o rubro parecido:
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-5 max-h-40 overflow-y-auto">
+                {duplicateWarning.duplicates.map(d => {
+                  const cat = categories.find(c => c.id === d.category_id);
+                  return (
+                    <div key={d.id} className="flex items-center justify-between px-3 py-2 bg-muted rounded-xl text-xs">
+                      <span className="text-foreground font-medium truncate max-w-[60%]">
+                        {d.description || cat?.name || '—'}
+                      </span>
+                      <span className={`font-bold ${d.type === 'expense' ? 'text-expense' : 'text-income'}`}>
+                        {d.type === 'expense' ? '-' : '+'}{currencySymbol}{d.amount?.toLocaleString()}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDuplicateWarning(null)}
+                  className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => doSave(duplicateWarning.pendingData)}
+                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-sm active:scale-[0.98] transition-all"
+                >
+                  Guardar de todos modos
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Success overlay */}
       <AnimatePresence>
