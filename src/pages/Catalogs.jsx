@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Pencil, Check } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -93,11 +93,57 @@ function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
   );
 }
 
+function EditForm({ fields, initialData, mutation, onCancel, categories = [] }) {
+  const [data, setData] = useState({ ...initialData });
+  return (
+    <div className="bg-accent/30 rounded-xl p-3 border border-primary/30 space-y-2 mt-1">
+      {fields.map(f => (
+        f.type === 'tags' ? (
+          <div key={f.key}>
+            <label className="text-xs text-muted-foreground mb-1 block">{f.label}</label>
+            <TagInput value={data[f.key] || []} onChange={v => setData(d => ({...d, [f.key]: v}))} />
+          </div>
+        ) : f.type === 'select' ? (
+          <NativeSelect
+            key={f.key}
+            value={data[f.key]}
+            onChange={e => setData(d => ({...d, [f.key]: e.target.value}))}
+            placeholder={f.label}
+            options={f.options.map(o => ({ value: o.v, label: o.l }))}
+            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
+          />
+        ) : f.type === 'color' ? (
+          <div key={f.key}>
+            <label className="text-xs text-muted-foreground mb-1 block">{f.label}</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {COLORS.map(c => (
+                <button key={c} onClick={() => setData(d => ({...d, [f.key]: c}))}
+                  className={`w-7 h-7 rounded-full transition-transform ${data[f.key] === c ? 'scale-110 ring-2 ring-offset-1 ring-foreground' : ''}`}
+                  style={{ backgroundColor: c }} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <input key={f.key} placeholder={f.label} value={data[f.key] || ''} onChange={e => setData(d => ({...d, [f.key]: e.target.value}))}
+            className="w-full bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none" />
+        )
+      ))}
+      <div className="flex gap-2 pt-1">
+        <button onClick={onCancel} disabled={mutation.isPending} className="flex-1 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium disabled:opacity-50">Cancelar</button>
+        <button onClick={() => mutation.mutate(data, { onSuccess: onCancel })} disabled={mutation.isPending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
+          {mutation.isPending ? 'Guardando...' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
+  const [editing, setEditing] = useState(null); // { entity, id }
 
   const createCategoryMutation = useMutation({
     mutationFn: (data) => {
@@ -162,6 +208,26 @@ export default function Catalogs() {
     },
   });
 
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Category.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories', familyId], exact: true }); },
+  });
+
+  const updateSubcategoryMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Subcategory.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['subcategories', familyId], exact: true }); },
+  });
+
+  const updatePersonMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Person.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['persons', familyId], exact: true }); },
+  });
+
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PaymentMethod.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['paymentMethods', familyId], exact: true }); },
+  });
+
   const deleteItem = async (entity, id) => {
     if (!confirm('¿Eliminar este elemento?')) return;
     switch (entity) {
@@ -219,18 +285,38 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-2">
               {categories.map(cat => (
-                <div key={cat.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ backgroundColor: cat.color + '20' }}>
-                    {cat.icon || '📁'}
+                <div key={cat.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ backgroundColor: cat.color + '20' }}>
+                      {cat.icon || '📁'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{cat.name}</p>
+                      <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
+                    </div>
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                    <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{cat.name}</p>
-                    <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
-                  </div>
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                  <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {editing?.id === cat.id && editing?.entity === 'Category' && (
+                    <div className="px-3 pb-3">
+                      <EditForm
+                        initialData={{ name: cat.name, icon: cat.icon || '', color: cat.color, type: cat.type }}
+                        fields={[
+                          { key: 'name', label: 'Nombre' },
+                          { key: 'icon', label: 'Emoji (ej: 🍽️)' },
+                          { key: 'color', label: 'Color', type: 'color' },
+                          { key: 'type', label: 'Tipo', type: 'select', options: [{ v: 'expense', l: 'Egreso' }, { v: 'income', l: 'Ingreso' }, { v: 'both', l: 'Ambos' }] },
+                        ]}
+                        mutation={{ ...updateCategoryMutation, mutate: (data, opts) => updateCategoryMutation.mutate({ id: cat.id, data }, opts), isPending: updateCategoryMutation.isPending }}
+                        onCancel={() => setEditing(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -270,18 +356,35 @@ export default function Catalogs() {
                     <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.icon} {cat.name}</p>
                     <div className="space-y-1.5 pl-2">
                       {subs.map(sub => (
-                        <div key={sub.id} className="bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-foreground">{sub.name}</p>
+                        <div key={sub.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                          <div className="flex items-center justify-between px-3 py-2.5">
+                            <p className="text-sm font-medium text-foreground flex-1">{sub.name}</p>
+                            <button onClick={() => setEditing(editing?.id === sub.id ? null : { entity: 'Subcategory', id: sub.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
                             <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          {sub.keywords?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1.5">
+                          {sub.keywords?.length > 0 && editing?.id !== sub.id && (
+                            <div className="flex flex-wrap gap-1 px-3 pb-2">
                               {sub.keywords.map((kw, i) => (
                                 <span key={i} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{kw}</span>
                               ))}
+                            </div>
+                          )}
+                          {editing?.id === sub.id && editing?.entity === 'Subcategory' && (
+                            <div className="px-3 pb-3">
+                              <EditForm
+                                initialData={{ name: sub.name, category_id: sub.category_id, keywords: sub.keywords || [] }}
+                                fields={[
+                                  { key: 'name', label: 'Nombre' },
+                                  { key: 'category_id', label: 'Categoría', type: 'select', options: categories.map(c => ({ v: c.id, l: `${c.icon} ${c.name}` })) },
+                                  { key: 'keywords', label: 'Palabras clave', type: 'tags' },
+                                ]}
+                                mutation={{ ...updateSubcategoryMutation, mutate: (data, opts) => updateSubcategoryMutation.mutate({ id: sub.id, data }, opts), isPending: updateSubcategoryMutation.isPending }}
+                                onCancel={() => setEditing(null)}
+                              />
                             </div>
                           )}
                         </div>
@@ -320,14 +423,33 @@ export default function Catalogs() {
           ) : (
             <div className="space-y-2">
               {persons.map(p => (
-                <div key={p.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: p.color }}>
-                    {p.avatar_initial || p.name?.charAt(0)}
+                <div key={p.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ backgroundColor: p.color }}>
+                      {p.avatar_initial || p.name?.charAt(0)}
+                    </div>
+                    <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
+                    <button onClick={() => setEditing(editing?.id === p.id ? null : { entity: 'Person', id: p.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
-                  <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {editing?.id === p.id && editing?.entity === 'Person' && (
+                    <div className="px-3 pb-3">
+                      <EditForm
+                        initialData={{ name: p.name, avatar_initial: p.avatar_initial || '', color: p.color }}
+                        fields={[
+                          { key: 'name', label: 'Nombre' },
+                          { key: 'avatar_initial', label: 'Inicial (ej: P)' },
+                          { key: 'color', label: 'Color', type: 'color' },
+                        ]}
+                        mutation={{ ...updatePersonMutation, mutate: (data, opts) => updatePersonMutation.mutate({ id: p.id, data }, opts), isPending: updatePersonMutation.isPending }}
+                        onCancel={() => setEditing(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -363,14 +485,34 @@ export default function Catalogs() {
               {paymentMethods.map(m => {
                 const typeLabel = { credit: '💳 Crédito', debit: '🏧 Débito', cash: '💵 Efectivo', transfer: '📲 Transferencia' }[m.type] || m.type;
                 return (
-                  <div key={m.id} className="flex items-center gap-3 bg-card border border-border rounded-xl px-3 py-2.5 shadow-sm">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
+                  <div key={m.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+                    <div className="flex items-center gap-3 px-3 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{m.name}</p>
+                        <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
+                      </div>
+                      <button onClick={() => setEditing(editing?.id === m.id ? null : { entity: 'PaymentMethod', id: m.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {editing?.id === m.id && editing?.entity === 'PaymentMethod' && (
+                      <div className="px-3 pb-3">
+                        <EditForm
+                          initialData={{ name: m.name, bank: m.bank || '', type: m.type, identifier: m.identifier || '' }}
+                          fields={[
+                            { key: 'name', label: 'Nombre (ej: TDC Like U)' },
+                            { key: 'bank', label: 'Banco' },
+                            { key: 'type', label: 'Tipo', type: 'select', options: [{ v: 'credit', l: 'Crédito' }, { v: 'debit', l: 'Débito' }, { v: 'cash', l: 'Efectivo' }, { v: 'transfer', l: 'Transferencia' }] },
+                            { key: 'identifier', label: 'Últimos 4 dígitos' },
+                          ]}
+                          mutation={{ ...updatePaymentMethodMutation, mutate: (data, opts) => updatePaymentMethodMutation.mutate({ id: m.id, data }, opts), isPending: updatePaymentMethodMutation.isPending }}
+                          onCancel={() => setEditing(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
