@@ -45,7 +45,10 @@ export default function Transactions() {
   const pageSize = 100;
 
   const handleEdit = (t) => setEditing(t);
-  const handleEditSaved = () => queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  const handleEditSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+  };
 
   const deleteTransactionMutation = useMutation({
     mutationFn: (id) => base44.entities.Transaction.delete(id),

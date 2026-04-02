@@ -48,16 +48,23 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['transactions', familyId], ctx.previous);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-    },
+    onSettled: () => {},
   });
 
   const handleSave = () => {
+    if (!form.amount) return;
+    setSaving(true);
     const data = { ...form, amount: parseFloat(form.amount) };
-    updateMutation.mutate({ id: transaction.id, data });
-    onSaved();
-    onClose();
+    updateMutation.mutate(
+      { id: transaction.id, data },
+      {
+        onSettled: () => {
+          setSaving(false);
+          onSaved();
+          onClose();
+        },
+      }
+    );
   };
 
   const filteredSubs = subcategories.filter(s => s.category_id === form.category_id);
