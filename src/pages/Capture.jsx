@@ -1,8 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -48,13 +48,32 @@ export default function Capture() {
   const [notes, setNotes] = useState('');
   const [receiptImage, setReceiptImage] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
+  const [smartSuggestions, setSmartSuggestions] = useState({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
   const [isListening, setIsListening] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { duplicates: [], pendingData: {} }
+  const [loadingSmartSuggestions, setLoadingSmartSuggestions] = useState(false);
 
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
+
+  // Fetch smart suggestions based on description
+  useEffect(() => {
+    if (description.length > 2) {
+      setLoadingSmartSuggestions(true);
+      base44.functions.invoke('getSmartSuggestions', {
+        familyId,
+        description,
+        type,
+      })
+        .then(res => setSmartSuggestions(res.data || {}))
+        .catch(() => setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] }))
+        .finally(() => setLoadingSmartSuggestions(false));
+    } else {
+      setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
+    }
+  }, [description, familyId, type]);
 
   const handleDescriptionChange = useCallback((val) => {
     setDescription(val);
@@ -279,6 +298,27 @@ export default function Capture() {
         </div>
       )}
 
+      {/* Smart suggestions for categories */}
+      {smartSuggestions.suggestedCategories.length > 0 && (
+        <div className="px-4 mt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-semibold text-foreground">Rubros frecuentes</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {smartSuggestions.suggestedCategories.map((cat, i) => (
+              <button
+                key={i}
+                onClick={() => { setCategoryId(cat.id); setSubcategoryId(''); }}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+              >
+                {cat.icon} {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Category + Subcategory */}
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <NativeSelect
@@ -299,6 +339,28 @@ export default function Capture() {
         )}
       </div>
 
+      {/* Smart suggestions for persons */}
+      {smartSuggestions.suggestedPersons.length > 0 && (
+        <div className="px-4 mt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-semibold text-foreground">Personas frecuentes</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+            {smartSuggestions.suggestedPersons.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPersonId(p.id)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <PersonAvatar person={p} size="xs" />
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Person selector */}
       {persons.length > 0 && (
         <div className="flex gap-2 px-4 mt-3 overflow-x-auto hide-scrollbar">
@@ -316,6 +378,31 @@ export default function Capture() {
               {p.name}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Smart suggestions for payment methods */}
+      {smartSuggestions.suggestedPaymentMethods.length > 0 && (
+        <div className="px-4 mt-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-semibold text-foreground">Formas de pago frecuentes</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+            {smartSuggestions.suggestedPaymentMethods.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setPaymentMethodId(paymentMethodId === m.id ? '' : m.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all ${
+                  paymentMethodId === m.id
+                    ? 'bg-secondary text-secondary-foreground border-secondary'
+                    : 'border-primary/20 bg-primary/10 text-primary hover:bg-primary/20'
+                }`}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
