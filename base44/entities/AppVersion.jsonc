@@ -1,0 +1,44 @@
+{
+  "name": "AppVersion",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n actual de la aplicaci\u00f3n (ej. 1.0.0)"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

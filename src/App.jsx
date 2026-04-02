@@ -10,6 +10,7 @@ import { ThemeProvider } from 'next-themes';
 import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
+import AppUpdateBanner from '@/components/AppUpdateBanner';
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -125,6 +126,7 @@ function App() {
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
+            <AppUpdateBanner />
             <AuthenticatedApp />
           </Router>
           <Toaster />
