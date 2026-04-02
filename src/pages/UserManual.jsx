@@ -26,6 +26,9 @@ Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sist
 2. Escribe o dicta la descripción — el sistema sugerirá Rubro y SubRubro automáticamente.
 3. Confirma y guarda.
 
+Auto-completado de descripción:
+Cuando tocas una sugerencia de categoría/subcategoría, la descripción se completa automáticamente con el nombre del subrubro (o categoría). Esto evita dejar descripciones muy cortas o ambiguas.
+
 Opciones adicionales:
 • Micrófono 🎤 — Dicta el movimiento en voz: "gasolina BMW 800 pesos con débito". El sistema interpreta el monto y la descripción automáticamente.
 • Cámara 📷 — Toma foto del ticket. Escribe el monto manualmente (más confiable que OCR).
@@ -44,7 +47,7 @@ Secciones del dashboard:
 • Tarjetas de resumen — Ingresos, Egresos y Balance del período.
 • Top Categorías — gráfica de barras con los 5 rubros de mayor gasto.
 • Gasto por Persona — gráfica de dona comparativa.
-• Últimos movimientos — acceso rápido a los 5 más recientes.
+• Últimos movimientos — acceso rápido a los 5 más recientes. La descripción muestra automáticamente las notas adicionales cuando hay espacio (formato: "Descripción — Notas").
 • Próximos pagos — inversiones y MSI que vencen pronto.`
   },
   {
@@ -108,18 +111,19 @@ El indicador verde/amarillo te dice de un vistazo qué propiedades ya pagaron es
     content: `Los catálogos son los datos maestros que alimentan la app.
 
 Rubros (Categorías):
-Agrega, edita o elimina las categorías de gasto con su color e ícono.
+Agrega, edita o elimina las categorías de gasto con su color e ícono. Usa el ícono de lápiz ✏️ junto a cada categoría para editarla directamente sin salir de la pantalla.
 
 SubRubros (Subcategorías):
 Cada subrubro tiene palabras clave que usa el motor de autodetección. Por ejemplo, si escribes "gasolina" en la descripción, el sistema sugiere automáticamente Transporte > Gasolina.
+También puedes editar el nombre, categoría padre y palabras clave de cualquier subrubro tocando el lápiz ✏️.
 
-Tip: Agrega palabras clave específicas de tu uso diario para mejorar la detección.
+Tip: Agrega palabras clave específicas de tu uso diario para mejorar la detección automática.
 
 Personas:
-Define quiénes son los integrantes de tu familia con su color e inicial para el avatar.
+Define quiénes son los integrantes de tu familia con su color e inicial para el avatar. Edítalas en cualquier momento con el lápiz ✏️.
 
 Formas de Pago:
-Tus tarjetas, cuentas y métodos de pago habituales.`
+Tus tarjetas, cuentas y métodos de pago habituales. Puedes cambiar nombre, banco, tipo e identificador usando el lápiz ✏️.`
   },
   {
     id: 'voz', icon: '🎤', title: 'Captura por voz',
