@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Plus, TrendingUp, TrendingDown, Wallet, ChevronRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import PageHeader from '@/components/PageHeader';
+import ThemeToggle from '@/components/ThemeToggle';
 import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import CategoryDot from '@/components/CategoryDot';
@@ -124,6 +125,7 @@ export default function Dashboard() {
       <PageHeader
         title={format(new Date(), "MMMM yyyy", { locale: es }).replace(/^\w/, c => c.toUpperCase())}
         subtitle="Resumen familiar"
+        action={<div className="md:hidden"><ThemeToggle /></div>}
       />
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">

@@ -107,8 +107,8 @@ export default function Layout() {
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className="flex items-center justify-between mb-3">
-            <ThemeToggle />
+          <div className="mb-3">
+            <ThemeToggle showLabel />
           </div>
           <button onClick={() => handleNavClick('/Capture')}
             className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
@@ -225,6 +225,9 @@ export default function Layout() {
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
+              <div className="px-4 pb-3">
+                <ThemeToggle showLabel />
+              </div>
               <div className="grid grid-cols-4 gap-3 px-4 pb-6 overscroll-none">
                 {moreItems.filter(item => item.to !== '/FamilyAdmin' || isAdmin).map(item => {
                   const Icon = item.icon;

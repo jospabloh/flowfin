@@ -1,29 +1,44 @@
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sun, Moon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+export default function ThemeToggle({ showLabel = false }) {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  const themes = [
-    { value: 'light', icon: Sun, label: 'Claro' },
-    { value: 'dark', icon: Moon, label: 'Oscuro' },
-    { value: 'system', icon: Monitor, label: 'Auto' },
-  ];
+  // Avoid hydration mismatch
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const isDark = resolvedTheme === 'dark';
+
+  const toggle = () => setTheme(isDark ? 'light' : 'dark');
+
+  if (showLabel) {
+    return (
+      <button
+        onClick={toggle}
+        aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+      >
+        <span className="flex items-center gap-3">
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {isDark ? 'Modo claro' : 'Modo oscuro'}
+        </span>
+        <div className={`relative w-10 h-5 rounded-full transition-colors ${isDark ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${isDark ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </div>
+      </button>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-      {themes.map(t => {
-        const Icon = t.icon;
-        return (
-          <button key={t.value} onClick={() => setTheme(t.value)}
-            aria-label={`Cambiar a tema ${t.label}`}
-            aria-pressed={theme === t.value}
-            className={`p-1.5 rounded-md transition-all touch-target ${theme === t.value ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-            <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-          </button>
-        );
-      })}
-    </div>
+    <button
+      onClick={toggle}
+      aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+      className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all touch-target"
+    >
+      {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+    </button>
   );
 }
