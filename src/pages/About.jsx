@@ -1,7 +1,51 @@
+import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
-import { Mail, MessageCircle, Heart, Shield, Zap } from 'lucide-react';
+import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+
+const CURRENT_VERSION = '1.2.0';
+
+const VERSION_HISTORY = [
+  {
+    version: '1.2.0',
+    date: '2026-04-02',
+    label: 'Actual',
+    changes: [
+      'Edición de ítems en catálogos (rubros, subrubros, personas, formas de pago)',
+      'Auto-completado de descripción al seleccionar sugerencia de categoría',
+      'Descripción mejorada en dashboard y movimientos: muestra notas cuando la descripción es corta',
+      'Toggle de tema claro/oscuro disponible en cajón móvil y barra lateral',
+    ],
+  },
+  {
+    version: '1.1.0',
+    date: '2026-03-20',
+    label: '',
+    changes: [
+      'Asistente IA para registro y consulta de movimientos',
+      'Soporte de captura por voz con reconocimiento nativo',
+      'Exportación de reportes a Excel y PDF',
+      'Módulo de Rentas con seguimiento mensual',
+      'Módulo de Inversiones con calendario de pagos',
+      'Módulo MSI (Meses Sin Intereses) con historial',
+    ],
+  },
+  {
+    version: '1.0.0',
+    date: '2026-02-01',
+    label: '',
+    changes: [
+      'Lanzamiento inicial de FamilyFlow',
+      'Registro de ingresos y egresos con categorías',
+      'Dashboard con resumen por periodo y persona',
+      'Catálogos de rubros, subrubros, personas y formas de pago',
+      'Sistema de familias con código de acceso',
+      'Soporte para modo claro y oscuro',
+    ],
+  },
+];
 
 export default function About() {
+  const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="pb-8">
       <PageHeader title="Acerca de" subtitle="FamilyFlow" />
@@ -14,7 +58,7 @@ export default function About() {
           </div>
           <h2 className="text-2xl font-black text-foreground mb-1">FamilyFlow</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>
-          <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión 1.0.0</span>
+          <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión {CURRENT_VERSION}</span>
         </div>
 
         {/* Description */}
@@ -110,6 +154,53 @@ export default function About() {
           <p className="text-xs text-muted-foreground mt-2">
             Licencia registrada a: <span className="text-foreground font-medium">h.josepablo@gmail.com</span>
           </p>
+        </div>
+
+        {/* Current version changes */}
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-foreground">Novedades v{CURRENT_VERSION}</h3>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Actual</span>
+          </div>
+          <ul className="space-y-2">
+            {VERSION_HISTORY[0].changes.map((c, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                <span className="text-primary mt-0.5 flex-shrink-0">✦</span>
+                {c}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Version history collapsible */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setHistoryOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+          >
+            <span className="text-sm font-bold text-foreground">Historial de versiones</span>
+            {historyOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {historyOpen && (
+            <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
+              {VERSION_HISTORY.slice(1).map(v => (
+                <div key={v.version}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold text-foreground">v{v.version}</span>
+                    <span className="text-[10px] text-muted-foreground">{v.date}</span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {v.changes.map((c, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-muted-foreground/50 mt-0.5 flex-shrink-0">–</span>
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Made with love */}
