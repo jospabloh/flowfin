@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, addMonths, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -33,6 +34,7 @@ export default function Investments() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
+  const registerPayment = useRegisterPaymentWithTransaction();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
@@ -127,13 +129,25 @@ export default function Investments() {
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
-    createPaymentMutation.mutate({ 
-      investment_id: selected.id, 
-      payment_number: selectedPayments.length + 1, 
-      amount: +payForm.amount, 
-      date: payForm.date, 
-      notes: payForm.notes 
-    });
+    const payData = {
+      investment_id: selected.id,
+      payment_number: selectedPayments.length + 1,
+      amount: +payForm.amount,
+      date: payForm.date,
+      notes: payForm.notes,
+    };
+    await registerPayment(
+      () => base44.entities.InvestmentPayment.create(payData),
+      {
+        amount: payForm.amount,
+        date: payForm.date,
+        description: `Inversión: ${selected.name}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
+        category_id: undefined,
+        payment_method_id: undefined,
+        person_id: undefined,
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
     setShowPayForm(false);
     setShowPayFormSuccess(true);
     setTimeout(() => setShowPayFormSuccess(false), 3000);

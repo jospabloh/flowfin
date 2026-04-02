@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import NativeSelect from '@/components/NativeSelect';
+import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 
 const ICONS = ['💰','💡','📱','🏠','🚗','🎓','🏥','💧','🌐','📺','🎮','🛒','✈️','💳','🏋️'];
 
@@ -28,6 +29,7 @@ export default function ScheduledPayments() {
   const { familyId, isAdmin, currentUser } = useFamily();
   const { categories, paymentMethods } = useCatalog(familyId);
   const queryClient = useQueryClient();
+  const registerPayment = useRegisterPaymentWithTransaction();
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -84,17 +86,30 @@ export default function ScheduledPayments() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] }),
   });
 
-  const handleMarkPaid = () => {
+  const handleMarkPaid = async () => {
     if (!payingItem) return;
-    markPaidMutation.mutate({
+    const amount = parseFloat(payAmount) || payingItem.amount || 0;
+    const recordData = {
       scheduled_payment_id: payingItem.id,
       family_id: familyId,
       month: CURRENT_MONTH,
       paid_date: payDate,
-      amount_paid: parseFloat(payAmount) || payingItem.amount || 0,
+      amount_paid: amount,
       notes: payNotes,
       paid_by: currentUser?.full_name || currentUser?.email || 'Usuario',
-    });
+    };
+    await registerPayment(
+      () => base44.entities.ScheduledPaymentRecord.create(recordData),
+      {
+        amount,
+        date: payDate,
+        description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
+        category_id: payingItem.category_id || undefined,
+        payment_method_id: payingItem.payment_method_id || undefined,
+        person_id: undefined,
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
     setPayingItem(null);
     setPayAmount('');
     setPayNotes('');

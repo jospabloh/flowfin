@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { addMonths, parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
@@ -25,6 +26,7 @@ export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
+  const registerPayment = useRegisterPaymentWithTransaction();
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -135,12 +137,25 @@ export default function MSIPage() {
   const handleMarkPaid = async (msi, payments) => {
     const next = getNextMSIPayment(msi, payments);
     if (!next) return;
-    markPaidMutation.mutate({ 
-      msi_id: msi.id, 
-      month_number: next.number, 
-      amount: msi.monthly_amount, 
-      paid_date: new Date().toISOString().slice(0,10) 
-    });
+    const today = new Date().toISOString().slice(0, 10);
+    const payData = {
+      msi_id: msi.id,
+      month_number: next.number,
+      amount: msi.monthly_amount,
+      paid_date: today,
+    };
+    await registerPayment(
+      () => base44.entities.MSIPayment.create(payData),
+      {
+        amount: msi.monthly_amount,
+        date: today,
+        description: `MSI ${msi.store}${msi.concept ? ` — ${msi.concept}` : ''} · Mes ${next.number}/${msi.total_months}`,
+        category_id: undefined,
+        payment_method_id: undefined,
+        person_id: undefined,
+      }
+    );
+    queryClient.invalidateQueries({ queryKey: ['msiPayments'] });
   };
 
   return (
