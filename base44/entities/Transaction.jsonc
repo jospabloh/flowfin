@@ -1,0 +1,174 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de la transacci\u00f3n"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "expense",
+        "income"
+      ],
+      "default": "expense",
+      "description": "Tipo: egreso o ingreso"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto de la transacci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripci\u00f3n o concepto"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID de categor\u00eda (Rubro) \u2014 obligatorio"
+    },
+    "subcategory_id": {
+      "type": "string",
+      "description": "ID de subcategor\u00eda (SubRubro)"
+    },
+    "person_id": {
+      "type": "string",
+      "description": "ID de la persona \u2014 obligatorio"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "ID del m\u00e9todo de pago (Forma)"
+    },
+    "required_type": {
+      "type": "string",
+      "enum": [
+        "Necesario",
+        "Gusto",
+        "Urgente",
+        "Inversi\u00f3n",
+        "Otro"
+      ],
+      "default": "Necesario",
+      "description": "Clasificaci\u00f3n de necesidad"
+    },
+    "has_invoice": {
+      "type": "boolean",
+      "default": false,
+      "description": "\u00bfTiene factura?"
+    },
+    "transferred_to": {
+      "type": "string",
+      "description": "Transferido a (ej: Actinver, Ahorro)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Etiquetas"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionales"
+    },
+    "week": {
+      "type": "number",
+      "description": "N\u00famero de semana del a\u00f1o"
+    },
+    "receipt_image": {
+      "type": "string",
+      "description": "URL de imagen del ticket/recibo"
+    },
+    "msi_payment_id": {
+      "type": "string",
+      "description": "ID del pago MSI vinculado (si aplica)"
+    },
+    "investment_payment_id": {
+      "type": "string",
+      "description": "ID del pago de inversi\u00f3n vinculado (si aplica)"
+    },
+    "scheduled_payment_record_id": {
+      "type": "string",
+      "description": "ID del registro de pago programado vinculado (si aplica)"
+    },
+    "rental_payment_id": {
+      "type": "string",
+      "description": "ID del pago de renta vinculado (si aplica)"
+    }
+  },
+  "required": [
+    "date",
+    "type",
+    "amount",
+    "family_id",
+    "category_id",
+    "person_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    }
+  }
+}
