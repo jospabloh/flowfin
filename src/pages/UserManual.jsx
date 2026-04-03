@@ -26,8 +26,18 @@ Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sist
 2. Escribe o dicta la descripción — el sistema sugerirá Rubro y SubRubro automáticamente.
 3. Confirma y guarda.
 
+Sugerencias inteligentes ✨ (nuevo en v1.3):
+Al escribir la descripción, la app analiza el historial de tu familia y muestra en tiempo real:
+• Rubros frecuentes — categorías que usas más para ese tipo de movimiento.
+• Personas frecuentes — los integrantes que más aparecen con descripciones similares.
+• Formas de pago frecuentes — los métodos de pago más usados.
+Toca cualquier sugerencia para aplicarla. Aplica tanto a egresos como a ingresos.
+
 Auto-completado de descripción:
 Cuando tocas una sugerencia de categoría/subcategoría, la descripción se completa automáticamente con el nombre del subrubro (o categoría). Esto evita dejar descripciones muy cortas o ambiguas.
+
+Detección de duplicados:
+Si el sistema detecta un movimiento muy similar (mismo monto aproximado, misma categoría, misma fecha), te avisa antes de guardar. Puedes cancelar o confirmar de todos modos.
 
 Opciones adicionales:
 • Micrófono 🎤 — Dicta el movimiento en voz: "gasolina BMW 800 pesos con débito". El sistema interpreta el monto y la descripción automáticamente.
@@ -193,6 +203,23 @@ Admin Familia:
 Seguridad: Cada familia ve únicamente sus propios datos. Ninguna familia puede ver los datos de otra.`
   },
   {
+    id: 'programados', icon: '📅', title: 'Pagos Programados',
+    content: `Módulo para registrar y hacer seguimiento de todos tus pagos fijos mensuales: luz, agua, internet, colegiatura, suscripciones, etc.
+
+Cómo funciona:
+1. Registra el pago con nombre, monto estimado, día de vencimiento, categoría e ícono.
+2. Cada mes el sistema muestra cuáles pagos ya fueron pagados y cuáles están pendientes.
+3. Toca "Marcar como pagado" para registrar el pago del mes actual.
+4. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
+
+Estados:
+• Pendiente — El pago aún no se ha registrado para este mes.
+• Pagado ✓ — Ya fue registrado con fecha y monto real.
+
+Diferencia con Inversiones:
+Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
+  },
+  {
     id: 'export', icon: '📤', title: 'Exportar datos',
     content: `Puedes exportar tus datos en cualquier momento desde la sección de Movimientos.
 
@@ -218,6 +245,9 @@ const glossary = [
   { term: 'Admin Familia', def: 'Administrador de la familia con permisos para aprobar miembros y gestionar el acceso.' },
   { term: 'Mi Familia', def: 'Sección de configuración personal exclusiva de cada familia: nombre, moneda, tipos de gasto, etc.' },
   { term: 'Catálogos', def: 'Datos maestros de la app: Rubros, SubRubros, Personas y Formas de Pago.' },
+  { term: 'Sugerencias inteligentes', def: 'Sistema que analiza el historial familiar y propone rubros, personas y métodos de pago frecuentes mientras escribes la descripción.' },
+  { term: 'Pagos Programados', def: 'Módulo para hacer seguimiento de pagos fijos mensuales como servicios, suscripciones o colegiaturas.' },
+  { term: 'Detección de duplicados', def: 'Verificación automática que avisa si un movimiento ya fue registrado con monto y categoría similares en la misma fecha.' },
 ];
 
 export default function UserManual() {

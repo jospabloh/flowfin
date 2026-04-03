@@ -2,13 +2,26 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.2.0';
+const CURRENT_VERSION = '1.3.0';
 
 const VERSION_HISTORY = [
   {
+    version: '1.3.0',
+    date: '2026-04-03',
+    label: 'Actual',
+    changes: [
+      'Sugerencias inteligentes en captura: rubros, personas y formas de pago frecuentes basados en historial familiar',
+      'Detección automática de movimientos duplicados con opción de confirmar o cancelar',
+      'Módulo de Pagos Programados: administra recibos, servicios y cualquier pago recurrente mensual',
+      'Banner de actualización automática: avisa cuando hay una nueva versión disponible',
+      'Indicadores de pagos pendientes en el dashboard (programados, inversiones y rentas)',
+      'Mejoras de rendimiento con carga lazy de páginas y skeleton de carga animado',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-04-02',
-    label: 'Actual',
+    label: '',
     changes: [
       'Edición de ítems en catálogos (rubros, subrubros, personas, formas de pago)',
       'Auto-completado de descripción al seleccionar sugerencia de categoría',
