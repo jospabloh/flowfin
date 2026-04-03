@@ -9,6 +9,7 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { matchCategory, parseVoiceText, getWeekNumber } from '@/lib/categoryMatcher';
 import { useUsageStats } from '@/lib/useUsageStats';
+import { useMemory } from '@/hooks/useMemory';
 import confetti from 'canvas-confetti';
 import PersonAvatar from '@/components/PersonAvatar';
 
@@ -17,9 +18,10 @@ const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 export default function Capture() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { familyId, currency, currencySymbol } = useFamily();
+  const { familyId, currency, currencySymbol, familyConfig } = useFamily();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
+  const { recordCapture, findAssociation, syncFamilyRulesFromDB } = useMemory();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -58,6 +60,11 @@ export default function Capture() {
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
 
+  // Sincronizar reglas familiares desde DB al montar
+  useEffect(() => {
+    if (familyId) syncFamilyRulesFromDB(familyConfig);
+  }, [familyId]);
+
   // Fetch smart suggestions with debounce to avoid rate limiting
   useEffect(() => {
     if (description.length <= 2) {
@@ -79,10 +86,21 @@ export default function Capture() {
     if (val.length > 1) {
       const matches = matchCategory(val, subcategories, categories, stats);
       setSuggestions(matches.slice(0, 4));
+
+      // Aplicar asociación memorizada si no hay selección manual aún
+      if (val.length >= 3) {
+        const assoc = findAssociation(val);
+        if (assoc) {
+          if (assoc.categoryId && !categoryId) setCategoryId(assoc.categoryId);
+          if (assoc.subcategoryId && !subcategoryId) setSubcategoryId(assoc.subcategoryId);
+          if (assoc.personId && !personId) setPersonId(assoc.personId);
+          if (assoc.paymentMethodId && !paymentMethodId) setPaymentMethodId(assoc.paymentMethodId);
+        }
+      }
     } else {
       setSuggestions([]);
     }
-  }, [subcategories, categories, stats]);
+  }, [subcategories, categories, stats, findAssociation, categoryId, subcategoryId, personId, paymentMethodId]);
 
   const applySuggestion = (s) => {
     setCategoryId(s.category?.id || '');
@@ -152,6 +170,8 @@ export default function Capture() {
     createTransactionMutation.mutate(txData, {
       onSuccess: () => {
         if (subcategoryId) increment(subcategoryId);
+        // Aprender esta asociación para futuras capturas
+        recordCapture({ description, categoryId, subcategoryId, personId, paymentMethodId, type });
         setSaving(false);
         setShowSuccess(true);
         confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });

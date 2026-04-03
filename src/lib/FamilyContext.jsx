@@ -2,6 +2,15 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
+// Sincroniza preferencias de usuario al localStorage en background
+async function syncUserPrefsToLS(user) {
+  try {
+    if (user?.preferences) {
+      localStorage.setItem('ff_user_prefs', JSON.stringify(user.preferences));
+    }
+  } catch {}
+}
+
 const FamilyContext = createContext(null);
 
 export function FamilyProvider({ children }) {
@@ -11,7 +20,7 @@ export function FamilyProvider({ children }) {
   useEffect(() => {
     const timeout = setTimeout(() => setLoadingUser(false), 5000);
     base44.auth.me()
-      .then(u => { setCurrentUser(u); setLoadingUser(false); })
+      .then(u => { setCurrentUser(u); setLoadingUser(false); syncUserPrefsToLS(u); })
       .catch(() => setLoadingUser(false))
       .finally(() => clearTimeout(timeout));
   }, []);
@@ -46,11 +55,19 @@ export function FamilyProvider({ children }) {
 
   // familyConfig comes directly from getMyMembership (service role) — works for ALL members
   const familyConfig = membershipData?.familyConfig || null;
+  const familyConfigId = familyConfig?.id || null;
+
+  // Sincronizar smart_rules al localStorage cuando llegan los datos de familia
+  useEffect(() => {
+    if (familyConfig?.smart_rules) {
+      try { localStorage.setItem('ff_family_rules', JSON.stringify(familyConfig.smart_rules)); } catch {}
+    }
+  }, [familyConfig?.id]);
   const currency = familyConfig?.currency || family?.currency || 'MXN';
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
 
   return (
-    <FamilyContext.Provider value={{ currentUser, family, familyId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol }}>
+    <FamilyContext.Provider value={{ currentUser, family, familyId, familyConfigId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol }}>
       {children}
     </FamilyContext.Provider>
   );

@@ -1,0 +1,120 @@
+{
+  "name": "FamilyConfig",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "family_name": {
+      "type": "string",
+      "default": "Mi Familia"
+    },
+    "locale": {
+      "type": "string",
+      "default": "es-MX",
+      "description": "Idioma y regi\u00f3n (ej: es-MX, en-US)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "MXN"
+    },
+    "currency_symbol": {
+      "type": "string",
+      "default": "$"
+    },
+    "required_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipos de gasto requerido personalizados"
+    },
+    "transfer_destinations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Destinos para campo Transferido a"
+    },
+    "week_start": {
+      "type": "string",
+      "enum": [
+        "monday",
+        "sunday"
+      ],
+      "default": "monday"
+    },
+    "primary_person_id": {
+      "type": "string"
+    },
+    "smart_rules": {
+      "type": "object",
+      "description": "Reglas y asociaciones aprendidas por la familia (sin cr\u00e9ditos IA)",
+      "additionalProperties": true
+    }
+  },
+  "required": [],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    }
+  }
+}

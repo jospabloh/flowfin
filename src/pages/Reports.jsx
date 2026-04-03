@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Share2, Download, X } from 'lucide-react';
+import { useMemory } from '@/hooks/useMemory';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -39,10 +40,11 @@ export default function Reports() {
   const locale = familyConfig?.locale || 'es-MX';
   const { categories, persons, paymentMethods } = useCatalog(familyId);
 
+  const { getUserPref, setUserPref } = useMemory();
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get('type');
-  const [reportType, setReportType] = useState(typeParam === 'income' ? 'income' : typeParam === 'all' ? 'all' : 'expense');
-  const [preset, setPreset] = useState(0);
+  const [reportType, setReportType] = useState(typeParam === 'income' ? 'income' : typeParam === 'all' ? 'all' : (getUserPref('report_type', 'expense')));
+  const [preset, setPreset] = useState(() => getUserPref('report_preset', 0));
   const [dateFrom, setDateFrom] = useState(format(subMonths(new Date(), 2), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [sharing, setSharing] = useState(false);
@@ -174,7 +176,7 @@ export default function Reports() {
       {/* Type selector */}
       <div className="flex gap-2 px-4 mb-4">
         {['expense', 'income', 'all'].map(t => (
-          <button key={t} onClick={() => { setReportType(t); setPreset(0); }}
+          <button key={t} onClick={() => { setReportType(t); setPreset(0); setUserPref('report_type', t); setUserPref('report_preset', 0); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all
               ${reportType === t ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
             {t === 'expense' ? '💸 Egresos' : t === 'income' ? '💰 Ingresos' : '⚖️ Comparativa'}
@@ -185,7 +187,7 @@ export default function Reports() {
       {/* Presets */}
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
         {PRESETS[reportType].map((p, i) => (
-          <button key={i} onClick={() => setPreset(i)}
+          <button key={i} onClick={() => { setPreset(i); setUserPref('report_preset', i); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
               ${preset === i ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
             {p.label}

@@ -1,0 +1,36 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "description": "The role of the user in the app",
+      "enum": [
+        "admin",
+        "user"
+      ]
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Preferencias personales del usuario (UI, filtros, etc.)",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "role"
+  ],
+  "rls": {
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "id": "{{user.id}}"
+        }
+      ]
+    }
+  }
+}
