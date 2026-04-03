@@ -131,8 +131,8 @@ export default function Layout() {
           {/* Logo */}
           <div className="p-5 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                <span className="text-primary-foreground font-bold text-base">F</span>
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md">
+                <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/ce8af6528_image.png" alt="FlowFin" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>

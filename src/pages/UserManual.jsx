@@ -316,8 +316,8 @@ export default function UserManual() {
          {/* Intro card */}
          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
            <div className="flex items-center gap-3 mb-2">
-             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-               <span className="text-primary-foreground font-bold text-lg">F</span>
+             <div className="w-10 h-10 rounded-xl overflow-hidden">
+               <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/ce8af6528_image.png" alt="FlowFin" className="w-full h-full object-cover" />
              </div>
              <div>
                <h2 className="font-bold text-foreground">FamilyFlow</h2>

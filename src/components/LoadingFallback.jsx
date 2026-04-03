@@ -9,9 +9,9 @@ export default function LoadingFallback() {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg animate-pulse-ring"
+          className="w-20 h-20 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring"
         >
-          <span className="text-white font-bold text-3xl">F</span>
+          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/ce8af6528_image.png" alt="FlowFin" className="w-full h-full object-cover" />
         </motion.div>
 
         {/* Content skeleton */}
