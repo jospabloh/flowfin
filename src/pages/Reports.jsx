@@ -124,36 +124,47 @@ export default function Reports() {
   const shareAsPDF = async () => {
     if (!reportRef.current) return;
     setSharing(true);
-    const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, w, h);
-    const blob = pdf.output('blob');
-    if (navigator.share) {
-      await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
-    } else {
-      pdf.save('reporte_familyflow.pdf');
+    try {
+      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const w = pdf.internal.pageSize.getWidth();
+      const h = (canvas.height * w) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, w, h);
+      const blob = pdf.output('blob');
+      const canShareFiles = navigator.canShare && navigator.canShare({ files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
+      if (canShareFiles) {
+        await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
+      } else {
+        pdf.save('reporte_familyflow.pdf');
+      }
+    } finally {
+      setSharing(false);
     }
-    setSharing(false);
   };
 
   const shareAsPNG = async () => {
     if (!reportRef.current) return;
     setSharing(true);
-    const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
-    canvas.toBlob(async (blob) => {
-      if (navigator.share) {
-        await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
-      } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'reporte_familyflow.png';
-        a.click();
-      }
+    try {
+      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+      await new Promise((resolve) => {
+        canvas.toBlob(async (blob) => {
+          const canShareFiles = navigator.canShare && navigator.canShare({ files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
+          if (canShareFiles) {
+            await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
+          } else {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'reporte_familyflow.png';
+            a.click();
+          }
+          resolve();
+        }, 'image/png');
+      });
+    } finally {
       setSharing(false);
-    });
+    }
   };
 
   return (
