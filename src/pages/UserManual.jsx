@@ -203,6 +203,26 @@ Admin Familia:
 Seguridad: Cada familia ve únicamente sus propios datos. Ninguna familia puede ver los datos de otra.`
   },
   {
+    id: 'presupuesto', icon: '🎯', title: 'Presupuesto Inteligente',
+    content: `El módulo de Presupuesto analiza el historial de gastos de tu familia y genera automáticamente una sugerencia de presupuesto mensual por rubro.
+
+Cómo funciona:
+1. Ve al menú "Más" → sección Herramientas → "Presupuesto".
+2. Selecciona el período de análisis: último mes, 3 meses o 6 meses.
+3. El sistema calcula el promedio mensual de cada categoría de gasto y agrega un 10% de margen de seguridad.
+4. Obtendrás una lista ordenada por impacto, con el presupuesto sugerido por rubro.
+
+Indicador de salud financiera:
+• 🟢 Finanzas saludables — El presupuesto sugerido es menor al 80% de tus ingresos.
+• 🟡 Presupuesto ajustado — El presupuesto representa entre el 80% y 100% de tus ingresos.
+• 🔴 Atención — Los egresos históricos superan los ingresos promedio.
+
+Gráfica de distribución:
+Muestra visualmente cómo se distribuye el presupuesto sugerido entre los diferentes rubros de gasto, con los colores que configuraste en Catálogos.
+
+Nota: El presupuesto es una sugerencia basada en datos históricos. No modifica ni afecta ningún registro existente.`,
+  },
+  {
     id: 'programados', icon: '📅', title: 'Pagos Programados',
     content: `Módulo para registrar y hacer seguimiento de todos tus pagos fijos mensuales: luz, agua, internet, colegiatura, suscripciones, etc.
 
@@ -218,6 +238,25 @@ Estados:
 
 Diferencia con Inversiones:
 Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
+  },
+  {
+    id: 'navegacion', icon: '🗂️', title: 'Navegación y menús',
+    content: `La navegación está organizada en grupos para facilitar el acceso a cada módulo.
+
+En móvil (barra inferior):
+Los 4 accesos directos son: Inicio, Movimientos, + Registrar y Reportes.
+El botón "Más" abre un panel con todas las secciones organizadas en grupos:
+
+• Herramientas — Asistente IA y Presupuesto
+• Compromisos — Pagos del Mes, Inversiones, MSI y Rentas
+• Configuración — Catálogos, Mi Familia, Mi Cuenta y Admin Familia (solo administradores)
+• Información — Manual y Acerca de
+
+El botón flotante 💬 en la esquina inferior derecha abre directamente el Asistente IA desde cualquier pantalla.
+
+En escritorio / tablet (barra lateral):
+La barra lateral izquierda muestra todos los módulos organizados en las mismas secciones con etiquetas de grupo.
+El botón "Registrar" siempre está visible en la parte inferior de la barra.`,
   },
   {
     id: 'export', icon: '📤', title: 'Exportar datos',
@@ -247,6 +286,8 @@ const glossary = [
   { term: 'Catálogos', def: 'Datos maestros de la app: Rubros, SubRubros, Personas y Formas de Pago.' },
   { term: 'Sugerencias inteligentes', def: 'Sistema que analiza el historial familiar y propone rubros, personas y métodos de pago frecuentes mientras escribes la descripción.' },
   { term: 'Pagos Programados', def: 'Módulo para hacer seguimiento de pagos fijos mensuales como servicios, suscripciones o colegiaturas.' },
+  { term: 'Presupuesto', def: 'Módulo que analiza el historial familiar de egresos y sugiere un presupuesto mensual por categoría con margen del 10%.' },
+  { term: 'Salud financiera', def: 'Indicador semáforo que compara el presupuesto sugerido vs los ingresos promedio: verde (<80%), amarillo (80-100%), rojo (>100%).' },
   { term: 'Detección de duplicados', def: 'Verificación automática que avisa si un movimiento ya fue registrado con monto y categoría similares en la misma fecha.' },
 ];
 

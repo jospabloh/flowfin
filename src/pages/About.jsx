@@ -2,13 +2,25 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.3.0';
+const CURRENT_VERSION = '1.4.0';
 
 const VERSION_HISTORY = [
   {
-    version: '1.3.0',
+    version: '1.4.0',
     date: '2026-04-03',
     label: 'Actual',
+    changes: [
+      'Nuevo módulo Presupuesto: sugerencia inteligente de presupuesto mensual por rubro basada en historial familiar',
+      'Indicador de salud financiera: semáforo verde/amarillo/rojo según la relación gasto-ingreso',
+      'Navegación reorganizada en grupos (Herramientas, Compromisos, Configuración, Información) para mayor claridad',
+      'Barra lateral de escritorio con secciones agrupadas y etiquetas de categoría',
+      'Menú "Más" en móvil reorganizado con grupos visuales y colores por sección',
+    ],
+  },
+  {
+    version: '1.3.0',
+    date: '2026-04-03',
+    label: '',
     changes: [
       'Sugerencias inteligentes en captura: rubros, personas y formas de pago frecuentes basados en historial familiar',
       'Detección automática de movimientos duplicados con opción de confirmar o cancelar',
