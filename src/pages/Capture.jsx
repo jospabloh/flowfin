@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -58,21 +58,20 @@ export default function Capture() {
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
 
-  // Fetch smart suggestions based on description
+  // Fetch smart suggestions with debounce to avoid rate limiting
   useEffect(() => {
-    if (description.length > 2) {
+    if (description.length <= 2) {
+      setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
+      return;
+    }
+    const timer = setTimeout(() => {
       setLoadingSmartSuggestions(true);
-      base44.functions.invoke('getSmartSuggestions', {
-        familyId,
-        description,
-        type,
-      })
+      base44.functions.invoke('getSmartSuggestions', { familyId, description, type })
         .then(res => setSmartSuggestions(res.data || {}))
         .catch(() => setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] }))
         .finally(() => setLoadingSmartSuggestions(false));
-    } else {
-      setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
-    }
+    }, 800);
+    return () => clearTimeout(timer);
   }, [description, familyId, type]);
 
   const handleDescriptionChange = useCallback((val) => {
@@ -181,29 +180,32 @@ export default function Capture() {
       required_type: requiredType, has_invoice: hasInvoice, notes, week,
     };
 
-    // Check for duplicates on the same date
-    const existingOnDate = await base44.entities.Transaction.filter({
-      family_id: familyId,
-      date,
-      type,
-    });
+    // Check for duplicates — wrapped in try/catch so a network error never leaves saving=true
+    try {
+      const existingOnDate = await base44.entities.Transaction.filter({
+        family_id: familyId,
+        date,
+        type,
+      });
 
-    const inputAmount = parseFloat(amount);
-    const duplicates = existingOnDate.filter(t => {
-      const sameAmount = Math.abs(t.amount - inputAmount) / Math.max(inputAmount, 1) < 0.05; // within 5%
-      const sameCat = t.category_id === categoryId;
-      const sameSubcat = subcategoryId && t.subcategory_id === subcategoryId;
-      const descA = (t.description || '').toLowerCase().trim();
-      const descB = description.toLowerCase().trim();
-      const sameDesc = descA.length > 2 && descB.length > 2 && (descA.includes(descB) || descB.includes(descA));
-      // Only flag as duplicate if amount is similar AND (same subcategory OR same description)
-      return sameAmount && sameCat && (sameSubcat || sameDesc);
-    });
+      const inputAmount = parseFloat(amount);
+      const duplicates = existingOnDate.filter(t => {
+        const sameAmount = Math.abs(t.amount - inputAmount) / Math.max(inputAmount, 1) < 0.05;
+        const sameCat = t.category_id === categoryId;
+        const sameSubcat = subcategoryId && t.subcategory_id === subcategoryId;
+        const descA = (t.description || '').toLowerCase().trim();
+        const descB = description.toLowerCase().trim();
+        const sameDesc = descA.length > 2 && descB.length > 2 && (descA.includes(descB) || descB.includes(descA));
+        return sameAmount && sameCat && (sameSubcat || sameDesc);
+      });
 
-    if (duplicates.length > 0) {
-      setSaving(false);
-      setDuplicateWarning({ duplicates, pendingData: txData });
-      return;
+      if (duplicates.length > 0) {
+        setSaving(false);
+        setDuplicateWarning({ duplicates, pendingData: txData });
+        return;
+      }
+    } catch {
+      // If duplicate check fails, just proceed to save normally
     }
 
     doSave(txData);
