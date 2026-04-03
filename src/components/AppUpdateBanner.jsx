@@ -4,12 +4,11 @@ import { base44 } from '@/api/base44Client';
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const APP_BUILD_VERSION = '1.0.0';
+const APP_BUILD_VERSION = '1.5.0';
 const DISMISSED_VERSION_KEY = 'dismissedAppVersion';
 
 export default function AppUpdateBanner() {
   const [isVisible, setIsVisible] = useState(false);
-  const [autoHideTimer, setAutoHideTimer] = useState(null);
 
   const { data: appVersionData } = useQuery({
     queryKey: ['appVersion'],
@@ -17,8 +16,8 @@ export default function AppUpdateBanner() {
       const response = await base44.entities.AppVersion.list();
       return response?.[0];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchInterval: 5 * 60 * 1000, // Verificar cada 5 minutos
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -27,29 +26,16 @@ export default function AppUpdateBanner() {
     const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY);
     const serverVersion = appVersionData.version;
 
-    // Solo mostrar si hay una nueva versión disponible y no ha sido descartada
     if (serverVersion !== APP_BUILD_VERSION && serverVersion !== dismissedVersion) {
       setIsVisible(true);
-
-      // Auto-hide después de 5 segundos
-      const timer = setTimeout(() => {
-        handleDismiss();
-      }, 5000);
-
-      setAutoHideTimer(timer);
     }
-
-    return () => {
-      if (autoHideTimer) clearTimeout(autoHideTimer);
-    };
-  }, [appVersionData, autoHideTimer]);
+  }, [appVersionData?.version]);
 
   const handleDismiss = () => {
     if (appVersionData?.version) {
       localStorage.setItem(DISMISSED_VERSION_KEY, appVersionData.version);
     }
     setIsVisible(false);
-    if (autoHideTimer) clearTimeout(autoHideTimer);
   };
 
   const handleRefresh = () => {
