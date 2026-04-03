@@ -149,11 +149,13 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
           {/* Payment method */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Forma de pago</label>
+            <label className="text-xs text-muted-foreground mb-1 block">
+              {form.type === 'income' ? 'Cuenta / Origen del ingreso' : 'Forma de pago'}
+            </label>
             <NativeSelect
               value={form.payment_method_id}
               onChange={e => set('payment_method_id', e.target.value)}
-              placeholder="— Forma"
+              placeholder={form.type === 'income' ? '— Cuenta / Origen' : '— Forma'}
               options={paymentMethods.map(m => ({ value: m.id, label: m.name }))}
               className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
             />
