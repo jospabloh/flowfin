@@ -268,7 +268,76 @@ Formatos disponibles:
 Desde Reportes también puedes:
 • Compartir el reporte como PDF o imagen PNG directamente a WhatsApp, correo u otras apps usando el menú de compartir del dispositivo.`
   },
+  {
+    id: 'memoria', icon: '🧠', title: 'Memoria inteligente (aprendizaje sin IA)',
+    content: `FamilyFlow aprende de tus hábitos de captura y los recuerda automáticamente sin consumir créditos de IA.
+
+Qué recuerda la app:
+• Asociaciones descripción → categoría, subcategoría, persona y forma de pago. Por ejemplo, si siempre registras "gasolina" con Transporte › Gasolina, la próxima vez que escribas "gasolina" se aplica automáticamente.
+• Filtros del Dashboard — el período (Hoy/Semana/Mes…) y la persona que tenías seleccionados la última vez.
+• Preferencias de Reportes — el tipo (Egresos/Ingresos/Comparativa) y el preset seleccionado.
+
+Sugerencias en tiempo real mientras capturas:
+Mientras escribes la descripción, la app consulta el historial de tu familia y muestra:
+• Rubros frecuentes — las categorías más usadas para ese tipo de descripción.
+• Personas frecuentes — los integrantes que más aparecen en movimientos similares.
+• Formas de pago frecuentes — los métodos de pago más comunes para ese contexto.
+
+Toca cualquier sugerencia para aplicarla. Todo ocurre localmente en tu dispositivo, sin llamadas a IA.
+
+Cómo funciona técnicamente:
+• Los hábitos personales se guardan en tu perfil de usuario (campo preferences).
+• Las reglas familiares compartidas se guardan en la configuración de la familia (campo smart_rules).
+• Ambas se sincronizan automáticamente entre dispositivos al iniciar sesión.`
+  },
+  {
+    id: 'movimientos', icon: '📋', title: 'Gestión de movimientos',
+    content: `La sección de Movimientos es el registro completo de todos los ingresos y egresos de tu familia.
+
+Funciones disponibles:
+• Buscar — filtra por descripción, rubro, persona o nota en tiempo real.
+• Filtrar por categoría y persona — selecciona desde los desplegables superiores.
+• Paginación — carga más movimientos al llegar al final de la lista.
+• Editar — toca cualquier movimiento para modificar cualquier campo directamente.
+• Eliminar — desde el detalle del movimiento.
+• Exportar a Excel — descarga todos los movimientos filtrados con un solo toque.
+
+Movimientos pendientes de revisar ⚠️:
+Los movimientos sin categoría o sin persona asignada aparecen marcados con un indicador naranja. Puedes:
+• Editarlos directamente tocando el movimiento.
+• Pedirle al Asistente IA que los complete por ti.
+
+El contador de pendientes también aparece en el ícono de Movimientos en la barra de navegación.`
+  },
+  {
+    id: 'cuenta', icon: '⚙️', title: 'Mi Cuenta',
+    content: `La sección "Mi Cuenta" te permite gestionar tu perfil personal dentro de FamilyFlow.
+
+Acceso: Menú "Más" → Configuración → Mi Cuenta.
+
+Qué puedes hacer:
+• Ver tu email y datos de cuenta.
+• Eliminar tu cuenta — proceso protegido con confirmación múltiple. Al eliminar tu cuenta se elimina también tu membresía familiar.
+
+Nota: Solo el administrador puede aprobar nuevos miembros y gestionar la familia. Si eliminas tu cuenta siendo administrador, la familia queda sin administrador. Contacta soporte si necesitas transferir la administración.`
+  },
+  {
+    id: 'mifamilia', icon: '🏠', title: 'Mi Familia (configuración)',
+    content: `La sección "Mi Familia" permite al administrador personalizar el comportamiento global de la app para toda la familia.
+
+Opciones de configuración:
+• Nombre de la familia — aparece en la barra de navegación.
+• Moneda y símbolo — define cómo se muestran los montos (ej: MXN / $).
+• Idioma/región (locale) — afecta el formato de fechas y montos (ej: es-MX, en-US).
+• Tipos de gasto requerido — personaliza las opciones de clasificación (Necesario, Gusto, etc.).
+• Destinos de transferencia — define destinos frecuentes para el campo "Transferido a".
+• Día de inicio de semana — lunes o domingo.
+
+Código de invitación:
+Visible también desde "Admin Familia". Compártelo para que otros miembros soliciten unirse.`
+  },
 ];
+
 
 const glossary = [
   { term: 'Rubro', def: 'Categoría principal del gasto o ingreso (ej: Alimentación, Transporte).' },
@@ -289,6 +358,11 @@ const glossary = [
   { term: 'Presupuesto', def: 'Módulo que analiza el historial familiar de egresos y sugiere un presupuesto mensual por categoría con margen del 10%.' },
   { term: 'Salud financiera', def: 'Indicador semáforo que compara el presupuesto sugerido vs los ingresos promedio: verde (<80%), amarillo (80-100%), rojo (>100%).' },
   { term: 'Detección de duplicados', def: 'Verificación automática que avisa si un movimiento ya fue registrado con monto y categoría similares en la misma fecha.' },
+  { term: 'Memoria inteligente', def: 'Sistema que aprende los hábitos de captura de la familia (categorías, personas, métodos de pago) y los sugiere automáticamente, sin IA ni créditos.' },
+  { term: 'Preferencias de usuario', def: 'Configuración personal que la app recuerda entre sesiones: filtros del dashboard, tipo de reporte, etc.' },
+  { term: 'Mi Cuenta', def: 'Sección para gestionar el perfil personal del usuario, incluyendo la opción de eliminar la cuenta.' },
+  { term: 'Mi Familia', def: 'Panel de configuración global de la familia: nombre, moneda, locale, tipos de gasto y destinos de transferencia.' },
+  { term: 'Movimientos pendientes', def: 'Transacciones sin categoría o persona asignada, marcadas con ⚠️ para revisión posterior.' },
 ];
 
 export default function UserManual() {
