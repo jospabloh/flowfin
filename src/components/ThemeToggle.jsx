@@ -36,7 +36,7 @@ export default function ThemeToggle({ showLabel = false }) {
     <button
       onClick={toggle}
       aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
-      className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all touch-target"
+      className="flex items-center justify-center p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all touch-target"
     >
       {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
