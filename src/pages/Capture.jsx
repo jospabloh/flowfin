@@ -209,14 +209,23 @@ export default function Capture() {
       });
 
       const inputAmount = parseFloat(amount);
+      const descB = (description || '').toLowerCase().trim();
+
       const duplicates = existingOnDate.filter(t => {
         const sameAmount = Math.abs(t.amount - inputAmount) / Math.max(inputAmount, 1) < 0.05;
-        const sameCat = t.category_id === categoryId;
-        const sameSubcat = subcategoryId && t.subcategory_id === subcategoryId;
         const descA = (t.description || '').toLowerCase().trim();
-        const descB = description.toLowerCase().trim();
-        const sameDesc = descA.length > 2 && descB.length > 2 && (descA.includes(descB) || descB.includes(descA));
-        return sameAmount && sameCat && (sameSubcat || sameDesc);
+
+        // Same description (fuzzy): either one contains the other or they're equal
+        const sameDesc = descA.length > 1 && descB.length > 1 && (
+          descA === descB ||
+          descA.includes(descB) ||
+          descB.includes(descA)
+        );
+
+        // Same category OR same description — if amount matches and either condition, flag it
+        const sameCat = categoryId && t.category_id === categoryId;
+
+        return sameAmount && (sameCat || sameDesc);
       });
 
       if (duplicates.length > 0) {
