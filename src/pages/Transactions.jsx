@@ -3,7 +3,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle, Pencil } from 'lucide-react';
+import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle, Pencil, Link as LinkIcon } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import * as XLSX from 'xlsx';
 import PageHeader from '@/components/PageHeader';
@@ -16,6 +16,14 @@ import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import TransactionEditModal from '@/components/TransactionEditModal';
+
+const getPaymentLinkInfo = (t) => {
+  if (t.msi_payment_id) return { type: 'MSI', icon: '💳' };
+  if (t.investment_payment_id) return { type: 'Inv', icon: '💰' };
+  if (t.scheduled_payment_record_id) return { type: 'Prog', icon: '📅' };
+  if (t.rental_payment_id) return { type: 'Renta', icon: '🏠' };
+  return null;
+};
 
 function groupByDate(transactions) {
   const groups = {};
@@ -177,11 +185,17 @@ export default function Transactions() {
                       <p className="text-sm font-medium text-foreground truncate">{desc}</p>
                       <AmountDisplay amount={t.amount} type={t.type} size="sm" />
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {sub && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{sub.name}</span>}
                       {person && <PersonAvatar person={person} size="xs" />}
                       {t.required_type && t.required_type !== 'Necesario' && (
                         <span className="text-[10px] text-muted-foreground">{t.required_type}</span>
+                      )}
+                      {getPaymentLinkInfo(t) && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                          <LinkIcon className="w-2.5 h-2.5" />
+                          {getPaymentLinkInfo(t).icon} {getPaymentLinkInfo(t).type}
+                        </span>
                       )}
                     </div>
                   </div>

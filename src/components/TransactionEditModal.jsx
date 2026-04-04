@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFamily } from '@/lib/FamilyContext';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
+import TransactionPaymentLink from '@/components/TransactionPaymentLink';
+import ApplyPaymentModal from '@/components/ApplyPaymentModal';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -24,6 +26,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     notes: transaction.notes || '',
   });
   const [saving, setSaving] = useState(false);
+  const [showApplyPayment, setShowApplyPayment] = useState(false);
+  const [txData, setTxData] = useState(transaction);
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
 
@@ -52,11 +56,16 @@ export default function TransactionEditModal({ transaction, categories, subcateg
       {
         onSettled: () => {
           setSaving(false);
-          onSaved();
+          onSaved?.();
           onClose();
         },
       }
     );
+  };
+
+  const handlePaymentLinked = () => {
+    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    setTxData(prev => ({ ...prev })); // Trigger re-render
   };
 
   const filteredSubs = subcategories.filter(s => s.category_id === form.category_id);
@@ -183,13 +192,41 @@ export default function TransactionEditModal({ transaction, categories, subcateg
               className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
 
+          {/* Linked payment */}
+          {(txData.msi_payment_id || txData.investment_payment_id || txData.scheduled_payment_record_id || txData.rental_payment_id) && (
+            <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
+              <TransactionPaymentLink transaction={txData} onUnlink={handlePaymentLinked} />
+            </div>
+          )}
+
+          {/* Apply payment button */}
+          {form.type === 'expense' && (
+            <button
+              onClick={() => setShowApplyPayment(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors touch-target"
+            >
+              <Plus className="w-4 h-4" />
+              Aplicar a pago especializado
+            </button>
+          )}
+
           {/* Save */}
           <button onClick={handleSave} disabled={saving || !form.amount}
             className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+          </div>
+          </div>
+
+          {/* Apply Payment Modal */}
+          {showApplyPayment && (
+          <ApplyPaymentModal
+          transaction={txData}
+          familyId={familyId}
+          onClose={() => setShowApplyPayment(false)}
+          onSuccess={handlePaymentLinked}
+          />
+          )}
+          </div>
+          );
+          }
