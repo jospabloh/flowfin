@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { X, RefreshCw } from 'lucide-react';
@@ -9,6 +9,7 @@ const DISMISSED_VERSION_KEY = 'dismissedAppVersion';
 
 export default function AppUpdateBanner() {
   const [isVisible, setIsVisible] = useState(false);
+  const autoHideRef = useRef(null);
 
   const { data: appVersionData } = useQuery({
     queryKey: ['appVersion'],
@@ -35,7 +36,9 @@ export default function AppUpdateBanner() {
 
     if (needsUpdate && notDismissed) {
       setIsVisible(true);
+      autoHideRef.current = setTimeout(() => setIsVisible(false), 30000);
     }
+    return () => { if (autoHideRef.current) clearTimeout(autoHideRef.current); };
   }, [appVersionData?.version]);
 
   const handleDismiss = () => {

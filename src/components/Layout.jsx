@@ -223,7 +223,7 @@ export default function Layout() {
               <span className="text-[9px] font-semibold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">{family.name}</span>
             </div>
           )}
-          <div className="flex items-end justify-around px-1 pt-1 pb-1">
+          <div className="flex items-center justify-around px-1 pt-1 pb-1">
             {navItems.map(item => {
               if (item.to === '/more') {
                 return (
