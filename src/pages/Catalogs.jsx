@@ -1,8 +1,8 @@
 // Cache buster
-import { useState } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Trash2, X, Pencil, Check } from 'lucide-react';
+import { Plus, Trash2, X, Pencil, Check, Save } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -138,12 +138,64 @@ function EditForm({ fields, initialData, mutation, onCancel, categories = [] }) 
   );
 }
 
+function TagField({ label, value = [], onChange }) {
+  const [input, setInput] = useState('');
+  return (
+    <div>
+      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
+      <div className="flex flex-wrap gap-1.5 p-2.5 bg-muted rounded-xl min-h-[42px]">
+        {value.map((tag, i) => (
+          <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-card rounded-full text-xs border border-border text-foreground">
+            {tag}
+            <button onClick={() => onChange(value.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
+          </span>
+        ))}
+        <input value={input} onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if ((e.key === 'Enter' || e.key === ',') && input.trim()) { e.preventDefault(); onChange([...value, input.trim()]); setInput(''); } }}
+          placeholder="Escribe y presiona Enter" className="bg-transparent outline-none text-xs text-foreground placeholder-muted-foreground min-w-[120px] flex-1" />
+      </div>
+    </div>
+  );
+}
+
 export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
   const [addingTab, setAddingTab] = useState(null);
   const [editing, setEditing] = useState(null); // { entity, id }
+
+  // FamilyConfig for tipos de gasto and destinos de transferencia
+  const { data: configs = [] } = useQuery({
+    queryKey: ['familyConfig', familyId],
+    queryFn: () => familyId ? base44.entities.FamilyConfig.filter({ family_id: familyId }) : Promise.resolve([]),
+    enabled: !!familyId,
+  });
+  const [requiredTypes, setRequiredTypes] = useState(['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro']);
+  const [transferDestinations, setTransferDestinations] = useState(['Actinver', 'Ahorro']);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [savedConfig, setSavedConfig] = useState(false);
+
+  useEffect(() => {
+    if (configs.length > 0) {
+      if (configs[0].required_types) setRequiredTypes(configs[0].required_types);
+      if (configs[0].transfer_destinations) setTransferDestinations(configs[0].transfer_destinations);
+    }
+  }, [configs]);
+
+  const saveConfig = async (field, value) => {
+    setSavingConfig(true);
+    const update = { family_id: familyId, [field]: value };
+    if (configs.length > 0) {
+      await base44.entities.FamilyConfig.update(configs[0].id, update);
+    } else {
+      await base44.entities.FamilyConfig.create(update);
+    }
+    queryClient.invalidateQueries({ queryKey: ['familyConfig', familyId] });
+    setSavingConfig(false);
+    setSavedConfig(true);
+    setTimeout(() => setSavedConfig(false), 2000);
+  };
 
   const createCategoryMutation = useMutation({
     mutationFn: (data) => {
@@ -251,11 +303,15 @@ export default function Catalogs() {
       <PageHeader title="Catálogos" subtitle="Gestión de datos maestros" aria-label="Página de catálogos" />
 
       <Tabs defaultValue="categories" className="px-4">
-        <TabsList className="w-full mb-4 grid grid-cols-4 h-auto p-1">
+        <TabsList className="w-full mb-4 grid grid-cols-3 h-auto p-1">
           <TabsTrigger value="categories" className="text-xs py-1.5">Rubros</TabsTrigger>
           <TabsTrigger value="subcategories" className="text-xs py-1.5">SubRubros</TabsTrigger>
           <TabsTrigger value="persons" className="text-xs py-1.5">Personas</TabsTrigger>
-          <TabsTrigger value="methods" className="text-xs py-1.5">Formas</TabsTrigger>
+        </TabsList>
+        <TabsList className="w-full mb-4 grid grid-cols-3 h-auto p-1">
+          <TabsTrigger value="methods" className="text-xs py-1.5">Formas de Pago</TabsTrigger>
+          <TabsTrigger value="required_types" className="text-xs py-1.5">Tipos de Gasto</TabsTrigger>
+          <TabsTrigger value="transfer_dest" className="text-xs py-1.5">Transferencias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="categories" className="space-y-2">
@@ -518,6 +574,40 @@ export default function Catalogs() {
               })}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="required_types" className="space-y-3">
+          <p className="text-xs text-muted-foreground">Define cómo clasifican sus gastos (Necesario, Gusto, etc.)</p>
+          <TagField
+            label="Tipos de gasto requerido"
+            value={requiredTypes}
+            onChange={setRequiredTypes}
+          />
+          <button
+            onClick={() => saveConfig('required_types', requiredTypes)}
+            disabled={savingConfig}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </TabsContent>
+
+        <TabsContent value="transfer_dest" className="space-y-3">
+          <p className="text-xs text-muted-foreground">Destinos frecuentes para el campo "Transferido a" (ej: Actinver, DAYMAC)</p>
+          <TagField
+            label="Destinos de transferencia"
+            value={transferDestinations}
+            onChange={setTransferDestinations}
+          />
+          <button
+            onClick={() => saveConfig('transfer_destinations', transferDestinations)}
+            disabled={savingConfig}
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
+          >
+            <Save className="w-3.5 h-3.5" />
+            {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
+          </button>
         </TabsContent>
       </Tabs>
     </div>

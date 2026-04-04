@@ -7,25 +7,6 @@ import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import LocaleSelector from '@/components/LocaleSelector';
 
-function TagField({ label, value = [], onChange }) {
-  const [input, setInput] = useState('');
-  return (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <div className="flex flex-wrap gap-1.5 p-2.5 bg-muted rounded-xl min-h-[42px]">
-        {value.map((tag, i) => (
-          <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-card rounded-full text-xs border border-border text-foreground">
-            {tag}
-            <button onClick={() => onChange(value.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
-          </span>
-        ))}
-        <input value={input} onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if ((e.key === 'Enter' || e.key === ',') && input.trim()) { e.preventDefault(); onChange([...value, input.trim()]); setInput(''); } }}
-          placeholder="Escribe y presiona Enter" className="bg-transparent outline-none text-xs text-foreground placeholder-muted-foreground min-w-[120px] flex-1" />
-      </div>
-    </div>
-  );
-}
 
 export default function FamilySettings() {
   const queryClient = useQueryClient();
@@ -39,7 +20,7 @@ export default function FamilySettings() {
     transfer_destinations: ['Actinver', 'Ahorro'], week_start: 'monday',
   });
 
-  const { familyId } = useFamily();
+  const { familyId, family, refetchMembership } = useFamily();
 
   const { data: configs = [] } = useQuery({
     queryKey: ['familyConfig', familyId],
@@ -111,8 +92,13 @@ export default function FamilySettings() {
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     saveFamilyConfigMutation.mutate(config);
+    // También actualiza el nombre en la entidad Family (el que aparece en la barra de navegación)
+    if (family?.id && config.family_name && config.family_name !== family.name) {
+      await base44.entities.Family.update(family.id, { name: config.family_name });
+      refetchMembership();
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -191,18 +177,6 @@ export default function FamilySettings() {
               ))}
             </div>
           </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
-          <h3 className="text-sm font-bold text-foreground">📊 Tipos de Gasto</h3>
-          <p className="text-xs text-muted-foreground">Define cómo clasifican sus gastos (Necesario, Gusto, etc.)</p>
-          <TagField label="Tipos de requerido" value={config.required_types || []} onChange={v => setConfig(c => ({...c, required_types: v}))} />
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
-          <h3 className="text-sm font-bold text-foreground">💰 Destinos de Transferencia</h3>
-          <p className="text-xs text-muted-foreground">Lugares a donde mueven su dinero (ej: Actinver, DAYMAC, etc.)</p>
-          <TagField label="Destinos" value={config.transfer_destinations || []} onChange={v => setConfig(c => ({...c, transfer_destinations: v}))} />
         </div>
 
         <div className="bg-muted/50 rounded-2xl p-4">
