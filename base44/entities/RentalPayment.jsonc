@@ -1,29 +1,39 @@
 {
-  "name": "InvestmentPayment",
+  "name": "RentalPayment",
   "type": "object",
   "properties": {
-    "investment_id": {
+    "property_id": {
       "type": "string"
     },
-    "payment_number": {
-      "type": "number"
+    "month": {
+      "type": "string",
+      "description": "Mes en formato YYYY-MM"
     },
     "amount": {
       "type": "number"
     },
-    "date": {
+    "paid_by": {
+      "type": "string"
+    },
+    "deposit_account": {
+      "type": "string"
+    },
+    "date_paid": {
       "type": "string",
       "format": "date"
+    },
+    "is_paid": {
+      "type": "boolean",
+      "default": false
     },
     "notes": {
       "type": "string"
     }
   },
   "required": [
-    "investment_id",
-    "payment_number",
-    "amount",
-    "date"
+    "property_id",
+    "month",
+    "amount"
   ],
   "rls": {
     "create": {

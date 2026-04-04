@@ -1,17 +1,17 @@
 {
-  "name": "InvestmentPayment",
+  "name": "MSIPayment",
   "type": "object",
   "properties": {
-    "investment_id": {
+    "msi_id": {
       "type": "string"
     },
-    "payment_number": {
+    "month_number": {
       "type": "number"
     },
     "amount": {
       "type": "number"
     },
-    "date": {
+    "paid_date": {
       "type": "string",
       "format": "date"
     },
@@ -20,10 +20,10 @@
     }
   },
   "required": [
-    "investment_id",
-    "payment_number",
+    "msi_id",
+    "month_number",
     "amount",
-    "date"
+    "paid_date"
   ],
   "rls": {
     "create": {
