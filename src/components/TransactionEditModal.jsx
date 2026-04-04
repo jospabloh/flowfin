@@ -65,29 +65,44 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
   const handlePaymentLinked = () => {
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-    setTxData(prev => ({ ...prev })); // Trigger re-render
+    setTxData(prev => ({ ...prev }));
   };
 
   const filteredSubs = subcategories.filter(s => s.category_id === form.category_id);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div 
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Sheet — sits above bottom nav bar (60px) + safe area */}
+      <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="w-full max-w-md bg-card rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto" 
+        className="fixed left-0 right-0 bottom-0 z-50 w-full bg-card rounded-t-3xl shadow-2xl flex flex-col"
+        style={{
+          maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border">
+        {/* Header — sticky */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 id="modal-title" className="text-base font-bold text-foreground">Editar movimiento</h2>
-          <button onClick={onClose} aria-label="Cerrar formulario de edición de movimiento" className="p-2 rounded-xl hover:bg-muted transition-colors touch-target">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-xl hover:bg-muted transition-colors touch-target">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-3 overflow-y-auto overscroll-none hide-scrollbar max-h-[calc(90vh-80px)]" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
+        {/* Scrollable content */}
+        <div
+          className="flex-1 overflow-y-auto overscroll-none hide-scrollbar px-5 py-4 space-y-3"
+          onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+        >
           {/* Type */}
           <div className="flex rounded-xl bg-muted p-1 gap-1">
             {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
@@ -210,23 +225,25 @@ export default function TransactionEditModal({ transaction, categories, subcateg
             </button>
           )}
 
-          {/* Save */}
-          <button onClick={handleSave} disabled={saving || !form.amount}
-            className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+          {/* Save — extra bottom padding so it clears the safe area */}
+          <div className="pb-4">
+            <button onClick={handleSave} disabled={saving || !form.amount}
+              className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
           </div>
-          </div>
+        </div>
+      </div>
 
-          {/* Apply Payment Modal */}
-          {showApplyPayment && (
-          <ApplyPaymentModal
+      {/* Apply Payment Modal */}
+      {showApplyPayment && (
+        <ApplyPaymentModal
           transaction={txData}
           familyId={familyId}
           onClose={() => setShowApplyPayment(false)}
           onSuccess={handlePaymentLinked}
-          />
-          )}
-          </div>
-          );
-          }
+        />
+      )}
+    </>
+  );
+}

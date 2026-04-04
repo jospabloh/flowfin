@@ -24,17 +24,19 @@ export default function AppUpdateBanner() {
   useEffect(() => {
     if (!appVersionData) return;
 
-    const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY);
     const serverVersion = appVersionData.version;
 
-    // Show banner if:
-    // 1. Client build is older than server version (user needs to refresh), OR
-    // 2. Server version differs from client build (new deploy available)
-    // AND the user hasn't dismissed THIS server version already
-    const needsUpdate = serverVersion !== APP_BUILD_VERSION;
+    // If client is already on the latest version, auto-dismiss and never show
+    if (serverVersion === APP_BUILD_VERSION) {
+      localStorage.setItem(DISMISSED_VERSION_KEY, serverVersion);
+      setIsVisible(false);
+      return;
+    }
+
+    const dismissedVersion = localStorage.getItem(DISMISSED_VERSION_KEY);
     const notDismissed = serverVersion !== dismissedVersion;
 
-    if (needsUpdate && notDismissed) {
+    if (notDismissed) {
       setIsVisible(true);
       autoHideRef.current = setTimeout(() => setIsVisible(false), 30000);
     }
