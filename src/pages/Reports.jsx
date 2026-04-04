@@ -242,12 +242,14 @@ export default function Reports() {
             <h3 className="text-sm font-semibold text-foreground mb-1">{cfg.label}</h3>
             <p className="text-xs text-muted-foreground mb-3">{dateFrom} → {dateTo}</p>
             {cfg.rows === 'category' || cfg.rows === 'method' || cfg.rows === 'person' ? (
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={tableData} dataKey="value" nameKey="row" cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={2}
+              <div>
+                {/* Horizontal bar chart — much more readable than pie with many categories */}
+                <div style={{ height: Math.max(180, tableData.length * 36) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={tableData} layout="vertical" margin={{ left: 0, right: 60, top: 4, bottom: 4 }}
                       onClick={(state) => {
-                        const clicked = tableData[state.index];
+                        if (!state?.activePayload?.[0]) return;
+                        const clicked = state.activePayload[0].payload;
                         if (cfg.rows === 'category') {
                           const c = categories.find(x => `${x.icon} ${x.name}` === clicked.row);
                           setSelectedDetail(c?.id);
@@ -258,13 +260,17 @@ export default function Reports() {
                           const m = paymentMethods.find(x => x.name === clicked.row);
                           setSelectedDetail(m?.id);
                         }
-                      }} style={{ cursor: 'pointer' }}>
-                      {tableData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip formatter={formatVal} />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                      }}>
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="row" width={130} tick={{ fontSize: 11, fill: 'currentColor' }} tickLine={false} axisLine={false} />
+                      <Tooltip formatter={formatVal} />
+                      <Bar dataKey="value" radius={[0, 6, 6, 0]} style={{ cursor: 'pointer' }}
+                        label={{ position: 'right', fontSize: 10, formatter: formatVal, fill: 'currentColor' }}>
+                        {tableData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             ) : (
               <div className="h-48">
