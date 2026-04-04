@@ -291,6 +291,33 @@ Cómo funciona técnicamente:
 • Ambas se sincronizan automáticamente entre dispositivos al iniciar sesión.`
   },
   {
+    id: 'sincronizacion', icon: '🔗', title: 'Sincronización de pagos especializados',
+    content: `FamilyFlow sincroniza automáticamente los pagos de módulos especializados (MSI, Inversiones, Pagos Programados y Rentas) con el registro general de movimientos.
+
+Cómo funciona la sincronización automática:
+Cuando registras un pago en cualquiera de estos módulos, el sistema crea automáticamente el movimiento correspondiente en el registro general de Movimientos, sin que tengas que capturarlo dos veces.
+
+• MSI — Al registrar el pago mensual de un MSI, se crea un egreso vinculado.
+• Inversiones — Al registrar una cuota de inversión, se genera el egreso correspondiente.
+• Pagos Programados — Al marcar un pago del mes como pagado, se registra el egreso.
+• Rentas — Al registrar un cobro de renta, se genera el ingreso correspondiente.
+
+Indicador visual en Movimientos:
+Las transacciones sincronizadas desde módulos especializados muestran una etiqueta de color con el tipo de origen (💳 MSI, 💰 Inversión, 📅 Pago Programado, 🏠 Renta). Esto te indica de dónde provino ese movimiento.
+
+Vinculación manual:
+Si tienes una transacción existente que corresponde a un pago especializado, puedes vincularla manualmente:
+1. Abre el movimiento desde la pantalla de Movimientos.
+2. Toca "Aplicar pago" en el modal de edición.
+3. Selecciona el tipo de pago (MSI, Inversión, etc.) y elige el pago específico.
+4. Toca "Vincular" para asociarlos.
+
+Desvinculación:
+Puedes quitar el vínculo en cualquier momento tocando la ✕ en la etiqueta del tipo de pago dentro del modal de edición. Esto elimina la asociación pero no borra ningún registro.
+
+Nota: La sincronización automática solo ocurre al crear nuevos pagos. Los pagos registrados antes de esta versión no se sincronizan retroactivamente, pero puedes vincularlos manualmente.`
+  },
+  {
     id: 'movimientos', icon: '📋', title: 'Gestión de movimientos',
     content: `La sección de Movimientos es el registro completo de todos los ingresos y egresos de tu familia.
 
@@ -363,6 +390,9 @@ const glossary = [
   { term: 'Mi Cuenta', def: 'Sección para gestionar el perfil personal del usuario, incluyendo la opción de eliminar la cuenta.' },
   { term: 'Mi Familia', def: 'Panel de configuración global de la familia: nombre, moneda, locale, tipos de gasto y destinos de transferencia.' },
   { term: 'Movimientos pendientes', def: 'Transacciones sin categoría o persona asignada, marcadas con ⚠️ para revisión posterior.' },
+  { term: 'Sincronización automática', def: 'Proceso por el cual un pago registrado en MSI, Inversiones, Pagos Programados o Rentas genera automáticamente el movimiento correspondiente en el registro general.' },
+  { term: 'Vinculación de pagos', def: 'Asociación entre una transacción del registro general y un pago especializado (MSI, inversión, pago programado o renta). Puede ser automática o manual.' },
+  { term: 'Pago vinculado', def: 'Transacción que tiene un origen identificado en un módulo especializado. Se muestra con una etiqueta de color en la lista de movimientos.' },
 ];
 
 export default function UserManual() {

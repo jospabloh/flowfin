@@ -2,19 +2,44 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.5.0';
+const CURRENT_VERSION = '1.6.0';
 
 const VERSION_HISTORY = [
   {
-    version: '1.4.0',
-    date: '2026-04-03',
+    version: '1.6.0',
+    date: '2026-04-04',
     label: 'Actual',
+    changes: [
+      'Sincronización automática de pagos especializados: al registrar un pago de MSI, Inversión, Pago Programado o Renta se crea automáticamente el movimiento en el registro general',
+      'Vinculación manual de movimientos con pagos especializados desde la pantalla de edición de transacción',
+      'Indicador visual en la lista de movimientos que muestra si una transacción está vinculada a un pago especializado (MSI, Inversión, etc.)',
+      'Desvinculación de transacciones: posibilidad de quitar el vínculo entre una transacción y su pago especializado',
+      'Nueva función de backend para gestionar vínculos: valida, asocia y protege contra vínculos duplicados',
+    ],
+  },
+  {
+    version: '1.5.0',
+    date: '2026-04-03',
+    label: '',
     changes: [
       'Nuevo módulo Presupuesto: sugerencia inteligente de presupuesto mensual por rubro basada en historial familiar',
       'Indicador de salud financiera: semáforo verde/amarillo/rojo según la relación gasto-ingreso',
       'Navegación reorganizada en grupos (Herramientas, Compromisos, Configuración, Información) para mayor claridad',
       'Barra lateral de escritorio con secciones agrupadas y etiquetas de categoría',
       'Menú "Más" en móvil reorganizado con grupos visuales y colores por sección',
+    ],
+  },
+  {
+    version: '1.4.0',
+    date: '2026-04-03',
+    label: '',
+    changes: [
+      'Sugerencias inteligentes en captura: rubros, personas y formas de pago frecuentes basados en historial familiar',
+      'Detección automática de movimientos duplicados con opción de confirmar o cancelar',
+      'Módulo de Pagos Programados: administra recibos, servicios y cualquier pago recurrente mensual',
+      'Banner de actualización automática: avisa cuando hay una nueva versión disponible',
+      'Indicadores de pagos pendientes en el dashboard (programados, inversiones y rentas)',
+      'Mejoras de rendimiento con carga lazy de páginas y skeleton de carga animado',
     ],
   },
   {
