@@ -209,7 +209,7 @@ export default function Layout() {
         {!isAssistantPage && (
           <button onClick={() => handleNavClick('/Assistant')}
             className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-30 w-11 h-11 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
             aria-label="Abrir asistente inteligente">
             <MessageCircle className="w-5 h-5" aria-hidden="true" />
           </button>
