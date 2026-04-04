@@ -223,7 +223,7 @@ export default function Layout() {
               <span className="text-[9px] font-semibold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">{family.name}</span>
             </div>
           )}
-          <div className="flex items-center justify-around px-1 pt-1 pb-1">
+          <div className="grid grid-cols-5 items-center px-1 pt-1 pb-1">
             {navItems.map(item => {
               if (item.to === '/more') {
                 return (
@@ -231,7 +231,7 @@ export default function Layout() {
                     aria-label="Abrir más opciones"
                     aria-haspopup="dialog"
                     aria-expanded={showMore}
-                    className={`flex flex-col items-center gap-0.5 px-2 py-1 min-w-[48px] transition-all touch-target
+                    className={`flex flex-col items-center gap-0.5 py-1 w-full transition-all touch-target
                       ${isMoreActive ? 'text-primary' : 'text-muted-foreground'}`}>
                     <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
                     <span className="text-[10px] font-medium">Más</span>
@@ -241,8 +241,10 @@ export default function Layout() {
               if (item.isCenter) {
                 return (
                   <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label="Registrar nuevo movimiento"
-                    className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30 transition-transform active:scale-95">
-                    <Plus className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
+                    className="flex items-center justify-center w-full py-1 transition-transform active:scale-95">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30">
+                      <Plus className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
+                    </div>
                   </button>
                 );
               }
@@ -253,7 +255,7 @@ export default function Layout() {
                 <button key={item.to} onClick={() => handleNavClick(item.to)}
                   aria-label={item.label}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex flex-col items-center gap-0.5 px-2 py-1 min-w-[48px] transition-all touch-target
+                  className={`flex flex-col items-center gap-0.5 py-1 w-full transition-all touch-target
                     ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                   <div className="relative">
                     <Icon className="w-5 h-5" aria-hidden="true" />
