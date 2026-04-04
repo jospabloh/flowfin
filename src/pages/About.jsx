@@ -114,7 +114,7 @@ export default function About() {
         {/* App identity */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm text-center">
           <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto shadow-xl mb-4 bg-black">
-            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/394217b5e_AISelect_20260403_184849_Base44.jpg" alt="FlowFin" className="w-full h-full object-cover" />
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/c98b128ee_AISelect_20260403_214317_Base44.jpg" alt="FlowFin" className="w-full h-full object-cover" />
           </div>
           <h2 className="text-2xl font-black text-foreground mb-1">FamilyFlow</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>
