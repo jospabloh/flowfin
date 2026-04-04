@@ -116,7 +116,13 @@ export default function Layout() {
     if (path !== location.pathname) navigate(path);
   };
 
-  const handleBack = () => navigate(-1);
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/Dashboard');
+    }
+  };
 
   const isMoreActive = MORE_GROUPS.flatMap(g => g.items)
     .some(item => location.pathname === item.to);
