@@ -342,7 +342,7 @@ export default function Capture() {
       )}
 
       {/* Category + Subcategory */}
-      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <NativeSelect
           value={categoryId}
           onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
@@ -442,7 +442,7 @@ export default function Capture() {
       )}
 
       {/* Date + Required (expense only) */}
-      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
