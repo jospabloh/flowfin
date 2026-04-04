@@ -75,9 +75,11 @@ export default function Dashboard() {
 
   const pendingInvestments = useMemo(() => {
     const today = new Date();
+    today.setHours(23, 59, 59, 999);
     return investments.filter(inv => {
       if (inv.is_active === false) return false;
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id).length;
+      // Solo contar pagos con fecha <= hoy (no pre-registrados futuros)
+      const paid = investmentPayments.filter(p => p.investment_id === inv.id && new Date(p.date) <= today).length;
       if (paid >= inv.total_payments) return false;
       const base = new Date(inv.start_date);
       const next = new Date(base);
@@ -128,8 +130,11 @@ export default function Dashboard() {
   const upcoming = useMemo(() => {
     const items = [];
     const today = new Date();
+    const todayForUpcoming = new Date();
+    todayForUpcoming.setHours(23, 59, 59, 999);
     investments.filter(i => i.is_active !== false).forEach(inv => {
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id).length;
+      // Solo contar pagos con fecha <= hoy (no pre-registrados futuros)
+      const paid = investmentPayments.filter(p => p.investment_id === inv.id && new Date(p.date) <= todayForUpcoming).length;
       if (paid < inv.total_payments) {
         const next = new Date(inv.start_date);
         next.setMonth(next.getMonth() + paid);
