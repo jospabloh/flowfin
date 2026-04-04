@@ -195,6 +195,16 @@ Cómo funciona:
 3. El administrador aprueba o rechaza cada solicitud desde "Admin Familia".
 4. Solo miembros aprobados pueden ver los datos de la familia.
 
+Permisos de los miembros:
+Todos los integrantes aprobados pueden:
+• Ver, registrar y editar movimientos, inversiones, MSI, rentas y pagos programados — sin importar quién los registró originalmente.
+• Consultar reportes y el dashboard con información completa de la familia.
+
+El administrador además puede:
+• Aprobar o rechazar solicitudes de acceso.
+• Gestionar catálogos (rubros, subrubros, personas, formas de pago).
+• Configurar los parámetros de la familia (moneda, locale, etc.).
+
 Admin Familia:
 • Ver el código de invitación y copiarlo.
 • Aprobar o rechazar solicitudes pendientes.

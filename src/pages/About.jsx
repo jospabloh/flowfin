@@ -2,13 +2,23 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.6.0';
+const CURRENT_VERSION = '1.7.0';
 
 const VERSION_HISTORY = [
   {
-    version: '1.6.0',
+    version: '1.7.0',
     date: '2026-04-04',
     label: 'Actual',
+    changes: [
+      'Corrección de permisos familiares: todos los miembros de la familia pueden ver, crear y editar inversiones, MSI, rentas y pagos programados sin importar quién los registró',
+      'Corrección de dashboard para miembros no-administradores: los banners de pagos pendientes (inversiones, MSI, rentas) ahora muestran información correcta para todos los integrantes',
+      'Acceso unificado a pagos de inversión, MSI y renta para toda la familia',
+    ],
+  },
+  {
+    version: '1.6.0',
+    date: '2026-04-04',
+    label: '',
     changes: [
       'Sincronización automática de pagos especializados: al registrar un pago de MSI, Inversión, Pago Programado o Renta se crea automáticamente el movimiento en el registro general',
       'Vinculación manual de movimientos con pagos especializados desde la pantalla de edición de transacción',
