@@ -241,7 +241,7 @@ export default function Layout() {
               if (item.isCenter) {
                 return (
                   <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label="Registrar nuevo movimiento"
-                    className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30 -mt-3 transition-transform active:scale-95">
+                    className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30 transition-transform active:scale-95">
                     <Plus className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
                   </button>
                 );
