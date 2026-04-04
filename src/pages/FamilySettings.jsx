@@ -106,14 +106,7 @@ export default function FamilySettings() {
     deleteAccountMutation.mutate();
   };
 
-  const Field = ({ label, field, type = 'text', placeholder = '' }) => (
-    <div>
-      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{label}</label>
-      <input type={type} value={config[field] || ''} onChange={e => setConfig(c => ({...c, [field]: e.target.value}))}
-        placeholder={placeholder}
-        className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-    </div>
-  );
+
 
   return (
     <div className="pb-6">
@@ -152,7 +145,16 @@ export default function FamilySettings() {
       <div className="px-4 space-y-5">
         <div className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground">🏠 Datos de la Familia</h3>
-          <Field label="Nombre de la familia" field="family_name" placeholder="Mi Familia" />
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre de la familia</label>
+            <input
+              type="text"
+              value={config.family_name || ''}
+              onChange={e => setConfig(c => ({ ...c, family_name: e.target.value }))}
+              placeholder="Mi Familia"
+              className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
           <LocaleSelector
             value={config.locale}
             onChange={locale => setConfig(c => ({ ...c, locale }))}
@@ -161,8 +163,26 @@ export default function FamilySettings() {
             }
           />
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Moneda" field="currency" placeholder="MXN" />
-            <Field label="Símbolo" field="currency_symbol" placeholder="$" />
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Moneda</label>
+              <input
+                type="text"
+                value={config.currency || ''}
+                onChange={e => setConfig(c => ({ ...c, currency: e.target.value }))}
+                placeholder="MXN"
+                className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Símbolo</label>
+              <input
+                type="text"
+                value={config.currency_symbol || ''}
+                onChange={e => setConfig(c => ({ ...c, currency_symbol: e.target.value }))}
+                placeholder="$"
+                className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
           </div>
           <p className="text-[11px] text-muted-foreground -mt-1 ml-1">Puedes ajustar manualmente la moneda y símbolo si lo necesitas.</p>
           <div>
