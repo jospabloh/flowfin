@@ -289,38 +289,76 @@ export default function Reports() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-          <div className="p-4 border-b border-border flex justify-between items-center">
-            <span className="text-sm font-semibold text-foreground">Detalle</span>
-            <span className="text-sm font-bold text-foreground">{formatVal(totalVal)}</span>
-          </div>
-          {tableData.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-8">Sin datos para el período seleccionado</p>
-          ) : tableData.map((row, i) => (
-            <button key={i} onClick={() => {
-              if (cfg.rows === 'category') {
-                const c = categories.find(x => `${x.icon} ${x.name}` === row.row);
-                setSelectedDetail(c?.id);
-              } else if (cfg.rows === 'person') {
-                const p = persons.find(x => x.name === row.row);
-                setSelectedDetail(p?.id);
-              } else if (cfg.rows === 'method') {
-                const m = paymentMethods.find(x => x.name === row.row);
-                setSelectedDetail(m?.id);
-              } else if (cfg.rows === 'month') {
-                setSelectedDetail(row.row.split(' · ')[0]);
-              }
-            }} className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors ${i < tableData.length - 1 ? 'border-b border-border' : ''}`}>
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-              <span className="flex-1 text-sm text-foreground truncate">{row.row}</span>
-              <div className="text-right">
-                <p className="text-sm font-semibold text-foreground">{formatVal(row.value)}</p>
-                {cfg.metric === 'sum' && <p className="text-xs text-muted-foreground">{((row.value / totalVal) * 100).toFixed(1)}%</p>}
+        {/* Analytics detail */}
+        {tableData.length > 0 && (
+          <div className="space-y-3">
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-muted-foreground mb-1">Total</p>
+                <p className="text-sm font-bold text-foreground">{formatVal(totalVal)}</p>
               </div>
-            </button>
-          ))}
-        </div>
+              <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-muted-foreground mb-1">Movimientos</p>
+                <p className="text-sm font-bold text-foreground">{filtered.length}</p>
+              </div>
+              <div className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
+                <p className="text-[10px] text-muted-foreground mb-1">Promedio</p>
+                <p className="text-sm font-bold text-foreground">{filtered.length > 0 ? formatVal(totalVal / filtered.length) : '—'}</p>
+              </div>
+            </div>
+
+            {/* Ranked detail with % bar */}
+            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-border flex justify-between items-center">
+                <span className="text-sm font-semibold text-foreground">Desglose</span>
+                <span className="text-xs text-muted-foreground">{tableData.length} {cfg.rows === 'category' ? 'rubros' : cfg.rows === 'person' ? 'personas' : cfg.rows === 'method' ? 'formas de pago' : 'meses'}</span>
+              </div>
+              {tableData.map((row, i) => {
+                const pct = totalVal > 0 ? (row.value / totalVal) * 100 : 0;
+                const avg = row.count > 0 ? row.value / row.count : 0;
+                return (
+                  <button key={i} onClick={() => {
+                    if (cfg.rows === 'category') {
+                      const c = categories.find(x => `${x.icon} ${x.name}` === row.row);
+                      setSelectedDetail(c?.id);
+                    } else if (cfg.rows === 'person') {
+                      const p = persons.find(x => x.name === row.row);
+                      setSelectedDetail(p?.id);
+                    } else if (cfg.rows === 'method') {
+                      const m = paymentMethods.find(x => x.name === row.row);
+                      setSelectedDetail(m?.id);
+                    } else if (cfg.rows === 'month') {
+                      setSelectedDetail(row.row.split(' · ')[0]);
+                    }
+                  }} className={`w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors ${i < tableData.length - 1 ? 'border-b border-border' : ''}`}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="flex-1 text-sm font-medium text-foreground truncate">{row.row}</span>
+                      <span className="text-sm font-bold text-foreground">{formatVal(row.value)}</span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="ml-4 h-1.5 bg-muted rounded-full overflow-hidden mb-1">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: COLORS[i % COLORS.length] }} />
+                    </div>
+                    <div className="ml-4 flex gap-3 text-[10px] text-muted-foreground">
+                      <span>{pct.toFixed(1)}% del total</span>
+                      <span>·</span>
+                      <span>{row.count} mov.</span>
+                      <span>·</span>
+                      <span>Prom. {formatVal(avg)}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {tableData.length === 0 && (
+          <div className="bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
+            <p className="text-sm text-muted-foreground">Sin datos para el período seleccionado</p>
+          </div>
+        )}
       </div>
 
       {/* Share buttons */}
