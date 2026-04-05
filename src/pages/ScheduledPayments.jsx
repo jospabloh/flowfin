@@ -257,17 +257,17 @@ export default function ScheduledPayments() {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border p-5"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
+              style={{ maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' }}
             >
-              <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
-              <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
                 <p className="text-sm font-bold text-foreground">Registrar pago: {payingItem.name}</p>
                 <button onClick={() => setPayingItem(null)} className="p-1.5 rounded-lg bg-muted">
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Monto pagado</p>
                   <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
@@ -351,18 +351,18 @@ function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSa
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 16px)' }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
+        style={{ maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' }}
       >
-        <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0" />
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+        <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
           <p className="text-sm font-bold text-foreground">{item ? 'Editar pago' : 'Nuevo pago programado'}</p>
           <button onClick={onClose} className="p-1.5 rounded-lg bg-muted">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="overflow-y-auto max-h-[70vh] px-5 py-4 space-y-3">
+        <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3">
           {/* Icon picker */}
           <div>
             <p className="text-xs text-muted-foreground mb-2">Ícono</p>

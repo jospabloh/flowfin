@@ -510,7 +510,7 @@ export default function Capture() {
               initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border p-5"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
+              style={{ paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)' }}
             >
               <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
               <div className="flex items-start gap-3 mb-4">
