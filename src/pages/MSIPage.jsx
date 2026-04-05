@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { Plus, X, CreditCard, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
@@ -134,6 +135,8 @@ export default function MSIPage() {
     setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
   };
 
+  const sheetStyle = useBottomSheetStyle(0.90);
+
   const handleMarkPaid = async (msi, payments) => {
     const next = getNextMSIPayment(msi, payments);
     if (!next) return;
@@ -246,7 +249,8 @@ export default function MSIPage() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setSelected(null)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border max-h-[85vh] overflow-y-auto pb-safe">
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border overflow-y-auto"
+              style={sheetStyle}>
               <div className="p-4 border-b border-border flex items-center justify-between sticky top-0 bg-card">
                 <div className="flex-1">
                   <h3 className="font-bold text-foreground text-base">{selected.store}</h3>
@@ -354,7 +358,8 @@ export default function MSIPage() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowForm(false)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5 pb-safe">
+              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5 pb-4"
+              style={sheetStyle}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-foreground">Nuevo MSI</h3>
                 <button onClick={() => setShowForm(false)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>

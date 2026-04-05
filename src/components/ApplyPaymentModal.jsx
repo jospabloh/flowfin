@@ -4,9 +4,11 @@ import { base44 } from '@/api/base44Client';
 import { X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import NativeSelect from '@/components/NativeSelect';
+import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 
 export default function ApplyPaymentModal({ transaction, familyId, onClose, onSuccess }) {
   const queryClient = useQueryClient();
+  const sheetStyle = useBottomSheetStyle(0.90);
   const [paymentType, setPaymentType] = useState('msi');
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,7 +75,7 @@ export default function ApplyPaymentModal({ transaction, familyId, onClose, onSu
         initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border overflow-y-auto"
-        style={{ maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' }}
+        style={sheetStyle}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

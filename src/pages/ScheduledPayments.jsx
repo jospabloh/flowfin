@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -115,6 +116,8 @@ export default function ScheduledPayments() {
     setPayNotes('');
     setPayDate(TODAY.toISOString().split('T')[0]);
   };
+
+  const sheetStyle = useBottomSheetStyle(0.90);
 
   const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
@@ -258,7 +261,7 @@ export default function ScheduledPayments() {
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
-              style={{ maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' }}
+              style={sheetStyle}
             >
               <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
               <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
@@ -321,6 +324,7 @@ export default function ScheduledPayments() {
 }
 
 function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSave, onClose }) {
+  const sheetStyle = useBottomSheetStyle(0.90);
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');
   const [amount, setAmount] = useState(item?.amount ? String(item.amount) : '');
@@ -352,7 +356,7 @@ function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSa
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
         className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
-        style={{ maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' }}
+        style={sheetStyle}
       >
         <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
         <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">

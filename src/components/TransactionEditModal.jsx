@@ -7,6 +7,7 @@ import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';
 import ApplyPaymentModal from '@/components/ApplyPaymentModal';
+import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -69,6 +70,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   };
 
   const filteredSubs = subcategories.filter(s => s.category_id === form.category_id);
+  const sheetStyle = useBottomSheetStyle(0.92);
 
   return (
     <>
@@ -78,16 +80,14 @@ export default function TransactionEditModal({ transaction, categories, subcateg
         onClick={onClose}
       />
 
-      {/* Sheet — sits above bottom nav bar (60px) + safe area */}
+      {/* Sheet — sits above bottom nav bar */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         className="fixed left-0 right-0 bottom-0 z-50 w-full bg-card rounded-t-3xl shadow-2xl flex flex-col"
-        style={{
-          maxHeight: 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))',
-        }}
+        style={sheetStyle}
         onClick={e => e.stopPropagation()}
       >
         {/* Header — sticky */}
