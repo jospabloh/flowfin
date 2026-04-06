@@ -50,7 +50,7 @@ export default function LoadingFallback() {
           transition={{ delay: 0.3 }}
           className="text-sm text-muted-foreground"
         >
-          Cargando FinFlow...
+          Cargando FlowFin...
         </motion.p>
       </div>
     </div>

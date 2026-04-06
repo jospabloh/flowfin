@@ -10,9 +10,9 @@ const VERSION_HISTORY = [
     date: '2026-04-06',
     label: 'Actual',
     changes: [
-      'Rebrand oficial: la aplicación ahora se llama FinFlow en toda la interfaz, documentación y pantallas de carga',
+      'Rebrand oficial: la aplicación ahora se llama FlowFin en toda la interfaz, documentación y pantallas de carga',
       'Actualización de nombre en título del navegador, pantallas de carga, Manual de Usuario y sección Acerca de',
-      'Corrección de todas las referencias a "FamilyFlow" y "FlowFin" reemplazadas por "FinFlow"',
+      'Corrección de todas las referencias a "FamilyFlow" y "FinFlow" reemplazadas por "FlowFin"',
     ],
   },
   {
@@ -128,7 +128,7 @@ const VERSION_HISTORY = [
     date: '2026-02-01',
     label: '',
     changes: [
-      'Lanzamiento inicial de FinFlow',
+      'Lanzamiento inicial de FlowFin',
       'Registro de ingresos y egresos con categorías',
       'Dashboard con resumen por periodo y persona',
       'Catálogos de rubros, subrubros, personas y formas de pago',
@@ -142,7 +142,7 @@ export default function About() {
   const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="pb-8">
-      <PageHeader title="Acerca de" subtitle="FinFlow" />
+      <PageHeader title="Acerca de" subtitle="FlowFin" />
 
       <div className="px-4 space-y-4">
         {/* App identity */}
@@ -150,16 +150,16 @@ export default function About() {
           <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto shadow-xl mb-4 bg-black">
             <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
           </div>
-          <h2 className="text-2xl font-black text-foreground mb-1">FinFlow</h2>
+          <h2 className="text-2xl font-black text-foreground mb-1">FlowFin</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>
           <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión {CURRENT_VERSION}</span>
         </div>
 
         {/* Description */}
         <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-foreground mb-2">Acerca de FinFlow</h3>
+          <h3 className="text-sm font-bold text-foreground mb-2">Acerca de FlowFin</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            FinFlow es una solución moderna y completa para la gestión de finanzas familiares,
+            FlowFin es una solución moderna y completa para la gestión de finanzas familiares,
             diseñada para parejas y familias que desean tener control real de sus ingresos, egresos,
             inversiones y compromisos financieros.
           </p>
