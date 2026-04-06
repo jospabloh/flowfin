@@ -40,20 +40,20 @@ export function Toaster() {
   const { toasts, dismiss } = useToast();
 
   return (
-    <ToastProvider>
+    <div className="fixed top-0 right-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px] pointer-events-none">
       {toasts.map(({ id, title, description, action, duration, open, ...props }) => (
-        <ToastItem
-          key={id}
-          id={id}
-          title={title}
-          description={description}
-          action={action}
-          duration={duration}
-          onRemove={dismiss}
-          {...props}
-        />
+        <div key={id} className="pointer-events-auto">
+          <ToastItem
+            id={id}
+            title={title}
+            description={description}
+            action={action}
+            duration={duration}
+            onRemove={dismiss}
+            {...props}
+          />
+        </div>
       ))}
-      <ToastViewport />
-    </ToastProvider>
+    </div>
   );
 }
