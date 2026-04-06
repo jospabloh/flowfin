@@ -38,6 +38,7 @@ export default function ScheduledPayments() {
   const [payAmount, setPayAmount] = useState('');
   const [payNotes, setPayNotes] = useState('');
   const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -81,14 +82,25 @@ export default function ScheduledPayments() {
 
   const unmarkPaidMutation = useMutation({
     mutationFn: async (scheduledPaymentId) => {
-      const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === scheduledPaymentId);
+      // Fetch fresh records to avoid stale closure
+      const freshRecords = await base44.entities.ScheduledPaymentRecord.filter({
+        family_id: familyId,
+        scheduled_payment_id: scheduledPaymentId,
+        month: CURRENT_MONTH,
+      });
+      const record = freshRecords?.[0];
       if (record) await base44.entities.ScheduledPaymentRecord.delete(record.id);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+    },
   });
 
   const handleMarkPaid = async () => {
-    if (!payingItem) return;
+    if (!payingItem || isSavingPayment) return;
+    setIsSavingPayment(true);
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
     const recordData = {
       scheduled_payment_id: payingItem.id,
@@ -99,6 +111,16 @@ export default function ScheduledPayments() {
       notes: payNotes,
       paid_by: currentUser?.full_name || currentUser?.email || 'Usuario',
     };
+
+    // Get primary person for this family to attach to the transaction
+    let primaryPersonId = payingItem.person_id || undefined;
+    if (!primaryPersonId) {
+      try {
+        const familyPersons = await base44.entities.Person.filter({ family_id: familyId });
+        primaryPersonId = familyPersons?.[0]?.id || undefined;
+      } catch (_) {}
+    }
+
     await registerPayment(
       () => base44.entities.ScheduledPaymentRecord.create(recordData),
       {
@@ -107,10 +129,13 @@ export default function ScheduledPayments() {
         description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
         category_id: payingItem.category_id || undefined,
         payment_method_id: payingItem.payment_method_id || undefined,
-        person_id: undefined,
+        person_id: primaryPersonId,
       }
     );
     queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+    setIsSavingPayment(false);
     setPayingItem(null);
     setPayAmount('');
     setPayNotes('');
@@ -212,9 +237,10 @@ export default function ScheduledPayments() {
                   isPaid ? (
                     <button
                       onClick={() => unmarkPaidMutation.mutate(item.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors touch-target"
+                      disabled={unmarkPaidMutation.isPending}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors touch-target disabled:opacity-60"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {unmarkPaidMutation.isPending ? 'Desmarcando...' : 'Desmarcar'}
                     </button>
                   ) : (
                     <button
@@ -288,9 +314,9 @@ export default function ScheduledPayments() {
                     placeholder="Número de referencia, observaciones..."
                     className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
-                <button onClick={handleMarkPaid}
-                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm active:scale-[0.98] transition-all">
-                  Confirmar pago
+                <button onClick={handleMarkPaid} disabled={isSavingPayment}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                  {isSavingPayment ? 'Guardando...' : 'Confirmar pago'}
                 </button>
               </div>
             </motion.div>

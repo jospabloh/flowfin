@@ -32,22 +32,27 @@ export function useRegisterPaymentWithTransaction() {
 
     const week = getWeekNumber(date);
 
-    // Fire both writes in parallel
-    await Promise.all([
-      primarySaveFn(),
-      base44.entities.Transaction.create({
+    // Always save the primary record first
+    const primaryResult = await primarySaveFn();
+
+    // Only create a Transaction if we have the required fields (category_id and person_id)
+    if (category_id && person_id) {
+      await base44.entities.Transaction.create({
         family_id: familyId,
         date,
         type,
         amount: parseFloat(amount) || 0,
         description: description || '',
-        category_id: category_id || undefined,
+        category_id,
         payment_method_id: payment_method_id || undefined,
-        person_id: person_id || undefined,
+        person_id,
         required_type: type === 'income' ? 'Otro' : 'Necesario',
         week,
-      }),
-    ]);
+        scheduled_payment_record_id: primaryResult?.id || undefined,
+      });
+    }
+
+    return primaryResult;
 
     // Invalidate transactions so Dashboard/Movimientos refresh
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
