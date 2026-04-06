@@ -144,11 +144,19 @@ export default function ScheduledPayments() {
       });
       const record = freshRecords?.[0];
       if (record) {
+        // Buscar y borrar la Transaction vinculada a este ScheduledPaymentRecord
+        const linkedTxs = await base44.entities.Transaction.filter({
+          scheduled_payment_record_id: record.id,
+        });
+        for (const tx of linkedTxs) {
+          await base44.entities.Transaction.delete(tx.id);
+        }
+
         await base44.entities.ScheduledPaymentRecord.delete(record.id);
         queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-        toast({ title: '↩️ Pago desmarcado', description: `"${item.name}" desmarcado correctamente.`, duration: 5000 });
+        toast({ title: '↩️ Pago desmarcado', description: `"${item.name}" desmarcado y egreso eliminado.`, duration: 5000 });
       } else {
         toast({ title: 'Sin registro', description: 'No se encontró el registro de pago para este mes.', variant: 'destructive', duration: 5000 });
       }
