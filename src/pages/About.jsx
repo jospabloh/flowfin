@@ -2,13 +2,24 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.4.0';
+const CURRENT_VERSION = '2.5.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.4.0',
+    version: '2.5.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Pagos Programados: interfaz mejorada con botones filtrados para seleccionar persona y método de pago (búsqueda en tiempo real)',
+      'Rentas: nuevo módulo completo para registrar cobros de propiedades con sincronización automática a Movimientos como ingreso',
+      'Rentas: bottom sheet para registro de pagos, campos de fecha, monto, persona que recibió y método de pago',
+      'Dashboard: banner de rentas pendientes que muestra propiedades sin cobro en mes actual o vencidas',
+    ],
+  },
+  {
+    version: '2.4.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Nuevo logotipo oficial de FlowFin actualizado en toda la aplicación: pantalla de carga, barra lateral, Manual de Usuario y sección Acerca de',
     ],

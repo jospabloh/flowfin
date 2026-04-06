@@ -106,15 +106,28 @@ El dashboard muestra los próximos vencimientos.`
   },
   {
     id: 'rentas', icon: '🏠', title: 'Rentas (cobro de propiedades)',
-    content: `Módulo para familias con propiedades en renta.
+    content: `Módulo completo para familias con propiedades en renta, con seguimiento automático y sincronización con Movimientos.
 
-Por cada propiedad puedes:
-• Registrar los datos del inquilino
-• Ver si el pago del mes actual ya fue cobrado
-• Registrar el cobro con fecha, monto y cuenta de depósito
-• Ver el historial de cobros
+Cómo funciona:
+1. Registra cada propiedad con nombre, inquilino, dirección, renta base y día de pago esperado.
+2. Cada mes, el dashboard muestra un banner si hay rentas pendientes (no cobradas o vencidas).
+3. Toca "Registrar cobro" → bottom sheet con campos para:
+   • Mes del cobro
+   • Monto cobrado (pre-cargado con la renta base)
+   • ¿Quién recibió el pago? (selector con personas de la familia)
+   • Método de pago (selector con formas de pago)
+   • Fecha del pago
+   • Notas opcionales
 
-El indicador verde/amarillo te dice de un vistazo qué propiedades ya pagaron este mes.`
+Sincronización automática:
+Al confirmar el cobro, se crea automáticamente un ingreso en Movimientos con la fecha, monto, persona, método de pago y descripción "🏠 Renta [propiedad]".
+
+Indicador de estado:
+• 🟢 Verde — El pago del mes actual ya fue registrado.
+• 🟡 Amarillo — Pendiente de cobro en el mes actual.
+
+Historial:
+Cada propiedad muestra los últimos 3 cobros registrados con mes, quién recibió y monto.`
   },
   {
     id: 'catalogos', icon: '📚', title: 'Catálogos y personalización',
@@ -243,8 +256,8 @@ Cómo funciona:
 4. En el formulario de confirmación completa:
    • Monto pagado (pre-cargado con el monto estimado)
    • Fecha de pago
-   • ¿Quién paga? — selector con las personas de la familia, pre-selecciona la primera persona registrada
-   • Con qué se pagó — selector de formas de pago, pre-selecciona la forma habitual del pago programado
+   • ¿Quién paga? — botones filtrados con personas de la familia (búsqueda en tiempo real), pre-selecciona la primera persona registrada
+   • Con qué se pagó — botones filtrados con formas de pago (búsqueda en tiempo real), pre-selecciona la forma habitual del pago programado
    • Notas opcionales
 5. Toca "Confirmar pago" — recibirás una notificación de éxito.
 6. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
@@ -260,6 +273,9 @@ Al marcar un pago como pagado, se crea automáticamente el egreso correspondient
 
 Desmarcar un pago:
 Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado. Esto elimina el registro del mes actual Y borra automáticamente el egreso correspondiente en Movimientos. Se mostrará una confirmación de éxito o error.
+
+Selectores mejorados:
+Los campos "¿Quién paga?" y "Con qué se pagó" ahora utilizan botones filtrados con búsqueda en tiempo real, permitiendo seleccionar opciones en un clic mientras escribes para filtrar. Exactamente igual que el flujo de captura de ingresos y egresos.
 
 Diferencia con Inversiones:
 Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
