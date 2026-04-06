@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Toast,
@@ -9,20 +9,29 @@ import {
   ToastViewport,
 } from "@/components/ui/toast";
 
-function ToastItem({ id, title, description, action, duration = 5000, dismiss, ...props }) {
+function ToastItem({ id, title, description, action, duration = 5000, onRemove, ...props }) {
+  const [visible, setVisible] = useState(true);
+
+  const close = () => {
+    setVisible(false);
+    setTimeout(() => onRemove(id), 300);
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => dismiss(id), duration);
+    const timer = setTimeout(close, duration);
     return () => clearTimeout(timer);
   }, [id, duration]);
 
+  if (!visible) return null;
+
   return (
-    <Toast key={id} {...props}>
+    <Toast {...props}>
       <div className="grid gap-1">
         {title && <ToastTitle>{title}</ToastTitle>}
         {description && <ToastDescription>{description}</ToastDescription>}
       </div>
       {action}
-      <ToastClose onClick={() => dismiss(id)} />
+      <ToastClose onClick={close} />
     </Toast>
   );
 }
@@ -32,7 +41,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(({ id, title, description, action, duration, ...props }) => (
+      {toasts.map(({ id, title, description, action, duration, open, ...props }) => (
         <ToastItem
           key={id}
           id={id}
@@ -40,7 +49,7 @@ export function Toaster() {
           description={description}
           action={action}
           duration={duration}
-          dismiss={dismiss}
+          onRemove={dismiss}
           {...props}
         />
       ))}
