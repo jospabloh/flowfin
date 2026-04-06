@@ -243,8 +243,8 @@ Cómo funciona:
 4. En el formulario de confirmación completa:
    • Monto pagado (pre-cargado con el monto estimado)
    • Fecha de pago
-   • ¿Quién paga? (pre-cargado con tu nombre de usuario)
-   • Con qué se pagó (pre-selecciona la forma de pago habitual del pago; puedes cambiarla)
+   • ¿Quién paga? — selector con las personas de la familia, pre-selecciona la primera persona registrada
+   • Con qué se pagó — selector de formas de pago, pre-selecciona la forma habitual del pago programado
    • Notas opcionales
 5. Toca "Confirmar pago" — recibirás una notificación de éxito.
 6. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.

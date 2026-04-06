@@ -27,7 +27,7 @@ function statusColor(dueDay) {
 
 export default function ScheduledPayments() {
   const { familyId, isAdmin, currentUser } = useFamily();
-  const { categories, paymentMethods } = useCatalog(familyId);
+  const { categories, paymentMethods, persons } = useCatalog(familyId);
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
   const { toast } = useToast();
@@ -38,7 +38,7 @@ export default function ScheduledPayments() {
   const [payAmount, setPayAmount] = useState('');
   const [payNotes, setPayNotes] = useState('');
   const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
-  const [payPaidBy, setPayPaidBy] = useState('');
+  const [payPersonId, setPayPersonId] = useState('');
   const [payPaymentMethodId, setPayPaymentMethodId] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
@@ -82,6 +82,13 @@ export default function ScheduledPayments() {
     setIsSavingPayment(true);
 
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
+    // Resolve person_id: use selected person or fallback
+    let primaryPersonId = payPersonId || payingItem.person_id || undefined;
+    if (!primaryPersonId && persons.length > 0) {
+      primaryPersonId = persons[0].id;
+    }
+
+    const selectedPerson = persons.find(p => p.id === primaryPersonId);
     const recordData = {
       scheduled_payment_id: payingItem.id,
       family_id: familyId,
@@ -89,17 +96,8 @@ export default function ScheduledPayments() {
       paid_date: payDate,
       amount_paid: amount,
       notes: payNotes,
-      paid_by: payPaidBy.trim() || currentUser?.full_name || currentUser?.email || 'Usuario',
+      paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario',
     };
-
-    // Resolve person_id
-    let primaryPersonId = payingItem.person_id || undefined;
-    if (!primaryPersonId) {
-      try {
-        const familyPersons = await base44.entities.Person.filter({ family_id: familyId });
-        primaryPersonId = familyPersons?.[0]?.id || undefined;
-      } catch (_) {}
-    }
 
     try {
       await registerPayment(
@@ -120,7 +118,7 @@ export default function ScheduledPayments() {
       setPayingItem(null);
       setPayAmount('');
       setPayNotes('');
-      setPayPaidBy('');
+      setPayPersonId('');
       setPayPaymentMethodId('');
       setPayDate(TODAY.toISOString().split('T')[0]);
     } catch (error) {
@@ -270,7 +268,7 @@ export default function ScheduledPayments() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); }}
+                      onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
                       className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] min-w-[44px] active:opacity-80 transition-opacity"
                     >
                       <Circle className="w-3.5 h-3.5" /> Marcar como pagado
@@ -346,11 +344,12 @@ export default function ScheduledPayments() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">¿Quién paga?</p>
-                  <input
-                    type="text" value={payPaidBy}
-                    onChange={e => setPayPaidBy(e.target.value)}
-                    placeholder={currentUser?.full_name || currentUser?.email || 'Nombre de quien paga'}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  <NativeSelect
+                    value={payPersonId}
+                    onChange={e => setPayPersonId(e.target.value)}
+                    placeholder="Seleccionar persona"
+                    options={[{ value: '', label: 'Sin especificar' }, ...persons.map(p => ({ value: p.id, label: p.name }))]}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
                   />
                 </div>
                 <div>

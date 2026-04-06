@@ -2,13 +2,24 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.0.0';
+const CURRENT_VERSION = '2.1.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.0.0',
+    version: '2.1.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Pagos Programados: campo "¿Quién paga?" ahora muestra selector con las personas de la familia (igual que en captura de gastos/ingresos)',
+      'Pagos Programados: se pre-selecciona automáticamente la primera persona de la familia al abrir el formulario de confirmación',
+      'Toasts: el botón X para cerrar notificaciones ahora es siempre visible en móvil (antes solo aparecía al pasar el cursor)',
+      'Consistencia UI: los selectores de personas y métodos de pago en Pagos Programados son idénticos a los de la pantalla de captura',
+    ],
+  },
+  {
+    version: '2.0.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Rebrand oficial: la aplicación ahora se llama FlowFin en toda la interfaz, documentación y pantallas de carga',
       'Actualización de nombre en título del navegador, pantallas de carga, Manual de Usuario y sección Acerca de',
