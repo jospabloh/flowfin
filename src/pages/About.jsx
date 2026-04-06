@@ -6,9 +6,19 @@ const CURRENT_VERSION = '2.3.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.2.0',
+    version: '2.3.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Corrección de nombre: el archivo Excel de movimientos ahora se descarga como "FlowFin_YYYY-MM-DD.xlsx" (antes decía FamilyFlow)',
+      'Corrección de nombre: los reportes compartidos o descargados como PDF y PNG ahora usan el nombre FlowFin en lugar de FamilyFlow',
+      'Consistencia de marca: todas las referencias a FamilyFlow en archivos exportados han sido reemplazadas por FlowFin',
+    ],
+  },
+  {
+    version: '2.2.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Pagos Programados: al desmarcar un pago, ahora se elimina también el egreso vinculado en Movimientos (antes quedaba huérfano)',
       'Pagos Programados: corregido bug donde al desmarcar y volver a marcar se creaba un egreso duplicado',
