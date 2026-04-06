@@ -321,7 +321,7 @@ export default function ScheduledPayments() {
                 </button>
               </div>
               <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Monto pagado</p>
                   <input
