@@ -2,13 +2,26 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.7.0';
+const CURRENT_VERSION = '1.8.0';
 
 const VERSION_HISTORY = [
   {
+    version: '1.8.0',
+    date: '2026-04-06',
+    label: 'Actual',
+    changes: [
+      'Pagos Programados: retroalimentación inmediata con notificaciones de éxito y error al marcar o desmarcar un pago',
+      'Pagos Programados: manejo correcto de errores con try/catch — el spinner desaparece siempre aunque falle la operación',
+      'Pagos Programados: botones con área de toque mínima de 44×44px para mejor accesibilidad en iOS y Android',
+      'Pagos Programados: soporte correcto de safe-area-inset-bottom para que el botón "Confirmar pago" no quede oculto bajo el home indicator en iPhone',
+      'Pagos Programados: indicador de carga animado (spinner) en botones "Marcar como pagado" y "Desmarcar" durante el procesamiento',
+      'Sincronización de movimientos: invalidación de caché garantizada después de cada operación de pago',
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-04-04',
-    label: 'Actual',
+    label: '',
     changes: [
       'Corrección de permisos familiares: todos los miembros de la familia pueden ver, crear y editar inversiones, MSI, rentas y pagos programados sin importar quién los registró',
       'Corrección de dashboard para miembros no-administradores: los banners de pagos pendientes (inversiones, MSI, rentas) ahora muestran información correcta para todos los integrantes',

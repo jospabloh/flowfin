@@ -239,12 +239,21 @@ Nota: El presupuesto es una sugerencia basada en datos históricos. No modifica 
 Cómo funciona:
 1. Registra el pago con nombre, monto estimado, día de vencimiento, categoría e ícono.
 2. Cada mes el sistema muestra cuáles pagos ya fueron pagados y cuáles están pendientes.
-3. Toca "Marcar como pagado" para registrar el pago del mes actual.
-4. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
+3. Toca "Marcar como pagado" → ingresa el monto real y la fecha → toca "Confirmar pago".
+4. Recibirás una notificación de confirmación cuando el pago se registre correctamente.
+5. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
 
-Estados:
-• Pendiente — El pago aún no se ha registrado para este mes.
-• Pagado ✓ — Ya fue registrado con fecha y monto real.
+Estados y semáforo de colores:
+• 🟢 Verde — Al corriente (vence en más de 3 días).
+• 🟡 Amarillo "Vence pronto" — Vence en los próximos 3 días.
+• 🔴 Rojo "Vencido" — El día de vencimiento ya pasó y no se ha pagado.
+• ✓ Pagado — Ya fue registrado con fecha y monto real este mes.
+
+Sincronización automática:
+Al marcar un pago como pagado, se crea automáticamente el egreso correspondiente en el registro general de Movimientos. Si el pago tiene categoría y persona asignada, el movimiento queda completo de inmediato.
+
+Desmarcar un pago:
+Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado para eliminarlo del mes actual. También se mostrará una confirmación de éxito o error.
 
 Diferencia con Inversiones:
 Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
