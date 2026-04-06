@@ -134,7 +134,7 @@ export default function Transactions() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
-    XLSX.writeFile(wb, `FamilyFlow_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `FlowFin_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;

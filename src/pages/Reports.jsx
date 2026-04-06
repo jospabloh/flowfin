@@ -136,9 +136,9 @@ export default function Reports() {
       const blob = pdf.output('blob');
       const canShareFiles = navigator.canShare && navigator.canShare({ files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
       if (canShareFiles) {
-        await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
+        await navigator.share({ title: 'Reporte FlowFin', files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] });
       } else {
-        pdf.save('reporte_familyflow.pdf');
+        pdf.save('reporte_flowfin.pdf');
       }
     } finally {
       setSharing(false);
@@ -154,11 +154,11 @@ export default function Reports() {
         canvas.toBlob(async (blob) => {
           const canShareFiles = navigator.canShare && navigator.canShare({ files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
           if (canShareFiles) {
-            await navigator.share({ title: 'Reporte FamilyFlow', files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
+            await navigator.share({ title: 'Reporte FlowFin', files: [new File([blob], 'reporte.png', { type: 'image/png' })] });
           } else {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'reporte_familyflow.png';
+            a.download = 'reporte_flowfin.png';
             a.click();
           }
           resolve();
