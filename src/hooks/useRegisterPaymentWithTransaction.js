@@ -1,18 +1,27 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { getWeekNumber } from '@/lib/categoryMatcher';
+
+function getWeekNumber(dateStr) {
+  try {
+    const date = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  } catch {
+    return 1;
+  }
+}
 
 /**
- * Returns a helper that fires TWO parallel writes:
- *   1. The entity-specific save (e.g. InvestmentPayment, MSIPayment, ScheduledPaymentRecord)
- *   2. A Transaction record (expense) so the payment appears in Movimientos
- *
+ * Saves the primary record AND a matching Transaction entry so it appears in Movimientos.
  * Usage:
  *   const registerPayment = useRegisterPaymentWithTransaction();
  *   await registerPayment(
- *     () => base44.entities.InvestmentPayment.create(data),   // primary save fn
- *     { amount, date, description, category_id, payment_method_id, person_id }  // tx fields
+ *     () => base44.entities.ScheduledPaymentRecord.create(data),
+ *     { amount, date, description, category_id, payment_method_id, person_id }
  *   );
  */
 export function useRegisterPaymentWithTransaction() {
@@ -30,13 +39,12 @@ export function useRegisterPaymentWithTransaction() {
       type = 'expense',
     } = txFields;
 
-    const week = getWeekNumber(date);
-
-    // Always save the primary record first
+    // 1. Always save the primary record first
     const primaryResult = await primarySaveFn();
 
-    // Only create a Transaction if we have the required fields (category_id and person_id)
+    // 2. Create a Transaction only if required fields are present
     if (category_id && person_id) {
+      const week = getWeekNumber(date);
       await base44.entities.Transaction.create({
         family_id: familyId,
         date,
@@ -52,10 +60,10 @@ export function useRegisterPaymentWithTransaction() {
       });
     }
 
-    return primaryResult;
-
-    // Invalidate transactions so Dashboard/Movimientos refresh
+    // 3. Refresh relevant queries so Dashboard/Movimientos update
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
     queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+
+    return primaryResult;
   };
 }
