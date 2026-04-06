@@ -38,6 +38,7 @@ export default function ScheduledPayments() {
   const [payAmount, setPayAmount] = useState('');
   const [payNotes, setPayNotes] = useState('');
   const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
+  const [payPaidBy, setPayPaidBy] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
 
@@ -87,7 +88,7 @@ export default function ScheduledPayments() {
       paid_date: payDate,
       amount_paid: amount,
       notes: payNotes,
-      paid_by: currentUser?.full_name || currentUser?.email || 'Usuario',
+      paid_by: payPaidBy.trim() || currentUser?.full_name || currentUser?.email || 'Usuario',
     };
 
     // Resolve person_id
@@ -114,16 +115,18 @@ export default function ScheduledPayments() {
       queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-      toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.` });
+      toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.`, duration: 5000 });
       setPayingItem(null);
       setPayAmount('');
       setPayNotes('');
+      setPayPaidBy('');
       setPayDate(TODAY.toISOString().split('T')[0]);
     } catch (error) {
       toast({
         title: 'Error al registrar pago',
         description: error?.message || 'Ocurrió un error. Intenta de nuevo.',
         variant: 'destructive',
+        duration: 5000,
       });
     } finally {
       setIsSavingPayment(false);
@@ -145,9 +148,9 @@ export default function ScheduledPayments() {
         queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-        toast({ title: '↩️ Pago desmarcado', description: `"${item.name}" desmarcado correctamente.` });
+        toast({ title: '↩️ Pago desmarcado', description: `"${item.name}" desmarcado correctamente.`, duration: 5000 });
       } else {
-        toast({ title: 'Sin registro', description: 'No se encontró el registro de pago para este mes.', variant: 'destructive' });
+        toast({ title: 'Sin registro', description: 'No se encontró el registro de pago para este mes.', variant: 'destructive', duration: 5000 });
       }
     } catch (error) {
       toast({
@@ -336,6 +339,15 @@ export default function ScheduledPayments() {
                   <input
                     type="date" value={payDate}
                     onChange={e => setPayDate(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">¿Quién paga?</p>
+                  <input
+                    type="text" value={payPaidBy}
+                    onChange={e => setPayPaidBy(e.target.value)}
+                    placeholder={currentUser?.full_name || currentUser?.email || 'Nombre de quien paga'}
                     className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
