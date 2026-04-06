@@ -39,6 +39,7 @@ export default function ScheduledPayments() {
   const [payNotes, setPayNotes] = useState('');
   const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
   const [payPaidBy, setPayPaidBy] = useState('');
+  const [payPaymentMethodId, setPayPaymentMethodId] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
 
@@ -108,7 +109,7 @@ export default function ScheduledPayments() {
           date: payDate,
           description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
           category_id: payingItem.category_id || undefined,
-          payment_method_id: payingItem.payment_method_id || undefined,
+          payment_method_id: payPaymentMethodId || payingItem.payment_method_id || undefined,
           person_id: primaryPersonId,
         }
       );
@@ -120,6 +121,7 @@ export default function ScheduledPayments() {
       setPayAmount('');
       setPayNotes('');
       setPayPaidBy('');
+      setPayPaymentMethodId('');
       setPayDate(TODAY.toISOString().split('T')[0]);
     } catch (error) {
       toast({
@@ -268,7 +270,7 @@ export default function ScheduledPayments() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); }}
+                      onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); }}
                       className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] min-w-[44px] active:opacity-80 transition-opacity"
                     >
                       <Circle className="w-3.5 h-3.5" /> Marcar como pagado
@@ -349,6 +351,16 @@ export default function ScheduledPayments() {
                     onChange={e => setPayPaidBy(e.target.value)}
                     placeholder={currentUser?.full_name || currentUser?.email || 'Nombre de quien paga'}
                     className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Con qué se pagó</p>
+                  <NativeSelect
+                    value={payPaymentMethodId}
+                    onChange={e => setPayPaymentMethodId(e.target.value)}
+                    placeholder={payingItem?.payment_method_id ? (paymentMethods.find(m => m.id === payingItem.payment_method_id)?.name || 'Sin especificar') : 'Sin especificar'}
+                    options={[{ value: '', label: 'Sin especificar' }, ...paymentMethods.map(m => ({ value: m.id, label: m.name }))]}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
                   />
                 </div>
                 <div>
