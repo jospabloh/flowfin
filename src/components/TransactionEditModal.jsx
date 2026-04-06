@@ -225,8 +225,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
             </button>
           )}
 
-          {/* Save — extra bottom padding so it clears the safe area */}
-          <div className="pb-4">
+          {/* Save — extra bottom padding so it clears the safe area + nav bar */}
+          <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
             <button onClick={handleSave} disabled={saving || !form.amount}
               className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
               {saving ? 'Guardando...' : 'Guardar cambios'}

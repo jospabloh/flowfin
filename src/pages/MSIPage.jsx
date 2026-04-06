@@ -358,8 +358,8 @@ export default function MSIPage() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowForm(false)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5 pb-4"
-              style={sheetStyle}>
+              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5"
+              style={{ ...sheetStyle, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-foreground">Nuevo MSI</h3>
                 <button onClick={() => setShowForm(false)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
