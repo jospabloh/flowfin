@@ -2,13 +2,24 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.8.0';
+const CURRENT_VERSION = '1.9.0';
 
 const VERSION_HISTORY = [
   {
-    version: '1.8.0',
+    version: '1.9.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Pagos Programados: nuevo campo "Con qué se pagó" al confirmar un pago — pre-selecciona la forma de pago habitual del pago programado y permite cambiarla al momento de confirmar',
+      'Pagos Programados: nuevo campo "¿Quién paga?" al confirmar — muestra el nombre del usuario actual como sugerencia y permite editarlo',
+      'Pagos Programados: los toasts de confirmación y error ahora se cierran automáticamente en 5 segundos o manualmente con el botón X',
+      'Corrección de toaster: el botón X en las notificaciones ahora funciona correctamente en toda la app',
+    ],
+  },
+  {
+    version: '1.8.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Pagos Programados: retroalimentación inmediata con notificaciones de éxito y error al marcar o desmarcar un pago',
       'Pagos Programados: manejo correcto de errores con try/catch — el spinner desaparece siempre aunque falle la operación',

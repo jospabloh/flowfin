@@ -237,11 +237,17 @@ Nota: El presupuesto es una sugerencia basada en datos históricos. No modifica 
     content: `Módulo para registrar y hacer seguimiento de todos tus pagos fijos mensuales: luz, agua, internet, colegiatura, suscripciones, etc.
 
 Cómo funciona:
-1. Registra el pago con nombre, monto estimado, día de vencimiento, categoría e ícono.
+1. Registra el pago con nombre, monto estimado, día de vencimiento, categoría, forma de pago habitual e ícono.
 2. Cada mes el sistema muestra cuáles pagos ya fueron pagados y cuáles están pendientes.
-3. Toca "Marcar como pagado" → ingresa el monto real y la fecha → toca "Confirmar pago".
-4. Recibirás una notificación de confirmación cuando el pago se registre correctamente.
-5. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
+3. Toca "Marcar como pagado" → se abre el formulario de confirmación.
+4. En el formulario de confirmación completa:
+   • Monto pagado (pre-cargado con el monto estimado)
+   • Fecha de pago
+   • ¿Quién paga? (pre-cargado con tu nombre de usuario)
+   • Con qué se pagó (pre-selecciona la forma de pago habitual del pago; puedes cambiarla)
+   • Notas opcionales
+5. Toca "Confirmar pago" — recibirás una notificación de éxito.
+6. El dashboard muestra un aviso 🔔 si hay pagos programados pendientes en el mes actual.
 
 Estados y semáforo de colores:
 • 🟢 Verde — Al corriente (vence en más de 3 días).
@@ -250,10 +256,10 @@ Estados y semáforo de colores:
 • ✓ Pagado — Ya fue registrado con fecha y monto real este mes.
 
 Sincronización automática:
-Al marcar un pago como pagado, se crea automáticamente el egreso correspondiente en el registro general de Movimientos. Si el pago tiene categoría y persona asignada, el movimiento queda completo de inmediato.
+Al marcar un pago como pagado, se crea automáticamente el egreso correspondiente en el registro general de Movimientos, incluyendo la forma de pago seleccionada al momento de confirmar.
 
 Desmarcar un pago:
-Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado para eliminarlo del mes actual. También se mostrará una confirmación de éxito o error.
+Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado para eliminarlo del mes actual. Se mostrará una confirmación de éxito o error.
 
 Diferencia con Inversiones:
 Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
