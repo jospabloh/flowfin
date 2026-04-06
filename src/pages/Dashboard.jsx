@@ -66,10 +66,16 @@ export default function Dashboard() {
   }, [scheduledPayments, scheduledRecords, CURRENT_MONTH]);
 
   const pendingRentals = useMemo(() => {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
     return rentalProperties.filter(prop => {
       if (prop.is_active === false) return false;
       const paidThisMonth = rentalPayments.some(p => p.property_id === prop.id && p.month === CURRENT_MONTH && p.is_paid);
-      return !paidThisMonth;
+      if (paidThisMonth) return false;
+      // Mostrar si está vencido o vence en próximos 3 días
+      const payDay = prop.payment_day || 1;
+      const diff = payDay - dayOfMonth;
+      return diff <= 0 || diff <= 3;
     });
   }, [rentalProperties, rentalPayments, CURRENT_MONTH]);
 

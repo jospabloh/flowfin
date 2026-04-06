@@ -1,27 +1,32 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, X, Building } from 'lucide-react';
+import { Plus, X, Loader2, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
+import NativeSelect from '@/components/NativeSelect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+import { useCatalog } from '@/hooks/useCatalog';
 
 export default function Rentals() {
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, currentUser } = useFamily();
+  const { categories, paymentMethods, persons } = useCatalog(familyId);
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
+  const sheetStyle = useBottomSheetStyle(0.90);
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [showPayForm, setShowPayForm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
-  const [payForm, setPayForm] = useState({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
+  const [payForm, setPayForm] = useState({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', payment_method_id: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
 
   const { data: properties = [], isLoading } = useQuery({ queryKey: ['rentalProperties', familyId], queryFn: () => base44.entities.RentalProperty.filter({ family_id: familyId }, 'name'), enabled: !!familyId });
   const { data: payments = [] } = useQuery({ queryKey: ['rentalPayments'], queryFn: () => base44.entities.RentalPayment.list('-month') });
@@ -75,51 +80,60 @@ export default function Rentals() {
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
-    const payData = { ...payForm, property_id: selected.id, amount: +payForm.amount, is_paid: true };
-    await registerPayment(
-      () => base44.entities.RentalPayment.create(payData),
-      {
-        type: 'income',
-        amount: +payForm.amount,
-        date: payForm.date_paid,
-        description: `🏠 Renta ${selected.name}${payForm.paid_by ? ` · ${payForm.paid_by}` : ''} (${payForm.month})`,
-        category_id: undefined,
-        payment_method_id: undefined,
-        person_id: undefined,
-      }
-    );
-    queryClient.invalidateQueries({ queryKey: ['rentalPayments'] });
-    setShowPayForm(false);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-    setPayForm({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', deposit_account: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
+    setIsSavingPayment(true);
+
+    const amount = parseFloat(payForm.amount) || selected.base_rent || 0;
+    const selectedPerson = persons.find(p => p.id === (payForm.paid_by || persons[0]?.id));
+    const payData = {
+      property_id: selected.id,
+      month: payForm.month,
+      amount,
+      paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario',
+      payment_method_id: payForm.payment_method_id || undefined,
+      date_paid: payForm.date_paid,
+      notes: payForm.notes || undefined,
+      is_paid: true
+    };
+
+    try {
+      await registerPayment(
+        () => base44.entities.RentalPayment.create(payData),
+        {
+          type: 'income',
+          amount,
+          date: payForm.date_paid,
+          description: `🏠 Renta ${selected.name}${payData.paid_by ? ` · ${payData.paid_by}` : ''} (${payForm.month})`,
+          category_id: undefined,
+          payment_method_id: payData.payment_method_id || undefined,
+          person_id: payForm.paid_by || persons[0]?.id || undefined,
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ['rentalPayments'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+
+      toast({
+        title: '✅ Cobro registrado',
+        description: `${selected.name} · ${payForm.month}`,
+        duration: 5000,
+      });
+
+      setShowPayForm(false);
+      setPayForm({ amount: '', month: new Date().toISOString().slice(0,7), paid_by: '', payment_method_id: '', date_paid: new Date().toISOString().slice(0,10), notes: '' });
+    } catch (error) {
+      toast({
+        title: 'Error al registrar cobro',
+        description: error?.message || 'Intenta de nuevo.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setIsSavingPayment(false);
+    }
   };
 
   return (
-    <div className="pb-4">
-      {/* Modal de éxito */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center">
-                  <span className="text-lg">✓</span>
-                </div>
-                <h3 className="font-semibold text-foreground">Guardado ✓</h3>
-              </div>
-              <button
-                onClick={() => setShowSuccess(false)}
-                className="p-1 hover:bg-muted rounded-lg transition-colors"
-                aria-label="Cerrar"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground">El registro se ha guardado correctamente.</p>
-          </div>
-        </div>
-      )}
+    <div className="pb-24">
 
       <PageHeader title="Rentas" subtitle="Cobro de propiedades"
         action={
@@ -176,27 +190,82 @@ export default function Rentals() {
         </div>
       )}
 
-      {/* Pay form */}
+      {/* Pay form — Bottom sheet */}
       <AnimatePresence>
         {showPayForm && selected && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowPayForm(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[51] bg-card rounded-2xl border border-border p-5 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-foreground">Cobro: {selected.name}</h3>
-                <button onClick={() => setShowPayForm(false)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => { if (!isSavingPayment) setShowPayForm(false); }} />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
+              style={sheetStyle}
+            >
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
+                <p className="text-sm font-bold text-foreground">Registrar cobro: {selected.name}</p>
+                <button
+                  onClick={() => { if (!isSavingPayment) setShowPayForm(false); }}
+                  className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
               </div>
-              <div className="space-y-3">
-                <input type="month" value={payForm.month} onChange={e => setPayForm(p => ({...p, month: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input type="number" placeholder="Monto cobrado" value={payForm.amount} onChange={e => setPayForm(p => ({...p, amount: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input placeholder="Quien pagó" value={payForm.paid_by} onChange={e => setPayForm(p => ({...p, paid_by: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input placeholder="Depositado en" value={payForm.deposit_account} onChange={e => setPayForm(p => ({...p, deposit_account: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input type="date" value={payForm.date_paid} onChange={e => setPayForm(p => ({...p, date_paid: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button onClick={() => setShowPayForm(false)} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">Cancelar</button>
-                <button onClick={handlePayment} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold">Guardar</button>
+              <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Mes</p>
+                  <input type="month" value={payForm.month} onChange={e => setPayForm(p => ({...p, month: e.target.value}))}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Monto cobrado</p>
+                  <input type="number" placeholder={String(selected.base_rent)} value={payForm.amount} onChange={e => setPayForm(p => ({...p, amount: e.target.value}))}
+                    inputMode="decimal"
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">¿Quién recibió el pago?</p>
+                  <NativeSelect
+                    value={payForm.paid_by}
+                    onChange={e => setPayForm(p => ({...p, paid_by: e.target.value}))}
+                    placeholder="Seleccionar"
+                    options={[{ value: '', label: 'Sin especificar' }, ...persons.map(p => ({ value: p.id, label: p.name }))]}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Método de pago</p>
+                  <NativeSelect
+                    value={payForm.payment_method_id}
+                    onChange={e => setPayForm(p => ({...p, payment_method_id: e.target.value}))}
+                    placeholder="Sin especificar"
+                    options={[{ value: '', label: 'Sin especificar' }, ...paymentMethods.map(m => ({ value: m.id, label: m.name }))]}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Fecha del pago</p>
+                  <input type="date" value={payForm.date_paid} onChange={e => setPayForm(p => ({...p, date_paid: e.target.value}))}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Notas (opcional)</p>
+                  <input placeholder="Referencia, observaciones..." value={payForm.notes} onChange={e => setPayForm(p => ({...p, notes: e.target.value}))}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                </div>
+                <button
+                  onClick={handlePayment}
+                  disabled={isSavingPayment}
+                  className="w-full py-3.5 bg-income text-white rounded-xl font-bold text-sm shadow-sm active:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[52px]"
+                >
+                  {isSavingPayment
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                    : <><Check className="w-4 h-4" /> Confirmar cobro</>
+                  }
+                </button>
               </div>
             </motion.div>
           </>
@@ -209,23 +278,24 @@ export default function Rentals() {
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowForm(false)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-              <div className="flex items-center justify-between mb-4">
+              className="fixed bottom-0 left-0 right-0 z-[51] bg-card rounded-t-3xl border-t border-border p-5 flex flex-col"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)', maxHeight: '90vh' }}>
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-3 flex-shrink-0" />
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <h3 className="font-bold text-foreground">Nueva Propiedad</h3>
-                <button onClick={() => setShowForm(false)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
+                <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"><X className="w-4 h-4" /></button>
               </div>
-              <div className="space-y-3">
-                <input placeholder="Nombre (ej: DEPAS TOCHE)" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input placeholder="Inquilino" value={form.tenant_name} onChange={e => setForm(f => ({...f, tenant_name: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                <input placeholder="Dirección" value={form.address} onChange={e => setForm(f => ({...f, address: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+              <div className="overflow-y-auto overscroll-none hide-scrollbar flex-1 space-y-3 mb-4">
+                <input placeholder="Nombre (ej: DEPAS TOCHE)" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <input placeholder="Inquilino" value={form.tenant_name} onChange={e => setForm(f => ({...f, tenant_name: e.target.value}))} className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <input placeholder="Dirección" value={form.address} onChange={e => setForm(f => ({...f, address: e.target.value}))} className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" placeholder="Renta base" value={form.base_rent} onChange={e => setForm(f => ({...f, base_rent: e.target.value}))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
-                  <input type="number" placeholder="Día de pago" value={form.payment_day} onChange={e => setForm(f => ({...f, payment_day: e.target.value}))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+                  <input type="number" placeholder="Renta base" value={form.base_rent} onChange={e => setForm(f => ({...f, base_rent: e.target.value}))} inputMode="decimal" className="bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input type="number" placeholder="Día de pago" value={form.payment_day} onChange={e => setForm(f => ({...f, payment_day: e.target.value}))} min="1" max="28" className="bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
-                <input placeholder="Notas" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+                <input placeholder="Notas" value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))} className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
-              <button onClick={handleCreate} className="w-full mt-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm">Crear Propiedad</button>
+              <button onClick={handleCreate} disabled={!form.name || !form.base_rent} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm disabled:opacity-50 active:opacity-80 min-h-[48px]">Crear Propiedad</button>
             </motion.div>
           </>
         )}
