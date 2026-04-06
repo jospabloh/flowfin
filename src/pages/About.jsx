@@ -2,13 +2,21 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.3.0';
+const CURRENT_VERSION = '2.4.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.3.0',
+    version: '2.4.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Nuevo logotipo oficial de FlowFin actualizado en toda la aplicación: pantalla de carga, barra lateral, Manual de Usuario y sección Acerca de',
+    ],
+  },
+  {
+    version: '2.3.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Corrección de nombre: el archivo Excel de movimientos ahora se descarga como "FlowFin_YYYY-MM-DD.xlsx" (antes decía FamilyFlow)',
       'Corrección de nombre: los reportes compartidos o descargados como PDF y PNG ahora usan el nombre FlowFin en lugar de FamilyFlow',
