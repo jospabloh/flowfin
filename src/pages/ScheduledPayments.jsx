@@ -9,6 +9,7 @@ import AmountDisplay from '@/components/AmountDisplay';
 import { Plus, Pencil, Trash2, CheckCircle2, Circle, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+import SearchableButtonSelect from '@/components/SearchableButtonSelect';
 import NativeSelect from '@/components/NativeSelect';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -350,26 +351,20 @@ export default function ScheduledPayments() {
                     className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">¿Quién paga?</p>
-                  <NativeSelect
-                    value={payPersonId}
-                    onChange={e => setPayPersonId(e.target.value)}
-                    placeholder="Seleccionar persona"
-                    options={[{ value: '', label: 'Sin especificar' }, ...persons.map(p => ({ value: p.id, label: p.name }))]}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
-                  />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Con qué se pagó</p>
-                  <NativeSelect
-                    value={payPaymentMethodId}
-                    onChange={e => setPayPaymentMethodId(e.target.value)}
-                    placeholder={payingItem?.payment_method_id ? (paymentMethods.find(m => m.id === payingItem.payment_method_id)?.name || 'Sin especificar') : 'Sin especificar'}
-                    options={[{ value: '', label: 'Sin especificar' }, ...paymentMethods.map(m => ({ value: m.id, label: m.name }))]}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm"
-                  />
-                </div>
+                <SearchableButtonSelect
+                  value={payPersonId}
+                  onChange={e => setPayPersonId(e.target.value)}
+                  options={persons.map(p => ({ id: p.id, label: p.name }))}
+                  placeholder="Buscar persona..."
+                  label="¿Quién paga?"
+                />
+                <SearchableButtonSelect
+                  value={payPaymentMethodId}
+                  onChange={e => setPayPaymentMethodId(e.target.value)}
+                  options={paymentMethods.map(m => ({ id: m.id, label: m.name }))}
+                  placeholder="Buscar forma de pago..."
+                  label="Con qué se pagó"
+                />
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Notas (opcional)</p>
                   <input

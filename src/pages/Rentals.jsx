@@ -73,8 +73,6 @@ export default function Rentals() {
       is_active: true 
     });
     setShowForm(false);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
     setForm({ name: '', address: '', tenant_name: '', base_rent: '', payment_day: '1', notes: '' });
   };
 
