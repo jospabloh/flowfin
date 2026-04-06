@@ -6,12 +6,11 @@ import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
-import { Plus, Pencil, Trash2, CheckCircle2, Circle, X, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, CheckCircle2, Circle, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import NativeSelect from '@/components/NativeSelect';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+import NativeSelect from '@/components/NativeSelect';
+import { useToast } from '@/components/ui/use-toast';
 
 const ICONS = ['💰','💡','📱','🏠','🚗','🎓','🏥','💧','🌐','📺','🎮','🛒','✈️','💳','🏋️'];
 
@@ -31,6 +30,7 @@ export default function ScheduledPayments() {
   const { categories, paymentMethods } = useCatalog(familyId);
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
+  const { toast } = useToast();
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -39,6 +39,7 @@ export default function ScheduledPayments() {
   const [payNotes, setPayNotes] = useState('');
   const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
   const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [unmarkingId, setUnmarkingId] = useState(null);
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -52,7 +53,6 @@ export default function ScheduledPayments() {
     enabled: !!familyId,
   });
 
-  // Which payments are already paid this month
   const paidThisMonth = useMemo(() =>
     new Set(records.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id)),
     [records]
@@ -75,32 +75,10 @@ export default function ScheduledPayments() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: (data) => base44.entities.ScheduledPaymentRecord.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] }),
-  });
-
-  const unmarkPaidMutation = useMutation({
-    mutationFn: async (scheduledPaymentId) => {
-      // Fetch fresh records to avoid stale closure
-      const freshRecords = await base44.entities.ScheduledPaymentRecord.filter({
-        family_id: familyId,
-        scheduled_payment_id: scheduledPaymentId,
-        month: CURRENT_MONTH,
-      });
-      const record = freshRecords?.[0];
-      if (record) await base44.entities.ScheduledPaymentRecord.delete(record.id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-    },
-  });
-
   const handleMarkPaid = async () => {
     if (!payingItem || isSavingPayment) return;
     setIsSavingPayment(true);
+
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
     const recordData = {
       scheduled_payment_id: payingItem.id,
@@ -112,7 +90,7 @@ export default function ScheduledPayments() {
       paid_by: currentUser?.full_name || currentUser?.email || 'Usuario',
     };
 
-    // Get primary person for this family to attach to the transaction
+    // Resolve person_id
     let primaryPersonId = payingItem.person_id || undefined;
     if (!primaryPersonId) {
       try {
@@ -121,33 +99,72 @@ export default function ScheduledPayments() {
       } catch (_) {}
     }
 
-    await registerPayment(
-      () => base44.entities.ScheduledPaymentRecord.create(recordData),
-      {
-        amount,
-        date: payDate,
-        description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
-        category_id: payingItem.category_id || undefined,
-        payment_method_id: payingItem.payment_method_id || undefined,
-        person_id: primaryPersonId,
+    try {
+      await registerPayment(
+        () => base44.entities.ScheduledPaymentRecord.create(recordData),
+        {
+          amount,
+          date: payDate,
+          description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
+          category_id: payingItem.category_id || undefined,
+          payment_method_id: payingItem.payment_method_id || undefined,
+          person_id: primaryPersonId,
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+      toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.` });
+      setPayingItem(null);
+      setPayAmount('');
+      setPayNotes('');
+      setPayDate(TODAY.toISOString().split('T')[0]);
+    } catch (error) {
+      toast({
+        title: 'Error al registrar pago',
+        description: error?.message || 'Ocurrió un error. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingPayment(false);
+    }
+  };
+
+  const handleUnmark = async (item) => {
+    if (unmarkingId) return;
+    setUnmarkingId(item.id);
+    try {
+      const freshRecords = await base44.entities.ScheduledPaymentRecord.filter({
+        family_id: familyId,
+        scheduled_payment_id: item.id,
+        month: CURRENT_MONTH,
+      });
+      const record = freshRecords?.[0];
+      if (record) {
+        await base44.entities.ScheduledPaymentRecord.delete(record.id);
+        queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
+        queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+        queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+        toast({ title: '↩️ Pago desmarcado', description: `"${item.name}" desmarcado correctamente.` });
+      } else {
+        toast({ title: 'Sin registro', description: 'No se encontró el registro de pago para este mes.', variant: 'destructive' });
       }
-    );
-    queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
-    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-    setIsSavingPayment(false);
-    setPayingItem(null);
-    setPayAmount('');
-    setPayNotes('');
-    setPayDate(TODAY.toISOString().split('T')[0]);
+    } catch (error) {
+      toast({
+        title: 'Error al desmarcar',
+        description: error?.message || 'Ocurrió un error. Intenta de nuevo.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUnmarkingId(null);
+    }
   };
 
   const sheetStyle = useBottomSheetStyle(0.90);
-
   const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
   return (
-    <div className="pb-8">
+    <div className="pb-24">
       <PageHeader
         title="Pagos Programados"
         subtitle={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} este mes`}
@@ -177,6 +194,7 @@ export default function ScheduledPayments() {
           const cat = categories.find(c => c.id === item.category_id);
           const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
           const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === item.id);
+          const isUnmarking = unmarkingId === item.id;
 
           const colorMap = {
             green: 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800',
@@ -195,7 +213,7 @@ export default function ScheduledPayments() {
           return (
             <div key={item.id} className={`rounded-2xl border p-4 transition-all ${colorMap[color]}`}>
               <div className="flex items-start gap-3">
-                <span className="text-2xl">{item.icon || '💰'}</span>
+                <span className="text-2xl leading-none mt-0.5">{item.icon || '💰'}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className={`text-sm font-bold ${item.is_active === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
@@ -224,50 +242,52 @@ export default function ScheduledPayments() {
                   </div>
                   {isPaid && record && (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Pagado el {record.paid_date} {record.paid_by ? `por ${record.paid_by}` : ''} {record.amount_paid ? `· $${record.amount_paid.toLocaleString()}` : ''}
+                      Pagado el {record.paid_date}{record.paid_by ? ` por ${record.paid_by}` : ''}{record.amount_paid ? ` · $${record.amount_paid.toLocaleString()}` : ''}
                     </p>
                   )}
                   {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
                 </div>
               </div>
 
-              <div className="flex gap-2 mt-3">
-                {/* Mark paid / unpaid */}
+              {/* Action buttons — always visible, big touch targets */}
+              <div className="flex gap-2 mt-3 flex-wrap">
                 {item.is_active !== false && (
                   isPaid ? (
                     <button
-                      onClick={() => unmarkPaidMutation.mutate(item.id)}
-                      disabled={unmarkPaidMutation.isPending}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-medium hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors touch-target disabled:opacity-60"
+                      onClick={() => handleUnmark(item)}
+                      disabled={isUnmarking}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {unmarkPaidMutation.isPending ? 'Desmarcando...' : 'Desmarcar'}
+                      {isUnmarking
+                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</>
+                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar</>
+                      }
                     </button>
                   ) : (
                     <button
                       onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm active:scale-[0.98] transition-all touch-target"
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] min-w-[44px] active:opacity-80 transition-opacity"
                     >
                       <Circle className="w-3.5 h-3.5" /> Marcar como pagado
                     </button>
                   )
                 )}
 
-                {/* Admin actions */}
                 {isAdmin && (
                   <>
                     <button
                       onClick={() => { setEditingItem(item); setShowForm(true); }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium hover:bg-primary/10 hover:text-primary transition-colors touch-target"
+                      className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
                         if (confirm(`¿Eliminar "${item.name}"?`)) deleteMutation.mutate(item.id);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium hover:bg-expense/10 hover:text-expense transition-colors touch-target"
+                      className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </>
                 )}
@@ -282,41 +302,61 @@ export default function ScheduledPayments() {
         {payingItem && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50" onClick={() => setPayingItem(null)} />
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => { if (!isSavingPayment) setPayingItem(null); }} />
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
               style={sheetStyle}
             >
-              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
               <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
                 <p className="text-sm font-bold text-foreground">Registrar pago: {payingItem.name}</p>
-                <button onClick={() => setPayingItem(null)} className="p-1.5 rounded-lg bg-muted">
+                <button
+                  onClick={() => { if (!isSavingPayment) setPayingItem(null); }}
+                  className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
                   <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
-              <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3">
+              <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Monto pagado</p>
-                  <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)}
+                  <input
+                    type="number" value={payAmount}
+                    onChange={e => setPayAmount(e.target.value)}
                     placeholder="0.00" inputMode="decimal"
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Fecha de pago</p>
-                  <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input
+                    type="date" value={payDate}
+                    onChange={e => setPayDate(e.target.value)}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Notas (opcional)</p>
-                  <input type="text" value={payNotes} onChange={e => setPayNotes(e.target.value)}
+                  <input
+                    type="text" value={payNotes}
+                    onChange={e => setPayNotes(e.target.value)}
                     placeholder="Número de referencia, observaciones..."
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
-                <button onClick={handleMarkPaid} disabled={isSavingPayment}
-                  className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed">
-                  {isSavingPayment ? 'Guardando...' : 'Confirmar pago'}
+                <button
+                  onClick={handleMarkPaid}
+                  disabled={isSavingPayment}
+                  className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm active:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[52px]"
+                >
+                  {isSavingPayment
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                    : 'Confirmar pago'
+                  }
                 </button>
               </div>
             </motion.div>
@@ -384,22 +424,22 @@ function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSa
         className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
         style={sheetStyle}
       >
-        <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
+        <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
         <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
           <p className="text-sm font-bold text-foreground">{item ? 'Editar pago' : 'Nuevo pago programado'}</p>
-          <button onClick={onClose} className="p-1.5 rounded-lg bg-muted">
+          <button onClick={onClose} className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3">
-          {/* Icon picker */}
+        <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Ícono</p>
             <div className="flex flex-wrap gap-2">
               {ICONS.map(ic => (
                 <button key={ic} onClick={() => setIcon(ic)}
-                  className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center transition-all ${icon === ic ? 'bg-primary/10 ring-2 ring-primary' : 'bg-muted'}`}>
+                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${icon === ic ? 'bg-primary/10 ring-2 ring-primary' : 'bg-muted'}`}>
                   {ic}
                 </button>
               ))}
@@ -449,7 +489,7 @@ function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSa
 
           {item && (
             <button onClick={() => setIsActive(!isActive)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all w-full justify-between
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all w-full justify-between min-h-[44px]
                 ${isActive ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground bg-muted'}`}>
               <span>{isActive ? 'Pago activo' : 'Pago inactivo'}</span>
               <div className={`w-8 h-4 rounded-full transition-colors ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
@@ -459,7 +499,7 @@ function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSa
           )}
 
           <button onClick={handleSubmit} disabled={!name.trim() || !dueDay}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm disabled:opacity-50 active:scale-[0.98] transition-all mt-2">
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm disabled:opacity-50 active:opacity-80 transition-opacity mt-2 min-h-[52px]">
             {item ? 'Guardar cambios' : 'Crear pago programado'}
           </button>
         </div>
