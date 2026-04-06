@@ -6,7 +6,7 @@ import { Search, X } from 'lucide-react';
 const sections = [
   {
     id: 'inicio', icon: '🚀', title: 'Comenzar a usar FamilyFlow',
-    content: `FamilyFlow está diseñado para que empieces a registrar en menos de 2 minutos.
+    content: `FinFlow está diseñado para que empieces a registrar en menos de 2 minutos.
 
 Pasos recomendados:
 1. Al entrar por primera vez, crea tu familia con un nombre — se generará un código único (ej: GARCIA123).
@@ -26,7 +26,7 @@ Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sist
 2. Escribe o dicta la descripción — el sistema sugerirá Rubro y SubRubro automáticamente.
 3. Confirma y guarda.
 
-Sugerencias inteligentes ✨ (nuevo en v1.3):
+Sugerencias inteligentes ✨:
 Al escribir la descripción, la app analiza el historial de tu familia y muestra en tiempo real:
 • Rubros frecuentes — categorías que usas más para ese tipo de movimiento.
 • Personas frecuentes — los integrantes que más aparecen con descripciones similares.
@@ -137,7 +137,7 @@ Tus tarjetas, cuentas y métodos de pago habituales. Puedes cambiar nombre, banc
   },
   {
     id: 'voz', icon: '🎤', title: 'Captura por voz',
-    content: `FamilyFlow usa el reconocimiento de voz nativo del dispositivo (Web Speech API), sin consumir créditos ni enviar datos a servidores externos.
+    content: `FinFlow usa el reconocimiento de voz nativo del dispositivo (Web Speech API), sin consumir créditos ni enviar datos a servidores externos.
 
 Cómo usar:
 1. En la pantalla de captura, toca el ícono del micrófono.
@@ -153,7 +153,7 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
     id: 'asistente', icon: '🤖', title: 'Asistente IA — Ventaja FamilyFlow',
-    content: `El Asistente IA es la característica estrella de FamilyFlow. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural en español.
+    content: `El Asistente IA es la característica estrella de FinFlow. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural en español.
 
   Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha para abrirlo directamente.
 
@@ -187,7 +187,7 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
     id: 'familia', icon: '👨‍👩‍👧‍👦', title: 'Sistema de Familias y Acceso',
-    content: `FamilyFlow usa un sistema de códigos de familia para que solo las personas autorizadas puedan ver los datos de su familia.
+    content: `FinFlow usa un sistema de códigos de familia para que solo las personas autorizadas puedan ver los datos de su familia.
 
 Cómo funciona:
 1. El administrador crea la familia y recibe un código único (ej: GARCIA123).
@@ -295,7 +295,7 @@ Desde Reportes también puedes:
   },
   {
     id: 'memoria', icon: '🧠', title: 'Memoria inteligente (aprendizaje sin IA)',
-    content: `FamilyFlow aprende de tus hábitos de captura y los recuerda automáticamente sin consumir créditos de IA.
+    content: `FinFlow aprende de tus hábitos de captura y los recuerda automáticamente sin consumir créditos de IA.
 
 Qué recuerda la app:
 • Asociaciones descripción → categoría, subcategoría, persona y forma de pago. Por ejemplo, si siempre registras "gasolina" con Transporte › Gasolina, la próxima vez que escribas "gasolina" se aplica automáticamente.
@@ -317,7 +317,7 @@ Cómo funciona técnicamente:
   },
   {
     id: 'sincronizacion', icon: '🔗', title: 'Sincronización de pagos especializados',
-    content: `FamilyFlow sincroniza automáticamente los pagos de módulos especializados (MSI, Inversiones, Pagos Programados y Rentas) con el registro general de movimientos.
+    content: `FinFlow sincroniza automáticamente los pagos de módulos especializados (MSI, Inversiones, Pagos Programados y Rentas) con el registro general de movimientos.
 
 Cómo funciona la sincronización automática:
 Cuando registras un pago en cualquiera de estos módulos, el sistema crea automáticamente el movimiento correspondiente en el registro general de Movimientos, sin que tengas que capturarlo dos veces.
@@ -439,23 +439,23 @@ export default function UserManual() {
 
    return (
      <div className="pb-8">
-       <PageHeader title="Manual de Usuario" subtitle="Guía completa de FamilyFlow" />
+       <PageHeader title="Manual de Usuario" subtitle="Guía completa de FinFlow" />
 
        <div className="px-4 space-y-4">
          {/* Intro card */}
          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
            <div className="flex items-center gap-3 mb-2">
              <div className="w-10 h-10 rounded-xl overflow-hidden bg-black">
-               <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+               <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
              </div>
              <div>
-               <h2 className="font-bold text-foreground">FamilyFlow</h2>
+               <h2 className="font-bold text-foreground">FinFlow</h2>
                <p className="text-xs text-muted-foreground">Finanzas Familiares Inteligentes</p>
              </div>
            </div>
            <p className="text-sm text-foreground/80">
-             Esta guía te ayudará a aprovechar al máximo todas las funciones de la app.
-             Diseñada para parejas y familias que quieren tener control real de sus finanzas sin complicaciones.
+             Esta guía te ayudará a aprovechar al máximo todas las funciones de FinFlow.
+               Diseñada para parejas y familias que quieren tener control real de sus finanzas sin complicaciones.
            </p>
          </div>
 

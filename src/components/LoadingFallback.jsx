@@ -11,7 +11,7 @@ export default function LoadingFallback() {
           transition={{ duration: 0.4 }}
           className="w-20 h-20 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring bg-black"
         >
-          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/c98b128ee_AISelect_20260403_214317_Base44.jpg" alt="FlowFin" className="w-full h-full object-cover" />
+          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/c98b128ee_AISelect_20260403_214317_Base44.jpg" alt="FinFlow" className="w-full h-full object-cover" />
         </motion.div>
 
         {/* Content skeleton */}
@@ -50,7 +50,7 @@ export default function LoadingFallback() {
           transition={{ delay: 0.3 }}
           className="text-sm text-muted-foreground"
         >
-          Cargando FlowFin...
+          Cargando FinFlow...
         </motion.p>
       </div>
     </div>

@@ -132,24 +132,24 @@ export default function About() {
   const [historyOpen, setHistoryOpen] = useState(false);
   return (
     <div className="pb-8">
-      <PageHeader title="Acerca de" subtitle="FamilyFlow" />
+      <PageHeader title="Acerca de" subtitle="FinFlow" />
 
       <div className="px-4 space-y-4">
         {/* App identity */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm text-center">
           <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto shadow-xl mb-4 bg-black">
-            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
           </div>
-          <h2 className="text-2xl font-black text-foreground mb-1">FamilyFlow</h2>
+          <h2 className="text-2xl font-black text-foreground mb-1">FinFlow</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>
           <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión {CURRENT_VERSION}</span>
         </div>
 
         {/* Description */}
         <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <h3 className="text-sm font-bold text-foreground mb-2">Acerca de FamilyFlow</h3>
+          <h3 className="text-sm font-bold text-foreground mb-2">Acerca de FinFlow</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            FamilyFlow es una solución moderna y completa para la gestión de finanzas familiares,
+            FinFlow es una solución moderna y completa para la gestión de finanzas familiares,
             diseñada para parejas y familias que desean tener control real de sus ingresos, egresos,
             inversiones y compromisos financieros.
           </p>
