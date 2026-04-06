@@ -2,13 +2,23 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '1.9.0';
+const CURRENT_VERSION = '2.0.0';
 
 const VERSION_HISTORY = [
   {
-    version: '1.9.0',
+    version: '2.0.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Rebrand oficial: la aplicación ahora se llama FinFlow en toda la interfaz, documentación y pantallas de carga',
+      'Actualización de nombre en título del navegador, pantallas de carga, Manual de Usuario y sección Acerca de',
+      'Corrección de todas las referencias a "FamilyFlow" y "FlowFin" reemplazadas por "FinFlow"',
+    ],
+  },
+  {
+    version: '1.9.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Pagos Programados: nuevo campo "Con qué se pagó" al confirmar un pago — pre-selecciona la forma de pago habitual del pago programado y permite cambiarla al momento de confirmar',
       'Pagos Programados: nuevo campo "¿Quién paga?" al confirmar — muestra el nombre del usuario actual como sugerencia y permite editarlo',
@@ -118,7 +128,7 @@ const VERSION_HISTORY = [
     date: '2026-02-01',
     label: '',
     changes: [
-      'Lanzamiento inicial de FamilyFlow',
+      'Lanzamiento inicial de FinFlow',
       'Registro de ingresos y egresos con categorías',
       'Dashboard con resumen por periodo y persona',
       'Catálogos de rubros, subrubros, personas y formas de pago',

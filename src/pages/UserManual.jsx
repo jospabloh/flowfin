@@ -5,7 +5,7 @@ import { Search, X } from 'lucide-react';
 
 const sections = [
   {
-    id: 'inicio', icon: '🚀', title: 'Comenzar a usar FamilyFlow',
+    id: 'inicio', icon: '🚀', title: 'Comenzar a usar FinFlow',
     content: `FinFlow está diseñado para que empieces a registrar en menos de 2 minutos.
 
 Pasos recomendados:
