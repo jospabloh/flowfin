@@ -6,9 +6,20 @@ const CURRENT_VERSION = '2.2.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.1.0',
+    version: '2.2.0',
     date: '2026-04-06',
     label: 'Actual',
+    changes: [
+      'Pagos Programados: al desmarcar un pago, ahora se elimina también el egreso vinculado en Movimientos (antes quedaba huérfano)',
+      'Pagos Programados: corregido bug donde al desmarcar y volver a marcar se creaba un egreso duplicado',
+      'Pagos Programados: eliminada la automation redundante que podía generar transacciones duplicadas — ahora solo el formulario de confirmación crea el egreso',
+      'Limpieza de datos: eliminadas transacciones huérfanas generadas por el bug anterior',
+    ],
+  },
+  {
+    version: '2.1.0',
+    date: '2026-04-06',
+    label: '',
     changes: [
       'Pagos Programados: campo "¿Quién paga?" ahora muestra selector con las personas de la familia (igual que en captura de gastos/ingresos)',
       'Pagos Programados: se pre-selecciona automáticamente la primera persona de la familia al abrir el formulario de confirmación',

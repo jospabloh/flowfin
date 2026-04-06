@@ -259,7 +259,7 @@ Sincronización automática:
 Al marcar un pago como pagado, se crea automáticamente el egreso correspondiente en el registro general de Movimientos, incluyendo la forma de pago seleccionada al momento de confirmar.
 
 Desmarcar un pago:
-Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado para eliminarlo del mes actual. Se mostrará una confirmación de éxito o error.
+Si cometiste un error, puedes tocar "Desmarcar" en el pago ya registrado. Esto elimina el registro del mes actual Y borra automáticamente el egreso correspondiente en Movimientos. Se mostrará una confirmación de éxito o error.
 
 Diferencia con Inversiones:
 Los Pagos Programados son recurrentes sin fin (luz, renta, servicios). Las Inversiones tienen un número fijo de pagos y un monto total definido.`
