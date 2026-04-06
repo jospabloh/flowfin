@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const APP_BUILD_VERSION = '1.7.0';
+const APP_BUILD_VERSION = '2.3.0';
 const DISMISSED_VERSION_KEY = 'dismissedAppVersion';
 
 export default function AppUpdateBanner() {
@@ -38,7 +38,7 @@ export default function AppUpdateBanner() {
 
     if (notDismissed) {
       setIsVisible(true);
-      autoHideRef.current = setTimeout(() => setIsVisible(false), 30000);
+      autoHideRef.current = setTimeout(() => setIsVisible(false), 5000);
     }
     return () => { if (autoHideRef.current) clearTimeout(autoHideRef.current); };
   }, [appVersionData?.version]);
