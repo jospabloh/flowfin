@@ -446,7 +446,7 @@ export default function UserManual() {
          <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
            <div className="flex items-center gap-3 mb-2">
              <div className="w-10 h-10 rounded-xl overflow-hidden bg-black">
-               <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
+               <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
              </div>
              <div>
                <h2 className="font-bold text-foreground">FlowFin</h2>

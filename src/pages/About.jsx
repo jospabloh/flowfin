@@ -180,7 +180,7 @@ export default function About() {
         {/* App identity */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm text-center">
           <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto shadow-xl mb-4 bg-black">
-            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FinFlow" className="w-full h-full object-cover" />
           </div>
           <h2 className="text-2xl font-black text-foreground mb-1">FlowFin</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>

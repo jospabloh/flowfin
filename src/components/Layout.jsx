@@ -138,7 +138,7 @@ export default function Layout() {
           <div className="p-5 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md bg-black">
-                <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/f5f85f7a3_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+                <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
