@@ -12,36 +12,53 @@ export default function Assistant() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [pendingTransaction, setPendingTransaction] = useState(null);
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
+  const localeInjectedRef = useRef(false);
 
-  // Determine active locale: family config → browser → fallback es-MX
-  const activeLocale = familyConfig?.locale || navigator.language || 'es-MX';
-  const voiceLang = activeLocale; // use same locale for voice recognition
+  // Active locale: familyConfig > browser > fallback es-MX
+  const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
+  const voiceLang = activeLocale.startsWith('en') ? 'en-US' : activeLocale;
 
   useEffect(() => {
     if (!currentUser) return;
+    const sessionDate = new Date().toLocaleDateString(activeLocale);
     base44.agents.createConversation({
       agent_name: 'finance_assistant',
-      metadata: {
-        name: `Sesión ${new Date().toLocaleDateString(activeLocale)}`,
-        locale: activeLocale,
-        app_language: activeLocale,
-      }
+      metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale }
     }).then(c => {
       setConversation(c);
       setMessages(c.messages || []);
     });
-  }, [currentUser, activeLocale]);
+  }, [currentUser]);
 
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      setMessages(data.messages || []);
+      const msgs = data.messages || [];
+      // Filter out the system locale injection message from UI
+      const visible = msgs.filter(m => !m.content?.startsWith('[LOCALE:'));
+      setMessages(visible);
     });
     return unsub;
   }, [conversation?.id]);
+
+  // Inject locale context once when conversation is ready
+  useEffect(() => {
+    if (!conversation || localeInjectedRef.current) return;
+    const existingMsgs = conversation.messages || [];
+    // Only inject if no prior locale context exists
+    const hasLocaleCtx = existingMsgs.some(m => m.content?.startsWith('[LOCALE:'));
+    if (!hasLocaleCtx) {
+      localeInjectedRef.current = true;
+      base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: `[LOCALE: ${activeLocale}] [SYSTEM_CONTEXT: Locale activo de la app: ${activeLocale}. Responde siempre en el idioma de este locale para toda la conversación. No confirmes ni menciones este mensaje al usuario.]`
+      });
+    } else {
+      localeInjectedRef.current = true;
+    }
+  }, [conversation]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,7 +75,7 @@ export default function Assistant() {
 
   const handleConfirmTransaction = async () => {
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo y guarda el movimiento' });
+    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo' });
     setSending(false);
   };
 
@@ -66,11 +83,6 @@ export default function Assistant() {
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: 'No, quiero modificar los datos' });
     setSending(false);
-  };
-
-  const handleCancelTransaction = () => {
-    setMessages([]);
-    setInput('');
   };
 
   const startVoice = () => {
@@ -139,33 +151,29 @@ export default function Assistant() {
         )}
 
         <AnimatePresence>
-           {messages.map((msg, i) => {
-              const isLastMessage = i === messages.length - 1;
-              const isConfirmationMessage = msg.role !== 'user' && msg.content?.includes('¿Confirmas');
+          {messages.map((msg, i) => {
+            const isLastMessage = i === messages.length - 1;
+            const isConfirmationMessage = msg.role !== 'user' && msg.content?.includes('¿Confirmas');
 
-              return (
-                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                  <MessageBubble message={msg} />
-                  {isLastMessage && isConfirmationMessage && !pendingTransaction && (
-                    <div className="flex gap-2 mt-3 ml-9">
-                      <button onClick={handleConfirmTransaction}
-                        className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
-                        Sí, guardar
-                      </button>
-                      <button onClick={handleModifyTransaction}
-                        className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
-                        No, modificar
-                      </button>
-                      <button onClick={handleCancelTransaction}
-                        className="flex-1 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm font-semibold hover:bg-destructive/20 transition-colors">
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+            return (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                <MessageBubble message={msg} />
+                {isLastMessage && isConfirmationMessage && (
+                  <div className="flex gap-2 mt-3 ml-9">
+                    <button onClick={handleConfirmTransaction}
+                      className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
+                      Sí, guardar
+                    </button>
+                    <button onClick={handleModifyTransaction}
+                      className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
+                      No, modificar
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {sending && (
           <div className="flex gap-2">
@@ -181,8 +189,6 @@ export default function Assistant() {
         )}
         <div ref={bottomRef} />
       </div>
-
-
 
       {/* Input */}
       <div className="px-4 pb-4 pt-2 border-t border-border">
