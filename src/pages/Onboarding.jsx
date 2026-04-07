@@ -118,9 +118,7 @@ export default function Onboarding() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
-            <span className="text-primary-foreground font-black text-3xl">F</span>
-          </div>
+          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/e0e86c747_FlowFin_logo.png" alt="FlowFin" className="w-32 h-32 mx-auto mb-4" />
           <h1 className="text-2xl font-black text-foreground">FlowFin</h1>
           <p className="text-muted-foreground text-sm mt-1">Finanzas Familiares Inteligentes</p>
         </div>
