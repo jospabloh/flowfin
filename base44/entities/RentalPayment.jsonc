@@ -5,6 +5,10 @@
     "property_id": {
       "type": "string"
     },
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria \u2014 para filtros y RLS"
+    },
     "month": {
       "type": "string",
       "description": "Mes en formato YYYY-MM"
@@ -28,6 +32,10 @@
     },
     "notes": {
       "type": "string"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "ID del m\u00e9todo de pago usado"
     }
   },
   "required": [

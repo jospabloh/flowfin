@@ -56,7 +56,8 @@ export function useRegisterPaymentWithTransaction() {
         person_id,
         required_type: type === 'income' ? 'Otro' : 'Necesario',
         week,
-        scheduled_payment_record_id: primaryResult?.id || undefined,
+        scheduled_payment_record_id: txFields.scheduled_payment_record_id || (primaryResult?.id && !txFields.rental_payment_id ? primaryResult.id : undefined),
+        rental_payment_id: txFields.rental_payment_id || undefined,
       });
     }
 
