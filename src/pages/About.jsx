@@ -2,13 +2,27 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.8.0';
+const CURRENT_VERSION = '2.9.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.8.0',
+    version: '2.9.0',
     date: '2026-04-07',
     label: 'Actual',
+    changes: [
+      'Módulo Rentas: reconstruido completamente — ahora funcional y estable en producción',
+      'Rentas: CRUD completo de propiedades (crear, editar, eliminar)',
+      'Rentas: registro de cobro crea automáticamente ingreso en Movimientos vinculado',
+      'Rentas: desmarcar cobro elimina también el ingreso vinculado en Movimientos',
+      'Rentas: guardia de duplicados — evita registrar dos cobros del mismo mes para la misma propiedad',
+      'Rentas: categoría "Rentas" se crea automáticamente si no existe al registrar un cobro',
+      'Rentas: historial de últimos 3 cobros visible por propiedad',
+    ],
+  },
+  {
+    version: '2.8.0',
+    date: '2026-04-07',
+    label: '',
     changes: [
       'Asistente IA: idioma ahora sigue el locale activo de la app (ya no hardcodeado en español)',
       'Asistente IA: reconocimiento de voz usa el mismo locale de la app',
