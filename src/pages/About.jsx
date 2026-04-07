@@ -303,9 +303,7 @@ export default function About() {
         <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground mb-3">Equipo Desarrollador</h3>
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md flex-shrink-0">
-              <span className="text-white font-black text-lg">A</span>
-            </div>
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/062f64e09_Logo_ACACIA_HighRes.jpg" alt="ACACIA" className="w-12 h-12 rounded-2xl shadow-md flex-shrink-0 object-cover" />
             <div>
               <p className="text-sm font-bold text-foreground">ACACIA Consultoría</p>
               <p className="text-xs text-muted-foreground">en Informática y Cómputo</p>
