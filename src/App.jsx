@@ -47,7 +47,7 @@ const FamilyGate = ({ children }) => {
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring">
-            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/5dd910449_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
           </div>
           <p className="text-sm text-muted-foreground">Cargando FlowFin...</p>
         </div>
@@ -59,7 +59,7 @@ const FamilyGate = ({ children }) => {
     <Suspense fallback={
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="w-16 h-16 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring">
-          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+          <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/5dd910449_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
         </div>
       </div>
     }>
@@ -77,7 +77,7 @@ const AuthenticatedApp = () => {
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-24 h-24 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring bg-black">
-            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/5dd910449_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
           </div>
           <p className="text-sm text-muted-foreground">Cargando FlowFin...</p>
         </div>

@@ -2,13 +2,26 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.6.0';
+const CURRENT_VERSION = '2.7.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.6.0',
+    version: '2.7.0',
     date: '2026-04-07',
     label: 'Actual',
+    changes: [
+      'Asistente IA: ahora siempre responde en español — se eliminó el comportamiento donde el modelo respondía en inglés',
+      'Asistente IA: soporte para registrar múltiples movimientos en un solo mensaje (texto o voz)',
+      'Asistente IA: al recibir varios gastos/ingresos en un mensaje, muestra resumen de todos y los guarda con confirmación',
+      'Asistente IA: eliminado el comportamiento de "processing checkpoint" y el pedido de escribir "continue"',
+      'Botón flotante del Asistente: corregido posicionamiento — ya no queda cubierto por la barra de navegación inferior',
+      'Pantalla de carga: actualizada al logo oficial actual de FlowFin en todas las pantallas de splash/loading',
+    ],
+  },
+  {
+    version: '2.6.0',
+    date: '2026-04-07',
+    label: '',
     changes: [
       'Asistente IA: eliminada exposición de IDs internos, nombres de campos y detalles técnicos en las respuestas al usuario',
       'Asistente IA: respuestas ahora siempre en lenguaje natural y amigable, orientadas al usuario final',

@@ -165,38 +165,50 @@ Disponibilidad:
 Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
-    id: 'asistente', icon: '🤖', title: 'Asistente IA — Ventaja FamilyFlow',
+    id: 'asistente', icon: '🤖', title: 'Asistente IA',
     content: `El Asistente IA es la característica estrella de FlowFin. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural en español.
 
-  Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha para abrirlo directamente.
+Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha, siempre visible por encima de la barra de navegación, para abrirlo directamente desde cualquier pantalla.
 
-  Ejemplos de uso:
-  • "Gasté 500 pesos en gasolina hoy" → El asistente crea el egreso, detecta la categoría y la guarda.
-  • "Recibí 10,000 de un cliente" → Registra el ingreso con la fuente que menciones.
-  • "¿Cuánto gasté esta semana?" → El asistente consulta y te muestra un resumen.
-  • "Registra 1,200 del súper pagado con tarjeta" → Detecta monto, rubro, método de pago.
-  • "¿Cuáles movimientos están incompletos?" → El asistente lista los que faltan información.
-  • "Completa los datos pendientes" → El asistente detecta movimientos sin persona o categoría y te ayuda a completarlos.
+Idioma: El asistente siempre responde en español, sin importar el modelo o idioma interno. Todos los mensajes, confirmaciones y preguntas son en español.
 
-  Campos obligatorios que el asistente siempre pedirá antes de guardar:
-  • Monto
-  • Tipo (egreso o ingreso)
-  • Categoría (Rubro)
-  • Persona (uno de los integrantes de la familia)
-  • Fecha (si no se menciona, usa hoy)
+Ejemplos de uso (movimiento único):
+• "Gasté 500 pesos en gasolina hoy" → Crea el egreso, detecta categoría y guarda.
+• "Recibí 10,000 de un cliente" → Registra el ingreso.
+• "¿Cuánto gasté esta semana?" → Muestra resumen por categoría y total.
+• "Registra 1,200 del súper pagado con tarjeta" → Detecta monto, rubro y método de pago.
 
-  Si falta alguno, el asistente preguntará antes de guardar. Nunca asumirá datos.
+Registrar múltiples movimientos en un solo mensaje:
+Puedes describir varios gastos o ingresos en un mismo texto o dictado de voz:
+• "Gasté 78 en la máquina y 500 en gasolina"
+• "Registra: gasolina 500, súper 1200, farmacia 200"
+• "Silvia gastó 375 en comida y yo 78 en la máquina"
 
-  También funciona con voz:
-  1. Toca el ícono del micrófono en el Asistente.
-  2. Habla tu transacción naturalmente en español.
-  3. El asistente confirma y guarda.
+El asistente detecta todos los movimientos, los resume y pide confirmación antes de guardarlos:
+"✅ Identifiqué 3 movimientos:
+1. $78 — Máquina expendedora (Alimentación, Pablo)
+2. $500 — Gasolina (Transporte, Pablo)
+3. $1,200 — Súper (Alimentación, Silvia)
+¿Los guardo todos?"
 
-  Acciones pendientes: Si un movimiento no tiene persona o categoría asignada, aparece marcado como "⚠️ Pendiente de revisar" en la sección de Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes de revisar?".
+Si falta algún dato en uno de los movimientos, preguntará solo por lo que hace falta.
 
-  Costo: El asistente consume créditos Base44 por mensaje. El costo es muy bajo para el beneficio que proporciona.
+Campos obligatorios que siempre pedirá antes de guardar:
+• Monto
+• Tipo (egreso o ingreso)
+• Categoría (Rubro)
+• Persona (integrante de la familia)
+• Fecha (si no se menciona, usa hoy)
 
-  Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
+También funciona con voz:
+1. Toca el ícono del micrófono en el Asistente.
+2. Habla naturalmente en español — puedes dictar varios gastos de una vez.
+3. El asistente confirma y guarda.
+
+Acciones pendientes: Si un movimiento no tiene persona o categoría, aparece marcado con ⚠️ en Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes?"
+
+Costo: El asistente consume créditos Base44 por mensaje.
+Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
   },
   {
     id: 'familia', icon: '👨‍👩‍👧‍👦', title: 'Sistema de Familias y Acceso',
