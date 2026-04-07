@@ -280,7 +280,6 @@ export default function About() {
           <h3 className="text-sm font-bold text-foreground mb-3">Características Principales</h3>
           <div className="space-y-3">
             {[
-              { icon: Zap, title: '0 créditos en uso diario', desc: 'Toda la inteligencia es local: motor de reglas, voz nativa del dispositivo, reportes en frontend.' },
               { icon: Shield, title: 'Privacidad y seguridad', desc: 'Tus datos financieros son privados. El reconocimiento de voz usa la API nativa del dispositivo.' },
               { icon: Heart, title: 'Diseño para familias', desc: 'Configuración personalizada por familia, soporte para múltiples personas y métodos de pago.' },
             ].map(f => {
