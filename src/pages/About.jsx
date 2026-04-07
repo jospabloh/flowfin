@@ -2,13 +2,26 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.5.0';
+const CURRENT_VERSION = '2.6.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.6.0',
+    date: '2026-04-07',
+    label: 'Actual',
+    changes: [
+      'Asistente IA: eliminada exposición de IDs internos, nombres de campos y detalles técnicos en las respuestas al usuario',
+      'Asistente IA: respuestas ahora siempre en lenguaje natural y amigable, orientadas al usuario final',
+      'Asistente IA: nuevo fallback claro cuando algo falla — el asistente pide reintentar sin exponer errores técnicos',
+      'Asistente IA: confirmación de transacciones mejorada — resumen siempre coherente tras completar búsquedas internas',
+      'Banner de actualización: corregido — ya no aparece falsamente cuando la app está en la versión más reciente',
+      'Base de datos sincronizada con la versión del código (2.6.0)',
+    ],
+  },
+  {
     version: '2.5.0',
     date: '2026-04-06',
-    label: 'Actual',
+    label: '',
     changes: [
       'Pagos Programados: interfaz mejorada con botones filtrados para seleccionar persona y método de pago (búsqueda en tiempo real)',
       'Rentas: nuevo módulo completo para registrar cobros de propiedades con sincronización automática a Movimientos como ingreso',
