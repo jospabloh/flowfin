@@ -166,17 +166,30 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
     id: 'asistente', icon: '🤖', title: 'Asistente IA',
-    content: `El Asistente IA es la característica estrella de FlowFin. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural en español.
+    content: `El Asistente IA es la característica estrella de FlowFin. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural.
 
-Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha, siempre visible por encima de la barra de navegación, para abrirlo directamente desde cualquier pantalla.
+Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha, siempre visible por encima de la barra de navegación.
 
-Idioma: El asistente siempre responde en español, sin importar el modelo o idioma interno. Todos los mensajes, confirmaciones y preguntas son en español.
+Idioma: El asistente responde en el idioma activo de la app, según el locale configurado en Mi Familia. Si la app está en español, responde en español; si está en inglés, responde en inglés. Cambia el idioma desde Mi Familia → Idioma/región y el asistente lo sigue automáticamente.
+
+Reconocimiento de voz: El micrófono usa el mismo idioma que la app, para una transcripción más precisa.
+
+Cálculos automáticos:
+El asistente puede calcular montos con propinas o porcentajes:
+• "188 más 10% de propina" → calcula $206.80 y confirma antes de guardar.
+• "500 más 15%" → calcula $575.00 automáticamente.
+
+Matching inteligente de métodos de pago:
+El asistente reconoce variaciones de escritura:
+• "tdc like u", "TDC Like U", "like u" → resuelve al método correcto registrado.
+• "débito", "efectivo", "transfer" → busca el tipo de pago correspondiente.
+• Abreviaciones y errores menores se resuelven automáticamente.
 
 Ejemplos de uso (movimiento único):
-• "Gasté 500 pesos en gasolina hoy" → Crea el egreso, detecta categoría y guarda.
+• "Gasté 500 en gasolina hoy" → Crea el egreso, detecta categoría y guarda.
 • "Recibí 10,000 de un cliente" → Registra el ingreso.
 • "¿Cuánto gasté esta semana?" → Muestra resumen por categoría y total.
-• "Registra 1,200 del súper pagado con tarjeta" → Detecta monto, rubro y método de pago.
+• "Registra 1,200 del súper pagado con tdc like u" → Detecta monto, rubro y método de pago.
 
 Registrar múltiples movimientos en un solo mensaje:
 Puedes describir varios gastos o ingresos en un mismo texto o dictado de voz:

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
 
 export default function Assistant() {
-  const { currentUser, familyId } = useFamily();
+  const { currentUser, familyId, familyConfig } = useFamily();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -16,16 +16,24 @@ export default function Assistant() {
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
 
+  // Determine active locale: family config → browser → fallback es-MX
+  const activeLocale = familyConfig?.locale || navigator.language || 'es-MX';
+  const voiceLang = activeLocale; // use same locale for voice recognition
+
   useEffect(() => {
     if (!currentUser) return;
     base44.agents.createConversation({
       agent_name: 'finance_assistant',
-      metadata: { name: `Sesión ${new Date().toLocaleDateString('es-MX')}` }
+      metadata: {
+        name: `Sesión ${new Date().toLocaleDateString(activeLocale)}`,
+        locale: activeLocale,
+        app_language: activeLocale,
+      }
     }).then(c => {
       setConversation(c);
       setMessages(c.messages || []);
     });
-  }, [currentUser]);
+  }, [currentUser, activeLocale]);
 
   useEffect(() => {
     if (!conversation?.id) return;
@@ -69,7 +77,7 @@ export default function Assistant() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Tu navegador no soporta voz'); return; }
     const r = new SR();
-    r.lang = 'es-MX';
+    r.lang = voiceLang;
     r.onstart = () => setIsListening(true);
     r.onend = () => setIsListening(false);
     r.onerror = () => setIsListening(false);

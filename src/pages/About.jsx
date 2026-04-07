@@ -2,13 +2,27 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.7.0';
+const CURRENT_VERSION = '2.8.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.7.0',
+    version: '2.8.0',
     date: '2026-04-07',
     label: 'Actual',
+    changes: [
+      'Asistente IA: idioma ahora sigue el locale activo de la app (ya no hardcodeado en español)',
+      'Asistente IA: reconocimiento de voz usa el mismo locale de la app',
+      'Asistente IA: matching inteligente para métodos de pago (ej: "tdc like u" → TDC Like U)',
+      'Asistente IA: soporte de cálculo de propinas y porcentajes (ej: "188 más 10% de propina")',
+      'Asistente IA: normalización robusta para personas, categorías y métodos de pago con variaciones de escritura',
+      'Asistente IA: reglas mejoradas de inferencia de categorías por palabras clave',
+      'Asistente IA: soporte mejorado de múltiples movimientos en un solo mensaje con resumen y confirmación',
+    ],
+  },
+  {
+    version: '2.7.0',
+    date: '2026-04-07',
+    label: '',
     changes: [
       'Asistente IA: ahora siempre responde en español — se eliminó el comportamiento donde el modelo respondía en inglés',
       'Asistente IA: soporte para registrar múltiples movimientos en un solo mensaje (texto o voz)',
