@@ -1,0 +1,86 @@
+{
+  "name": "Session",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario propietario de la sesi\u00f3n"
+    },
+    "device_id": {
+      "type": "string",
+      "description": "Identificador \u00fanico del dispositivo"
+    },
+    "device_name": {
+      "type": "string",
+      "description": "Nombre descriptivo del dispositivo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "passive",
+        "revoked"
+      ],
+      "default": "active",
+      "description": "Estado de la sesi\u00f3n"
+    },
+    "last_seen": {
+      "type": "string",
+      "description": "\u00daltima vez que el usuario fue activo (ISO timestamp)"
+    }
+  },
+  "required": [
+    "user_id",
+    "device_id"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    }
+  }
+}

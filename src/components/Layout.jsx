@@ -12,6 +12,9 @@ import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import { useFamily } from '@/lib/FamilyContext';
+import { useSessionManager } from '@/hooks/useSessionManager';
+import IdleWarningDialog from './IdleWarningDialog';
+import SessionExpiredDialog from './SessionExpiredDialog';
 
 const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports', '/Assistant'];
 
@@ -109,6 +112,7 @@ export default function Layout() {
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
   const { family, isAdmin } = useFamily();
+  const { idleState, sessionExpired, continueSession } = useSessionManager();
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
@@ -130,6 +134,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background flex flex-col overscroll-none" id="main-app-wrapper">
       <InternetBanner />
+      <IdleWarningDialog open={idleState === 'idle_warning'} onContinue={continueSession} />
+      <SessionExpiredDialog open={sessionExpired} />
       <div className="flex flex-1 overflow-hidden">
 
         {/* Desktop Sidebar */}
