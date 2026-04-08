@@ -84,7 +84,7 @@ export default function Capture() {
   const handleDescriptionChange = useCallback((val) => {
     setDescription(val);
     if (val.length > 1) {
-      const matches = matchCategory(val, subcategories, categories, stats);
+      const matches = matchCategory(val, subcategories, categories, stats, type);
       setSuggestions(matches.slice(0, 4));
 
       // Aplicar asociación memorizada si no hay selección manual aún

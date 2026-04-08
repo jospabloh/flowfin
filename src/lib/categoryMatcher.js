@@ -10,15 +10,25 @@ function normalize(str) {
     .replace(/[^a-z0-9\s]/g, ' ');
 }
 
-export function matchCategory(text, subcategories, categories, usageStats = {}) {
+export function matchCategory(text, subcategories, categories, usageStats = {}, txType = null) {
   if (!text || text.trim().length < 2) return [];
 
   const words = normalize(text).split(/\s+/).filter(w => w.length > 1);
   if (words.length === 0) return [];
 
+  // Filter categories by transaction type
+  const validCategoryIds = new Set(
+    categories
+      .filter(c => !txType || c.type === 'both' || c.type === txType)
+      .map(c => c.id)
+  );
+
   const results = [];
 
   for (const sub of subcategories) {
+    // Skip subcategories whose parent category doesn't match the transaction type
+    if (!validCategoryIds.has(sub.category_id)) continue;
+
     const keywords = (sub.keywords || []).map(normalize);
     if (keywords.length === 0) continue;
 
