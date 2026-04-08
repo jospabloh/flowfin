@@ -28,7 +28,7 @@ Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sist
 
 Sugerencias inteligentes ✨:
 Al escribir la descripción, la app analiza el historial de tu familia y muestra en tiempo real:
-• Rubros frecuentes — categorías que usas más para ese tipo de movimiento.
+• Rubros frecuentes — categorías que usas más para ese tipo de movimiento. Las sugerencias se filtran automáticamente: si estás en Egreso solo aparecen rubros de egreso, y si estás en Ingreso solo aparecen rubros de ingreso.
 • Personas frecuentes — los integrantes que más aparecen con descripciones similares.
 • Formas de pago frecuentes — los métodos de pago más usados.
 Toca cualquier sugerencia para aplicarla. Aplica tanto a egresos como a ingresos.

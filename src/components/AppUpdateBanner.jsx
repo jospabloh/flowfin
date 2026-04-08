@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { X, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const APP_BUILD_VERSION = '2.9.0';
+const APP_BUILD_VERSION = '2.10.0';
 const DISMISSED_VERSION_KEY = 'dismissedAppVersion';
 
 export default function AppUpdateBanner() {

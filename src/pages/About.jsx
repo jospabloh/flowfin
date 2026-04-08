@@ -2,13 +2,23 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.9.0';
+const CURRENT_VERSION = '2.10.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.10.0',
+    date: '2026-04-08',
+    label: 'Actual',
+    changes: [
+      'Captura: las sugerencias automáticas de rubros ahora se filtran correctamente según el tipo de movimiento (egreso o ingreso)',
+      'Captura: al registrar un Ingreso ya no aparecen sugerencias de categorías de Egreso, y viceversa',
+      'Motor de sugerencias: matchCategory ahora recibe el tipo de transacción y excluye categorías que no aplican',
+    ],
+  },
+  {
     version: '2.9.0',
     date: '2026-04-07',
-    label: 'Actual',
+    label: '',
     changes: [
       'Módulo Rentas: reconstruido completamente — ahora funcional y estable en producción',
       'Rentas: CRUD completo de propiedades (crear, editar, eliminar)',
