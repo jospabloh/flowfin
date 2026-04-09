@@ -2,13 +2,23 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.10.0';
+const CURRENT_VERSION = '2.11.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.11.0',
+    date: '2026-04-09',
+    label: 'Actual',
+    changes: [
+      'Inicio en móvil: corregida condición de carga que podía mostrar incorrectamente la pantalla de incorporación a usuarios que ya pertenecen a una familia',
+      'Bootstrap: eliminada brecha de un ciclo de render que causaba que el estado de membresía apareciera como no cargado antes de que la consulta se activara',
+      'Resultado: los usuarios con membresía activa ya no son dirigidos erróneamente al flujo de unirse a una familia al abrir la app desde acceso directo o marcador',
+    ],
+  },
+  {
     version: '2.10.0',
     date: '2026-04-08',
-    label: 'Actual',
+    label: '',
     changes: [
       'Captura: las sugerencias automáticas de rubros ahora se filtran correctamente según el tipo de movimiento (egreso o ingreso)',
       'Captura: al registrar un Ingreso ya no aparecen sugerencias de categorías de Egreso, y viceversa',

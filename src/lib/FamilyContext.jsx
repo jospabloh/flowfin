@@ -44,7 +44,10 @@ export function FamilyProvider({ children }) {
     retry: 2,
   });
 
-  const isLoading = loadingUser || loadingMembership;
+  // Guard against the 1-render-cycle gap where loadingUser just became false
+  // but loadingMembership hasn't gone true yet (TanStack Query re-evaluates `enabled` one cycle later).
+  // membershipData === undefined means the query has never resolved (still pending or not started).
+  const isLoading = loadingUser || (!!currentUser && membershipData === undefined);
 
   const membership = membershipData?.membership || null;
   const family = membershipData?.family || null;
