@@ -44,6 +44,24 @@ export function FamilyProvider({ children }) {
     retry: 2,
   });
 
+  // Load extended license info
+  const { data: licenseInfo } = useQuery({
+    queryKey: ['family-license', currentUser?.id, membershipData?.family?.id],
+    queryFn: async () => {
+      if (!membershipData?.family?.id) return null;
+      try {
+        const res = await base44.functions.invoke('getFamilyLicenseInfo', {});
+        return res.data || null;
+      } catch (err) {
+        console.error('FamilyContext: getFamilyLicenseInfo failed:', err);
+        return null;
+      }
+    },
+    enabled: !!membershipData?.family?.id,
+    staleTime: 60 * 1000, // 1 min cache for license state
+    gcTime: 5 * 60 * 1000,
+  });
+
   // Guard against the 1-render-cycle gap where loadingUser just became false
   // but loadingMembership hasn't gone true yet (TanStack Query re-evaluates `enabled` one cycle later).
   // membershipData === undefined means the query has never resolved (still pending or not started).
@@ -54,20 +72,19 @@ export function FamilyProvider({ children }) {
   const familyId = family?.id || null;
   const isAdmin = membership?.role === 'admin';
 
-  // ── Billing / License state (family is the source of truth) ──────────────
-  // Grandfather clause: existing families without billing_status default to 'active'
-  const billingStatus = family?.billing_status || (family ? 'active' : null);
-  // SAFETY: isReadOnly NEVER applies to 'active' or 'trial' — only explicit view_only/suspended
-  const isReadOnly = (billingStatus === 'view_only' || billingStatus === 'suspended') && billingStatus !== 'active' && billingStatus !== 'trial';
-  const licensePlan = family?.license_plan || 'home';
-  const licensedMemberLimit = family?.licensed_member_limit || 4;
-  const trialDaysLeft = (() => {
-    if (!family?.trial_end_at || billingStatus !== 'trial') return null;
-    const diff = new Date(family.trial_end_at) - new Date();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  })();
-
-
+  // ── Billing / License state (resolved server-side for safety) ──────────────
+  // Use licenseInfo from getFamilyLicenseInfo if available (server-resolved)
+  // Otherwise fall back to local calculation for compatibility
+  const billingStatus = licenseInfo?.billingStatus || family?.billing_status || (family ? 'active' : null);
+  const isReadOnly = licenseInfo?.isReadOnly ?? (billingStatus === 'view_only' || billingStatus === 'suspended');
+  const licensePlan = licenseInfo?.licensePlan || family?.license_plan || 'home';
+  const licensedMemberLimit = licenseInfo?.licensedMemberLimit || family?.licensed_member_limit || 4;
+  const trialDaysLeft = licenseInfo?.trialDaysLeft ?? null;
+  const activeMemberCount = licenseInfo?.activeMemberCount ?? null;
+  const trialStartAt = licenseInfo?.trialStartAt || family?.trial_start_at || null;
+  const trialEndAt = licenseInfo?.trialEndAt || family?.trial_end_at || null;
+  const licenseActivatedAt = licenseInfo?.licenseActivatedAt || family?.license_activated_at || null;
+  const licenseExpiresAt = licenseInfo?.licenseExpiresAt || family?.license_expires_at || null;
 
   // familyConfig comes directly from getMyMembership (service role) — works for ALL members
   const familyConfig = membershipData?.familyConfig || null;
@@ -83,7 +100,29 @@ export function FamilyProvider({ children }) {
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
 
   return (
-    <FamilyContext.Provider value={{ currentUser, family, familyId, familyConfigId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol, billingStatus, isReadOnly, licensePlan, licensedMemberLimit, trialDaysLeft }}>
+    <FamilyContext.Provider value={{
+      currentUser,
+      family,
+      familyId,
+      familyConfigId,
+      membership,
+      isAdmin,
+      isLoading,
+      refetchMembership,
+      familyConfig,
+      currency,
+      currencySymbol,
+      billingStatus,
+      isReadOnly,
+      licensePlan,
+      licensedMemberLimit,
+      trialDaysLeft,
+      activeMemberCount,
+      trialStartAt,
+      trialEndAt,
+      licenseActivatedAt,
+      licenseExpiresAt,
+    }}>
       {children}
     </FamilyContext.Provider>
   );

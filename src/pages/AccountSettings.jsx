@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { AlertTriangle, LogOut } from 'lucide-react';
+import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, Calendar } from 'lucide-react';
+import { useFamily } from '@/lib/FamilyContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,6 +11,7 @@ const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
 export default function AccountSettings() {
   const { toast } = useToast();
+  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin } = useFamily();
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
@@ -96,6 +98,31 @@ export default function AccountSettings() {
     setError('');
   };
 
+  // Format date helper
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  // Get billing status label and color
+  const getBillingStatusInfo = () => {
+    switch (billingStatus) {
+      case 'trial':
+        return { label: `Período de prueba (${trialDaysLeft} días restantes)`, icon: Clock, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/30' };
+      case 'active':
+        return { label: 'Licencia activa', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-500/10', border: 'border-green-200 dark:border-green-800' };
+      case 'view_only':
+        return { label: 'Modo solo lectura', icon: AlertCircle, color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-200 dark:border-amber-800' };
+      case 'suspended':
+        return { label: 'Licencia suspendida', icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10', border: 'border-destructive/20' };
+      default:
+        return { label: 'Activo', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-500/10', border: 'border-green-200' };
+    }
+  };
+
+  const statusInfo = getBillingStatusInfo();
+  const StatusIcon = statusInfo.icon;
+
   return (
     <div className="pb-4">
       <PageHeader title="Configuración de cuenta" subtitle="Gestión de tu perfil y datos" />
@@ -115,6 +142,71 @@ export default function AccountSettings() {
             </div>
           </div>
         </div>
+
+        {/* License Info Card */}
+        {billingStatus && (
+          <div className={`border-2 rounded-2xl p-4 shadow-sm ${statusInfo.bg} ${statusInfo.border}`}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${statusInfo.bg}`}>
+                <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
+              </div>
+              <div>
+                <h3 className={`text-sm font-semibold ${statusInfo.color}`}>{statusInfo.label}</h3>
+                {isReadOnly && <p className="text-xs text-muted-foreground mt-0.5">No puedes hacer cambios en este modo</p>}
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              {/* Plan Info */}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Plan</span>
+                <span className="font-semibold text-foreground capitalize">FlowFin {licensePlan === 'home' ? 'Home' : licensePlan === 'family_plus' ? 'Family+' : 'Circle'}</span>
+              </div>
+
+              {/* Member Limit */}
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Integrantes permitidos</span>
+                <span className="font-semibold text-foreground">{activeMemberCount || '—'} / {licensedMemberLimit}</span>
+              </div>
+
+              {/* Trial Info */}
+              {billingStatus === 'trial' && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Inicia</span>
+                    <span className="font-semibold text-foreground">{formatDate(trialStartAt)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Vence</span>
+                    <span className="font-semibold text-foreground">{formatDate(trialEndAt)}</span>
+                  </div>
+                </>
+              )}
+
+              {/* Active License Info */}
+              {billingStatus === 'active' && (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Facturación</span>
+                    <span className="font-semibold text-foreground">Mensual</span>
+                  </div>
+                  {licenseActivatedAt && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Activada</span>
+                      <span className="font-semibold text-foreground">{formatDate(licenseActivatedAt)}</span>
+                    </div>
+                  )}
+                  {licenseExpiresAt && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Próxima renovación</span>
+                      <span className="font-semibold text-foreground">{formatDate(licenseExpiresAt)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
