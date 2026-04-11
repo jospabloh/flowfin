@@ -57,7 +57,8 @@ export function FamilyProvider({ children }) {
   // ── Billing / License state (family is the source of truth) ──────────────
   // Grandfather clause: existing families without billing_status default to 'active'
   const billingStatus = family?.billing_status || (family ? 'active' : null);
-  const isReadOnly = billingStatus === 'view_only' || billingStatus === 'suspended';
+  // SAFETY: isReadOnly NEVER applies to 'active' or 'trial' — only explicit view_only/suspended
+  const isReadOnly = (billingStatus === 'view_only' || billingStatus === 'suspended') && billingStatus !== 'active' && billingStatus !== 'trial';
   const licensePlan = family?.license_plan || 'home';
   const licensedMemberLimit = family?.licensed_member_limit || 4;
   const trialDaysLeft = (() => {

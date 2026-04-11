@@ -14,11 +14,9 @@ export default function TrialBanner() {
   const isExpired = billingStatus === 'view_only' || billingStatus === 'suspended';
   const daysLeft = trialDaysLeft ?? 30;
   const urgentTrial = billingStatus === 'trial' && daysLeft <= 7;
-  const warningTrial = billingStatus === 'trial' && daysLeft <= 14;
 
-  // Only show trial banner when <= 14 days left or expired
-  if (billingStatus === 'trial' && !warningTrial) return null;
-  if (billingStatus === 'trial' && dismissed) return null;
+  // Trial banner: always visible (per tenant), dismissible only when >7 days left
+  if (billingStatus === 'trial' && dismissed && !urgentTrial) return null;
 
   return (
     <>
