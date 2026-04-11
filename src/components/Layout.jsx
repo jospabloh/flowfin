@@ -4,12 +4,13 @@ import {
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users, MessageCircle,
   ChevronLeft, CalendarCheck, PiggyBank, ChevronRight,
-  Wallet
+  Wallet, ShieldCheck
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
+import TrialBanner from './TrialBanner';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import { useFamily } from '@/lib/FamilyContext';
 import { useSessionManager } from '@/hooks/useSessionManager';
@@ -111,7 +112,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const pendingCount = usePendingCount();
-  const { family, isAdmin } = useFamily();
+  const { family, isAdmin, currentUser } = useFamily();
   const { idleState, sessionExpired, continueSession } = useSessionManager();
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
@@ -134,6 +135,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-background flex flex-col overscroll-none" id="main-app-wrapper">
       <InternetBanner />
+      <TrialBanner />
       <IdleWarningDialog open={idleState === 'idle_warning'} onContinue={continueSession} />
       <SessionExpiredDialog open={sessionExpired} />
       <div className="flex flex-1 overflow-hidden">
@@ -189,6 +191,23 @@ export default function Layout() {
               </div>
             ))}
           </nav>
+
+          {/* System Admin — only visible for app-level admins */}
+          {currentUser?.role === 'admin' && (
+            <div className="px-3 border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1">
+              <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
+              <button
+                onClick={() => handleNavClick('/LicenseAdmin')}
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
+                  ${location.pathname === '/LicenseAdmin'
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Licencias
+              </button>
+            </div>
+          )}
 
           {/* Bottom actions */}
           <div className="p-4 border-t border-border space-y-2">

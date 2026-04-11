@@ -1,13 +1,15 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function FamilyAdmin() {
-  const { family, familyId, isAdmin } = useFamily();
+  const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit } = useFamily();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -178,6 +180,46 @@ export default function FamilyAdmin() {
 
       <PageHeader title="Admin Familia" subtitle={family?.name} />
 
+      {/* Billing status card */}
+      {billingStatus && billingStatus !== 'active' && (
+        <div className={`mx-4 mt-4 p-3 rounded-2xl border flex items-center gap-3 ${
+          isReadOnly
+            ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+            : 'bg-primary/5 border-primary/20'
+        }`}>
+          {isReadOnly
+            ? <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            : <ShieldCheck className="w-4 h-4 text-primary flex-shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-semibold ${ isReadOnly ? 'text-amber-700 dark:text-amber-400' : 'text-primary' }`}>
+              {isReadOnly ? 'Modo solo lectura — Prueba terminada' : billingStatus === 'trial' ? `Prueba gratuita · ${trialDaysLeft ?? '?'} días restantes` : 'Plan activo'}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {isReadOnly
+                ? 'Activa una licencia para aprobar nuevos miembros y editar datos.'
+                : `Hasta ${licensedMemberLimit} integrantes · Plan ${family?.license_plan || 'home'}`}
+            </p>
+          </div>
+          {(isReadOnly || (billingStatus === 'trial' && (trialDaysLeft ?? 30) <= 14)) && (
+            <button onClick={() => setShowUpgrade(true)}
+              className="flex-shrink-0 px-2.5 py-1.5 bg-primary text-primary-foreground rounded-xl text-[11px] font-bold">
+              Ver planes
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Miembros actuales vs límite */}
+      {licensedMemberLimit && (
+        <div className="mx-4 mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Users className="w-3.5 h-3.5" />
+          <span>{approved.length} / {licensedMemberLimit} integrantes en tu plan</span>
+          {approved.length >= licensedMemberLimit && (
+            <span className="text-amber-600 font-semibold ml-1">· Límite alcanzado</span>
+          )}
+        </div>
+      )}
+
       {/* Código de invitación */}
       <div className="mx-4 mt-4 p-4 bg-primary/10 border border-primary/30 rounded-2xl">
         <p className="text-xs text-muted-foreground mb-1">Código de invitación</p>
@@ -207,7 +249,7 @@ export default function FamilyAdmin() {
               placeholder="correo@ejemplo.com"
               className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
             />
-            <button onClick={handleInvite} disabled={inviteUserMutation.isPending || !inviteEmail.trim()}
+            <button onClick={handleInvite} disabled={inviteUserMutation.isPending || !inviteEmail.trim() || isReadOnly || approved.length >= licensedMemberLimit}
               className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
               {inviteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               Invitar
@@ -230,7 +272,9 @@ export default function FamilyAdmin() {
                   <p className="text-sm font-medium text-foreground">{m.user_name || 'Sin nombre'}</p>
                   <p className="text-xs text-muted-foreground">{m.user_email}</p>
                 </div>
-                <button onClick={() => handleApprove(m)} className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors">
+                <button onClick={() => !isReadOnly && approved.length < licensedMemberLimit && handleApprove(m)}
+                  disabled={isReadOnly || approved.length >= licensedMemberLimit}
+                  className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                   <CheckCircle className="w-5 h-5" />
                 </button>
                 <button onClick={() => handleReject(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors">
@@ -267,6 +311,7 @@ export default function FamilyAdmin() {
           ))}
         </div>
       </div>
+      <UpgradePlansModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );
 }

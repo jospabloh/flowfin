@@ -26,6 +26,7 @@ const UserManual = lazy(() => import('@/pages/UserManual'));
 const About = lazy(() => import('@/pages/About'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
 const FamilyAdmin = lazy(() => import('@/pages/FamilyAdmin'));
+const LicenseAdmin = lazy(() => import('@/pages/LicenseAdmin'));
 const Assistant = lazy(() => import('@/pages/Assistant'));
 const AccountSettings = lazy(() => import('@/pages/AccountSettings'));
 const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
@@ -109,6 +110,7 @@ const AuthenticatedApp = () => {
               <Route path="/FamilySettings" element={<Suspense fallback={<LoadingFallback />}><FamilySettings /></Suspense>} />
               <Route path="/AccountSettings" element={<Suspense fallback={<LoadingFallback />}><AccountSettings /></Suspense>} />
               <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><FamilyAdmin /></Suspense>} />
+              <Route path="/LicenseAdmin" element={<Suspense fallback={<LoadingFallback />}><LicenseAdmin /></Suspense>} />
               <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />

@@ -1,0 +1,135 @@
+{
+  "name": "Family",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la familia"
+    },
+    "join_code": {
+      "type": "string",
+      "description": "C\u00f3digo \u00fanico para unirse a la familia (ej: GARCIA24)"
+    },
+    "admin_user_id": {
+      "type": "string",
+      "description": "ID del usuario administrador de la familia"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "currency": {
+      "type": "string",
+      "default": "MXN"
+    },
+    "currency_symbol": {
+      "type": "string",
+      "default": "$"
+    },
+    "trial_start_at": {
+      "type": "string",
+      "description": "Fecha de inicio del per\u00edodo de prueba (ISO datetime, servidor)"
+    },
+    "trial_end_at": {
+      "type": "string",
+      "description": "Fecha de fin del per\u00edodo de prueba (ISO datetime, servidor)"
+    },
+    "billing_status": {
+      "type": "string",
+      "enum": [
+        "trial",
+        "active",
+        "view_only",
+        "suspended"
+      ],
+      "default": "trial",
+      "description": "Estado comercial de la familia: trial, active, view_only, suspended"
+    },
+    "license_plan": {
+      "type": "string",
+      "enum": [
+        "home",
+        "family_plus",
+        "circle"
+      ],
+      "default": "home",
+      "description": "Plan de licencia: home (4), family_plus (10), circle (20)"
+    },
+    "licensed_member_limit": {
+      "type": "number",
+      "default": 4,
+      "description": "N\u00famero m\u00e1ximo de integrantes permitidos seg\u00fan el plan"
+    },
+    "license_activated_at": {
+      "type": "string",
+      "description": "Fecha en que se activ\u00f3 la licencia (ISO datetime)"
+    },
+    "license_expires_at": {
+      "type": "string",
+      "description": "Fecha de vencimiento de la licencia (ISO datetime, null si no aplica)"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Referencia de pago del cliente (folio, transacci\u00f3n, etc.)"
+    },
+    "activation_notes": {
+      "type": "string",
+      "description": "Notas internas de activaci\u00f3n (uso ACACIA)"
+    },
+    "activated_by_admin": {
+      "type": "string",
+      "description": "Email del administrador ACACIA que activ\u00f3 la licencia"
+    },
+    "support_contacted_at": {
+      "type": "string",
+      "description": "\u00daltima vez que el cliente contact\u00f3 soporte (ISO datetime)"
+    }
+  },
+  "required": [
+    "name",
+    "join_code",
+    "admin_user_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.admin_user_id": "{{user.id}}"
+        },
+        {
+          "id": "{{user.data.family_id}}"
+        },
+        {
+          "id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.admin_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

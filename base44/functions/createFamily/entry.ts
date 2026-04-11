@@ -17,11 +17,20 @@ Deno.serve(async (req) => {
     const join_code = `${clean}${num}`;
 
     // Create family using service role (bypasses RLS)
+    // Set server-side trial dates (never trust client time for commercial state)
+    const now = new Date();
+    const trialEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const family = await base44.asServiceRole.entities.Family.create({
       name: family_name.trim(),
       join_code,
       admin_user_id: user.id,
       is_active: true,
+      trial_start_at: now.toISOString(),
+      trial_end_at: trialEnd.toISOString(),
+      billing_status: 'trial',
+      license_plan: 'home',
+      licensed_member_limit: 4,
     });
 
     // Create admin membership

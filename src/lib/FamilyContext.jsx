@@ -54,6 +54,18 @@ export function FamilyProvider({ children }) {
   const familyId = family?.id || null;
   const isAdmin = membership?.role === 'admin';
 
+  // ── Billing / License state (family is the source of truth) ──────────────
+  // Grandfather clause: existing families without billing_status default to 'active'
+  const billingStatus = family?.billing_status || (family ? 'active' : null);
+  const isReadOnly = billingStatus === 'view_only' || billingStatus === 'suspended';
+  const licensePlan = family?.license_plan || 'home';
+  const licensedMemberLimit = family?.licensed_member_limit || 4;
+  const trialDaysLeft = (() => {
+    if (!family?.trial_end_at || billingStatus !== 'trial') return null;
+    const diff = new Date(family.trial_end_at) - new Date();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  })();
+
 
 
   // familyConfig comes directly from getMyMembership (service role) — works for ALL members
@@ -70,7 +82,7 @@ export function FamilyProvider({ children }) {
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
 
   return (
-    <FamilyContext.Provider value={{ currentUser, family, familyId, familyConfigId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol }}>
+    <FamilyContext.Provider value={{ currentUser, family, familyId, familyConfigId, membership, isAdmin, isLoading, refetchMembership, familyConfig, currency, currencySymbol, billingStatus, isReadOnly, licensePlan, licensedMemberLimit, trialDaysLeft }}>
       {children}
     </FamilyContext.Provider>
   );

@@ -32,6 +32,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: membership does not belong to this family' }, { status: 403 });
     }
 
+    // Fetch family to check billing status and member limit
+    const familyRecords = await base44.asServiceRole.entities.Family.filter({ id: family_id });
+    const currentFamily = familyRecords?.[0];
+    if (currentFamily) {
+      // Check member limit
+      const approvedMembers = await base44.asServiceRole.entities.FamilyMembership.filter({
+        family_id,
+        status: 'approved',
+      });
+      const memberLimit = currentFamily.licensed_member_limit || 4;
+      if (approvedMembers.length >= memberLimit) {
+        return Response.json({
+          error: `Límite de integrantes alcanzado (${memberLimit}). Actualiza tu plan para agregar más miembros.`,
+          limit_reached: true,
+          current_count: approvedMembers.length,
+          limit: memberLimit,
+        }, { status: 403 });
+      }
+    }
+
     // Update membership status
     await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
 

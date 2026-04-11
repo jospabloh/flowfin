@@ -4,6 +4,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
+import UpgradePlansModal from '@/components/UpgradePlansModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
@@ -18,7 +19,7 @@ const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 export default function Capture() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { familyId, currency, currencySymbol, familyConfig } = useFamily();
+  const { familyId, currency, currencySymbol, familyConfig, isReadOnly } = useFamily();
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
   const { recordCapture, findAssociation, syncFamilyRulesFromDB } = useMemory();
@@ -54,6 +55,7 @@ export default function Capture() {
   const [isListening, setIsListening] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { duplicates: [], pendingData: {} }
   const [loadingSmartSuggestions, setLoadingSmartSuggestions] = useState(false);
 
@@ -185,6 +187,7 @@ export default function Capture() {
   };
 
   const handleSave = async () => {
+    if (isReadOnly) { setShowUpgrade(true); return; }
     if (!amount || isNaN(parseFloat(amount))) return;
     if (!categoryId) { alert('Debes seleccionar un Rubro'); return; }
     if (!personId) { alert('Debes seleccionar una Persona'); return; }
@@ -247,6 +250,20 @@ export default function Capture() {
 
   return (
    <div className="min-h-screen pb-4 overscroll-none" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
+      {/* Read-only mode banner */}
+      {isReadOnly && (
+        <div className="mx-4 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Modo solo lectura activo</p>
+            <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">Tu período de prueba ha terminado. Activa una licencia para continuar registrando movimientos.</p>
+          </div>
+          <button onClick={() => setShowUpgrade(true)}
+            className="flex-shrink-0 px-2.5 py-1.5 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 transition-colors">
+            Activar
+          </button>
+        </div>
+      )}
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
         {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
@@ -493,10 +510,17 @@ export default function Capture() {
 
       {/* Save button */}
       <div className="px-4 mt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-        <button onClick={handleSave} disabled={!amount || !categoryId || !personId || saving}
-          className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all touch-target">
-          {saving ? 'Guardando...' : 'Guardar'}
-        </button>
+        {isReadOnly ? (
+          <button onClick={() => setShowUpgrade(true)}
+            className="w-full py-4 rounded-2xl bg-amber-500 text-white font-bold text-base shadow-lg active:scale-[0.98] transition-all touch-target">
+            🔓 Activar licencia para guardar
+          </button>
+        ) : (
+          <button onClick={handleSave} disabled={!amount || !categoryId || !personId || saving}
+            className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all touch-target">
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        )}
       </div>
 
       {/* Duplicate warning modal */}
@@ -559,6 +583,8 @@ export default function Capture() {
           </>
         )}
       </AnimatePresence>
+
+      <UpgradePlansModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
 
       {/* Success overlay */}
       <AnimatePresence>

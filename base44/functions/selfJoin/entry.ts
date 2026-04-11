@@ -43,6 +43,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, pending: true });
     }
 
+    // Block if family is suspended
+    if (family.billing_status === 'suspended') {
+      return Response.json({ error: 'Esta familia está suspendida. Contacta al administrador.' }, { status: 403 });
+    }
+
     // Create pending membership (requires admin approval)
     await base44.asServiceRole.entities.FamilyMembership.create({
       family_id: family.id,
