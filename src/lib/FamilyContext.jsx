@@ -25,23 +25,19 @@ export function FamilyProvider({ children }) {
       .finally(() => clearTimeout(timeout));
   }, []);
 
-  const { data: membershipData, isLoading: loadingMembership, refetch: refetchMembership } = useQuery({
+  const { data: membershipData, isLoading: loadingMembership, isError: membershipError, refetch: refetchMembership } = useQuery({
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
       if (!currentUser) return null;
-      try {
-        // Call getMyMembership which auto-syncs family_id if needed
-        const res = await base44.functions.invoke('getMyMembership', {});
-        return res.data || null;
-      } catch (err) {
-        console.error('FamilyContext: getMyMembership failed:', err);
-        return null;
-      }
+      // Let errors throw so React Query can track isError and retry
+      const res = await base44.functions.invoke('getMyMembership', {});
+      return res.data || null;
     },
     enabled: !!currentUser,
     staleTime: 0,
     gcTime: 0,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   // Load extended license info
@@ -65,7 +61,8 @@ export function FamilyProvider({ children }) {
   // Guard against the 1-render-cycle gap where loadingUser just became false
   // but loadingMembership hasn't gone true yet (TanStack Query re-evaluates `enabled` one cycle later).
   // membershipData === undefined means the query has never resolved (still pending or not started).
-  const isLoading = loadingUser || (!!currentUser && membershipData === undefined);
+  // Also keep loading=true while there's an error + retrying, to avoid showing Onboarding on transient failures.
+  const isLoading = loadingUser || (!!currentUser && (membershipData === undefined || (membershipError && loadingMembership)));
 
   const membership = membershipData?.membership || null;
   const family = membershipData?.family || null;
@@ -108,6 +105,7 @@ export function FamilyProvider({ children }) {
       membership,
       isAdmin,
       isLoading,
+      membershipError,
       refetchMembership,
       familyConfig,
       currency,

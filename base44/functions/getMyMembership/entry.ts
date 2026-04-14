@@ -62,6 +62,8 @@ Deno.serve(async (req) => {
     return Response.json({ membership, family, familyConfig });
   } catch (error) {
     console.error('getMyMembership error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    // Return 503 for rate-limit / transient errors so the frontend retries instead of treating it as "no family"
+    const status = error?.status === 429 ? 503 : 500;
+    return Response.json({ error: error.message }, { status });
   }
 });

@@ -34,13 +34,13 @@ const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
 const Budget = lazy(() => import('@/pages/Budget'));
 
 const FamilyGate = ({ children }) => {
-  const { isLoading, membership, family, currentUser } = useFamily();
+  const { isLoading, membership, family, membershipError, refetchMembership } = useFamily();
   const { isLoadingAuth } = useAuth();
 
-  // Safety timeout: if loading takes too long, show onboarding anyway
+  // Safety timeout: if loading takes too long AND there's an error, show retry UI (not Onboarding)
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setTimedOut(true), 8000);
+    const t = setTimeout(() => setTimedOut(true), 12000);
     return () => clearTimeout(t);
   }, []);
 
@@ -57,6 +57,28 @@ const FamilyGate = ({ children }) => {
     );
   }
 
+  // If timed out due to a network error, show retry screen instead of Onboarding
+  if (timedOut && membershipError && !membership) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 px-8 text-center">
+          <div className="w-20 h-20 rounded-3xl overflow-hidden shadow-lg">
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/5dd910449_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">No se pudo conectar</p>
+          <p className="text-xs text-muted-foreground">Verifica tu conexión a internet e intenta de nuevo.</p>
+          <button
+            onClick={() => { setTimedOut(false); refetchMembership(); }}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show Onboarding if we got a confirmed null result (no error) — user genuinely has no family
   if (!membership || !family) return (
     <Suspense fallback={
       <div className="fixed inset-0 flex items-center justify-center bg-background">
