@@ -10,6 +10,7 @@ import { ThemeProvider } from 'next-themes';
 import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
+import TutorialController from '@/components/tutorial/TutorialController';
 
 
 // Lazy-loaded pages
@@ -95,6 +96,8 @@ const AuthenticatedApp = () => {
     <FamilyProvider>
       <FamilyGate>
         <Suspense fallback={<LoadingFallback />}>
+          <TutorialController />
+
           <Routes>
             <Route path="/" element={<Navigate to="/Dashboard" replace />} />
             <Route element={<Layout />}>

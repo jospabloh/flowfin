@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { Save, Plus, X, Trash2 } from 'lucide-react';
+import { Save, Plus, X, Trash2, PlayCircle } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import LocaleSelector from '@/components/LocaleSelector';
+import { launchFlowfinTutorial } from '@/lib/tutorial/tutorialEvents';
 
 
 export default function FamilySettings() {
@@ -143,7 +144,7 @@ export default function FamilySettings() {
         } />
 
       <div className="px-4 space-y-5">
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
+        <div data-tutorial="family-settings-card" className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground">🏠 Datos de la Familia</h3>
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre de la familia</label>
@@ -203,6 +204,24 @@ export default function FamilySettings() {
           <p className="text-xs text-muted-foreground text-center">
             Esta configuración es exclusiva de su familia y no afecta a otros usuarios de la plataforma.
           </p>
+        </div>
+
+        {/* Tutorial relaunch */}
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+            <PlayCircle className="w-4 h-4 text-primary" />
+            Tutorial de configuración
+          </h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Vuelve a ver el tutorial paso a paso con el código de familia, aprobación de miembros, catálogos y captura de movimientos.
+          </p>
+          <button
+            onClick={() => launchFlowfinTutorial()}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+          >
+            <PlayCircle className="w-3.5 h-3.5" />
+            Reiniciar tutorial
+          </button>
         </div>
 
         {/* Danger zone */}

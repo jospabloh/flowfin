@@ -479,7 +479,7 @@ export default function UserManual() {
    const hasResults = filteredSections.length > 0 || filteredGlossary.length > 0;
 
    return (
-     <div className="pb-8">
+     <div data-tutorial="manual-root" className="pb-8">
        <PageHeader title="Manual de Usuario" subtitle="Guía completa de FlowFin" />
 
        <div className="px-4 space-y-4">

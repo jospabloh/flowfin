@@ -304,12 +304,12 @@ export default function Catalogs() {
 
       <Tabs defaultValue="categories" className="px-4">
         <TabsList className="w-full mb-4 grid grid-cols-3 h-auto p-1">
-          <TabsTrigger value="categories" className="text-xs py-1.5">Rubros</TabsTrigger>
-          <TabsTrigger value="subcategories" className="text-xs py-1.5">SubRubros</TabsTrigger>
-          <TabsTrigger value="persons" className="text-xs py-1.5">Personas</TabsTrigger>
+          <TabsTrigger data-tutorial="catalogs-tab-categories" value="categories" className="text-xs py-1.5">Rubros</TabsTrigger>
+          <TabsTrigger data-tutorial="catalogs-tab-subcategories" value="subcategories" className="text-xs py-1.5">SubRubros</TabsTrigger>
+          <TabsTrigger data-tutorial="catalogs-tab-persons" value="persons" className="text-xs py-1.5">Personas</TabsTrigger>
         </TabsList>
         <TabsList className="w-full mb-4 grid grid-cols-3 h-auto p-1">
-          <TabsTrigger value="methods" className="text-xs py-1.5">Formas de Pago</TabsTrigger>
+          <TabsTrigger data-tutorial="catalogs-tab-methods" value="methods" className="text-xs py-1.5">Formas de Pago</TabsTrigger>
           <TabsTrigger value="required_types" className="text-xs py-1.5">Tipos de Gasto</TabsTrigger>
           <TabsTrigger value="transfer_dest" className="text-xs py-1.5">Transferencias</TabsTrigger>
         </TabsList>

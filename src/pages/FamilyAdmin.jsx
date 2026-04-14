@@ -221,7 +221,7 @@ export default function FamilyAdmin() {
       )}
 
       {/* Código de invitación */}
-      <div className="mx-4 mt-4 p-4 bg-primary/10 border border-primary/30 rounded-2xl">
+      <div data-tutorial="family-admin-code-card" className="mx-4 mt-4 p-4 bg-primary/10 border border-primary/30 rounded-2xl">
         <p className="text-xs text-muted-foreground mb-1">Código de invitación</p>
         <div className="flex items-center justify-between">
           <span className="font-mono font-black text-2xl text-primary tracking-widest">{family?.join_code}</span>
@@ -260,7 +260,7 @@ export default function FamilyAdmin() {
 
       {/* Solicitudes pendientes */}
       {pending.length > 0 && (
-        <div className="mx-4 mt-4">
+        <div data-tutorial="family-admin-pending-card" className="mx-4 mt-4">
           <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
             <span className="w-5 h-5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">{pending.length}</span>
             Solicitudes pendientes

@@ -335,7 +335,7 @@ export default function About() {
         </div>
 
         {/* Contact */}
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+        <div data-tutorial="about-support-card" className="bg-card border border-border rounded-2xl p-4 shadow-sm">
           <h3 className="text-sm font-bold text-foreground mb-3">Contacto y Soporte</h3>
           <div className="space-y-3">
             <a href="mailto:soporte@acaciaco.com.mx" className="flex items-center gap-3 p-3 bg-muted rounded-xl hover:bg-muted/70 transition-colors">

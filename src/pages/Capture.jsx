@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -186,11 +186,15 @@ export default function Capture() {
     });
   };
 
+  const validCategories = categories.filter(c => c.type === 'both' || c.type === type);
+  const missingCategories = validCategories.length === 0;
+  const missingPersons = persons.length === 0;
+
   const handleSave = async () => {
     if (isReadOnly) { setShowUpgrade(true); return; }
     if (!amount || isNaN(parseFloat(amount))) return;
-    if (!categoryId) { alert('Debes seleccionar un Rubro'); return; }
-    if (!personId) { alert('Debes seleccionar una Persona'); return; }
+    if (!categoryId) return;
+    if (!personId) return;
     setSaving(true);
     const week = getWeekNumber(date);
     const txData = {
@@ -249,7 +253,7 @@ export default function Capture() {
   const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId);
 
   return (
-   <div className="min-h-screen pb-4 overscroll-none" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
+   <div data-tutorial="capture-form-card" className="min-h-screen pb-4 overscroll-none" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
       {/* Read-only mode banner */}
       {isReadOnly && (
         <div className="mx-4 mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-start gap-3">
@@ -264,6 +268,29 @@ export default function Capture() {
           </button>
         </div>
       )}
+      {/* Setup missing warning */}
+      {(missingCategories || missingPersons) && (
+        <div className="mx-4 mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Configura antes de guardar</p>
+              <div className="text-xs text-amber-600 dark:text-amber-500 mt-1 space-y-0.5">
+                {missingPersons && <p>• No tienes personas registradas</p>}
+                {missingCategories && <p>• No tienes rubros para {type === 'expense' ? 'egresos' : 'ingresos'}</p>}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/Catalogs')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-semibold w-full justify-center hover:bg-amber-600 transition-colors"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            Ir a Catálogos
+          </button>
+        </div>
+      )}
+
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
         {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
@@ -373,7 +400,7 @@ export default function Capture() {
           value={categoryId}
           onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
           placeholder="Rubro"
-          options={categories.filter(c => c.type === 'both' || c.type === type).map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
+          options={validCategories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
           className={`bg-card border rounded-xl px-3 py-2.5 text-sm w-full ${!categoryId ? 'border-expense/60 bg-expense/5' : 'border-border'}`}
         />
         {type === 'expense' && (
