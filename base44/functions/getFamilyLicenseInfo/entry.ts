@@ -14,9 +14,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get membership and family via getMyMembership
-    const membershipRes = await base44.functions.invoke('getMyMembership', {});
-    const { membership, family } = membershipRes.data || {};
+    // Get membership directly (avoid nested function call that causes auth issues)
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+      user_id: user.id,
+      status: 'approved',
+    });
+    if (!memberships.length) {
+      memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+        user_email: user.email,
+        status: 'approved',
+      });
+    }
+    const membership = memberships[0] || null;
+
+    let family = null;
+    if (membership?.family_id) {
+      const families = await base44.asServiceRole.entities.Family.filter({ id: membership.family_id });
+      family = families[0] || null;
+    }
 
     if (!family || !membership) {
       return Response.json({ error: 'No family found' }, { status: 404 });
