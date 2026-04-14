@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
-// Sincroniza preferencias de usuario al localStorage en background
 async function syncUserPrefsToLS(user) {
   try {
     if (user?.preferences) {
@@ -25,53 +24,82 @@ export function FamilyProvider({ children }) {
       .finally(() => clearTimeout(timeout));
   }, []);
 
-  const { data: membershipData, isLoading: loadingMembership, isError: membershipError, refetch: refetchMembership } = useQuery({
+  // ── Step 1: Load membership directly from entity SDK (no backend function) ──
+  const { data: membership, isLoading: loadingMembership, isError: membershipError, refetch: refetchMembership } = useQuery({
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
-      if (!currentUser) return null;
-      // Let errors throw so React Query can track isError and retry
-      const res = await base44.functions.invoke('getMyMembership', {});
-      return res.data || null;
+      // Try by user_id first
+      let results = await base44.entities.FamilyMembership.filter({ user_id: currentUser.id, status: 'approved' });
+      if (!results.length) {
+        // Fallback to email
+        results = await base44.entities.FamilyMembership.filter({ user_email: currentUser.email, status: 'approved' });
+      }
+      return results[0] || null;
     },
     enabled: !!currentUser,
-    staleTime: 0,
-    gcTime: 0,
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 6000),
   });
 
-  // Load extended license info
-  const { data: licenseInfo } = useQuery({
-    queryKey: ['family-license', currentUser?.id, membershipData?.family?.id],
+  // ── Step 2: Load family once we have membership ──
+  const familyId = membership?.family_id || null;
+
+  const { data: family, isLoading: loadingFamily } = useQuery({
+    queryKey: ['family', familyId],
     queryFn: async () => {
-      if (!membershipData?.family?.id) return null;
+      const results = await base44.entities.Family.filter({ id: familyId });
+      return results[0] || null;
+    },
+    enabled: !!familyId,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
+  // ── Step 3: Load familyConfig ──
+  const { data: familyConfig } = useQuery({
+    queryKey: ['family-config', familyId],
+    queryFn: async () => {
+      const results = await base44.entities.FamilyConfig.filter({ family_id: familyId });
+      return results[0] || null;
+    },
+    enabled: !!familyId,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
+  // ── Step 4: Load license info (low priority) ──
+  const { data: licenseInfo } = useQuery({
+    queryKey: ['family-license', familyId],
+    queryFn: async () => {
       try {
         const res = await base44.functions.invoke('getFamilyLicenseInfo', {});
         return res.data || null;
-      } catch (err) {
-        console.error('FamilyContext: getFamilyLicenseInfo failed:', err);
+      } catch {
         return null;
       }
     },
-    enabled: !!membershipData?.family?.id,
-    staleTime: 60 * 1000, // 1 min cache for license state
+    enabled: !!familyId,
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
-  // Guard against the 1-render-cycle gap where loadingUser just became false
-  // but loadingMembership hasn't gone true yet (TanStack Query re-evaluates `enabled` one cycle later).
-  // membershipData === undefined means the query has never resolved (still pending or not started).
-  // Also keep loading=true while there's an error + retrying, to avoid showing Onboarding on transient failures.
-  const isLoading = loadingUser || (!!currentUser && (membershipData === undefined || (membershipError && loadingMembership)));
+  // Sync family rules to localStorage
+  useEffect(() => {
+    if (familyConfig?.smart_rules) {
+      try { localStorage.setItem('ff_family_rules', JSON.stringify(familyConfig.smart_rules)); } catch {}
+    }
+  }, [familyConfig?.id]);
 
-  const membership = membershipData?.membership || null;
-  const family = membershipData?.family || null;
-  const familyId = family?.id || null;
+  // isLoading: true while user loads OR while membership query is pending/running
+  const isLoading = loadingUser || (!!currentUser && membership === undefined) || (!!familyId && family === undefined);
+
   const isAdmin = membership?.role === 'admin';
 
-  // ── Billing / License state (resolved server-side for safety) ──────────────
-  // Use licenseInfo from getFamilyLicenseInfo if available (server-resolved)
-  // Otherwise fall back to local calculation for compatibility
   const billingStatus = licenseInfo?.billingStatus || family?.billing_status || (family ? 'active' : null);
   const isReadOnly = licenseInfo?.isReadOnly ?? (billingStatus === 'view_only' || billingStatus === 'suspended');
   const licensePlan = licenseInfo?.licensePlan || family?.license_plan || 'home';
@@ -83,18 +111,14 @@ export function FamilyProvider({ children }) {
   const licenseActivatedAt = licenseInfo?.licenseActivatedAt || family?.license_activated_at || null;
   const licenseExpiresAt = licenseInfo?.licenseExpiresAt || family?.license_expires_at || null;
 
-  // familyConfig comes directly from getMyMembership (service role) — works for ALL members
-  const familyConfig = membershipData?.familyConfig || null;
   const familyConfigId = familyConfig?.id || null;
-
-  // Sincronizar smart_rules al localStorage cuando llegan los datos de familia
-  useEffect(() => {
-    if (familyConfig?.smart_rules) {
-      try { localStorage.setItem('ff_family_rules', JSON.stringify(familyConfig.smart_rules)); } catch {}
-    }
-  }, [familyConfig?.id]);
   const currency = familyConfig?.currency || family?.currency || 'MXN';
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
+
+  // refetchMembership now also invalidates family
+  const refetchAll = async () => {
+    await refetchMembership();
+  };
 
   return (
     <FamilyContext.Provider value={{
@@ -106,7 +130,7 @@ export function FamilyProvider({ children }) {
       isAdmin,
       isLoading,
       membershipError,
-      refetchMembership,
+      refetchMembership: refetchAll,
       familyConfig,
       currency,
       currencySymbol,
