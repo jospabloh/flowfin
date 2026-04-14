@@ -39,6 +39,26 @@ function writeLocalState(key, value) {
   }
 }
 
+function getBestTimestamp(state) {
+  if (!state) return 0;
+  return Math.max(
+    Date.parse(state.last_seen_at || 0) || 0,
+    Date.parse(state.dismissed_at || 0) || 0,
+    Date.parse(state.completed_at || 0) || 0
+  );
+}
+
+function resolvePreferredState(serverState, localState) {
+  if (!serverState && !localState) return DEFAULT_STATE;
+  if (serverState && !localState) return { ...DEFAULT_STATE, ...serverState };
+  if (!serverState && localState) return { ...DEFAULT_STATE, ...localState };
+
+  const serverTs = getBestTimestamp(serverState);
+  const localTs = getBestTimestamp(localState);
+
+  return { ...DEFAULT_STATE, ...(localTs >= serverTs ? localState : serverState) };
+}
+
 export function useTutorialState() {
   const { membership, familyId, currentUser, isAdmin, refetchMembership } = useFamily();
 
@@ -48,17 +68,18 @@ export function useTutorialState() {
   );
 
   const serverState = membership?.tutorial_state?.[FLOWFIN_TUTORIAL_STORAGE_KEY] || null;
-  const localState = useMemo(() => readLocalState(fallbackKey), [fallbackKey]);
+
+  const [localState, setLocalState] = useState(() => readLocalState(fallbackKey));
+  const [tutorialState, setTutorialState] = useState(DEFAULT_STATE);
+
+  useEffect(() => {
+    setLocalState(readLocalState(fallbackKey));
+  }, [fallbackKey]);
 
   const mergedState = useMemo(
-    () => ({
-      ...DEFAULT_STATE,
-      ...(serverState || localState || {}),
-    }),
+    () => resolvePreferredState(serverState, localState),
     [serverState, localState]
   );
-
-  const [tutorialState, setTutorialState] = useState(mergedState);
 
   useEffect(() => {
     setTutorialState(mergedState);
@@ -75,6 +96,7 @@ export function useTutorialState() {
       };
 
       setTutorialState(nextState);
+      setLocalState(nextState);
       writeLocalState(fallbackKey, nextState);
 
       if (!membership?.id) return nextState;

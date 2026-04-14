@@ -10,7 +10,7 @@ import { FLOWFIN_TUTORIAL_START_EVENT } from '@/lib/tutorial/tutorialEvents';
 import TutorialOverlay from './TutorialOverlay';
 
 const TARGET_RETRY_MS = 180;
-const TARGET_MAX_RETRIES = 24;
+const TARGET_MAX_RETRIES = 40;
 
 function getScrollableContainer() {
   return document.getElementById('main-scroll') || document.scrollingElement || document.documentElement;
@@ -82,7 +82,10 @@ export default function TutorialController() {
   const [activeStepId, setActiveStepId] = useState(tutorialState.current_step);
   const [targetRect, setTargetRect] = useState(null);
   const [resolvedTargetElement, setResolvedTargetElement] = useState(null);
+
   const retryTimerRef = useRef(null);
+  const autoOpenAttemptedRef = useRef(false);
+  const sessionDismissedRef = useRef(false);
 
   const stepIndex = useMemo(
     () => getTutorialStepIndex(activeStepId || tutorialState.current_step),
@@ -95,17 +98,35 @@ export default function TutorialController() {
     setActiveStepId(tutorialState.current_step);
   }, [tutorialState.current_step]);
 
+  // Reset session flags when family changes
+  useEffect(() => {
+    autoOpenAttemptedRef.current = false;
+    sessionDismissedRef.current = false;
+    setIsOpen(false);
+    setTargetRect(null);
+    setResolvedTargetElement(null);
+  }, [family?.id]);
+
+  // Auto-open: only once per session, only if not dismissed
   useEffect(() => {
     if (!isAdmin) return;
-    if (!isOpen && shouldAutoOpen) {
-      setIsOpen(true);
-      startOrResume();
-    }
-  }, [isAdmin, isOpen, shouldAutoOpen, startOrResume]);
+    if (autoOpenAttemptedRef.current) return;
+    if (sessionDismissedRef.current) return;
+    if (!shouldAutoOpen) return;
 
+    autoOpenAttemptedRef.current = true;
+    setIsOpen(true);
+    void startOrResume();
+  }, [isAdmin, shouldAutoOpen, startOrResume]);
+
+  // Manual restart via event
   useEffect(() => {
     const handleManualStart = async () => {
       if (!isAdmin) return;
+
+      sessionDismissedRef.current = false;
+      autoOpenAttemptedRef.current = true;
+
       await restartFromBeginning();
       setActiveStepId('join-code');
       setTargetRect(null);
@@ -119,6 +140,7 @@ export default function TutorialController() {
     };
   }, [isAdmin, restartFromBeginning]);
 
+  // Target resolution
   useEffect(() => {
     if (retryTimerRef.current) {
       clearInterval(retryTimerRef.current);
@@ -156,9 +178,12 @@ export default function TutorialController() {
       }
 
       attempts += 1;
+
       if (attempts >= TARGET_MAX_RETRIES) {
         clearInterval(retryTimerRef.current);
         retryTimerRef.current = null;
+        setResolvedTargetElement(null);
+        setTargetRect(null);
       }
     }, TARGET_RETRY_MS);
 
@@ -170,6 +195,7 @@ export default function TutorialController() {
     };
   }, [isOpen, step, location.pathname, navigate]);
 
+  // Track rect changes on scroll/resize
   useEffect(() => {
     if (!isOpen || !resolvedTargetElement || step?.kind !== 'spotlight') return;
 
@@ -206,9 +232,10 @@ export default function TutorialController() {
     };
   }, [isOpen, resolvedTargetElement, step?.kind]);
 
+  // Persist current step
   useEffect(() => {
     if (!isOpen || !step?.id) return;
-    setCurrentStep(step.id);
+    void setCurrentStep(step.id);
   }, [isOpen, step?.id, setCurrentStep]);
 
   if (!isAdmin || !isOpen || !step) return null;
@@ -234,8 +261,9 @@ export default function TutorialController() {
 
   const handleNext = async () => {
     if (step.isFinal) {
-      await markCompleted();
+      sessionDismissedRef.current = true;
       setIsOpen(false);
+      await markCompleted();
       return;
     }
 
@@ -243,13 +271,15 @@ export default function TutorialController() {
   };
 
   const handleLater = async () => {
-    await markPostponed(step.id);
+    sessionDismissedRef.current = true;
     setIsOpen(false);
+    await markPostponed(step.id);
   };
 
   const handleSkip = async () => {
-    await markSkipped(step.id);
+    sessionDismissedRef.current = true;
     setIsOpen(false);
+    await markSkipped(step.id);
   };
 
   return (

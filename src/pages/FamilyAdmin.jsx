@@ -259,32 +259,60 @@ export default function FamilyAdmin() {
             </div>
 
       {/* Solicitudes pendientes */}
-      {pending.length > 0 && (
-        <div data-tutorial="family-admin-pending-card" className="mx-4 mt-4">
-          <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">{pending.length}</span>
-            Solicitudes pendientes
-          </h3>
+      <div data-tutorial="family-admin-pending-card" className="mx-4 mt-4">
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">
+            {pending.length}
+          </span>
+          Solicitudes pendientes
+        </h3>
+
+        {pending.length > 0 ? (
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             {pending.map((m, i) => (
-              <div key={m.id} className={`flex items-center gap-3 px-4 py-3 ${i < pending.length - 1 ? 'border-b border-border' : ''}`}>
+              <div
+                key={m.id}
+                className={`flex items-center gap-3 px-4 py-3 ${
+                  i < pending.length - 1 ? 'border-b border-border' : ''
+                }`}
+              >
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">{m.user_name || 'Sin nombre'}</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {m.user_name || 'Sin nombre'}
+                  </p>
                   <p className="text-xs text-muted-foreground">{m.user_email}</p>
                 </div>
-                <button onClick={() => !isReadOnly && approved.length < licensedMemberLimit && handleApprove(m)}
+
+                <button
+                  onClick={() =>
+                    !isReadOnly && approved.length < licensedMemberLimit && handleApprove(m)
+                  }
                   disabled={isReadOnly || approved.length >= licensedMemberLimit}
-                  className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   <CheckCircle className="w-5 h-5" />
                 </button>
-                <button onClick={() => handleReject(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors">
+
+                <button
+                  onClick={() => handleReject(m)}
+                  className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors"
+                >
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="bg-card border border-border rounded-2xl p-4">
+            <p className="text-sm font-medium text-foreground">
+              Aquí aparecerán las solicitudes pendientes
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cuando alguien capture el código de familia y solicite acceso, podrás aprobarlo o rechazarlo aquí.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Miembros aprobados */}
       <div className="mx-4 mt-4">
