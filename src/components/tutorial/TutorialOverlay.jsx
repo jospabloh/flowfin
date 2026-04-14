@@ -1,65 +1,14 @@
 import { createPortal } from 'react-dom';
 import { X, Heart, Copy } from 'lucide-react';
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
 function getViewportMetrics() {
   const vv = window.visualViewport;
   const width = vv?.width || window.innerWidth;
   const height = vv?.height || window.innerHeight;
   const offsetTop = vv?.offsetTop || 0;
   const offsetLeft = vv?.offsetLeft || 0;
+
   return { width, height, offsetTop, offsetLeft };
-}
-
-function getCardPosition(targetRect) {
-  const viewport = getViewportMetrics();
-  const safeLeft = 12;
-  const safeRight = 12;
-  const safeTop = 16;
-
-  const maxWidth = Math.min(420, viewport.width - safeLeft - safeRight);
-  const width = Math.max(280, maxWidth);
-
-  if (!targetRect) {
-    return {
-      top: viewport.offsetTop + Math.max(20, (viewport.height - 280) / 2),
-      left: viewport.offsetLeft + Math.max(safeLeft, (viewport.width - width) / 2),
-      width,
-      maxHeight: viewport.height - 32,
-    };
-  }
-
-  const spaceBelow = viewport.offsetTop + viewport.height - targetRect.bottom;
-  const spaceAbove = targetRect.top - viewport.offsetTop;
-  const cardHeightEstimate = 280;
-
-  const fitsBelow = spaceBelow >= cardHeightEstimate + 16;
-  const fitsAbove = spaceAbove >= cardHeightEstimate + 16;
-
-  let top;
-  if (fitsBelow) {
-    top = targetRect.bottom + 16;
-  } else if (fitsAbove) {
-    top = targetRect.top - cardHeightEstimate - 16;
-  } else {
-    top = viewport.offsetTop + Math.max(safeTop, viewport.height - cardHeightEstimate - 20);
-  }
-
-  const left = clamp(
-    targetRect.left,
-    viewport.offsetLeft + safeLeft,
-    viewport.offsetLeft + viewport.width - width - safeRight
-  );
-
-  return {
-    top,
-    left,
-    width,
-    maxHeight: viewport.height - 24,
-  };
 }
 
 export default function TutorialOverlay({
@@ -78,7 +27,7 @@ export default function TutorialOverlay({
   if (!step) return null;
 
   const viewport = getViewportMetrics();
-  const cardPosition = getCardPosition(step.kind === 'spotlight' ? targetRect : null);
+  const isDesktop = viewport.width >= 768;
   const showSpotlight = step.kind === 'spotlight' && !!targetRect;
   const joinCode = family?.join_code || '—';
 
@@ -102,10 +51,12 @@ export default function TutorialOverlay({
             <p className="text-xs font-semibold text-muted-foreground mb-2">
               Código de familia
             </p>
+
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <span className="font-mono text-2xl font-black tracking-widest text-primary break-all">
                 {joinCode}
               </span>
+
               <button
                 onClick={copyJoinCode}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold"
@@ -160,10 +111,12 @@ export default function TutorialOverlay({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[120]"
+      className="fixed z-[120]"
       style={{
         top: viewport.offsetTop,
         left: viewport.offsetLeft,
+        width: viewport.width,
+        height: viewport.height,
       }}
     >
       {showSpotlight ? (
@@ -177,39 +130,49 @@ export default function TutorialOverlay({
           }}
         />
       ) : (
-        <div className="fixed inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-black/60" />
       )}
 
       <div
-        className="fixed rounded-3xl border border-border bg-card shadow-2xl p-5 overflow-y-auto"
-        style={cardPosition}
+        className={
+          isDesktop
+            ? 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,420px)] max-h-[min(90dvh,760px)] rounded-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden'
+            : 'absolute inset-x-0 bottom-0 w-full h-full max-h-full rounded-t-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden'
+        }
       >
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide font-bold text-primary mb-1">
-              Paso {stepIndex + 1} de {totalSteps}
-            </p>
-            <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
-          </div>
+        <div className="shrink-0 p-5 border-b border-border">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide font-bold text-primary mb-1">
+                Paso {stepIndex + 1} de {totalSteps}
+              </p>
+              <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
+            </div>
 
-          {!step.isFinal && (
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground flex-shrink-0"
-              aria-label="Cerrar tutorial"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+            {!step.isFinal && (
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground flex-shrink-0"
+                aria-label="Cerrar tutorial"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {renderStepBody()}
+        <div className="flex-1 overflow-y-auto p-5">
+          {renderStepBody()}
+        </div>
 
-        <div className="flex flex-wrap gap-2 mt-5">
+        <div
+          className="shrink-0 p-4 border-t border-border bg-card flex flex-wrap gap-2"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+        >
           {canGoBack && (
             <button
               onClick={onBack}
-              className="px-4 py-2 rounded-xl bg-muted text-muted-foreground text-sm font-semibold"
+              className="flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-muted text-muted-foreground text-sm font-semibold"
             >
               Atrás
             </button>
@@ -219,14 +182,14 @@ export default function TutorialOverlay({
             <>
               <button
                 onClick={onLater}
-                className="px-4 py-2 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
+                className="flex-1 min-w-[120px] px-4 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
               >
                 Después
               </button>
 
               <button
                 onClick={onSkip}
-                className="px-4 py-2 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
+                className="flex-1 min-w-[120px] px-4 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
               >
                 Omitir
               </button>
@@ -235,7 +198,7 @@ export default function TutorialOverlay({
 
           <button
             onClick={onNext}
-            className="ml-auto px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+            className="flex-1 min-w-[140px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
           >
             {step.nextLabel || 'Siguiente'}
           </button>

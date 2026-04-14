@@ -8,6 +8,7 @@ import {
 } from '@/lib/tutorial/flowfinTutorialSteps';
 import { FLOWFIN_TUTORIAL_START_EVENT } from '@/lib/tutorial/tutorialEvents';
 import TutorialOverlay from './TutorialOverlay';
+import { useToast } from '@/components/ui/use-toast';
 
 const TARGET_RETRY_MS = 180;
 const TARGET_MAX_RETRIES = 40;
@@ -75,6 +76,8 @@ export default function TutorialController() {
     markCompleted,
   } = useTutorialState();
 
+  const { toast } = useToast();
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -98,7 +101,6 @@ export default function TutorialController() {
     setActiveStepId(tutorialState.current_step);
   }, [tutorialState.current_step]);
 
-  // Reset session flags when family changes
   useEffect(() => {
     autoOpenAttemptedRef.current = false;
     sessionDismissedRef.current = false;
@@ -107,7 +109,6 @@ export default function TutorialController() {
     setResolvedTargetElement(null);
   }, [family?.id]);
 
-  // Auto-open: only once per session, only if not dismissed
   useEffect(() => {
     if (!isAdmin) return;
     if (autoOpenAttemptedRef.current) return;
@@ -119,7 +120,6 @@ export default function TutorialController() {
     void startOrResume();
   }, [isAdmin, shouldAutoOpen, startOrResume]);
 
-  // Manual restart via event
   useEffect(() => {
     const handleManualStart = async () => {
       if (!isAdmin) return;
@@ -140,7 +140,6 @@ export default function TutorialController() {
     };
   }, [isAdmin, restartFromBeginning]);
 
-  // Target resolution
   useEffect(() => {
     if (retryTimerRef.current) {
       clearInterval(retryTimerRef.current);
@@ -195,7 +194,6 @@ export default function TutorialController() {
     };
   }, [isOpen, step, location.pathname, navigate]);
 
-  // Track rect changes on scroll/resize
   useEffect(() => {
     if (!isOpen || !resolvedTargetElement || step?.kind !== 'spotlight') return;
 
@@ -232,7 +230,6 @@ export default function TutorialController() {
     };
   }, [isOpen, resolvedTargetElement, step?.kind]);
 
-  // Persist current step
   useEffect(() => {
     if (!isOpen || !step?.id) return;
     void setCurrentStep(step.id);
@@ -273,12 +270,26 @@ export default function TutorialController() {
   const handleLater = async () => {
     sessionDismissedRef.current = true;
     setIsOpen(false);
+
+    toast({
+      title: 'Tutorial pausado',
+      description:
+        'Tutorial pausado por ahora. Volverá a mostrarse en una nueva sesión, o puedes retomarlo desde Mi Familia.',
+    });
+
     await markPostponed(step.id);
   };
 
   const handleSkip = async () => {
     sessionDismissedRef.current = true;
     setIsOpen(false);
+
+    toast({
+      title: 'Tutorial omitido',
+      description:
+        'Tutorial omitido. Puedes volver a iniciarlo desde Mi Familia o consultar el Manual de Usuario cuando lo necesites.',
+    });
+
     await markSkipped(step.id);
   };
 
