@@ -5,26 +5,16 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
-import AmountDisplay from '@/components/AmountDisplay';
-import { Plus, Pencil, Trash2, CheckCircle2, Circle, X, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Plus } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
-import SearchableButtonSelect from '@/components/SearchableButtonSelect';
-import NativeSelect from '@/components/NativeSelect';
 import { useToast } from '@/components/ui/use-toast';
-
-const ICONS = ['💰','💡','📱','🏠','🚗','🎓','🏥','💧','🌐','📺','🎮','🛒','✈️','💳','🏋️'];
+import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
+import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
+import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
-
-function statusColor(dueDay) {
-  const today = TODAY.getDate();
-  const diff = dueDay - today;
-  if (diff < 0) return 'red';
-  if (diff <= 3) return 'amber';
-  return 'green';
-}
 
 export default function ScheduledPayments() {
   const { familyId, isAdmin, currentUser } = useFamily();
@@ -49,86 +39,40 @@ export default function ScheduledPayments() {
     queryFn: () => base44.entities.ScheduledPayment.filter({ family_id: familyId }),
     enabled: !!familyId,
   });
-
   const { data: records = [] } = useQuery({
     queryKey: ['scheduledPaymentRecords', familyId],
     queryFn: () => base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId }),
     enabled: !!familyId,
   });
 
-  const paidThisMonth = useMemo(() =>
-    new Set(records.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id)),
-    [records]
-  );
-
+  const paidThisMonth = useMemo(() => new Set(records.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id)), [records]);
   const pending = payments.filter(p => p.is_active !== false && !paidThisMonth.has(p.id));
+  const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ScheduledPayment.create(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.ScheduledPayment.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
-  });
+  const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
+  const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
+  const deleteMutation = useMutation({ mutationFn: (id) => base44.entities.ScheduledPayment.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
 
   const handleMarkPaid = async () => {
     if (!payingItem || isSavingPayment) return;
     setIsSavingPayment(true);
-
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
-    // Resolve person_id: use selected person or fallback
     let primaryPersonId = payPersonId || payingItem.person_id || undefined;
-    if (!primaryPersonId && persons.length > 0) {
-      primaryPersonId = persons[0].id;
-    }
-
+    if (!primaryPersonId && persons.length > 0) primaryPersonId = persons[0].id;
     const selectedPerson = persons.find(p => p.id === primaryPersonId);
-    const recordData = {
-      scheduled_payment_id: payingItem.id,
-      family_id: familyId,
-      month: CURRENT_MONTH,
-      paid_date: payDate,
-      amount_paid: amount,
-      notes: payNotes,
-      paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario',
-    };
-
+    const recordData = { scheduled_payment_id: payingItem.id, family_id: familyId, month: CURRENT_MONTH, paid_date: payDate, amount_paid: amount, notes: payNotes, paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario' };
     try {
-      await registerPayment(
-        () => base44.entities.ScheduledPaymentRecord.create(recordData),
-        {
-          amount,
-          date: payDate,
-          description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
-          category_id: payingItem.category_id || undefined,
-          payment_method_id: payPaymentMethodId || payingItem.payment_method_id || undefined,
-          person_id: primaryPersonId,
-        }
-      );
+      await registerPayment(() => base44.entities.ScheduledPaymentRecord.create(recordData), {
+        amount, date: payDate, description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
+        category_id: payingItem.category_id || undefined, payment_method_id: payPaymentMethodId || payingItem.payment_method_id || undefined, person_id: primaryPersonId,
+      });
       queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
       toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.`, duration: 5000 });
-      setPayingItem(null);
-      setPayAmount('');
-      setPayNotes('');
-      setPayPersonId('');
-      setPayPaymentMethodId('');
-      setPayDate(TODAY.toISOString().split('T')[0]);
+      setPayingItem(null); setPayAmount(''); setPayNotes(''); setPayPersonId(''); setPayPaymentMethodId(''); setPayDate(TODAY.toISOString().split('T')[0]);
     } catch (error) {
-      toast({
-        title: 'Error al registrar pago',
-        description: error?.message || 'Ocurrió un error. Intenta de nuevo.',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast({ title: 'Error al registrar pago', description: error?.message || 'Ocurrió un error. Intenta de nuevo.', variant: 'destructive', duration: 5000 });
     } finally {
       setIsSavingPayment(false);
     }
@@ -138,21 +82,11 @@ export default function ScheduledPayments() {
     if (unmarkingId) return;
     setUnmarkingId(item.id);
     try {
-      const freshRecords = await base44.entities.ScheduledPaymentRecord.filter({
-        family_id: familyId,
-        scheduled_payment_id: item.id,
-        month: CURRENT_MONTH,
-      });
+      const freshRecords = await base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId, scheduled_payment_id: item.id, month: CURRENT_MONTH });
       const record = freshRecords?.[0];
       if (record) {
-        // Buscar y borrar la Transaction vinculada a este ScheduledPaymentRecord
-        const linkedTxs = await base44.entities.Transaction.filter({
-          scheduled_payment_record_id: record.id,
-        });
-        for (const tx of linkedTxs) {
-          await base44.entities.Transaction.delete(tx.id);
-        }
-
+        const linkedTxs = await base44.entities.Transaction.filter({ scheduled_payment_record_id: record.id });
+        for (const tx of linkedTxs) await base44.entities.Transaction.delete(tx.id);
         await base44.entities.ScheduledPaymentRecord.delete(record.id);
         queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
@@ -162,374 +96,56 @@ export default function ScheduledPayments() {
         toast({ title: 'Sin registro', description: 'No se encontró el registro de pago para este mes.', variant: 'destructive', duration: 5000 });
       }
     } catch (error) {
-      toast({
-        title: 'Error al desmarcar',
-        description: error?.message || 'Ocurrió un error. Intenta de nuevo.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al desmarcar', description: error?.message || 'Ocurrió un error. Intenta de nuevo.', variant: 'destructive' });
     } finally {
       setUnmarkingId(null);
     }
   };
 
-  const sheetStyle = useBottomSheetStyle(0.90);
-  const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
-
   return (
     <div className="pb-24">
-      <PageHeader
-        title="Pagos Programados"
-        subtitle={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} este mes`}
+      <PageHeader title="Pagos Programados" subtitle={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} este mes`}
         action={isAdmin && (
-          <button
-            onClick={() => { setEditingItem(null); setShowForm(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm"
-          >
+          <button onClick={() => { setEditingItem(null); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm">
             <Plus className="w-3.5 h-3.5" /> Agregar
           </button>
-        )}
-      />
+        )} />
 
       <div className="px-4 space-y-3">
         {payments.length === 0 && (
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
             <p className="text-3xl mb-2">📅</p>
             <p className="text-sm font-semibold text-foreground">Sin pagos programados</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.'}
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">{isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.'}</p>
           </div>
         )}
-
         {sorted.map(item => {
           const isPaid = paidThisMonth.has(item.id);
           const cat = categories.find(c => c.id === item.category_id);
-          const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
           const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === item.id);
-          const isUnmarking = unmarkingId === item.id;
-
-          const colorMap = {
-            green: 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800',
-            amber: 'bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-700',
-            red: 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800',
-            gray: 'bg-muted/50 border-border',
-          };
-
-          const dotMap = {
-            green: 'bg-green-500',
-            amber: 'bg-amber-400',
-            red: 'bg-red-500',
-            gray: 'bg-muted-foreground/30',
-          };
-
           return (
-            <div key={item.id} className={`rounded-2xl border p-4 transition-all ${colorMap[color]}`}>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl leading-none mt-0.5">{item.icon || '💰'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className={`text-sm font-bold ${item.is_active === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                      {item.name}
-                    </p>
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotMap[color]}`} />
-                    {isPaid && <span className="text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">✓ Pagado</span>}
-                    {!isPaid && item.is_active !== false && color === 'red' && (
-                      <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Vencido</span>
-                    )}
-                    {!isPaid && item.is_active !== false && color === 'amber' && (
-                      <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Vence pronto</span>
-                    )}
-                    {item.is_active === false && (
-                      <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Inactivo</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <p className="text-xs text-muted-foreground">Día {item.due_day} de cada mes</p>
-                    {cat && <span className="text-xs text-muted-foreground">· {cat.icon} {cat.name}</span>}
-                    {item.amount > 0 && (
-                      <span className="text-xs font-semibold text-foreground">
-                        · <AmountDisplay amount={item.amount} type="expense" size="sm" showSign={false} />
-                      </span>
-                    )}
-                  </div>
-                  {isPaid && record && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Pagado el {record.paid_date}{record.paid_by ? ` por ${record.paid_by}` : ''}{record.amount_paid ? ` · $${record.amount_paid.toLocaleString()}` : ''}
-                    </p>
-                  )}
-                  {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
-                </div>
-              </div>
-
-              {/* Action buttons — always visible, big touch targets */}
-              <div className="flex gap-2 mt-3 flex-wrap">
-                {item.is_active !== false && (
-                  isPaid ? (
-                    <button
-                      onClick={() => handleUnmark(item)}
-                      disabled={isUnmarking}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70"
-                    >
-                      {isUnmarking
-                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</>
-                        : <><CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar</>
-                      }
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
-                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] min-w-[44px] active:opacity-80 transition-opacity"
-                    >
-                      <Circle className="w-3.5 h-3.5" /> Marcar como pagado
-                    </button>
-                  )
-                )}
-
-                {isAdmin && (
-                  <>
-                    <button
-                      onClick={() => { setEditingItem(item); setShowForm(true); }}
-                      className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`¿Eliminar "${item.name}"?`)) deleteMutation.mutate(item.id);
-                      }}
-                      className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
+              isUnmarking={unmarkingId === item.id} isAdmin={isAdmin} persons={persons}
+              onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
+              onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+              onDelete={(id) => deleteMutation.mutate(id)} />
           );
         })}
       </div>
 
-      {/* Mark Paid Sheet */}
-      <AnimatePresence>
-        {payingItem && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50"
-              onClick={() => { if (!isSavingPayment) setPayingItem(null); }} />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
-              style={sheetStyle}
-            >
-              <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
-              <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
-                <p className="text-sm font-bold text-foreground">Registrar pago: {payingItem.name}</p>
-                <button
-                  onClick={() => { if (!isSavingPayment) setPayingItem(null); }}
-                  className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Monto pagado</p>
-                  <input
-                    type="number" value={payAmount}
-                    onChange={e => setPayAmount(e.target.value)}
-                    placeholder="0.00" inputMode="decimal"
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Fecha de pago</p>
-                  <input
-                    type="date" value={payDate}
-                    onChange={e => setPayDate(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <SearchableButtonSelect
-                  value={payPersonId}
-                  onChange={e => setPayPersonId(e.target.value)}
-                  options={persons.map(p => ({ id: p.id, label: p.name }))}
-                  placeholder="Buscar persona..."
-                  label="¿Quién paga?"
-                />
-                <SearchableButtonSelect
-                  value={payPaymentMethodId}
-                  onChange={e => setPayPaymentMethodId(e.target.value)}
-                  options={paymentMethods.map(m => ({ id: m.id, label: m.name }))}
-                  placeholder="Buscar forma de pago..."
-                  label="Con qué se pagó"
-                />
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Notas (opcional)</p>
-                  <input
-                    type="text" value={payNotes}
-                    onChange={e => setPayNotes(e.target.value)}
-                    placeholder="Número de referencia, observaciones..."
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <button
-                  onClick={handleMarkPaid}
-                  disabled={isSavingPayment}
-                  className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm active:opacity-80 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[52px]"
-                >
-                  {isSavingPayment
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-                    : 'Confirmar pago'
-                  }
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <ScheduledPaymentMarkPaidSheet payingItem={payingItem} payAmount={payAmount} setPayAmount={setPayAmount}
+        payDate={payDate} setPayDate={setPayDate} payPersonId={payPersonId} setPayPersonId={setPayPersonId}
+        payPaymentMethodId={payPaymentMethodId} setPayPaymentMethodId={setPayPaymentMethodId}
+        payNotes={payNotes} setPayNotes={setPayNotes} isSaving={isSavingPayment}
+        persons={persons} paymentMethods={paymentMethods} onConfirm={handleMarkPaid} onClose={() => setPayingItem(null)} />
 
-      {/* Create/Edit Form Sheet */}
       <AnimatePresence>
         {showForm && (
-          <ScheduledPaymentForm
-            item={editingItem}
-            familyId={familyId}
-            categories={categories}
-            paymentMethods={paymentMethods}
-            onSave={(data) => {
-              if (editingItem) {
-                updateMutation.mutate({ id: editingItem.id, data });
-              } else {
-                createMutation.mutate({ ...data, family_id: familyId });
-              }
-              setShowForm(false);
-              setEditingItem(null);
-            }}
-            onClose={() => { setShowForm(false); setEditingItem(null); }}
-          />
+          <ScheduledPaymentForm item={editingItem} familyId={familyId} categories={categories} paymentMethods={paymentMethods}
+            onSave={(data) => { if (editingItem) { updateMutation.mutate({ id: editingItem.id, data }); } else { createMutation.mutate({ ...data, family_id: familyId }); } setShowForm(false); setEditingItem(null); }}
+            onClose={() => { setShowForm(false); setEditingItem(null); }} />
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSave, onClose }) {
-  const sheetStyle = useBottomSheetStyle(0.90);
-  const [name, setName] = useState(item?.name || '');
-  const [description, setDescription] = useState(item?.description || '');
-  const [amount, setAmount] = useState(item?.amount ? String(item.amount) : '');
-  const [dueDay, setDueDay] = useState(item?.due_day ? String(item.due_day) : '');
-  const [categoryId, setCategoryId] = useState(item?.category_id || '');
-  const [paymentMethodId, setPaymentMethodId] = useState(item?.payment_method_id || '');
-  const [icon, setIcon] = useState(item?.icon || '💰');
-  const [isActive, setIsActive] = useState(item?.is_active !== false);
-
-  const handleSubmit = () => {
-    if (!name.trim() || !dueDay) return;
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      amount: parseFloat(amount) || 0,
-      due_day: parseInt(dueDay),
-      category_id: categoryId || undefined,
-      payment_method_id: paymentMethodId || undefined,
-      icon,
-      is_active: isActive,
-    });
-  };
-
-  return (
-    <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border flex flex-col"
-        style={sheetStyle}
-      >
-        <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
-          <p className="text-sm font-bold text-foreground">{item ? 'Editar pago' : 'Nuevo pago programado'}</p>
-          <button onClick={onClose} className="p-1.5 rounded-lg bg-muted min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex-1 overscroll-none hide-scrollbar px-5 py-4 space-y-3"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Ícono</p>
-            <div className="flex flex-wrap gap-2">
-              {ICONS.map(ic => (
-                <button key={ic} onClick={() => setIcon(ic)}
-                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${icon === ic ? 'bg-primary/10 ring-2 ring-primary' : 'bg-muted'}`}>
-                  {ic}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Nombre *</p>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Teléfono, Luz, Colegiatura"
-              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Descripción</p>
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalles adicionales"
-              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Monto estimado</p>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" inputMode="decimal"
-                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Día de vencimiento *</p>
-              <input type="number" value={dueDay} onChange={e => setDueDay(e.target.value)} placeholder="1–28" min="1" max="28"
-                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Categoría</p>
-            <NativeSelect value={categoryId} onChange={e => setCategoryId(e.target.value)}
-              placeholder="Sin categoría"
-              options={[{ value: '', label: 'Sin categoría' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))]}
-              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Forma de pago habitual</p>
-            <NativeSelect value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)}
-              placeholder="Sin especificar"
-              options={[{ value: '', label: 'Sin especificar' }, ...paymentMethods.map(m => ({ value: m.id, label: m.name }))]}
-              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
-          </div>
-
-          {item && (
-            <button onClick={() => setIsActive(!isActive)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all w-full justify-between min-h-[44px]
-                ${isActive ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground bg-muted'}`}>
-              <span>{isActive ? 'Pago activo' : 'Pago inactivo'}</span>
-              <div className={`w-8 h-4 rounded-full transition-colors ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                <div className={`w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5 ${isActive ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
-          )}
-
-          <button onClick={handleSubmit} disabled={!name.trim() || !dueDay}
-            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm disabled:opacity-50 active:opacity-80 transition-opacity mt-2 min-h-[52px]">
-            {item ? 'Guardar cambios' : 'Crear pago programado'}
-          </button>
-        </div>
-      </motion.div>
-    </>
   );
 }
