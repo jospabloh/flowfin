@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import NativeSelect from '@/components/NativeSelect';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 function getWeekNumber(dateStr) {
   try {
@@ -31,7 +32,7 @@ const EMPTY_PROP_FORM = { name: '', address: '', tenant_name: '', base_rent: '',
 
 export default function Rentals() {
   const queryClient = useQueryClient();
-  const { familyId, currentUser } = useFamily();
+  const { familyId } = useFamily();
   const { toast } = useToast();
   const sheetStyle = useBottomSheetStyle(0.90);
 
@@ -74,25 +75,6 @@ export default function Rentals() {
     enabled: !!familyId,
     staleTime: 5 * 60 * 1000,
   });
-
-  // ── get or create "Rentas" income category ────────────────────────────────
-
-  async function getRentasCategoryId() {
-    const cats = await base44.entities.Category.filter({ family_id: familyId });
-    const existing = cats.find(c =>
-      c.name?.toLowerCase() === 'rentas' && (c.type === 'income' || c.type === 'both')
-    );
-    if (existing) return existing.id;
-    const created = await base44.entities.Category.create({
-      family_id: familyId,
-      name: 'Rentas',
-      type: 'income',
-      icon: '🏠',
-      color: '#059669',
-    });
-    queryClient.invalidateQueries({ queryKey: ['categories', familyId] });
-    return created.id;
-  }
 
   // ── property mutations ────────────────────────────────────────────────────
 
@@ -177,56 +159,47 @@ export default function Rentals() {
     if (!selectedProp || isSavingPayment) return;
     setIsSavingPayment(true);
     const amount = parseFloat(payForm.amount) || selectedProp.base_rent || 0;
-    const person = persons.find(p => p.id === payForm.paid_by_id);
 
     try {
-      // duplicate guard
-      const existing = rentalPayments.find(
-        p => p.property_id === selectedProp.id && p.month === payForm.month && p.is_paid
-      );
-      if (existing) {
-        toast({ title: 'Ya existe un cobro para este mes', description: 'Desmarca el cobro existente antes de registrar uno nuevo.', variant: 'destructive' });
-        return;
-      }
-
-      const categoryId = await getRentasCategoryId();
-
-      // 1. Create rental payment record
-      const rentalPaymentRecord = await base44.entities.RentalPayment.create({
+      const res = await base44.functions.invoke('registerRentalPaymentSafe', {
         property_id: selectedProp.id,
-        family_id: familyId,
         month: payForm.month,
         amount,
-        paid_by: person?.name || currentUser?.full_name || 'Usuario',
+        paid_by_id: payForm.paid_by_id || undefined,
         payment_method_id: payForm.payment_method_id || undefined,
         date_paid: payForm.date_paid,
         notes: payForm.notes || undefined,
-        is_paid: true,
       });
 
-      // 2. Create linked income transaction
-      await base44.entities.Transaction.create({
-        family_id: familyId,
-        date: payForm.date_paid,
-        type: 'income',
-        amount,
-        description: `🏠 Renta ${selectedProp.name}${selectedProp.tenant_name ? ` · ${selectedProp.tenant_name}` : ''} (${payForm.month})`,
-        category_id: categoryId,
-        payment_method_id: payForm.payment_method_id || undefined,
-        person_id: payForm.paid_by_id || undefined,
-        required_type: 'Otro',
-        week: getWeekNumber(payForm.date_paid),
-        rental_payment_id: rentalPaymentRecord.id,
-      });
+      if (res?.data?.error) {
+        throw new Error(res.data.error);
+      }
 
       queryClient.invalidateQueries({ queryKey: ['rentalPayments', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
 
-      toast({ title: '✅ Cobro registrado', description: `${selectedProp.name} · ${payForm.month}`, duration: 5000 });
+      confetti({
+        particleCount: 90,
+        spread: 65,
+        origin: { y: 0.7 },
+        colors: ['#059669', '#10B981', '#6EE7B7'],
+      });
+
+      toast({
+        title: '✅ Cobro registrado',
+        description: 'Ingreso registrado correctamente en Movimientos.',
+        duration: 5000,
+      });
+
       setShowPayForm(false);
     } catch (error) {
-      toast({ title: 'Error al registrar cobro', description: error?.message || 'Intenta de nuevo.', variant: 'destructive', duration: 5000 });
+      toast({
+        title: 'Error al registrar cobro',
+        description: error?.message || 'Intenta de nuevo.',
+        variant: 'destructive',
+        duration: 5000,
+      });
     } finally {
       setIsSavingPayment(false);
     }

@@ -162,7 +162,7 @@ export default function Dashboard() {
     return items.sort((a, b) => a.diff - b.diff).slice(0, 4);
   }, [investments, investmentPayments, msiList, msiPayments]);
 
-  const recent = transactions.slice(0, 5);
+  const recent = filtered.slice(0, 5);
 
   return (
     <div className="pb-4">

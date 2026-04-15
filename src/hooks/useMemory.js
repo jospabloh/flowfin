@@ -13,9 +13,13 @@ import { useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 
-// ── Helpers de localStorage (caché local para no golpear el backend en cada render) ──
-const LS_USER_PREFS = 'ff_user_prefs';
+// ── Helpers de localStorage ───────────────────────────────────────────────────────
 const LS_FAMILY_RULES = 'ff_family_rules';
+
+// User prefs are scoped per user to prevent cross-user cache leaks
+function getUserPrefsKey(userId) {
+  return `ff_user_prefs:${userId || 'anonymous'}`;
+}
 
 function readLS(key) {
   try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
@@ -26,28 +30,30 @@ function writeLS(key, val) {
 
 // ── Hook principal ────────────────────────────────────────────────────────────────
 export function useMemory() {
-  const { familyId, familyConfigId } = useFamily();
+  const { familyId, familyConfigId, currentUser } = useFamily();
   const saveTimerRef = useRef({});
 
-  // ── USER PREFERENCES ─────────────────────────────────────────────────────────
+  // ── USER PREFERENCES (scoped per user) ───────────────────────────────────────
   /** Lee una preferencia de usuario (primero caché local, luego DB) */
   const getUserPref = useCallback((key, defaultVal = null) => {
-    const cached = readLS(LS_USER_PREFS);
+    const prefsKey = getUserPrefsKey(currentUser?.id);
+    const cached = readLS(prefsKey);
     return cached?.[key] ?? defaultVal;
-  }, []);
+  }, [currentUser?.id]);
 
   /** Guarda una preferencia de usuario con debounce (500ms) para evitar escrituras excesivas */
   const setUserPref = useCallback((key, value) => {
-    const current = readLS(LS_USER_PREFS) || {};
+    const prefsKey = getUserPrefsKey(currentUser?.id);
+    const current = readLS(prefsKey) || {};
     const updated = { ...current, [key]: value };
-    writeLS(LS_USER_PREFS, updated);
+    writeLS(prefsKey, updated);
 
     // Debounce: espera 500ms antes de persistir en DB
     clearTimeout(saveTimerRef.current[`user_${key}`]);
     saveTimerRef.current[`user_${key}`] = setTimeout(() => {
       base44.auth.updateMe({ preferences: updated }).catch(() => {});
     }, 500);
-  }, []);
+  }, [currentUser?.id]);
 
   // ── FAMILY SMART RULES ────────────────────────────────────────────────────────
   /** Lee las reglas familiares del caché local */
@@ -82,7 +88,10 @@ export function useMemory() {
   const syncUserPrefsFromDB = useCallback(async () => {
     try {
       const me = await base44.auth.me();
-      if (me?.preferences) writeLS(LS_USER_PREFS, me.preferences);
+      if (me?.preferences) {
+        const prefsKey = getUserPrefsKey(me.id);
+        writeLS(prefsKey, me.preferences);
+      }
     } catch {}
   }, []);
 
