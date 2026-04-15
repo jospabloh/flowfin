@@ -3,27 +3,16 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { Search, Filter, Download, Trash2, ChevronDown, ChevronUp, X, AlertTriangle, MessageCircle, Pencil, Link as LinkIcon } from 'lucide-react';
-import NativeSelect from '@/components/NativeSelect';
+import { Download, AlertTriangle, MessageCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import PageHeader from '@/components/PageHeader';
-import AmountDisplay from '@/components/AmountDisplay';
-import PersonAvatar from '@/components/PersonAvatar';
 import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { Link } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import TransactionEditModal from '@/components/TransactionEditModal';
-
-const getPaymentLinkInfo = (t) => {
-  if (t.msi_payment_id) return { type: 'MSI', icon: '💳' };
-  if (t.investment_payment_id) return { type: 'Inv', icon: '💰' };
-  if (t.scheduled_payment_record_id) return { type: 'Prog', icon: '📅' };
-  if (t.rental_payment_id) return { type: 'Renta', icon: '🏠' };
-  return null;
-};
+import TransactionFilters from '@/components/transactions/TransactionFilters';
+import TransactionGroup from '@/components/transactions/TransactionGroup';
 
 function groupByDate(transactions) {
   const groups = {};
@@ -41,6 +30,7 @@ export default function Transactions() {
   const locale = familyConfig?.locale || 'es-MX';
   const { toast } = useToast();
   const { categories = [], subcategories = [], persons = [], paymentMethods = [] } = useCatalog(familyId);
+
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterCat, setFilterCat] = useState('');
@@ -52,27 +42,6 @@ export default function Transactions() {
   const [hasMore, setHasMore] = useState(true);
   const pageSize = 100;
 
-  const handleEdit = (t) => setEditing(t);
-  const handleEditSaved = () => {
-    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-  };
-
-  const deleteTransactionMutation = useMutation({
-    mutationFn: (id) => base44.entities.Transaction.delete(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['transactions'] });
-      const previous = queryClient.getQueryData(['transactions']);
-      queryClient.setQueryData(['transactions'], (old = []) => old.filter(t => t.id !== id));
-      return { previous };
-    },
-    onError: (err, _, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['transactions'], ctx.previous);
-      toast({ title: 'Error al eliminar', description: err?.message || 'No se pudo eliminar el movimiento.', variant: 'destructive' });
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-  });
-
   const { data: paginatedData = { transactions: [], hasMore: true }, isLoading, refetch: refetchTx } = useQuery({
     queryKey: ['transactions', familyId],
     queryFn: async () => {
@@ -82,20 +51,28 @@ export default function Transactions() {
     enabled: !!familyId,
   });
 
-  useEffect(() => {
-    setAllTransactions(paginatedData.transactions);
-    setHasMore(paginatedData.hasMore);
-  }, [paginatedData]);
+  useEffect(() => { setAllTransactions(paginatedData.transactions); setHasMore(paginatedData.hasMore); }, [paginatedData]);
 
   const handleLoadMore = useCallback(async () => {
     if (!hasMore || !familyId) return;
-    const nextOffset = allTransactions.length;
-    const nextBatch = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize, nextOffset);
+    const nextBatch = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', pageSize, allTransactions.length);
     setAllTransactions(prev => [...prev, ...nextBatch]);
     setHasMore(nextBatch.length === pageSize);
   }, [hasMore, familyId, allTransactions.length]);
 
   const { refreshing } = usePullToRefresh(refetchTx);
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: (id) => base44.entities.Transaction.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      const previous = queryClient.getQueryData(['transactions']);
+      queryClient.setQueryData(['transactions'], (old = []) => old.filter(t => t.id !== id));
+      return { previous };
+    },
+    onError: (err, _, ctx) => { if (ctx?.previous) queryClient.setQueryData(['transactions'], ctx.previous); toast({ title: 'Error al eliminar', description: err?.message, variant: 'destructive' }); },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
 
   const filtered = useMemo(() => (allTransactions || []).filter(t => {
     if (filterType !== 'all' && t.type !== filterType) return false;
@@ -104,32 +81,26 @@ export default function Transactions() {
     if (search) {
       const q = search.toLowerCase();
       const cat = (categories || []).find(c => c.id === t.category_id);
-      return (t.description || '').toLowerCase().includes(q) ||
-        (cat?.name || '').toLowerCase().includes(q);
+      return (t.description || '').toLowerCase().includes(q) || (cat?.name || '').toLowerCase().includes(q);
     }
     return true;
   }), [allTransactions, filterType, filterCat, filterPerson, search, categories]);
 
   const groups = useMemo(() => groupByDate(filtered), [filtered]);
+  const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
+  const pending = allTransactions.filter(t => !t.person_id || !t.category_id);
 
-  const handleDelete = (id) => {
-    if (!confirm('¿Eliminar este movimiento?')) return;
-    deleteTransactionMutation.mutate(id);
-  };
+  const handleDelete = (id) => { if (!confirm('¿Eliminar este movimiento?')) return; deleteTransactionMutation.mutate(id); };
+  const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions', familyId] }); queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] }); };
 
   const handleExport = () => {
     const rows = filtered.map(t => ({
-      Fecha: t.date,
-      Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso',
-      Monto: t.amount,
-      Descripción: t.description || '',
-      Rubro: categories.find(c => c.id === t.category_id)?.name || '',
+      Fecha: t.date, Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso', Monto: t.amount,
+      Descripción: t.description || '', Rubro: categories.find(c => c.id === t.category_id)?.name || '',
       SubRubro: subcategories.find(s => s.id === t.subcategory_id)?.name || '',
       Quien: persons.find(p => p.id === t.person_id)?.name || '',
       Forma: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '',
-      Requerido: t.required_type || '',
-      Factura: t.has_invoice ? 'Sí' : 'No',
-      Notas: t.notes || '',
+      Requerido: t.required_type || '', Factura: t.has_invoice ? 'Sí' : 'No', Notas: t.notes || '',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -137,236 +108,54 @@ export default function Transactions() {
     XLSX.writeFile(wb, `FlowFin_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
-  const pending = allTransactions.filter(t => !t.person_id || !t.category_id);
-
-  const renderGroup = (index, [date, txns]) => {
-    return (
-      <div className="px-4 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-semibold text-muted-foreground">
-            {date !== 'Sin fecha'
-              ? format(parseISO(date), "EEEE d 'de' MMMM", { locale: es }).replace(/^\w/, c => c.toUpperCase())
-              : 'Sin fecha'}
-          </span>
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground">
-            {new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(
-              txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-            )}
-          </span>
-        </div>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-          {txns.map((t, idx) => {
-            const cat = categories.find(c => c.id === t.category_id);
-            const sub = subcategories.find(s => s.id === t.subcategory_id);
-            const person = persons.find(p => p.id === t.person_id);
-            const isExp = expanded === t.id;
-            const desc = t.description && t.notes
-              ? `${t.description} — ${t.notes}`
-              : t.description || t.notes || cat?.name || 'Sin descripción';
-            return (
-              <div key={t.id} className={idx < txns.length - 1 ? 'border-b border-border' : ''}>
-                {(!t.person_id || !t.category_id) && (
-                  <div className="flex items-center gap-1.5 px-4 pt-2 pb-0">
-                    <AlertTriangle className="w-3 h-3 text-amber-500" />
-                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                      Pendiente — falta {!t.category_id && !t.person_id ? 'categoría y persona' : !t.category_id ? 'categoría' : 'persona'}
-                    </span>
-                  </div>
-                )}
-                <button
-                  onClick={() => setExpanded(isExp ? null : t.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
-                >
-                  <div className="w-2 self-stretch rounded-full flex-shrink-0" style={{ backgroundColor: cat?.color || '#94a3b8' }} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{desc}</p>
-                      <AmountDisplay amount={t.amount} type={t.type} size="sm" />
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {sub && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{sub.name}</span>}
-                      {person && <PersonAvatar person={person} size="xs" />}
-                      {t.required_type && t.required_type !== 'Necesario' && (
-                        <span className="text-[10px] text-muted-foreground">{t.required_type}</span>
-                      )}
-                      {getPaymentLinkInfo(t) && (
-                        <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                          <LinkIcon className="w-2.5 h-2.5" />
-                          {getPaymentLinkInfo(t).icon} {getPaymentLinkInfo(t).type}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {isExp
-                    ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
-                </button>
-                {isExp && (
-                  <div className="px-4 pb-3 bg-muted/30 border-t border-border">
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs py-2">
-                      {cat && <><span className="text-muted-foreground">Rubro</span><span className="text-foreground">{cat.icon} {cat.name}</span></>}
-                      {person && <><span className="text-muted-foreground">Quien</span><span className="text-foreground">{person.name}</span></>}
-                      {t.payment_method_id && <><span className="text-muted-foreground">Forma</span><span className="text-foreground">{paymentMethods.find(m => m.id === t.payment_method_id)?.name || '—'}</span></>}
-                      {t.required_type && <><span className="text-muted-foreground">Requerido</span><span className="text-foreground">{t.required_type}</span></>}
-                      {t.has_invoice && <><span className="text-muted-foreground">Factura</span><span className="text-income">Sí</span></>}
-                      {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground">{t.notes}</span></>}
-                    </div>
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        onClick={() => handleEdit(t)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors touch-target"
-                      >
-                        <Pencil className="w-3.5 h-3.5" /> Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(t.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors touch-target"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="pb-4">
       {editing && (
-        <TransactionEditModal
-          transaction={editing}
-          categories={categories}
-          subcategories={subcategories}
-          persons={persons}
-          paymentMethods={paymentMethods}
-          onClose={() => setEditing(null)}
-          onSaved={handleEditSaved}
-        />
+        <TransactionEditModal transaction={editing} categories={categories} subcategories={subcategories}
+          persons={persons} paymentMethods={paymentMethods} onClose={() => setEditing(null)} onSaved={handleEditSaved} />
       )}
       {refreshing && (
-        <div className="flex justify-center py-3">
-          <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
-        </div>
+        <div className="flex justify-center py-3"><div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" /></div>
       )}
-      <PageHeader
-        title="Movimientos"
-        subtitle={`${filtered.length} registros`}
+
+      <PageHeader title="Movimientos" subtitle={`${filtered.length} registros`}
         action={
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-xl text-xs font-medium text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-          >
+          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-xl text-xs font-medium text-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
             <Download className="w-3.5 h-3.5" /> Excel
           </button>
-        }
-      />
+        } />
 
-      <div className="flex gap-2 px-4 mb-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar..."
-            className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 touch-target">
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border transition-all touch-target
-            ${activeFilters > 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'}`}
-        >
-          <Filter className="w-4 h-4" />
-          {activeFilters > 0 && <span className="text-xs">{activeFilters}</span>}
-        </button>
-      </div>
-
-      {showFilters && (
-        <div className="mx-4 mb-3 p-3 bg-card border border-border rounded-2xl space-y-2">
-          <div className="flex gap-2">
-            {[{ v: 'all', l: 'Todos' }, { v: 'expense', l: 'Egresos' }, { v: 'income', l: 'Ingresos' }].map(f => (
-              <button
-                key={f.v}
-                onClick={() => setFilterType(f.v)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all
-                  ${filterType === f.v ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-              >
-                {f.l}
-              </button>
-            ))}
-          </div>
-          <NativeSelect
-            value={filterCat}
-            onChange={e => setFilterCat(e.target.value)}
-            placeholder="Todos los rubros"
-            options={[{ value: '', label: 'Todos los rubros' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))]}
-            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
-          />
-          <NativeSelect
-            value={filterPerson}
-            onChange={e => setFilterPerson(e.target.value)}
-            placeholder="Todas las personas"
-            options={[{ value: '', label: 'Todas las personas' }, ...persons.map(p => ({ value: p.id, label: p.name }))]}
-            className="w-full bg-muted rounded-xl px-3 py-2 text-sm"
-          />
-          {activeFilters > 0 && (
-            <button
-              onClick={() => { setFilterType('all'); setFilterCat(''); setFilterPerson(''); }}
-              className="w-full py-1.5 rounded-lg text-xs font-medium text-muted-foreground bg-muted hover:bg-destructive/10 hover:text-destructive transition-colors"
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-      )}
+      <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters} setShowFilters={setShowFilters}
+        filterType={filterType} setFilterType={setFilterType} filterCat={filterCat} setFilterCat={setFilterCat}
+        filterPerson={filterPerson} setFilterPerson={setFilterPerson} categories={categories} persons={persons} activeFilters={activeFilters} />
 
       {pending.length > 0 && (
         <div className="mx-4 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              {pending.length} movimiento{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de revisar
-            </p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              Falta asignar persona o categoría.
-            </p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{pending.length} movimiento{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de revisar</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Falta asignar persona o categoría.</p>
           </div>
-          <Link
-            to="/Assistant"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold flex-shrink-0 hover:bg-amber-600 transition-colors"
-          >
+          <Link to="/Assistant" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold flex-shrink-0 hover:bg-amber-600 transition-colors">
             <MessageCircle className="w-3.5 h-3.5" /> Asistente
           </Link>
         </div>
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-        </div>
+        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
       ) : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (
         <div>
-          {groups.map(([date, txns]) => renderGroup(0, [date, txns]))}
+          {groups.map(([date, txns]) => (
+            <TransactionGroup key={date} date={date} txns={txns} expanded={expanded} setExpanded={setExpanded}
+              categories={categories} subcategories={subcategories} persons={persons} paymentMethods={paymentMethods}
+              currency={currency} locale={locale} onEdit={setEditing} onDelete={handleDelete} />
+          ))}
           {hasMore && (
             <div className="flex justify-center py-4">
-              <button onClick={handleLoadMore} className="px-4 py-2 bg-muted rounded-xl text-sm text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
-                Cargar más
-              </button>
+              <button onClick={handleLoadMore} className="px-4 py-2 bg-muted rounded-xl text-sm text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">Cargar más</button>
             </div>
           )}
         </div>
