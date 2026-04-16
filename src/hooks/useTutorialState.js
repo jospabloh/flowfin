@@ -1,31 +1,57 @@
-const persistState = async (newState) => {
-    if (isWriting) {
-        console.warn('Attempted to write while already in progress. Skipping write.');
-        return;
-    }
-    if (pendingPayloads.includes(newState)) {
-        console.warn('Duplicate payload detected. Skipping write.');
-        return;
-    }
-    pendingPayloads.push(newState);
+import { useState, useEffect, useCallback } from 'react';
 
-    isWriting = true;
-    try {
-        // Simulate async write
-        await saveStateToDatabase(newState);
-        console.log('State saved successfully.');
-        pendingPayloads = pendingPayloads.filter(payload => payload !== newState);
-    } catch (error) {
-        if (error.response && error.response.status === 429) {
-            console.warn('Received 429 status. Implementing backoff.');
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Backoff for 2 seconds
-        } else {
-            console.error('An error occurred:', error);
+const useTutorialState = () => {
+    const [tutorialState, setTutorialState] = useState(null);
+    const [shouldAutoOpen, setShouldAutoOpen] = useState(false);
+    const pendingState = useRef(null);
+    const inFlight = useRef(false);
+
+    const loadTutorialState = async () => {
+        // Load tutorial state from FamilyMembership
+        const state = await loadFromFamilyMembership();
+        setTutorialState(state);
+    };
+
+    useEffect(() => {
+        loadTutorialState();
+    }, []);
+
+    const persistState = useCallback(async (newState) => {
+        if (inFlight.current) {
+            pendingState.current = newState;
+            return;
         }
-    } finally {
-        isWriting = false;
-    }
+
+        if (JSON.stringify(tutorialState) === JSON.stringify(newState)) {
+            return;
+        }
+
+        inFlight.current = true;
+        try {
+            await saveToFamilyMembership(newState);
+            setTutorialState(newState);
+        } catch (error) {
+            if (error.status === 429) {
+                // Handle 429 with bounded exponential backoff
+                handle429Backoff(persistState, newState);
+            }
+        } finally {
+            inFlight.current = false;
+            if (pendingState.current) {
+                persistState(pendingState.current);
+                pendingState.current = null;
+            }
+        }
+    }, [tutorialState]);
+
+    const startOrResume = () => {...};
+    const restartFromBeginning = () => {...};
+    const setCurrentStep = (step) => persistState({...tutorialState, currentStep: step});
+    const markPostponed = () => persistState({...tutorialState, status: 'postponed'});
+    const markSkipped = () => persistState({...tutorialState, status: 'skipped'});
+    const markCompleted = () => persistState({...tutorialState, status: 'completed'});
+
+    return { tutorialState, shouldAutoOpen, startOrResume, restartFromBeginning, setCurrentStep, markPostponed, markSkipped, markCompleted };
 };
 
-let isWriting = false;
-let pendingPayloads = [];
+export default useTutorialState;
