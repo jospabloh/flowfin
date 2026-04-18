@@ -46,6 +46,19 @@ function sanitizeTutorialState(rawState) {
   };
 }
 
+// Serializa solo los campos significativos del tutorial, excluyendo `updated_at`.
+// Esto es clave para la deduplicación: cada llamada a `applyTutorialUpdate` genera
+// un `updated_at` nuevo, por lo que una comparación que lo incluyera nunca encontraría
+// duplicados y dispararía un PUT en cada render → 429 → loop infinito.
+function serializeForDedup(state) {
+  if (!state || typeof state !== 'object') return '';
+  return JSON.stringify({
+    version: state.version || null,
+    status: state.status || null,
+    current_step: state.current_step || null,
+  });
+}
+
 function readFallbackTutorialState(userId) {
   if (!userId) return null;
   try {
@@ -69,7 +82,7 @@ export function useTutorialState() {
   const { membership, currentUser } = useFamily();
   const [tutorialState, setTutorialState] = useState(INITIAL_TUTORIAL_STATE);
 
-  const lastPersistedSerializedRef = useRef(JSON.stringify(INITIAL_TUTORIAL_STATE));
+  const lastPersistedSerializedRef = useRef(serializeForDedup(INITIAL_TUTORIAL_STATE));
   const pendingStateRef = useRef(null);
   const isPersistingRef = useRef(false);
   const workerPromiseRef = useRef(null);
@@ -104,27 +117,33 @@ export function useTutorialState() {
         const nextState = pendingStateRef.current;
         pendingStateRef.current = null;
 
-        const serialized = JSON.stringify(nextState);
-        if (serialized === lastPersistedSerializedRef.current) {
+        const dedupKey = serializeForDedup(nextState);
+        if (dedupKey === lastPersistedSerializedRef.current) {
+          // Mismo (version, status, current_step) que el último guardado exitoso:
+          // no tiene sentido volver a pegarle a la API solo porque el timestamp cambió.
+          // Aún así, mantenemos la copia local actualizada para que el fallback vea
+          // el último `updated_at` emitido.
+          writeFallbackTutorialState(currentUser?.id, nextState);
           continue;
         }
 
         try {
           await saveToFamilyMembership(nextState);
-          lastPersistedSerializedRef.current = serialized;
+          lastPersistedSerializedRef.current = dedupKey;
           writeFallbackTutorialState(currentUser?.id, nextState);
         } catch {
-          pendingStateRef.current = pendingStateRef.current || nextState;
+          // Si falla (p.ej. 429 tras todos los retries), NO re-encolamos ni recursamos.
+          // El estado real vive en React + localStorage; el próximo cambio de paso
+          // volverá a intentar persistir. Re-encolar aquí solo alimentaría el loop.
           break;
         }
       }
     } finally {
       isPersistingRef.current = false;
-      if (pendingStateRef.current && !workerPromiseRef.current) {
-        workerPromiseRef.current = drainPersistQueue().finally(() => {
-          workerPromiseRef.current = null;
-        });
-      }
+      // Nota: no reenganchamos drainPersistQueue desde aquí. Si una nueva llamada
+      // a `enqueuePersist` entra mientras corríamos, ella se encarga de arrancar
+      // un nuevo worker cuando `workerPromiseRef` quede en null. Evita recursión
+      // implícita que pudo contribuir al ciclo de PUTs.
     }
   }, [currentUser?.id, saveToFamilyMembership]);
 
@@ -146,7 +165,10 @@ export function useTutorialState() {
     );
 
     setTutorialState(hydrated);
-    lastPersistedSerializedRef.current = JSON.stringify(hydrated);
+    // Alineamos la "huella" del último guardado con la dedup key (sin `updated_at`).
+    // Así, tras una rehidratación desde el servidor no volvemos a marcar el estado
+    // como "distinto" solo porque el timestamp normalizado cambie.
+    lastPersistedSerializedRef.current = serializeForDedup(hydrated);
     pendingStateRef.current = null;
   }, [membership?.id, membership?.tutorial_state, currentUser?.id]);
 
