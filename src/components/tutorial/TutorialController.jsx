@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useFamily } from '@/lib/FamilyContext';
-import { useTutorialState } from '@/hooks/useTutorialState';
+import { useTutorialState, markTutorialDone } from '@/hooks/useTutorialState';
 import {
   FLOWFIN_TUTORIAL_STEPS,
   getTutorialStepIndex,
@@ -64,7 +64,7 @@ function getRectWithViewportSupport(element) {
 }
 
 export default function TutorialController() {
-  const { isAdmin, family, isLoading } = useFamily();
+  const { isAdmin, family, isLoading, membership } = useFamily();
   const {
     tutorialState,
     isHydrated,
@@ -269,11 +269,12 @@ export default function TutorialController() {
     goToIndex(stepIndex - 1);
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (step.isFinal) {
+      markTutorialDone(membership?.id); // Sync write — survives refresh regardless of API
       sessionDismissedRef.current = true;
       setIsOpen(false);
-      await markCompleted();
+      void markCompleted(); // Fire-and-forget backend persist
       return;
     }
 
@@ -293,7 +294,8 @@ export default function TutorialController() {
     await markPostponed(step.id);
   };
 
-  const handleSkip = async () => {
+  const handleSkip = () => {
+    markTutorialDone(membership?.id); // Sync write — survives refresh regardless of API
     sessionDismissedRef.current = true;
     setIsOpen(false);
 
@@ -303,7 +305,7 @@ export default function TutorialController() {
         'Tutorial omitido. Puedes volver a iniciarlo desde Mi Familia o consultar el Manual de Usuario cuando lo necesites.',
     });
 
-    await markSkipped(step.id);
+    void markSkipped(step.id); // Fire-and-forget backend persist
   };
 
   return (

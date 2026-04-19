@@ -78,6 +78,27 @@ function writeFallbackTutorialState(userId, state) {
   }
 }
 
+// Simple, reliable dismiss flag keyed on membership.id (always available when the
+// tutorial is active). Independent of the backend persist — written synchronously
+// so it survives page refreshes even when the API call fails.
+const TUTORIAL_DONE_PREFIX = 'ff:td:';
+
+function isTutorialDone(membershipId) {
+  if (!membershipId) return false;
+  try {
+    return localStorage.getItem(TUTORIAL_DONE_PREFIX + membershipId) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markTutorialDone(membershipId) {
+  if (!membershipId) return;
+  try {
+    localStorage.setItem(TUTORIAL_DONE_PREFIX + membershipId, '1');
+  } catch {}
+}
+
 export function useTutorialState() {
   const { membership, currentUser } = useFamily();
   const [tutorialState, setTutorialState] = useState(INITIAL_TUTORIAL_STATE);
@@ -199,11 +220,12 @@ export function useTutorialState() {
   }, [currentUser?.id, enqueuePersist, membership?.id]);
 
   const shouldAutoOpen = useMemo(() => {
-    // Read from membership (source of truth), not from tutorialState React state.
-    // tutorialState lags one render behind — reading from membership means the value
-    // is correct in the same render that membership first loads, so a SKIPPED or
-    // COMPLETED admin never triggers the auto-open effect.
-    if (membership === undefined) return false; // Still loading — never open yet
+    if (membership === undefined) return false; // Still loading
+    // Primary check: synchronous localStorage flag keyed on membership.id.
+    // This is written immediately on skip/complete and survives refresh regardless
+    // of whether the backend API call succeeds.
+    if (isTutorialDone(membership?.id)) return false;
+    // Secondary check: backend state or localStorage fallback (best-effort).
     const rawState = membership?.tutorial_state
       || readFallbackTutorialState(currentUser?.id);
     const rawStatus = rawState?.status || FLOWFIN_TUTORIAL_STATUS.NOT_STARTED;
