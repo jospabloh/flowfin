@@ -137,7 +137,7 @@ export default function TutorialOverlay({
         className={
           isDesktop
             ? 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,420px)] max-h-[min(90dvh,760px)] rounded-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden'
-            : 'absolute inset-x-0 bottom-0 w-full max-h-[60vh] rounded-t-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden'
+            : `absolute inset-x-0 bottom-0 w-full ${step.kind === 'spotlight' ? 'max-h-[40vh]' : 'max-h-[55vh]'} rounded-t-3xl bg-card border border-border shadow-2xl flex flex-col overflow-hidden`
         }
       >
         <div className="shrink-0 p-5 border-b border-border">

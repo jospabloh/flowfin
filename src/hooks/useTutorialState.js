@@ -199,11 +199,19 @@ export function useTutorialState() {
   }, [currentUser?.id, enqueuePersist, membership?.id]);
 
   const shouldAutoOpen = useMemo(() => {
+    // Read from membership (source of truth), not from tutorialState React state.
+    // tutorialState lags one render behind — reading from membership means the value
+    // is correct in the same render that membership first loads, so a SKIPPED or
+    // COMPLETED admin never triggers the auto-open effect.
+    if (membership === undefined) return false; // Still loading — never open yet
+    const rawState = membership?.tutorial_state
+      || readFallbackTutorialState(currentUser?.id);
+    const rawStatus = rawState?.status || FLOWFIN_TUTORIAL_STATUS.NOT_STARTED;
     return ![
       FLOWFIN_TUTORIAL_STATUS.COMPLETED,
       FLOWFIN_TUTORIAL_STATUS.SKIPPED,
-    ].includes(tutorialState.status);
-  }, [tutorialState.status]);
+    ].includes(rawStatus);
+  }, [membership, currentUser?.id]);
 
   const startOrResume = useCallback(async () => {
     return applyTutorialUpdate((prev) => ({

@@ -64,7 +64,7 @@ function getRectWithViewportSupport(element) {
 }
 
 export default function TutorialController() {
-  const { isAdmin, family } = useFamily();
+  const { isAdmin, family, isLoading } = useFamily();
   const {
     tutorialState,
     isHydrated,
@@ -113,15 +113,16 @@ export default function TutorialController() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    if (!isHydrated) return;
+    if (isLoading) return;          // Wait until family+membership fully loaded (DOM ready)
+    if (!shouldAutoOpen) return;    // Computed from membership directly — no render lag
+    if (!isHydrated) return;        // Ensures activeStepId is hydrated from correct step
     if (autoOpenAttemptedRef.current) return;
     if (sessionDismissedRef.current) return;
-    if (!shouldAutoOpen) return;
 
     autoOpenAttemptedRef.current = true;
     setIsOpen(true);
     void startOrResume();
-  }, [isAdmin, isHydrated, shouldAutoOpen, startOrResume]);
+  }, [isAdmin, isLoading, shouldAutoOpen, isHydrated, startOrResume]);
 
   useEffect(() => {
     const handleManualStart = () => {
