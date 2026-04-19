@@ -114,8 +114,8 @@ Cómo funciona:
 3. Toca "Registrar cobro" → bottom sheet con campos para:
    • Mes del cobro
    • Monto cobrado (pre-cargado con la renta base)
-   • ¿Quién recibió el pago? (selector con personas de la familia)
-   • Método de pago (selector con formas de pago)
+   • ¿Quién recibió el pago? (botones filtrados con personas de la familia — búsqueda en tiempo real)
+   • Método de pago (botones filtrados con formas de pago — búsqueda en tiempo real)
    • Fecha del pago
    • Notas opcionales
 
@@ -125,6 +125,13 @@ Al confirmar el cobro, se crea automáticamente un ingreso en Movimientos con la
 Indicador de estado:
 • 🟢 Verde — El pago del mes actual ya fue registrado.
 • 🟡 Amarillo — Pendiente de cobro en el mes actual.
+
+Desregistrar un cobro:
+Si cometiste un error, puedes tocar "Desmarcar cobro" en la propiedad correspondiente. Esto elimina el registro del mes actual Y borra automáticamente el ingreso correspondiente en Movimientos. Se mostrará una confirmación antes de proceder.
+
+Editar o eliminar una propiedad:
+• Toca el ícono de lápiz ✏️ en la tarjeta de la propiedad para modificar nombre, inquilino, dirección, renta base o día de pago.
+• Toca el ícono de eliminar para dar de baja la propiedad. Esta acción no borra los cobros ya registrados en Movimientos.
 
 Historial:
 Cada propiedad muestra los últimos 3 cobros registrados con mes, quién recibió y monto.`
@@ -152,10 +159,12 @@ Tus tarjetas, cuentas y métodos de pago habituales. Puedes cambiar nombre, banc
     id: 'voz', icon: '🎤', title: 'Captura por voz',
     content: `FlowFin usa el reconocimiento de voz nativo del dispositivo (Web Speech API), sin consumir créditos ni enviar datos a servidores externos.
 
-Cómo usar:
+Cómo usar (pantalla de Captura):
 1. En la pantalla de captura, toca el ícono del micrófono.
 2. Habla naturalmente: "gasolina BMW ochocientos pesos con débito".
 3. El sistema transcribe, detecta el monto y aplica las palabras clave del catálogo.
+
+Nota: El micrófono en la pantalla de Captura siempre usa español (es-MX) para la transcripción. Si quieres dictar en otro idioma, usa el micrófono dentro del Asistente IA, que respeta el idioma configurado en Mi Familia.
 
 Disponibilidad:
 • iPhone/iPad: requiere Safari o Chrome.
@@ -404,13 +413,22 @@ El contador de pendientes también aparece en el ícono de Movimientos en la bar
   },
   {
     id: 'cuenta', icon: '⚙️', title: 'Mi Cuenta',
-    content: `La sección "Mi Cuenta" te permite gestionar tu perfil personal dentro de FamilyFlow.
+    content: `La sección "Mi Cuenta" te permite gestionar tu perfil personal dentro de FlowFin.
 
 Acceso: Menú "Más" → Configuración → Mi Cuenta.
 
 Qué puedes hacer:
 • Ver tu email y datos de cuenta.
+• Consultar el estado de tu licencia y plan activo.
 • Eliminar tu cuenta — proceso protegido con confirmación múltiple. Al eliminar tu cuenta se elimina también tu membresía familiar.
+
+Estado de la licencia:
+• Prueba gratuita — Acceso completo por 30 días. Se muestra cuántos días restan.
+• Activo — Licencia vigente. Aparece la fecha de renovación.
+• Solo lectura — El período de prueba venció o la licencia fue suspendida. Puedes consultar todos los registros pero no podrás crear ni editar movimientos hasta renovar.
+
+Modo solo lectura:
+Cuando la cuenta está en modo solo lectura, la pantalla de Captura muestra un aviso y el botón de guardar queda deshabilitado. Todos los reportes, el dashboard y el historial siguen disponibles. Para reactivar el acceso completo, contacta soporte.
 
 Nota: Solo el administrador puede aprobar nuevos miembros y gestionar la familia. Si eliminas tu cuenta siendo administrador, la familia queda sin administrador. Contacta soporte si necesitas transferir la administración.`
   },
@@ -459,6 +477,8 @@ const glossary = [
   { term: 'Sincronización automática', def: 'Proceso por el cual un pago registrado en MSI, Inversiones, Pagos Programados o Rentas genera automáticamente el movimiento correspondiente en el registro general.' },
   { term: 'Vinculación de pagos', def: 'Asociación entre una transacción del registro general y un pago especializado (MSI, inversión, pago programado o renta). Puede ser automática o manual.' },
   { term: 'Pago vinculado', def: 'Transacción que tiene un origen identificado en un módulo especializado. Se muestra con una etiqueta de color en la lista de movimientos.' },
+  { term: 'Modo solo lectura', def: 'Estado de la cuenta cuando el período de prueba venció o la licencia fue suspendida. Permite consultar todos los registros pero no crear ni editar movimientos.' },
+  { term: 'Licencia', def: 'Plan de acceso a FlowFin. Puede estar en prueba gratuita (30 días), activo (con renovación mensual) o solo lectura (suspendido o vencido).' },
 ];
 
 export default function UserManual() {
