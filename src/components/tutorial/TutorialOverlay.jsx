@@ -161,7 +161,7 @@ export default function TutorialOverlay({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5">
           {renderStepBody()}
         </div>
 
@@ -169,6 +169,17 @@ export default function TutorialOverlay({
           className="shrink-0 p-4 border-t border-border bg-card flex flex-wrap gap-2"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
+          {!step.isFinal && (
+            <label className="flex items-center gap-2 w-full cursor-pointer select-none pb-1">
+              <input
+                type="checkbox"
+                className="w-4 h-4 accent-primary rounded"
+                onChange={(e) => { if (e.target.checked) onSkip(); }}
+              />
+              <span className="text-sm text-muted-foreground">No mostrar más</span>
+            </label>
+          )}
+
           {canGoBack && (
             <button
               onClick={onBack}
