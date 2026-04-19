@@ -67,6 +67,7 @@ export default function TutorialController() {
   const { isAdmin, family } = useFamily();
   const {
     tutorialState,
+    isHydrated,
     shouldAutoOpen,
     startOrResume,
     restartFromBeginning,
@@ -87,6 +88,7 @@ export default function TutorialController() {
   const [resolvedTargetElement, setResolvedTargetElement] = useState(null);
 
   const retryTimerRef = useRef(null);
+  const rectTimeoutRef = useRef(null);
   const autoOpenAttemptedRef = useRef(false);
   const sessionDismissedRef = useRef(false);
 
@@ -111,6 +113,7 @@ export default function TutorialController() {
 
   useEffect(() => {
     if (!isAdmin) return;
+    if (!isHydrated) return;
     if (autoOpenAttemptedRef.current) return;
     if (sessionDismissedRef.current) return;
     if (!shouldAutoOpen) return;
@@ -118,17 +121,19 @@ export default function TutorialController() {
     autoOpenAttemptedRef.current = true;
     setIsOpen(true);
     void startOrResume();
-  }, [isAdmin, shouldAutoOpen, startOrResume]);
+  }, [isAdmin, isHydrated, shouldAutoOpen, startOrResume]);
 
   useEffect(() => {
-    const handleManualStart = async () => {
+    const handleManualStart = () => {
       if (!isAdmin) return;
 
       sessionDismissedRef.current = false;
       autoOpenAttemptedRef.current = true;
 
-      await restartFromBeginning();
-      setActiveStepId('join-code');
+      // Fire-and-forget: React state updates inside restartFromBeginning are
+      // synchronous (batched); only the API persist is async and runs in background.
+      void restartFromBeginning();
+      setActiveStepId(FLOWFIN_TUTORIAL_STEPS[0].id);
       setTargetRect(null);
       setResolvedTargetElement(null);
       setIsOpen(true);
@@ -144,6 +149,10 @@ export default function TutorialController() {
     if (retryTimerRef.current) {
       clearInterval(retryTimerRef.current);
       retryTimerRef.current = null;
+    }
+    if (rectTimeoutRef.current) {
+      clearTimeout(rectTimeoutRef.current);
+      rectTimeoutRef.current = null;
     }
 
     if (!isOpen || !step) return;
@@ -167,7 +176,8 @@ export default function TutorialController() {
         setResolvedTargetElement(el);
         scrollElementIntoContainerView(el);
 
-        setTimeout(() => {
+        rectTimeoutRef.current = setTimeout(() => {
+          rectTimeoutRef.current = null;
           setTargetRect(getRectWithViewportSupport(el));
         }, 280);
 
@@ -190,6 +200,10 @@ export default function TutorialController() {
       if (retryTimerRef.current) {
         clearInterval(retryTimerRef.current);
         retryTimerRef.current = null;
+      }
+      if (rectTimeoutRef.current) {
+        clearTimeout(rectTimeoutRef.current);
+        rectTimeoutRef.current = null;
       }
     };
   }, [isOpen, step, location.pathname, navigate]);
@@ -237,7 +251,7 @@ export default function TutorialController() {
 
   if (!isAdmin || !isOpen || !step) return null;
 
-  const goToIndex = async (index) => {
+  const goToIndex = (index) => {
     const boundedIndex = Math.max(0, Math.min(index, FLOWFIN_TUTORIAL_STEPS.length - 1));
     const nextStep = FLOWFIN_TUTORIAL_STEPS[boundedIndex];
 
@@ -245,15 +259,13 @@ export default function TutorialController() {
     setTargetRect(null);
     setResolvedTargetElement(null);
 
-    await setCurrentStep(nextStep.id);
-
-    if (nextStep.route && location.pathname !== nextStep.route) {
-      navigate(nextStep.route);
-    }
+    // Persist is fire-and-forget; navigation is handled by the step effect when
+    // activeStepId changes, avoiding stale location.pathname closures.
+    void setCurrentStep(nextStep.id);
   };
 
-  const handleBack = async () => {
-    await goToIndex(stepIndex - 1);
+  const handleBack = () => {
+    goToIndex(stepIndex - 1);
   };
 
   const handleNext = async () => {
@@ -264,7 +276,7 @@ export default function TutorialController() {
       return;
     }
 
-    await goToIndex(stepIndex + 1);
+    goToIndex(stepIndex + 1);
   };
 
   const handleLater = async () => {

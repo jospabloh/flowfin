@@ -81,6 +81,7 @@ function writeFallbackTutorialState(userId, state) {
 export function useTutorialState() {
   const { membership, currentUser } = useFamily();
   const [tutorialState, setTutorialState] = useState(INITIAL_TUTORIAL_STATE);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const lastPersistedSerializedRef = useRef(serializeForDedup(INITIAL_TUTORIAL_STATE));
   const pendingStateRef = useRef(null);
@@ -160,17 +161,22 @@ export function useTutorialState() {
   }, [drainPersistQueue]);
 
   useEffect(() => {
+    // Wait until the membership query has resolved (undefined = still loading).
+    // membership === null means the user has no membership, which is also a valid
+    // resolved state (isAdmin will be false and the tutorial won't show).
+    if (membership === undefined) return;
+
     const hydrated = sanitizeTutorialState(
       membership?.tutorial_state || readFallbackTutorialState(currentUser?.id)
     );
 
     setTutorialState(hydrated);
-    // Alineamos la "huella" del último guardado con la dedup key (sin `updated_at`).
-    // Así, tras una rehidratación desde el servidor no volvemos a marcar el estado
-    // como "distinto" solo porque el timestamp normalizado cambie.
     lastPersistedSerializedRef.current = serializeForDedup(hydrated);
     pendingStateRef.current = null;
-  }, [membership?.id, membership?.tutorial_state, currentUser?.id]);
+    // Batched with setTutorialState — the render that sets isHydrated=true already
+    // has the correct tutorialState, so shouldAutoOpen is accurate in that render.
+    setIsHydrated(true);
+  }, [membership, currentUser?.id]);
 
   const applyTutorialUpdate = useCallback(async (updater) => {
     let nextState;
@@ -255,6 +261,7 @@ export function useTutorialState() {
 
   return {
     tutorialState,
+    isHydrated,
     shouldAutoOpen,
     startOrResume,
     restartFromBeginning,
