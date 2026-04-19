@@ -360,6 +360,25 @@ export default function Layout() {
                     </div>
                   );
                 })}
+
+                {/* Sistema — solo visible para el app-admin (owner) */}
+                {currentUser?.role === 'admin' && (
+                  <div className="px-4 pb-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 mb-2 mt-3">Sistema</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      <button
+                        onClick={() => { handleNavClick('/LicenseAdmin'); setShowMore(false); }}
+                        aria-label="Licencias"
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
+                          ${location.pathname === '/LicenseAdmin' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
+                          <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+                        </div>
+                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </>
           )}
