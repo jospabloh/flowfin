@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
       payment_reference,
       activation_notes,
       license_expires_at,
+      auto_renewal,
     } = await req.json();
 
     if (!family_id) return Response.json({ error: 'family_id requerido' }, { status: 400 });
@@ -36,6 +37,7 @@ Deno.serve(async (req) => {
     if (payment_reference !== undefined) updateData.payment_reference = payment_reference;
     if (activation_notes !== undefined) updateData.activation_notes = activation_notes;
     if (license_expires_at) updateData.license_expires_at = new Date(license_expires_at).toISOString();
+    if (auto_renewal !== undefined) updateData.auto_renewal = Boolean(auto_renewal);
 
     await base44.asServiceRole.entities.Family.update(family_id, updateData);
 

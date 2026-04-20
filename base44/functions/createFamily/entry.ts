@@ -33,6 +33,19 @@ Deno.serve(async (req) => {
       licensed_member_limit: 4,
     });
 
+    // Queue welcome email (non-fatal — family creation succeeds even if this fails)
+    try {
+      await base44.asServiceRole.entities.EmailNotification.create({
+        family_id: family.id,
+        email_type: 'trial_welcome',
+        recipient_email: user.email,
+        status: 'pending',
+        retry_count: 0,
+      });
+    } catch (emailErr: any) {
+      console.warn('[createFamily] Failed to queue welcome email:', emailErr.message);
+    }
+
     // Create admin membership
     await base44.asServiceRole.entities.FamilyMembership.create({
       family_id: family.id,
