@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
       trialDaysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }
 
-    // Determine read-only enforcement
-    const isReadOnly = billingStatus === 'view_only' || billingStatus === 'suspended';
+    // Determine read-only enforcement (archived also blocks all writes)
+    const isReadOnly = billingStatus === 'view_only' || billingStatus === 'suspended' || billingStatus === 'archived';
 
     // Get active member count
     let activeMemberCount = 0;
@@ -76,6 +76,9 @@ Deno.serve(async (req) => {
       trialEndAt: family.trial_end_at || null,
       licenseActivatedAt: family.license_activated_at || null,
       licenseExpiresAt: family.license_expires_at || null,
+      autoRenewal: family.auto_renewal || false,
+      archivedAt: family.archived_at || null,
+      scheduledDeleteAt: family.scheduled_delete_at || null,
       timestamp: now.toISOString(),
     });
   } catch (error) {

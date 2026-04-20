@@ -11,6 +11,7 @@ export default function TrialBanner() {
   // No banner for active licenses
   if (!billingStatus || billingStatus === 'active') return null;
 
+  const isArchived = billingStatus === 'archived';
   const isExpired = billingStatus === 'view_only' || billingStatus === 'suspended';
   const daysLeft = trialDaysLeft ?? 30;
   const urgentTrial = billingStatus === 'trial' && daysLeft <= 7;
@@ -22,36 +23,47 @@ export default function TrialBanner() {
     <>
       <div
         className={`px-3 py-2 flex items-center gap-2 text-xs ${
-          isExpired
-            ? 'bg-amber-500 text-white'
-            : urgentTrial
-              ? 'bg-orange-500 text-white'
-              : 'bg-primary/10 text-primary border-b border-primary/20'
+          isArchived
+            ? 'bg-red-600 text-white'
+            : isExpired
+              ? 'bg-amber-500 text-white'
+              : urgentTrial
+                ? 'bg-orange-500 text-white'
+                : 'bg-primary/10 text-primary border-b border-primary/20'
         }`}
       >
-        {isExpired
-          ? <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          : <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-        }
+        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="flex-1 font-medium leading-tight">
-          {isExpired
-            ? 'Período de prueba terminado — Modo solo lectura activo'
-            : daysLeft === 0
-              ? 'Tu prueba vence hoy'
-              : `${daysLeft} día${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''} de prueba gratuita`}
+          {isArchived
+            ? 'Cuenta archivada — Contacta a soporte para reactivar'
+            : isExpired
+              ? 'Período de prueba terminado — Modo solo lectura activo'
+              : daysLeft === 0
+                ? 'Tu prueba vence hoy'
+                : `${daysLeft} día${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''} de prueba gratuita`}
         </span>
-        <button
-          onClick={() => setShowPlans(true)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold text-[11px] flex-shrink-0 transition-colors ${
-            isExpired
-              ? 'bg-white text-amber-600 hover:bg-amber-50'
-              : 'bg-primary text-primary-foreground hover:bg-primary/90'
-          }`}
-        >
-          <Zap className="w-3 h-3" />
-          {isExpired ? 'Ver planes' : 'Activar'}
-        </button>
-        {!isExpired && (
+        {!isArchived && (
+          <button
+            onClick={() => setShowPlans(true)}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold text-[11px] flex-shrink-0 transition-colors ${
+              isExpired
+                ? 'bg-white text-amber-600 hover:bg-amber-50'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
+          >
+            <Zap className="w-3 h-3" />
+            {isExpired ? 'Ver planes' : 'Activar'}
+          </button>
+        )}
+        {isArchived && (
+          <a
+            href="mailto:soporte@flowfin.app"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold text-[11px] flex-shrink-0 bg-white text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Contactar soporte
+          </a>
+        )}
+        {!isExpired && !isArchived && (
           <button
             onClick={() => setDismissed(true)}
             className="p-0.5 rounded flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
@@ -62,7 +74,7 @@ export default function TrialBanner() {
         )}
       </div>
 
-      <UpgradePlansModal open={showPlans} onClose={() => setShowPlans(false)} />
+      {!isArchived && <UpgradePlansModal open={showPlans} onClose={() => setShowPlans(false)} />}
     </>
   );
 }

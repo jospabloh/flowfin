@@ -40,10 +40,11 @@
         "trial",
         "active",
         "view_only",
-        "suspended"
+        "suspended",
+        "archived"
       ],
       "default": "trial",
-      "description": "Estado comercial de la familia: trial, active, view_only, suspended"
+      "description": "Estado comercial de la familia: trial, active, view_only, suspended, archived"
     },
     "license_plan": {
       "type": "string",
@@ -83,6 +84,23 @@
     "support_contacted_at": {
       "type": "string",
       "description": "\u00daltima vez que el cliente contact\u00f3 soporte (ISO datetime)"
+    },
+    "auto_renewal": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si true, la licencia se renueva autom\u00e1ticamente el d\u00eda 1 de cada mes"
+    },
+    "view_only_since": {
+      "type": "string",
+      "description": "Fecha en que billing_status pas\u00f3 a view_only (ISO datetime). Ancla para el conteo de 15 d\u00edas hacia archived"
+    },
+    "archived_at": {
+      "type": "string",
+      "description": "Fecha en que la cuenta fue archivada (ISO datetime)"
+    },
+    "scheduled_delete_at": {
+      "type": "string",
+      "description": "Fecha programada para eliminaci\u00f3n definitiva (ISO datetime). 30 d\u00edas despu\u00e9s de archived_at"
     }
   },
   "required": [
