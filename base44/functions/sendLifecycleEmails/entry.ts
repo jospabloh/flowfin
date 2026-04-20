@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { Resend } from 'npm:resend';
 
 // Daily scheduled function: delivers all pending EmailNotification records via Resend
 // and retries failed ones (up to MAX_RETRIES attempts).
@@ -228,18 +229,9 @@ ${cta}Ir a FlowFin →</a>
 
 // ── Resend delivery ────────────────────────────────────────────────────────────
 async function sendViaResend(to: string, subject: string, html: string): Promise<void> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend ${res.status}: ${body}`);
-  }
+  const resend = new Resend(RESEND_API_KEY);
+  const { error } = await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+  if (error) throw new Error(error.message);
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
