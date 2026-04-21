@@ -5,7 +5,8 @@ import { useFamily } from '@/lib/FamilyContext';
 import PageHeader from '@/components/PageHeader';
 import {
   Search, Shield, CheckCircle, AlertCircle, Clock,
-  X, Loader2, ChevronRight, Users, Calendar,
+  X, Loader2, ChevronRight, Users, Calendar, Mail,
+  RefreshCw, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -22,6 +23,8 @@ const STATUS_CONFIG = {
   suspended: { label: 'Suspendido',    color: 'text-red-600 bg-red-50 dark:bg-red-950/30',          icon: AlertCircle },
 };
 
+const TEST_EMAIL = 'h.jospablo@gmail.com';
+
 function fmt(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -33,6 +36,7 @@ export default function LicenseAdmin() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState(null);
+  const [testEmailSending, setTestEmailSending] = useState(false);
   const [form, setForm] = useState({
     billing_status: 'active',
     license_plan: 'home',
@@ -40,6 +44,7 @@ export default function LicenseAdmin() {
     payment_reference: '',
     activation_notes: '',
     license_expires_at: '',
+    auto_renewal: false,
   });
 
   const isAppAdmin = currentUser?.role === 'admin';
@@ -63,6 +68,27 @@ export default function LicenseAdmin() {
     },
   });
 
+  const handleSendTestEmails = async () => {
+    setTestEmailSending(true);
+    try {
+      const result = await base44.functions.invoke('sendTestEmails', {});
+      const r = result?.data ?? result;
+      toast({
+        title: `✅ Correos de prueba enviados`,
+        description: `${r?.sent ?? '?'} enviados, ${r?.failed ?? 0} fallidos → ${TEST_EMAIL}`,
+        duration: 6000,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error al enviar correos de prueba',
+        description: err?.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setTestEmailSending(false);
+    }
+  };
+
   if (!isAppAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -83,6 +109,7 @@ export default function LicenseAdmin() {
       payment_reference: f.payment_reference || '',
       activation_notes: '',
       license_expires_at: f.license_expires_at ? f.license_expires_at.slice(0, 10) : '',
+      auto_renewal: f.auto_renewal ?? false,
     });
   };
 
@@ -96,6 +123,7 @@ export default function LicenseAdmin() {
       payment_reference: form.payment_reference || undefined,
       activation_notes: form.activation_notes || undefined,
       license_expires_at: form.license_expires_at || undefined,
+      auto_renewal: form.auto_renewal,
     });
   };
 
@@ -110,6 +138,27 @@ export default function LicenseAdmin() {
           <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
             Panel interno — ACACIA Consultoría · Solo administradores del sistema
           </p>
+        </div>
+
+        {/* Test emails button */}
+        <div className="flex items-center justify-between px-3 py-3 bg-card border border-border rounded-xl">
+          <div className="flex items-center gap-2.5">
+            <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-foreground">Correos de prueba</p>
+              <p className="text-[11px] text-muted-foreground">Envía las 17 plantillas de automatización a {TEST_EMAIL}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSendTestEmails}
+            disabled={testEmailSending}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 flex-shrink-0"
+          >
+            {testEmailSending
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando...</>
+              : <><Mail className="w-3.5 h-3.5" /> Enviar test</>
+            }
+          </button>
         </div>
 
         {/* Stats summary */}
@@ -164,6 +213,12 @@ export default function LicenseAdmin() {
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm text-foreground">{f.name}</p>
                     <div className="flex items-center gap-2">
+                      {f.auto_renewal && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
+                          <RefreshCw className="w-2.5 h-2.5" />
+                          Auto
+                        </span>
+                      )}
                       <span className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>
                         <StatusIcon className="w-3 h-3" />
                         {cfg.label}
@@ -188,6 +243,9 @@ export default function LicenseAdmin() {
                     <span>Inicio trial: {fmt(f.trial_start_at)}</span>
                     <span>Fin trial: {fmt(f.trial_end_at)}</span>
                     {f.license_activated_at && <span>Activado: {fmt(f.license_activated_at)}</span>}
+                    {f.license_expires_at && (
+                      <span>Vence: <span className="font-medium text-foreground">{fmt(f.license_expires_at)}</span></span>
+                    )}
                   </div>
                   {f.activation_notes && (
                     <p className="text-[11px] text-muted-foreground mt-1 italic truncate">"{f.activation_notes}"</p>
@@ -255,6 +313,34 @@ export default function LicenseAdmin() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Auto-renewal toggle */}
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-2 block">Renovación automática</label>
+                <button
+                  onClick={() => setForm(f => ({ ...f, auto_renewal: !f.auto_renewal }))}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                    form.auto_renewal
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
+                      : 'bg-muted border-transparent'
+                  }`}
+                >
+                  <div className="text-left">
+                    <p className={`text-sm font-semibold ${form.auto_renewal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                      {form.auto_renewal ? 'Renovación automática activa' : 'Renovación manual'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {form.auto_renewal
+                        ? 'El cliente recibe aviso de FYI antes del día 1 de cada mes'
+                        : 'El cliente recibe alertas de vencimiento para pagar manualmente'}
+                    </p>
+                  </div>
+                  {form.auto_renewal
+                    ? <ToggleRight className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                    : <ToggleLeft className="w-6 h-6 text-muted-foreground flex-shrink-0" />
+                  }
+                </button>
               </div>
 
               {/* Payment reference */}
