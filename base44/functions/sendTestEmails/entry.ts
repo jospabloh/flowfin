@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const to = url.searchParams.get('to') ?? 'h.josepablo@gmail.com';
+  const to = url.searchParams.get('to') ?? 'h.jospablo@gmail.com';
 
   const ctx: Record<string, string> = {
     family_name: 'Familia Demo',
