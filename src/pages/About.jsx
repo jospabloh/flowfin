@@ -2,13 +2,30 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.11.0';
+const CURRENT_VERSION = '2.12.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.12.0',
+    date: '2026-04-21',
+    label: 'Actual',
+    changes: [
+      'Tutorial interactivo: nuevo sistema guiado paso a paso con spotlight contextual al iniciar FlowFin por primera vez',
+      'Tutorial: checkbox "No mostrar más" en el pie del tutorial para descartar permanentemente desde cualquier paso',
+      'Tutorial: layout adaptado a pantallas pequeñas — hoja inferior en móvil con scroll interno',
+      'Tutorial: persistencia del estado entre sesiones y dispositivos mediante hook dedicado',
+      'Licencias: nuevo estado "Archivado" — activa 14 días después de vencer; la cuenta se elimina 15 días después si no se renueva',
+      'Licencias: 17 automatizaciones de correo para todo el ciclo de vida (bienvenida, recordatorios, renovación, vencimiento, archivado)',
+      'Planes actualizados: FlowFin Home $299 MXN/mes (1–4 miembros) y FlowFin Family+ $499 MXN/mes (5–10 miembros); eliminado plan Circle',
+      'Admin Licencias: toggle de auto-renovación por familia con botón para enviar correos de prueba',
+      'Captura: corrección de contraste en el desplegable de categorías (legible en tema claro y oscuro)',
+      'Móvil: sección Sistema/Licencias ahora visible en el cajón "Más" (solo administradores)',
+    ],
+  },
+  {
     version: '2.11.0',
     date: '2026-04-09',
-    label: 'Actual',
+    label: '',
     changes: [
       'Inicio en móvil: corregida condición de carga que podía mostrar incorrectamente la pantalla de incorporación a usuarios que ya pertenecen a una familia',
       'Bootstrap: eliminada brecha de un ciclo de render que causaba que el estado de membresía apareciera como no cargado antes de que la consulta se activara',
