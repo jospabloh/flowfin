@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus } from 'lucide-react';
+import Spinner from '@/components/Spinner';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
@@ -10,6 +11,7 @@ import confetti from 'canvas-confetti';
 import RentalPropertyCard from '@/components/rentals/RentalPropertyCard';
 import RentalPaymentSheet from '@/components/rentals/RentalPaymentSheet';
 import RentalPropertyFormSheet from '@/components/rentals/RentalPropertyFormSheet';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
@@ -19,6 +21,7 @@ export default function Rentals() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
 
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
@@ -74,9 +77,10 @@ export default function Rentals() {
     setPropForm({ name: prop.name || '', address: prop.address || '', tenant_name: prop.tenant_name || '', base_rent: prop.base_rent != null ? String(prop.base_rent) : '', payment_day: prop.payment_day != null ? String(prop.payment_day) : '', notes: prop.notes || '' });
     setShowPropForm(true);
   }
-  function handleDeleteProp(prop) {
-    if (!window.confirm(`¿Eliminar "${prop.name}"? Esta acción no se puede deshacer.`)) return;
-    deletePropMutation.mutate(prop.id);
+  async function handleDeleteProp(prop) {
+    if (await confirmDelete(`¿Eliminar la propiedad "${prop.name}"? Esta acción no se puede deshacer.`)) {
+      deletePropMutation.mutate(prop.id);
+    }
   }
   function handleSaveProp() {
     if (!propForm.name.trim() || !propForm.base_rent) return;
@@ -113,7 +117,7 @@ export default function Rentals() {
 
   async function handleUnmark(prop, payRecord) {
     if (unmarkingId) return;
-    if (!window.confirm(`¿Desmarcar el cobro de ${payRecord.month} para "${prop.name}"? Se eliminará el ingreso vinculado.`)) return;
+    if (!await confirmDelete(`¿Desmarcar el cobro de ${payRecord.month} para "${prop.name}"? Se eliminará el ingreso vinculado.`)) return;
     setUnmarkingId(payRecord.id);
     try {
       const linked = await base44.entities.Transaction.filter({ rental_payment_id: payRecord.id });
@@ -132,11 +136,12 @@ export default function Rentals() {
 
   return (
     <div className="pb-24">
+      <ConfirmDialog />
       <PageHeader title="Rentas" subtitle="Cobro de propiedades"
         action={<button onClick={openNewProp} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button>} />
 
       {isLoading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><Spinner /></div>
       ) : properties.length === 0 ? (
         <EmptyState icon="🏠" title="Sin propiedades" description="Registra tus inmuebles para darles seguimiento de cobro" />
       ) : (

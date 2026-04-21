@@ -6,6 +6,7 @@ import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 export default function FamilyAdmin() {
   const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit } = useFamily();
@@ -13,6 +14,7 @@ export default function FamilyAdmin() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteSuccess, setShowInviteSuccess] = useState(false);
 
@@ -131,9 +133,10 @@ export default function FamilyAdmin() {
 
   const handleApprove = (m) => approveMemberMutation.mutate(m);
   const handleReject = (m) => rejectMemberMutation.mutate(m);
-  const handleRemoveMember = (m) => {
-    if (!confirm(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) return;
-    removeMemberMutation.mutate(m);
+  const handleRemoveMember = async (m) => {
+    if (await confirmDelete(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) {
+      removeMemberMutation.mutate(m);
+    }
   };
   const handleInvite = () => {
     if (!inviteEmail.trim()) return;
@@ -154,6 +157,7 @@ export default function FamilyAdmin() {
 
   return (
     <div className="pb-6">
+      <ConfirmDialog />
       {/* Modal de invitación enviada */}
       {showInviteSuccess && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">

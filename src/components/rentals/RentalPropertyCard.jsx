@@ -1,12 +1,13 @@
 import { Loader2, Check, Pencil, Trash2 } from 'lucide-react';
+import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
 
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
 
-function fmt(amount) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(amount || 0);
-}
-
 export default function RentalPropertyCard({ prop, rentalPayments, unmarkingId, deleteMutationPending, onEdit, onDelete, onPay, onUnmark }) {
+  const { currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const fmt = amount => formatCurrency(amount, { locale, currency });
   const propPayments = rentalPayments.filter(p => p.property_id === prop.id);
   const thisMonthRecord = propPayments.find(p => p.month === THIS_MONTH && p.is_paid);
   const paidThisMonth = !!thisMonthRecord;

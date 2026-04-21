@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
+
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
 
     // Fetch all transactions for this family
     const transactions = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500);
-    
+
     // Fetch catalog data
     const [categories, subcategories, persons, paymentMethods] = await Promise.all([
       base44.entities.Category.filter({ family_id: familyId }),
@@ -39,17 +39,17 @@ Deno.serve(async (req) => {
     // Score categories and persons based on frequency and recency
     filteredTxs.forEach((tx, index) => {
       const recencyBoost = 1 + (index / filteredTxs.length) * 0.5; // Recent = higher score
-      
+
       // Category scoring
       if (tx.category_id) {
         categoryScores[tx.category_id] = (categoryScores[tx.category_id] || 0) + recencyBoost;
       }
-      
+
       // Person scoring
       if (tx.person_id) {
         personScores[tx.person_id] = (personScores[tx.person_id] || 0) + recencyBoost;
       }
-      
+
       // Payment method scoring
       if (tx.payment_method_id) {
         paymentMethodScores[tx.payment_method_id] = (paymentMethodScores[tx.payment_method_id] || 0) + recencyBoost;
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
     if (description && description.length > 2) {
       const descLower = description.toLowerCase();
-      
+
       // Find categories by description similarity
       for (const [pattern, data] of Object.entries(descriptionPatterns)) {
         if (pattern.includes(descLower) || descLower.includes(pattern.split(' ')[0])) {
@@ -81,10 +81,10 @@ Deno.serve(async (req) => {
       }
 
       // Find persons commonly associated with this description pattern
-      const relatedTxs = filteredTxs.filter(t => 
+      const relatedTxs = filteredTxs.filter(t =>
         t.description && t.description.toLowerCase().includes(descLower)
       );
-      
+
       if (relatedTxs.length > 0) {
         const personFreq = {};
         relatedTxs.forEach(tx => {
@@ -103,10 +103,24 @@ Deno.serve(async (req) => {
       .map(([id]) => categories.find(c => c.id === id))
       .filter(Boolean);
 
+    // Build top persons with preferredMethodId
     const topPersons = Object.entries(personScores)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([id]) => persons.find(p => p.id === id))
+      .map(([id]) => {
+        const person = persons.find(p => p.id === id);
+        if (!person) return null;
+
+        // Calculate most-frequently-used payment method for this person
+        const personTxs = filteredTxs.filter(t => t.person_id === id && t.payment_method_id);
+        const methodFreq: Record<string, number> = {};
+        personTxs.forEach(tx => {
+          methodFreq[tx.payment_method_id] = (methodFreq[tx.payment_method_id] || 0) + 1;
+        });
+        const preferredMethodId = Object.keys(methodFreq).sort((a, b) => methodFreq[b] - methodFreq[a])[0] ?? null;
+
+        return { ...person, preferredMethodId };
+      })
       .filter(Boolean);
 
     const topPaymentMethods = Object.entries(paymentMethodScores)
@@ -117,10 +131,60 @@ Deno.serve(async (req) => {
 
     // Calculate average amount for matched category
     let avgAmount = null;
+    let matchedCategory = null;
+    let categoryStats = null;
+    let matchedSubcategory = null;
+
     if (matchedCategoryId) {
       const categoryTxs = filteredTxs.filter(t => t.category_id === matchedCategoryId);
       if (categoryTxs.length > 0) {
-        avgAmount = Math.round(categoryTxs.reduce((sum, t) => sum + t.amount, 0) / categoryTxs.length);
+        const amounts = categoryTxs.map(t => t.amount || 0);
+        const count = amounts.length;
+        const mean = amounts.reduce((sum, a) => sum + a, 0) / count;
+        const variance = amounts.reduce((sum, a) => sum + Math.pow(a - mean, 2), 0) / count;
+        const stddev = Math.sqrt(variance);
+
+        avgAmount = Math.round(mean);
+        categoryStats = {
+          mean: Math.round(mean * 100) / 100,
+          stddev: Math.round(stddev * 100) / 100,
+          count,
+        };
+      }
+
+      matchedCategory = categories.find(c => c.id === matchedCategoryId) ?? null;
+
+      // Find most-frequently-used subcategory for matched category + description combination
+      if (description && description.length > 2) {
+        const descLower = description.toLowerCase();
+        const relevantTxs = filteredTxs.filter(t =>
+          t.category_id === matchedCategoryId &&
+          t.subcategory_id &&
+          t.description &&
+          t.description.toLowerCase().includes(descLower)
+        );
+
+        if (relevantTxs.length > 0) {
+          const subFreq: Record<string, number> = {};
+          relevantTxs.forEach(tx => {
+            subFreq[tx.subcategory_id] = (subFreq[tx.subcategory_id] || 0) + 1;
+          });
+          const topSubId = Object.keys(subFreq).sort((a, b) => subFreq[b] - subFreq[a])[0];
+          matchedSubcategory = subcategories.find(s => s.id === topSubId) ?? null;
+        } else {
+          // Fallback: most-frequent subcategory for category alone
+          const catSubTxs = filteredTxs.filter(t =>
+            t.category_id === matchedCategoryId && t.subcategory_id
+          );
+          if (catSubTxs.length > 0) {
+            const subFreq: Record<string, number> = {};
+            catSubTxs.forEach(tx => {
+              subFreq[tx.subcategory_id] = (subFreq[tx.subcategory_id] || 0) + 1;
+            });
+            const topSubId = Object.keys(subFreq).sort((a, b) => subFreq[b] - subFreq[a])[0];
+            matchedSubcategory = subcategories.find(s => s.id === topSubId) ?? null;
+          }
+        }
       }
     }
 
@@ -128,9 +192,11 @@ Deno.serve(async (req) => {
       suggestedCategories: topCategories,
       suggestedPersons: topPersons,
       suggestedPaymentMethods: topPaymentMethods,
-      matchedCategory: matchedCategoryId ? categories.find(c => c.id === matchedCategoryId) : null,
+      matchedCategory,
+      categoryStats,
+      matchedSubcategory,
       matchedPerson: matchedPersonId ? persons.find(p => p.id === matchedPersonId) : null,
-      avgAmount: avgAmount,
+      avgAmount,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

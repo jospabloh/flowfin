@@ -5,6 +5,9 @@ import { es } from 'date-fns/locale';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
+import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -16,12 +19,19 @@ function getNextPayment(inv, paymentsMade) {
   return { number: n + 1, date: next, diff };
 }
 
-const fmtMXN = v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v);
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 export default function InvestmentDetailSheet({ selected, allPayments, onClose, onPay, onEditPayment, onDeletePayment }) {
+  const { currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const fmtMXN = v => formatCurrency(v, { locale, currency });
   const sheetStyle = useBottomSheetStyle(0.90);
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   if (!selected) return null;
+
+  const handleDeletePay = async (id) => {
+    if (await confirmDelete('¿Eliminar este pago?')) onDeletePayment(id);
+  };
 
   const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
   const nextPayment = getNextPayment(selected, selectedPayments);
@@ -33,6 +43,7 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border overflow-y-auto" style={sheetStyle}>
+            <ConfirmDialog />
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="font-bold text-foreground text-base">{selected.name}</h3>
               <button onClick={onClose} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
@@ -78,10 +89,10 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
                       </div>
                       <div className="flex items-center gap-2">
                         <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
-                        <button onClick={() => onEditPayment(p)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                        <button onClick={() => onEditPayment(p)} aria-label="Editar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-muted rounded-lg transition-colors flex items-center justify-center">
                           <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                         </button>
-                        <button onClick={() => { if (confirm('¿Eliminar este pago?')) onDeletePayment(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
+                        <button onClick={() => handleDeletePay(p.id)} aria-label="Eliminar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center">
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </button>
                       </div>

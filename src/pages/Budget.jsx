@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
 import PageHeader from '@/components/PageHeader';
 import AmountDisplay from '@/components/AmountDisplay';
 import { PiggyBank, TrendingDown, RefreshCw, Info } from 'lucide-react';
@@ -28,7 +29,7 @@ export default function Budget() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const fmt = (v) => new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(v || 0);
+  const fmt = (v) => formatCurrency(v, { locale, currency });
   const suggestions = data?.suggestions || [];
   const coverage = data?.avg_monthly_income > 0
     ? Math.round((data.total_suggested_budget / data.avg_monthly_income) * 100)
@@ -112,16 +113,16 @@ export default function Budget() {
                 <span className="text-2xl">{coverage <= 80 ? '🟢' : coverage <= 100 ? '🟡' : '🔴'}</span>
                 <div>
                   <p className={`text-sm font-bold ${
-                    coverage <= 80 ? 'text-green-800 dark:text-green-300' :
+                    coverage <= 80 ? 'text-income' :
                     coverage <= 100 ? 'text-amber-800 dark:text-amber-300' :
-                    'text-rose-800 dark:text-rose-300'
+                    'text-expense'
                   }`}>
                     {coverage <= 80 ? 'Finanzas saludables' : coverage <= 100 ? 'Presupuesto ajustado' : 'Egresos superan ingresos'}
                   </p>
                   <p className={`text-xs ${
-                    coverage <= 80 ? 'text-green-700 dark:text-green-400' :
+                    coverage <= 80 ? 'text-income/70' :
                     coverage <= 100 ? 'text-amber-700 dark:text-amber-400' :
-                    'text-rose-700 dark:text-rose-400'
+                    'text-expense/70'
                   }`}>
                     El presupuesto sugerido representa el {coverage}% de tus ingresos
                   </p>

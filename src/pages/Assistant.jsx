@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { Send, Mic, MicOff, Bot, Sparkles } from 'lucide-react';
+import Spinner from '@/components/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function Assistant() {
   const { currentUser, familyId, familyConfig } = useFamily();
+  const { toast } = useToast();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -43,22 +47,35 @@ export default function Assistant() {
     return unsub;
   }, [conversation?.id]);
 
-  // Inject locale context once when conversation is ready
+  // Inject locale + context pack once when conversation is ready (F3.2)
   useEffect(() => {
-    if (!conversation || localeInjectedRef.current) return;
+    if (!conversation || localeInjectedRef.current || !familyId) return;
     const existingMsgs = conversation.messages || [];
-    // Only inject if no prior locale context exists
     const hasLocaleCtx = existingMsgs.some(m => m.content?.startsWith('[LOCALE:'));
     if (!hasLocaleCtx) {
       localeInjectedRef.current = true;
-      base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: `[LOCALE: ${activeLocale}] [SYSTEM_CONTEXT: Locale activo de la app: ${activeLocale}. Responde siempre en el idioma de este locale para toda la conversación. No confirmes ni menciones este mensaje al usuario.]`
-      });
+      // Fetch context pack asynchronously; inject locale immediately, enhance with context when ready
+      base44.functions.invoke('getContextPack', { familyId })
+        .then(res => {
+          const ctx = res.data || {};
+          const ctxStr = Object.keys(ctx).length > 0
+            ? ` [CONTEXT: ${JSON.stringify(ctx)}]`
+            : '';
+          base44.agents.addMessage(conversation, {
+            role: 'user',
+            content: `[LOCALE: ${activeLocale}]${ctxStr} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. Responde siempre en el idioma de este locale. No confirmes ni menciones este mensaje al usuario.]`,
+          });
+        })
+        .catch(() => {
+          base44.agents.addMessage(conversation, {
+            role: 'user',
+            content: `[LOCALE: ${activeLocale}] [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. Responde siempre en el idioma de este locale. No confirmes ni menciones este mensaje al usuario.]`,
+          });
+        });
     } else {
       localeInjectedRef.current = true;
     }
-  }, [conversation]);
+  }, [conversation, familyId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,7 +104,7 @@ export default function Assistant() {
 
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Tu navegador no soporta voz'); return; }
+    if (!SR) { toast({ title: 'Tu navegador no soporta voz', variant: 'destructive' }); return; }
     const r = new SR();
     r.lang = voiceLang;
     r.onstart = () => setIsListening(true);
@@ -100,16 +117,26 @@ export default function Assistant() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
-  const quickActions = [
+  const FALLBACK_ACTIONS = [
     '💸 Gasté $500 en gasolina hoy',
     '🛒 $1,200 en el súper',
     '💰 Recibí mi quincena de $8,500',
     '📊 ¿Cuánto gasté esta semana?',
   ];
 
+  const { data: quickActionsData } = useQuery({
+    queryKey: ['quickActions', familyId],
+    queryFn: () => base44.functions.invoke('getQuickActions', { familyId }).then(r => r.data?.actions || FALLBACK_ACTIONS),
+    enabled: !!familyId,
+    staleTime: 15 * 60 * 1000,
+    retry: false,
+  });
+
+  const quickActions = quickActionsData || FALLBACK_ACTIONS;
+
   if (!conversation) return (
     <div className="flex items-center justify-center h-[60vh]">
-      <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
+      <Spinner />
     </div>
   );
 

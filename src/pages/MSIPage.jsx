@@ -9,6 +9,9 @@ import AmountDisplay from '@/components/AmountDisplay';
 import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
+import { formatCurrency, todayISO } from '@/lib/formatters';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import Spinner from '@/components/Spinner';
 import { addMonths, parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,7 +28,10 @@ function getNextMSIPayment(msi, payments) {
 
 export default function MSIPage() {
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const fmt = v => formatCurrency(v, { locale, currency });
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
   const [selected, setSelected] = useState(null);
@@ -33,7 +39,7 @@ export default function MSIPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPayForm, setEditPayForm] = useState({ amount: '', paid_date: '' });
-  const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
+  const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1' });
 
   const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list('-paid_date') });
@@ -132,7 +138,7 @@ export default function MSIPage() {
     setShowForm(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
-    setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: new Date().toISOString().slice(0,10), billing_day: '1' });
+    setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1' });
   };
 
   const sheetStyle = useBottomSheetStyle(0.90);
@@ -163,6 +169,7 @@ export default function MSIPage() {
 
   return (
     <div className="pb-4">
+      <ConfirmDialog />
       {/* Modal de MSI creado */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
@@ -195,7 +202,7 @@ export default function MSIPage() {
         } />
 
       {isLoading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><Spinner /></div>
       ) : msiList.length === 0 ? (
         <EmptyState icon="💳" title="Sin MSI" description="Registra tus compras a meses sin intereses" />
       ) : (
@@ -221,7 +228,7 @@ export default function MSIPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(msi.monthly_amount)}/mes</p>
+                    <p className="text-sm font-bold text-foreground">{fmt(msi.monthly_amount)}/mes</p>
                     <p className="text-xs text-muted-foreground">{payments.length}/{msi.total_months} meses</p>
                   </div>
                 </div>
@@ -276,17 +283,17 @@ export default function MSIPage() {
                   </div>
                   <div className="bg-muted rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Mensualidad</p>
-                    <p className="text-sm font-bold text-foreground">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.monthly_amount)}</p>
+                    <p className="text-sm font-bold text-foreground">{fmt(selected.monthly_amount)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-income/10 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Monto total</p>
-                    <p className="text-lg font-bold text-income">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.total_amount)}</p>
+                    <p className="text-lg font-bold text-income">{fmt(selected.total_amount)}</p>
                   </div>
                   <div className="bg-expense/10 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Monto pendiente</p>
-                    <p className="text-lg font-bold text-expense">{new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0}).format(selected.total_amount - selectedPayments.reduce((s, p) => s + p.amount, 0))}</p>
+                    <p className="text-lg font-bold text-expense">{fmt(selected.total_amount - selectedPayments.reduce((s, p) => s + p.amount, 0))}</p>
                   </div>
                 </div>
                 {nextPayment && (
@@ -313,7 +320,7 @@ export default function MSIPage() {
                           <button onClick={() => { setEditingPayment(p); setEditPayForm({ amount: p.amount.toString(), paid_date: p.paid_date }); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
                             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
-                          <button onClick={() => { if (confirm('¿Eliminar este pago?')) deletePaymentMutation.mutate(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
+                          <button onClick={async () => { if (await confirmDelete('¿Eliminar este pago?')) deletePaymentMutation.mutate(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />
                           </button>
                         </div>

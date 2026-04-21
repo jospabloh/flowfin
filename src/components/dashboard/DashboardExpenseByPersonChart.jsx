@@ -1,5 +1,6 @@
 import { PieChart, Pie, ResponsiveContainer, Cell } from 'recharts';
 import PersonAvatar from '@/components/PersonAvatar';
+import { formatCurrency } from '@/lib/formatters';
 
 export default function DashboardExpenseByPersonChart({ byPerson, currency, locale }) {
   if (byPerson.length <= 1) return null;
@@ -25,7 +26,7 @@ export default function DashboardExpenseByPersonChart({ byPerson, currency, loca
                 <span className="text-xs text-muted-foreground">{entry.name}</span>
               </div>
               <span className="text-sm font-semibold tabular-nums" style={{ color: entry.person?.color || 'hsl(var(--expense))' }}>
-                {new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(entry.value)}
+                {formatCurrency(entry.value, { locale, currency })}
               </span>
             </div>
           ))}

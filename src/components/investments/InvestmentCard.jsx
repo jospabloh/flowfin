@@ -2,6 +2,8 @@ import { ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ProgressBar from '@/components/ProgressBar';
+import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -21,10 +23,12 @@ function statusColor(diff) {
   return 'bg-income';
 }
 
-const fmtMXN = v => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 }).format(v);
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay }) {
+  const { currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const fmt = v => formatCurrency(v, { locale, currency });
   const paid = allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= TODAY_ISO)).length;
   const next = getNextPayment(inv, allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= TODAY_ISO)));
   const done = paid >= inv.total_payments;
@@ -54,7 +58,7 @@ export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay 
           {done && <span className="text-income font-semibold">✓ Completado</span>}
         </div>
         {inv.payment_amount > 0 && (
-          <p className="text-xs text-muted-foreground mt-1">{fmtMXN(inv.payment_amount)} / pago</p>
+          <p className="text-xs text-muted-foreground mt-1">{fmt(inv.payment_amount)} / pago</p>
         )}
       </button>
       {!done && next && (
@@ -63,7 +67,7 @@ export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay 
             onClick={e => { e.stopPropagation(); onQuickPay(inv, paid); }}
             className={`w-full py-2 rounded-xl text-xs font-semibold transition-colors
               ${isDue ? 'bg-expense/10 text-expense border border-expense/30 hover:bg-expense/20' : 'bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20'}`}>
-            ✓ Confirmar pago #{paid + 1}{inv.payment_amount > 0 && ` · ${fmtMXN(inv.payment_amount)}`}
+            ✓ Confirmar pago #{paid + 1}{inv.payment_amount > 0 && ` · ${fmt(inv.payment_amount)}`}
           </button>
         </div>
       )}

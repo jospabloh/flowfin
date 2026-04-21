@@ -1,5 +1,8 @@
 import { Loader2, CheckCircle2, Circle, Pencil, Trash2 } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
+import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
@@ -22,10 +25,18 @@ const dotMap = {
 };
 
 export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, persons, onMarkPaid, onUnmark, onEdit, onDelete }) {
+  const { currency, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
+
+  const handleDelete = async () => {
+    if (await confirmDelete(`¿Eliminar "${item.name}"?`)) onDelete(item.id);
+  };
 
   return (
     <div className={`rounded-2xl border p-4 transition-all ${colorMap[color]}`}>
+      <ConfirmDialog />
       <div className="flex items-start gap-3">
         <span className="text-2xl leading-none mt-0.5">{item.icon || '💰'}</span>
         <div className="flex-1 min-w-0">
@@ -44,7 +55,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
           </div>
           {isPaid && record && (
             <p className="text-[10px] text-muted-foreground mt-1">
-              Pagado el {record.paid_date}{record.paid_by ? ` por ${record.paid_by}` : ''}{record.amount_paid ? ` · $${record.amount_paid.toLocaleString()}` : ''}
+              Pagado el {record.paid_date}{record.paid_by ? ` por ${record.paid_by}` : ''}{record.amount_paid ? ` · ${formatCurrency(record.amount_paid, { locale, currency })}` : ''}
             </p>
           )}
           {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
@@ -69,7 +80,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
             <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
               <Pencil className="w-4 h-4" />
             </button>
-            <button onClick={() => { if (confirm(`¿Eliminar "${item.name}"?`)) onDelete(item.id); }}
+            <button onClick={handleDelete} aria-label="Eliminar compromiso"
               className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
               <Trash2 className="w-4 h-4" />
             </button>

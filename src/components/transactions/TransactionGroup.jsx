@@ -3,6 +3,7 @@ import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatCurrency } from '@/lib/formatters';
 
 const getPaymentLinkInfo = (t) => {
   if (t.msi_payment_id) return { type: 'MSI', icon: '💳' };
@@ -21,9 +22,7 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
         </span>
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-muted-foreground">
-          {new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(
-            txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-          )}
+          {formatCurrency(txns.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), { locale, currency })}
         </span>
       </div>
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
@@ -75,7 +74,7 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                     {person && <><span className="text-muted-foreground">Quien</span><span className="text-foreground">{person.name}</span></>}
                     {t.payment_method_id && <><span className="text-muted-foreground">Forma</span><span className="text-foreground">{paymentMethods.find(m => m.id === t.payment_method_id)?.name || '—'}</span></>}
                     {t.required_type && <><span className="text-muted-foreground">Requerido</span><span className="text-foreground">{t.required_type}</span></>}
-                    {t.has_invoice && <><span className="text-muted-foreground">Factura</span><span className="text-income">Sí</span></>}
+                    {t.has_invoice && <><span className="text-muted-foreground">Factura</span><span className="text-primary font-medium">Sí</span></>}
                     {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground">{t.notes}</span></>}
                   </div>
                   <div className="flex gap-2 mt-1">
