@@ -113,6 +113,19 @@
         "update",
         "delete"
       ]
+    },
+    {
+      "entity_name": "AnomalyAlert",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "UserProfile",
+      "allowed_operations": [
+        "read"
+      ]
     }
   ],
   "whatsapp_greeting": "\u00a1Hola! \ud83d\udc4b Soy tu asistente financiero de FlowFin. Puedo ayudarte a registrar gastos, consultar saldos y gestionar tus finanzas. \u00bfEn qu\u00e9 te ayudo hoy?"

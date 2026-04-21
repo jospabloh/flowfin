@@ -27,11 +27,13 @@ Deno.serve(async (req) => {
     const todayDay = now.getDate();
 
     // Fetch in parallel with timeout
-    const [transactions, scheduledPayments, categories] = await withTimeout(
+    const [transactions, scheduledPayments, categories, anomalyAlerts, userProfiles] = await withTimeout(
       Promise.all([
         base44.entities.Transaction.filter({ family_id: familyId }, '-date', 50),
         base44.entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }),
         base44.entities.Category.filter({ family_id: familyId }),
+        base44.entities.AnomalyAlert.filter({ family_id: familyId, seen: false }),
+        base44.entities.UserProfile.filter({ family_id: familyId }),
       ])
     );
 
@@ -89,7 +91,27 @@ Deno.serve(async (req) => {
         icon: p.icon ?? '📅',
       }));
 
-    return Response.json({ monthSummary, upcomingPayments });
+    // Anomalies: most recent 3 unseen alerts
+    const anomalies = anomalyAlerts
+      .sort((a: { detected_at?: string }, b: { detected_at?: string }) =>
+        (b.detected_at ?? '').localeCompare(a.detected_at ?? ''))
+      .slice(0, 3)
+      .map((a: { category_id?: string; message?: string; amount?: number; baseline?: number }) => ({
+        category_id: a.category_id,
+        message: a.message,
+        amount: a.amount,
+        baseline: a.baseline,
+      }));
+
+    // UserProfile: subset for context injection
+    const rawProfile = userProfiles[0] ?? null;
+    const userProfile = rawProfile ? {
+      top_categories: rawProfile.top_categories ?? [],
+      avg_weekly_spend: rawProfile.avg_weekly_spend ?? 0,
+      most_active_day: rawProfile.most_active_day ?? null,
+    } : null;
+
+    return Response.json({ monthSummary, upcomingPayments, anomalies, userProfile });
   } catch {
     return Response.json({});
   }

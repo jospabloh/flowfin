@@ -1,0 +1,72 @@
+{
+  "name": "AnomalyAlert",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID de la categoría con gasto anómalo"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["spending_spike"],
+      "description": "Tipo de anomalía detectada"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto real de la semana actual"
+    },
+    "baseline": {
+      "type": "number",
+      "description": "Media histórica semanal de la categoría"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensaje legible en español para el usuario"
+    },
+    "seen": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el usuario ya vio esta alerta"
+    },
+    "week_key": {
+      "type": "string",
+      "description": "Clave de semana en formato YYYY-WW para deduplicación"
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de detección"
+    }
+  },
+  "required": ["family_id", "category_id", "kind"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}

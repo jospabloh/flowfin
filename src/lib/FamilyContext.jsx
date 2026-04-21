@@ -88,6 +88,23 @@ export function FamilyProvider({ children }) {
     retry: 1,
   });
 
+  // ── Step 5: Fire-and-forget analytics ──
+  useQuery({
+    queryKey: ['detectAnomalies', familyId],
+    queryFn: () => base44.functions.invoke('detectAnomalies', { familyId }).then(r => r.data),
+    enabled: !!familyId,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+  });
+
+  useQuery({
+    queryKey: ['buildUserProfile', familyId],
+    queryFn: () => base44.functions.invoke('buildUserProfile', { familyId }).then(r => r.data),
+    enabled: !!familyId,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: false,
+  });
+
   // Sync family rules to localStorage
   useEffect(() => {
     if (familyConfig?.smart_rules) {

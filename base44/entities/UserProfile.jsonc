@@ -1,0 +1,62 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia"
+    },
+    "top_categories": {
+      "type": "array",
+      "description": "Top 5 categorías por gasto en los últimos 30 días",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "avg_weekly_spend": {
+      "type": "number",
+      "description": "Gasto promedio semanal en los últimos 30 días"
+    },
+    "top_payment_method_id": {
+      "type": "string",
+      "description": "ID del método de pago más usado"
+    },
+    "most_active_day": {
+      "type": "string",
+      "description": "Día de la semana con más movimientos (Lun, Mar, Mié, Jue, Vie, Sáb, Dom)"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Última actualización del perfil"
+    }
+  },
+  "required": ["family_id"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}
