@@ -1,4 +1,4 @@
-import { X, Users, MessageCircle, ExternalLink } from 'lucide-react';
+import { X, Users, MessageCircle, ExternalLink, Check } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFamily } from '@/lib/FamilyContext';
 
@@ -6,33 +6,27 @@ const PLANS = [
   {
     id: 'home',
     name: 'FlowFin Home',
+    price: '$299 MXN/mes',
     members: 4,
+    membersDesc: 'De 1 a 4 miembros',
     icon: '🏠',
     color: 'text-blue-600',
     bg: 'bg-blue-50 dark:bg-blue-950/30',
     border: 'border-blue-200 dark:border-blue-800',
-    desc: 'Ideal para parejas y familias pequeñas',
+    features: ['Gestión financiera básica', 'Organización por miembros', 'Visibilidad compartida', 'Hasta 4 miembros'],
   },
   {
     id: 'family_plus',
     name: 'FlowFin Family+',
+    price: '$499 MXN/mes',
     members: 10,
+    membersDesc: 'De 5 a 10 miembros',
     icon: '👨‍👩‍👧‍👦',
     color: 'text-primary',
     bg: 'bg-primary/5',
     border: 'border-primary/30',
-    desc: 'Para familias con múltiples integrantes',
+    features: ['Incluye todo lo de Home', 'Hasta 10 miembros', 'Mejor colaboración compartida', 'Más orden para familias activas'],
     popular: true,
-  },
-  {
-    id: 'circle',
-    name: 'FlowFin Circle',
-    members: 20,
-    icon: '🔵',
-    color: 'text-purple-600',
-    bg: 'bg-purple-50 dark:bg-purple-950/30',
-    border: 'border-purple-200 dark:border-purple-800',
-    desc: 'Para grupos familiares amplios y extendidos',
   },
 ];
 
@@ -77,6 +71,7 @@ export default function UpgradePlansModal({ open, onClose }) {
 
             {/* Plans */}
             <div className="p-5 space-y-3">
+              <p className="text-[11px] text-muted-foreground -mt-1">Suscripción mensual recurrente · IVA incluido · Gestionado vía Mercado Pago</p>
               {PLANS.map(plan => (
                 <div key={plan.id} className={`relative rounded-2xl border-2 p-4 ${plan.border} ${plan.bg}`}>
                   {plan.popular && (
@@ -84,17 +79,24 @@ export default function UpgradePlansModal({ open, onClose }) {
                       Más popular
                     </span>
                   )}
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">{plan.icon}</span>
-                    <div className="flex-1">
-                      <p className={`font-bold text-sm ${plan.color}`}>{plan.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{plan.desc}</p>
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <Users className={`w-3.5 h-3.5 ${plan.color}`} />
-                        <span className={`text-xs font-semibold ${plan.color}`}>Hasta {plan.members} integrantes</span>
+                  <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <div className="flex items-start gap-2">
+                      <span className="text-2xl leading-none">{plan.icon}</span>
+                      <div>
+                        <p className={`font-bold text-sm ${plan.color}`}>{plan.name}</p>
+                        <p className="text-xs text-muted-foreground">{plan.membersDesc}</p>
                       </div>
                     </div>
+                    <p className={`text-base font-black ${plan.color} whitespace-nowrap`}>{plan.price}</p>
                   </div>
+                  <ul className="space-y-1">
+                    {plan.features.map(f => (
+                      <li key={f} className="flex items-center gap-1.5 text-xs text-foreground/80">
+                        <Check className={`w-3 h-3 flex-shrink-0 ${plan.color}`} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
