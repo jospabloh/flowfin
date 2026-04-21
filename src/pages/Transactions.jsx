@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import TransactionEditModal from '@/components/TransactionEditModal';
 import TransactionFilters from '@/components/transactions/TransactionFilters';
 import TransactionGroup from '@/components/transactions/TransactionGroup';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 function groupByDate(transactions) {
   const groups = {};

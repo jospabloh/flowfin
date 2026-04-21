@@ -10,7 +10,7 @@ import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency, todayISO } from '@/lib/formatters';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import Spinner from '@/components/Spinner';
 import { addMonths, parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';

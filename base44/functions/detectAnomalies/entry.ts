@@ -60,33 +60,43 @@ Deno.serve(async (req) => {
       const variance = baselineAmounts.reduce((s, v) => s + (v - mean) ** 2, 0) / baselineAmounts.length;
       const stddev = Math.sqrt(variance);
 
-      if (stddev === 0 || currentAmount <= mean + 2 * stddev) continue;
+      // When stddev is 0 all baseline weeks are identical — any increase is a spike;
+      // use a 20% threshold above mean to avoid alerting on negligible rounding noise.
+      const threshold = stddev === 0 ? mean * 1.2 : mean + 2 * stddev;
+      if (currentAmount <= threshold) continue;
 
       // Check dedup: already alerted this week for this category?
-      const existing = await base44.entities.AnomalyAlert.filter({
-        family_id: familyId,
-        category_id: categoryId,
-        week_key: currentWeekKey,
-      });
+      // Re-query inside a try/catch so a race-condition duplicate write is swallowed.
+      let existing: unknown[] = [];
+      try {
+        existing = await base44.entities.AnomalyAlert.filter({
+          family_id: familyId,
+          category_id: categoryId,
+          week_key: currentWeekKey,
+        });
+      } catch { existing = []; }
       if (existing.length > 0) continue;
 
-      const cat = categories.find(c => c.id === categoryId);
-      const catName = cat ? `${cat.icon ?? ''} ${cat.name}`.trim() : 'una categoría';
-      const ratio = mean > 0 ? (currentAmount / mean).toFixed(1) : '∞';
-      const message = `Gastos en ${catName} esta semana: $${Math.round(currentAmount).toLocaleString('es-MX')} (${ratio}× lo habitual de $${Math.round(mean).toLocaleString('es-MX')}).`;
+      // Create alert; if a concurrent request already inserted one, swallow the error.
+      try {
+        const cat = categories.find(c => c.id === categoryId);
+        const catName = cat ? `${cat.icon ?? ''} ${cat.name}`.trim() : 'una categoría';
+        const ratio = mean > 0 ? (currentAmount / mean).toFixed(1) : '∞';
+        const message = `Gastos en ${catName} esta semana: $${Math.round(currentAmount).toLocaleString('es-MX')} (${ratio}× lo habitual de $${Math.round(mean).toLocaleString('es-MX')}).`;
 
-      await base44.entities.AnomalyAlert.create({
-        family_id: familyId,
-        category_id: categoryId,
-        kind: 'spending_spike',
-        amount: Math.round(currentAmount * 100) / 100,
-        baseline: Math.round(mean * 100) / 100,
-        message,
-        seen: false,
-        week_key: currentWeekKey,
-        detected_at: now.toISOString(),
-      });
-      alertsCreated++;
+        await base44.entities.AnomalyAlert.create({
+          family_id: familyId,
+          category_id: categoryId,
+          kind: 'spending_spike',
+          amount: Math.round(currentAmount * 100) / 100,
+          baseline: Math.round(mean * 100) / 100,
+          message,
+          seen: false,
+          week_key: currentWeekKey,
+          detected_at: now.toISOString(),
+        });
+        alertsCreated++;
+      } catch { /* duplicate insert from concurrent call — safe to ignore */ }
     }
 
     return Response.json({ alertsCreated });
