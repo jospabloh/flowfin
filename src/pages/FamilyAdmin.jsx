@@ -6,7 +6,7 @@ import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 export default function FamilyAdmin() {
   const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit } = useFamily();

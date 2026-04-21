@@ -8,7 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14B8A6','#F43F5E','#64748B','#D97706'];
 

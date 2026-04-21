@@ -11,7 +11,7 @@ import confetti from 'canvas-confetti';
 import RentalPropertyCard from '@/components/rentals/RentalPropertyCard';
 import RentalPaymentSheet from '@/components/rentals/RentalPaymentSheet';
 import RentalPropertyFormSheet from '@/components/rentals/RentalPropertyFormSheet';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const THIS_MONTH = new Date().toISOString().slice(0, 7);

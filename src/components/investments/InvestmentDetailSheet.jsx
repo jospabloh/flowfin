@@ -7,7 +7,7 @@ import AmountDisplay from '@/components/AmountDisplay';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
-import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
