@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
+import { formatDate } from '@/lib/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,7 +12,8 @@ const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
 export default function AccountSettings() {
   const { toast } = useToast();
-  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin } = useFamily();
+  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
@@ -98,11 +100,7 @@ export default function AccountSettings() {
     setError('');
   };
 
-  // Format date helper
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
+  const fmtDate = (dateStr) => formatDate(dateStr, { locale, style: 'long' });
 
   // Get billing status label and color
   const getBillingStatusInfo = () => {
@@ -174,11 +172,11 @@ export default function AccountSettings() {
                 <>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Inicia</span>
-                    <span className="font-semibold text-foreground">{formatDate(trialStartAt)}</span>
+                    <span className="font-semibold text-foreground">{fmtDate(trialStartAt)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Vence</span>
-                    <span className="font-semibold text-foreground">{formatDate(trialEndAt)}</span>
+                    <span className="font-semibold text-foreground">{fmtDate(trialEndAt)}</span>
                   </div>
                 </>
               )}
@@ -193,13 +191,13 @@ export default function AccountSettings() {
                   {licenseActivatedAt && (
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Activada</span>
-                      <span className="font-semibold text-foreground">{formatDate(licenseActivatedAt)}</span>
+                      <span className="font-semibold text-foreground">{fmtDate(licenseActivatedAt)}</span>
                     </div>
                   )}
                   {licenseExpiresAt && (
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Próxima renovación</span>
-                      <span className="font-semibold text-foreground">{formatDate(licenseExpiresAt)}</span>
+                      <span className="font-semibold text-foreground">{fmtDate(licenseExpiresAt)}</span>
                     </div>
                   )}
                 </>

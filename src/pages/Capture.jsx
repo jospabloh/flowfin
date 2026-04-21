@@ -1,30 +1,36 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2 } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { matchCategory, parseVoiceText, getWeekNumber } from '@/lib/categoryMatcher';
+import { formatCurrency, todayISO } from '@/lib/formatters';
 import { useUsageStats } from '@/lib/useUsageStats';
 import { useMemory } from '@/hooks/useMemory';
 import confetti from 'canvas-confetti';
 import PersonAvatar from '@/components/PersonAvatar';
+import PredictiveChips from '@/components/PredictiveChips';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
 export default function Capture() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { familyId, currency, currencySymbol, familyConfig, isReadOnly } = useFamily();
+  const locale = familyConfig?.locale || 'es-MX';
+  const fmtMXN = v => formatCurrency(v, { locale, currency });
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
-  const { recordCapture, findAssociation, syncFamilyRulesFromDB } = useMemory();
+  const { recordCapture, findAssociation, syncFamilyRulesFromDB, getDescriptionCount } = useMemory();
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayISO();
 
   const createTransactionMutation = useMutation({
     mutationFn: (data) => base44.entities.Transaction.create(data),
@@ -33,7 +39,7 @@ export default function Capture() {
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
     },
     onError: (err) => {
-      alert(`Error al guardar: ${err?.message || 'No se pudo guardar el movimiento'}`);
+      toast({ title: 'Error al guardar', description: err?.message || 'No se pudo guardar el movimiento', variant: 'destructive' });
       setSaving(false);
     },
   });
@@ -58,6 +64,9 @@ export default function Capture() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { duplicates: [], pendingData: {} }
   const [loadingSmartSuggestions, setLoadingSmartSuggestions] = useState(false);
+  const [atypicalWarning, setAtypicalWarning] = useState(null); // string | null
+  const [autoSubcategoryHint, setAutoSubcategoryHint] = useState(null); // string | null (description)
+  const [aiExtracting, setAiExtracting] = useState(false);
 
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
@@ -83,14 +92,28 @@ export default function Capture() {
     return () => clearTimeout(timer);
   }, [description, familyId, type]);
 
+  // F2.6 — Atypical amount warning: fires when amount changes and categoryStats are available
+  useEffect(() => {
+    const stats = smartSuggestions.categoryStats;
+    if (!stats || stats.count < 5 || !amount) { setAtypicalWarning(null); return; }
+    const val = parseFloat(amount);
+    if (isNaN(val) || val <= 0) { setAtypicalWarning(null); return; }
+    const { mean, stddev } = stats;
+    if (stddev > 0 && Math.abs(val - mean) > 2 * stddev) {
+      setAtypicalWarning(`Normalmente gastas ${fmtMXN(mean)} en esta categoría.`);
+    } else {
+      setAtypicalWarning(null);
+    }
+  }, [amount, smartSuggestions.categoryStats]);
+
   const handleDescriptionChange = useCallback((val) => {
     setDescription(val);
     if (val.length > 1) {
       const matches = matchCategory(val, subcategories, categories, stats, type);
       setSuggestions(matches.slice(0, 4));
 
-      // Aplicar asociación memorizada si no hay selección manual aún
       if (val.length >= 3) {
+        // Apply memorized association if no manual selection yet
         const assoc = findAssociation(val);
         if (assoc) {
           if (assoc.categoryId && !categoryId) setCategoryId(assoc.categoryId);
@@ -98,11 +121,21 @@ export default function Capture() {
           if (assoc.personId && !personId) setPersonId(assoc.personId);
           if (assoc.paymentMethodId && !paymentMethodId) setPaymentMethodId(assoc.paymentMethodId);
         }
+
+        // F2.8 — Auto-subcategory hint: if description seen 3+ times without a subcategory
+        const count = getDescriptionCount(val);
+        const hasNoSubcategory = !assoc?.subcategoryId && !subcategoryId;
+        if (count >= 3 && hasNoSubcategory && categoryId) {
+          setAutoSubcategoryHint(val);
+        } else {
+          setAutoSubcategoryHint(null);
+        }
       }
     } else {
       setSuggestions([]);
+      setAutoSubcategoryHint(null);
     }
-  }, [subcategories, categories, stats, findAssociation, categoryId, subcategoryId, personId, paymentMethodId]);
+  }, [subcategories, categories, stats, findAssociation, getDescriptionCount, categoryId, subcategoryId, personId, paymentMethodId]);
 
   const applySuggestion = (s) => {
     setCategoryId(s.category?.id || '');
@@ -112,7 +145,7 @@ export default function Capture() {
   };
 
   const handleAddSubcategory = async (name) => {
-    if (!categoryId) { alert('Selecciona primero un Rubro'); return; }
+    if (!categoryId) { toast({ title: 'Selecciona primero un Rubro', variant: 'destructive' }); return; }
     await base44.entities.Subcategory.create({
       name,
       family_id: familyId,
@@ -137,9 +170,49 @@ export default function Capture() {
     setSuggestions([]);
   };
 
+  // F3.5 — AI-powered field extraction from description (fallback when rule-based matching has low confidence)
+  const handleAiExtract = async () => {
+    if (!description || description.length < 5 || aiExtracting) return;
+    setAiExtracting(true);
+    try {
+      // Create a temporary conversation in extraction mode (not shown to user)
+      const conv = await base44.agents.createConversation({ agent_name: 'finance_assistant' });
+      await base44.agents.addMessage(conv, {
+        role: 'user',
+        content: `[EXTRACT_FIELDS:] ${description}`,
+      });
+      // Wait for agent response (poll up to 4s)
+      const deadline = Date.now() + 4000;
+      let result = null;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 500));
+        const updated = await base44.agents.getConversation(conv.id);
+        const assistantMsg = (updated.messages || []).findLast(m => m.role === 'assistant');
+        if (assistantMsg?.content) {
+          try {
+            result = JSON.parse(assistantMsg.content.replace(/```json\n?|```\n?/g, '').trim());
+          } catch {}
+          break;
+        }
+      }
+      if (result && Object.keys(result).length > 0) {
+        if (result.categoryId) setCategoryId(result.categoryId);
+        if (result.subcategoryId) setSubcategoryId(result.subcategoryId);
+        if (result.personId) setPersonId(result.personId);
+        if (result.paymentMethodId) setPaymentMethodId(result.paymentMethodId);
+        if (result.amount) setAmount(String(result.amount));
+        if (result.date) setDate(result.date);
+      }
+    } catch {
+      // Silent fail — form stays as-is
+    } finally {
+      setAiExtracting(false);
+    }
+  };
+
   const startVoice = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { alert('Tu navegador no soporta reconocimiento de voz'); return; }
+    if (!SR) { toast({ title: 'Tu navegador no soporta reconocimiento de voz', variant: 'destructive' }); return; }
     const r = new SR();
     r.lang = 'es-MX';
     r.continuous = false;
@@ -149,8 +222,24 @@ export default function Capture() {
     r.onerror = () => setIsListening(false);
     r.onresult = (e) => {
       const text = e.results[0][0].transcript;
-      const { amount: parsedAmount, description: parsedDesc } = parseVoiceText(text);
+      const knownPersonNames = persons.map(p => p.name).filter(Boolean);
+      const { amount: parsedAmount, description: parsedDesc, date: parsedDate, methodHint, personHint } = parseVoiceText(text, { knownPersonNames });
       if (parsedAmount) setAmount(String(parsedAmount));
+      if (parsedDate) setDate(parsedDate);
+      if (personHint) {
+        const match = persons.find(p => p.name?.toLowerCase() === personHint.toLowerCase());
+        if (match) setPersonId(match.id);
+      }
+      if (methodHint) {
+        const match = paymentMethods.find(m => {
+          const n = (m.name || '').toLowerCase();
+          return (methodHint === 'cash' && (n.includes('efectivo') || n.includes('cash')))
+            || (methodHint === 'credit' && (n.includes('crédito') || n.includes('credito')))
+            || (methodHint === 'debit' && (n.includes('débito') || n.includes('debito')))
+            || (methodHint === 'transfer' && (n.includes('transfer')));
+        });
+        if (match) setPaymentMethodId(match.id);
+      }
       handleDescriptionChange(parsedDesc || text);
     };
     r.start();
@@ -169,11 +258,20 @@ export default function Capture() {
 
   const doSave = (txData) => {
     setDuplicateWarning(null);
+    // Capture what the auto-suggestion was before saving (for F2.7 negative signal)
+    const prevAssoc = findAssociation(description);
     createTransactionMutation.mutate(txData, {
       onSuccess: () => {
         if (subcategoryId) increment(subcategoryId);
-        // Aprender esta asociación para futuras capturas
-        recordCapture({ description, categoryId, subcategoryId, personId, paymentMethodId, type });
+        // Learn this capture, including previous suggestion for correction signal
+        recordCapture({
+          description, categoryId, subcategoryId, personId, paymentMethodId, type,
+          previousSuggestion: prevAssoc ? {
+            categoryId: prevAssoc.categoryId,
+            personId: prevAssoc.personId,
+            paymentMethodId: prevAssoc.paymentMethodId,
+          } : undefined,
+        });
         setSaving(false);
         setShowSuccess(true);
         confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
@@ -291,6 +389,19 @@ export default function Capture() {
         </div>
       )}
 
+      {/* F2.1 — Predictive chips */}
+      <PredictiveChips
+        familyId={familyId}
+        onSelect={chip => {
+          if (chip.amount) setAmount(String(chip.amount));
+          if (chip.label) setDescription(chip.label);
+          if (chip.categoryId) setCategoryId(chip.categoryId);
+          if (chip.subcategoryId) setSubcategoryId(chip.subcategoryId);
+          if (chip.personId) setPersonId(chip.personId);
+          if (chip.paymentMethodId) setPaymentMethodId(chip.paymentMethodId);
+        }}
+      />
+
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
         {[{ key: 'expense', label: '💸 Egreso' }, { key: 'income', label: '💰 Ingreso' }].map(t => (
@@ -315,13 +426,30 @@ export default function Capture() {
         </div>
       </div>
 
+      {/* F2.6 — Atypical amount warning */}
+      {atypicalWarning && (
+        <div className="px-4 mt-1">
+          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+            {atypicalWarning} ¿Continuar?
+          </p>
+        </div>
+      )}
+
       {/* Description + voice/camera */}
       <div className="px-4 mt-3">
         <div className="relative">
           <input type="text" value={description} onChange={e => handleDescriptionChange(e.target.value)}
             placeholder={type === 'expense' ? '¿En qué gastaste? (gasolina, mandado...)' : '¿De dónde viene? (sueldo, renta...)'}
-            className="w-full bg-card border border-border rounded-xl px-4 py-3 pr-24 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            className={`w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 ${description.length > 10 && !categoryId ? 'pr-32' : 'pr-24'}`} />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+            {/* F3.5 — AI extraction button: visible when description is long and category is not yet matched */}
+            {description.length > 10 && !categoryId && (
+              <button onClick={handleAiExtract} disabled={aiExtracting} aria-label="Entender con IA"
+                className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all touch-target disabled:opacity-60">
+                {aiExtracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              </button>
+            )}
             <button onClick={isListening ? stopVoice : startVoice}
               className={`p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -356,6 +484,13 @@ export default function Capture() {
                 <button onClick={() => handleAddSubcategory(description)}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-dashed border-border hover:bg-primary/10 hover:text-primary transition-colors">
                   ＋ Agregar subrubro "{description}"
+                </button>
+              )}
+              {/* F2.8 — Auto-subcategory proactive hint */}
+              {autoSubcategoryHint && (
+                <button onClick={() => handleAddSubcategory(autoSubcategoryHint)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+                  ✨ Guardar "{autoSubcategoryHint}" como subrubro
                 </button>
               )}
             </motion.div>
@@ -425,7 +560,11 @@ export default function Capture() {
             {smartSuggestions.suggestedPersons.map(p => (
               <button
                 key={p.id}
-                onClick={() => setPersonId(p.id)}
+                onClick={() => {
+                  setPersonId(p.id);
+                  // F2.4 — auto-select preferred payment method for this person
+                  if (p.preferredMethodId && !paymentMethodId) setPaymentMethodId(p.preferredMethodId);
+                }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
                 <PersonAvatar person={p} size="xs" />
@@ -445,7 +584,14 @@ export default function Capture() {
             Sin persona ⚠️
           </button>
           {persons.map(p => (
-            <button key={p.id} onClick={() => setPersonId(p.id)}
+            <button key={p.id} onClick={() => {
+              setPersonId(p.id);
+              // F2.4 — if no method chosen and person has a preferred method from smart suggestions, apply it
+              if (!paymentMethodId) {
+                const suggested = smartSuggestions.suggestedPersons?.find(sp => sp.id === p.id);
+                if (suggested?.preferredMethodId) setPaymentMethodId(suggested.preferredMethodId);
+              }
+            }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap
                 ${personId === p.id ? 'text-white border-transparent' : 'border-border text-muted-foreground'}`}
               style={personId === p.id ? { backgroundColor: p.color, borderColor: p.color } : {}}>
@@ -585,7 +731,7 @@ export default function Capture() {
                         {d.description || cat?.name || '—'}
                       </span>
                       <span className={`font-bold ${d.type === 'expense' ? 'text-expense' : 'text-income'}`}>
-                        {d.type === 'expense' ? '-' : '+'}{currencySymbol}{d.amount?.toLocaleString()}
+                        {d.type === 'expense' ? '-' : '+'}{formatCurrency(d.amount, { locale, currency })}
                       </span>
                     </div>
                   );

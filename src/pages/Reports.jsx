@@ -6,6 +6,7 @@ import { useMemory } from '@/hooks/useMemory';
 import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
+import { formatCurrency } from '@/lib/formatters';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -83,7 +84,7 @@ export default function Reports() {
       .sort((a, b) => b.value - a.value);
   }, [filtered, cfg, categories, persons, paymentMethods]);
 
-  const formatVal = (v) => cfg.metric === 'count' ? v : new Intl.NumberFormat(locale, { style: 'currency', currency, minimumFractionDigits: 0 }).format(v);
+  const formatVal = (v) => cfg.metric === 'count' ? v : formatCurrency(v, { locale, currency });
   const totalVal = tableData.reduce((s, r) => s + r.value, 0);
 
   const detailTransactions = useMemo(() => {

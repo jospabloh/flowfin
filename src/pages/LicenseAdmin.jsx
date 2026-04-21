@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
+import { formatDate as fmtDateUtil } from '@/lib/formatters';
 import PageHeader from '@/components/PageHeader';
 import {
   Search, Shield, CheckCircle, AlertCircle, Clock,
@@ -25,8 +26,7 @@ const STATUS_CONFIG = {
 const TEST_EMAIL = 'h.jospablo@gmail.com';
 
 function fmt(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+  return fmtDateUtil(iso);
 }
 
 export default function LicenseAdmin() {

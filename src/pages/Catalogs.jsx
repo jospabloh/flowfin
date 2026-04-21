@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 const COLORS = ['#059669','#7C3AED','#F97316','#3B82F6','#EAB308','#EC4899','#14B8A6','#F43F5E','#64748B','#D97706'];
 
@@ -162,6 +163,7 @@ export default function Catalogs() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { categories, subcategories, persons, paymentMethods, isLoading } = useCatalog(familyId);
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const [addingTab, setAddingTab] = useState(null);
   const [editing, setEditing] = useState(null); // { entity, id }
 
@@ -281,7 +283,7 @@ export default function Catalogs() {
   });
 
   const deleteItem = async (entity, id) => {
-    if (!confirm('¿Eliminar este elemento?')) return;
+    if (!await confirmDelete('¿Eliminar este elemento? Esta acción no se puede deshacer.')) return;
     switch (entity) {
       case 'Category':
         deleteCategoryMutation.mutate(id);
@@ -300,6 +302,7 @@ export default function Catalogs() {
 
   return (
     <div className="pb-4">
+      <ConfirmDialog />
       <PageHeader title="Catálogos" subtitle="Gestión de datos maestros" aria-label="Página de catálogos" />
 
       <Tabs defaultValue="categories" className="px-4">

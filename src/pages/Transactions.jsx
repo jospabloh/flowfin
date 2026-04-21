@@ -3,6 +3,7 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import Spinner from '@/components/Spinner';
 import { Download, AlertTriangle, MessageCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import PageHeader from '@/components/PageHeader';
@@ -13,6 +14,7 @@ import { Link } from 'react-router-dom';
 import TransactionEditModal from '@/components/TransactionEditModal';
 import TransactionFilters from '@/components/transactions/TransactionFilters';
 import TransactionGroup from '@/components/transactions/TransactionGroup';
+import { useDeleteConfirm } from '@/hooks/useDeleteConfirm';
 
 function groupByDate(transactions) {
   const groups = {};
@@ -29,6 +31,7 @@ export default function Transactions() {
   const { familyId, currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { toast } = useToast();
+  const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { categories = [], subcategories = [], persons = [], paymentMethods = [] } = useCatalog(familyId);
 
   const [search, setSearch] = useState('');
@@ -90,7 +93,7 @@ export default function Transactions() {
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
   const pending = allTransactions.filter(t => !t.person_id || !t.category_id);
 
-  const handleDelete = (id) => { if (!confirm('¿Eliminar este movimiento?')) return; deleteTransactionMutation.mutate(id); };
+  const handleDelete = async (id) => { if (await confirmDelete('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) deleteTransactionMutation.mutate(id); };
   const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions', familyId] }); queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] }); };
 
   const handleExport = () => {
@@ -110,12 +113,13 @@ export default function Transactions() {
 
   return (
     <div className="pb-4">
+      <ConfirmDialog />
       {editing && (
         <TransactionEditModal transaction={editing} categories={categories} subcategories={subcategories}
           persons={persons} paymentMethods={paymentMethods} onClose={() => setEditing(null)} onSaved={handleEditSaved} />
       )}
       {refreshing && (
-        <div className="flex justify-center py-3"><div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-3"><Spinner size="sm" /></div>
       )}
 
       <PageHeader title="Movimientos" subtitle={`${filtered.length} registros`}
@@ -143,7 +147,7 @@ export default function Transactions() {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><Spinner /></div>
       ) : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (

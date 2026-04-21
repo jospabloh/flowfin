@@ -11,6 +11,7 @@ import InvestmentCard from '@/components/investments/InvestmentCard';
 import InvestmentDetailSheet from '@/components/investments/InvestmentDetailSheet';
 import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
 import InvestmentFormSheet from '@/components/investments/InvestmentFormSheet';
+import Spinner from '@/components/Spinner';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const EMPTY_FORM = { name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: TODAY_ISO, payment_day: '28' };
@@ -111,7 +112,7 @@ export default function Investments() {
         action={<button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button>} />
 
       {isLoading ? (
-        <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><Spinner /></div>
       ) : investments.length === 0 ? (
         <EmptyState icon="📈" title="Sin inversiones" description="Registra tu primera inversión o compromiso de pago" />
       ) : (

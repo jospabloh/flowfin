@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
 import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
 import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
+import { todayISO } from '@/lib/formatters';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
@@ -28,7 +29,7 @@ export default function ScheduledPayments() {
   const [payingItem, setPayingItem] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [payNotes, setPayNotes] = useState('');
-  const [payDate, setPayDate] = useState(TODAY.toISOString().split('T')[0]);
+  const [payDate, setPayDate] = useState(todayISO());
   const [payPersonId, setPayPersonId] = useState('');
   const [payPaymentMethodId, setPayPaymentMethodId] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
@@ -70,7 +71,7 @@ export default function ScheduledPayments() {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
       toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.`, duration: 5000 });
-      setPayingItem(null); setPayAmount(''); setPayNotes(''); setPayPersonId(''); setPayPaymentMethodId(''); setPayDate(TODAY.toISOString().split('T')[0]);
+      setPayingItem(null); setPayAmount(''); setPayNotes(''); setPayPersonId(''); setPayPaymentMethodId(''); setPayDate(todayISO());
     } catch (error) {
       toast({ title: 'Error al registrar pago', description: error?.message || 'Ocurrió un error. Intenta de nuevo.', variant: 'destructive', duration: 5000 });
     } finally {

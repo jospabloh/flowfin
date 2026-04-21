@@ -1,3 +1,4 @@
+import Spinner from '@/components/Spinner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PageHeader from '@/components/PageHeader';
@@ -28,7 +29,7 @@ export default function Dashboard() {
     <div className="pb-4">
       {refreshing && (
         <div className="flex justify-center py-3">
-          <div className="w-5 h-5 border-2 border-muted border-t-primary rounded-full animate-spin" />
+          <Spinner size="sm" />
         </div>
       )}
 
