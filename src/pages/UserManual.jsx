@@ -19,6 +19,27 @@ Pasos recomendados:
 Los Rubros y SubRubros ya vienen precargados con palabras clave para que el sistema los detecte automáticamente.`
   },
   {
+    id: 'tutorial', icon: '🎓', title: 'Tutorial interactivo',
+    content: `FlowFin incluye un tutorial guiado que se activa automáticamente la primera vez que entras a la app con una familia configurada.
+
+Qué cubre el tutorial:
+El tutorial recorre los módulos principales de la app paso a paso, con un spotlight que resalta el elemento relevante en pantalla: Dashboard, Movimientos, Captura, Reportes, Asistente IA, Catálogos, Manual y Acerca de.
+
+Cómo navegar:
+• Toca "Siguiente" para avanzar al siguiente paso.
+• Toca "Anterior" para regresar al paso anterior.
+• En el último paso aparece el botón "Finalizar".
+
+Descartar permanentemente:
+En el pie del tutorial hay un checkbox "No mostrar más". Al marcarlo, el tutorial se cierra de inmediato y no volverá a abrirse en ningún dispositivo. También puedes saltar el tutorial completo tocando "Saltar" en cualquier momento.
+
+Reiniciar el tutorial:
+Si cerraste el tutorial y deseas volver a verlo, entra a la sección Acerca de → toca "Reiniciar tutorial". El tutorial se abrirá de nuevo al regresar a la pantalla de Inicio.
+
+Persistencia:
+El estado del tutorial (paso actual, si fue completado o descartado) se guarda en tu perfil de usuario y se sincroniza automáticamente entre todos tus dispositivos.`
+  },
+  {
     id: 'captura', icon: '✏️', title: 'Capturar un movimiento',
     content: `El flujo de captura está diseñado para completarse en 3 pasos o menos:
 
@@ -326,6 +347,7 @@ El botón "Más" abre un panel con todas las secciones organizadas en grupos:
 • Compromisos — Pagos del Mes, Inversiones, MSI y Rentas
 • Configuración — Catálogos, Mi Familia, Mi Cuenta y Admin Familia (solo administradores)
 • Información — Manual y Acerca de
+• Sistema — Licencias (solo administradores; acceso a la consola de administración de licencias)
 
 El botón flotante 💬 en la esquina inferior derecha abre directamente el Asistente IA desde cualquier pantalla.
 
@@ -426,6 +448,15 @@ Estado de la licencia:
 • Prueba gratuita — Acceso completo por 30 días. Se muestra cuántos días restan.
 • Activo — Licencia vigente. Aparece la fecha de renovación.
 • Solo lectura — El período de prueba venció o la licencia fue suspendida. Puedes consultar todos los registros pero no podrás crear ni editar movimientos hasta renovar.
+• Archivado — La cuenta lleva más de 14 días en modo solo lectura sin renovarse. La cuenta se eliminará en 15 días si no se reactiva. Aparece un aviso rojo en pantalla con un enlace para contactar soporte.
+
+Notificaciones por correo:
+FlowFin envía correos automáticos en los momentos clave del ciclo de vida de tu licencia: bienvenida al trial, recordatorios antes del vencimiento, aviso de vencimiento, alertas de archivado y confirmación de renovación. Revisa tu bandeja de entrada (y spam) si no ves los correos esperados.
+
+Planes disponibles:
+• FlowFin Home — $299 MXN/mes · hasta 4 miembros
+• FlowFin Family+ — $499 MXN/mes · hasta 10 miembros
+Todos los planes incluyen acceso completo a todos los módulos. El pago se procesa vía Mercado Pago, IVA incluido. Para cambiar de plan o renovar, contacta a soporte.
 
 Modo solo lectura:
 Cuando la cuenta está en modo solo lectura, la pantalla de Captura muestra un aviso y el botón de guardar queda deshabilitado. Todos los reportes, el dashboard y el historial siguen disponibles. Para reactivar el acceso completo, contacta soporte.
@@ -478,7 +509,10 @@ const glossary = [
   { term: 'Vinculación de pagos', def: 'Asociación entre una transacción del registro general y un pago especializado (MSI, inversión, pago programado o renta). Puede ser automática o manual.' },
   { term: 'Pago vinculado', def: 'Transacción que tiene un origen identificado en un módulo especializado. Se muestra con una etiqueta de color en la lista de movimientos.' },
   { term: 'Modo solo lectura', def: 'Estado de la cuenta cuando el período de prueba venció o la licencia fue suspendida. Permite consultar todos los registros pero no crear ni editar movimientos.' },
-  { term: 'Licencia', def: 'Plan de acceso a FlowFin. Puede estar en prueba gratuita (30 días), activo (con renovación mensual) o solo lectura (suspendido o vencido).' },
+  { term: 'Licencia', def: 'Plan de acceso a FlowFin. Estados posibles: prueba gratuita (30 días), activo (renovación mensual), solo lectura (suspendido o vencido) y archivado (programado para eliminación en 15 días).' },
+  { term: 'Archivado', def: 'Estado de la cuenta cuando la licencia lleva más de 14 días vencida sin renovarse. La cuenta queda en solo lectura total y se elimina automáticamente 15 días después si no se reactiva.' },
+  { term: 'Auto-renovación', def: 'Opción de licencia que renueva automáticamente el plan cada mes en la fecha de vencimiento, evitando interrupciones del servicio. Solo administradores pueden activar esta opción.' },
+  { term: 'Tutorial interactivo', def: 'Guía paso a paso que aparece al entrar por primera vez a FlowFin. Recorre los módulos principales con un spotlight contextual y puede descartarse permanentemente con el checkbox "No mostrar más".' },
 ];
 
 export default function UserManual() {
