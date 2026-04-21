@@ -11,9 +11,8 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 
 const PLAN_OPTIONS = [
-  { value: 'home', label: 'FlowFin Home', limit: 4 },
-  { value: 'family_plus', label: 'FlowFin Family+', limit: 10 },
-  { value: 'circle', label: 'FlowFin Circle', limit: 20 },
+  { value: 'home', label: 'FlowFin Home', limit: 4, price: '$299 MXN/mes', desc: 'De 1 a 4 miembros' },
+  { value: 'family_plus', label: 'FlowFin Family+', limit: 10, price: '$499 MXN/mes', desc: 'De 5 a 10 miembros' },
 ];
 
 const STATUS_CONFIG = {
@@ -303,13 +302,16 @@ export default function LicenseAdmin() {
                   {PLAN_OPTIONS.map(p => (
                     <button key={p.value}
                       onClick={() => setForm(f => ({ ...f, license_plan: p.value, licensed_member_limit: p.limit }))}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all ${
                         form.license_plan === p.value
                           ? 'bg-primary/10 border-primary text-primary font-semibold'
                           : 'bg-muted border-transparent text-foreground hover:bg-muted/70'
                       }`}>
-                      <span>{p.label}</span>
-                      <span className="text-xs text-muted-foreground">hasta {p.limit} miembros</span>
+                      <div className="text-left">
+                        <p className="font-semibold text-sm">{p.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                      </div>
+                      <span className={`text-xs font-bold ${form.license_plan === p.value ? 'text-primary' : 'text-muted-foreground'}`}>{p.price}</span>
                     </button>
                   ))}
                 </div>
