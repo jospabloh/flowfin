@@ -121,6 +121,25 @@ Deno.serve(async (req) => {
         currentUserCtx.monthExpense = Math.round((personExpense[linkedPerson.id] || 0) * 100) / 100;
         currentUserCtx.monthIncome = Math.round((personIncome[linkedPerson.id] || 0) * 100) / 100;
       }
+    } else if (myMembership?.user_name) {
+      // Fuzzy-match user display name against Person names when person_id is not yet configured
+      const normalize = (s: string) =>
+        s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+      const userName = normalize(myMembership.user_name);
+      const userParts = userName.split(/\s+/).filter((p: string) => p.length > 2);
+      const fuzzyPerson = (persons as { id: string; name?: string }[]).find((p) => {
+        if (!p.name) return false;
+        const pName = normalize(p.name);
+        const pParts = pName.split(/\s+/).filter((pt: string) => pt.length > 2);
+        return pParts.some((pt: string) => userName.includes(pt)) ||
+               userParts.some((ut: string) => pName.includes(ut));
+      });
+      if (fuzzyPerson) {
+        currentUserCtx.personId = fuzzyPerson.id;
+        currentUserCtx.personName = fuzzyPerson.name ?? null;
+        currentUserCtx.monthExpense = Math.round((personExpense[fuzzyPerson.id] || 0) * 100) / 100;
+        currentUserCtx.monthIncome = Math.round((personIncome[fuzzyPerson.id] || 0) * 100) / 100;
+      }
     }
 
     // Upcoming payments due within the next 7 days
