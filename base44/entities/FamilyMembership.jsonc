@@ -101,6 +101,9 @@
           "data.family_id": "{{user.data.admin_family_ids}}"
         },
         {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
           "data.family_id": "{{user.data.data.family_id}}"
         },
         {
