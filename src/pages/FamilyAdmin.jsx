@@ -49,10 +49,13 @@ export default function FamilyAdmin() {
       if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({ title: 'Error al vincular', description: err?.message || 'No se pudo guardar el vínculo.', variant: 'destructive' });
     },
-    onSuccess: () => {
+    onSuccess: (_data, { membershipId, personId }) => {
+      // Confirm the optimistic update so a background refetch can't override it
+      queryClient.setQueryData(['memberships', familyId], (old = []) =>
+        old.map(m => m.id === membershipId ? { ...m, person_id: personId || null } : m)
+      );
       toast({ title: 'Vínculo guardado', description: 'El integrante quedó vinculado correctamente.' });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
 
   // Deduplicate by email: keep only the most recent membership per email
@@ -357,7 +360,9 @@ export default function FamilyAdmin() {
         </h3>
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           {approved.map((m, i) => {
-            const linkedPerson = persons.find(p => p.id === m.person_id);
+            const linkedPerson = m.person_id
+              ? persons.find(p => String(p.id) === String(m.person_id))
+              : null;
             return (
               <div key={m.id} className={`px-4 py-3 ${i < approved.length - 1 ? 'border-b border-border' : ''}`}>
                 <div className="flex items-center gap-3">
@@ -377,18 +382,27 @@ export default function FamilyAdmin() {
                 {persons.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <select
-                      value={m.person_id || ''}
-                      onChange={e => linkPersonMutation.mutate({ membershipId: m.id, personId: e.target.value })}
-                      className="flex-1 text-xs bg-muted rounded-lg px-2 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-primary/30 border border-border"
-                    >
-                      <option value="">Sin vincular</option>
-                      {persons.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                    {linkedPerson && (
-                      <span className="text-[11px] text-income font-semibold whitespace-nowrap">✓ {linkedPerson.name}</span>
+                    {linkedPerson ? (
+                      <>
+                        <span className="flex-1 text-xs font-medium text-foreground">{linkedPerson.name}</span>
+                        <button
+                          onClick={() => linkPersonMutation.mutate({ membershipId: m.id, personId: '' })}
+                          className="text-[10px] text-muted-foreground hover:text-expense transition-colors whitespace-nowrap"
+                        >
+                          Desvincular
+                        </button>
+                      </>
+                    ) : (
+                      <select
+                        value=""
+                        onChange={e => e.target.value && linkPersonMutation.mutate({ membershipId: m.id, personId: e.target.value })}
+                        className="flex-1 text-xs bg-muted rounded-lg px-2 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-primary/30 border border-border"
+                      >
+                        <option value="">Sin vincular</option>
+                        {persons.map(p => (
+                          <option key={p.id} value={String(p.id)}>{p.name}</option>
+                        ))}
+                      </select>
                     )}
                   </div>
                 )}
