@@ -33,8 +33,19 @@ export default function FamilyAdmin() {
   const linkPersonMutation = useMutation({
     mutationFn: ({ membershipId, personId }) =>
       base44.entities.FamilyMembership.update(membershipId, { person_id: personId || null }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
-    onError: () => toast({ title: 'Error al vincular', variant: 'destructive' }),
+    onMutate: async ({ membershipId, personId }) => {
+      await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
+      const previous = queryClient.getQueryData(['memberships', familyId]);
+      queryClient.setQueryData(['memberships', familyId], (old = []) =>
+        old.map(m => m.id === membershipId ? { ...m, person_id: personId || null } : m)
+      );
+      return { previous };
+    },
+    onError: (err, _, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
+      toast({ title: 'Error al vincular', variant: 'destructive' });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
 
   // Deduplicate by email: keep only the most recent membership per email
