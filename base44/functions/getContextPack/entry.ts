@@ -96,23 +96,30 @@ Deno.serve(async (req) => {
     };
 
     // Resolve current user's Person identity via membership.person_id
-    // Match by user.id first, fallback to user.email
-    const myMembership = memberships.find(
-      (m: { user_id?: string; user_email?: string; person_id?: string; role?: string; user_name?: string }) =>
-        m.user_id === user.id || m.user_email === user.email
-    );
-    let currentUserCtx: Record<string, string | null> = {
+    // Pick the most recently created approved membership matching this user
+    type MembershipRecord = { user_id?: string; user_email?: string; person_id?: string; role?: string; user_name?: string; id?: string; created_date?: string };
+    const myMembership: MembershipRecord | undefined = memberships
+      .filter((m: MembershipRecord) => m.user_id === user.id || m.user_email === user.email)
+      .sort((a: MembershipRecord, b: MembershipRecord) =>
+        (b.created_date ?? '').localeCompare(a.created_date ?? '')
+      )[0];
+
+    let currentUserCtx: Record<string, string | number | null> = {
       memberName: myMembership?.user_name ?? null,
       role: myMembership?.role ?? null,
       personId: null,
       personName: null,
       membershipId: myMembership?.id ?? null,
+      monthExpense: null,
+      monthIncome: null,
     };
     if (myMembership?.person_id) {
       const linkedPerson = persons.find((p: { id: string; name?: string }) => p.id === myMembership.person_id);
       if (linkedPerson) {
         currentUserCtx.personId = linkedPerson.id;
         currentUserCtx.personName = linkedPerson.name ?? null;
+        currentUserCtx.monthExpense = Math.round((personExpense[linkedPerson.id] || 0) * 100) / 100;
+        currentUserCtx.monthIncome = Math.round((personIncome[linkedPerson.id] || 0) * 100) / 100;
       }
     }
 

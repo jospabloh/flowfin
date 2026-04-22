@@ -57,13 +57,17 @@ export default function Assistant() {
       const personId = ctx.currentUser?.personId;
       const personName = ctx.currentUser?.personName;
       const membershipId = ctx.currentUser?.membershipId;
+      const monthExpense = ctx.currentUser?.monthExpense;
+      const monthIncome = ctx.currentUser?.monthIncome;
       const personIdTag = personId ? ` [USUARIO_PERSONA_ID: ${personId}]` : '';
       const personNameTag = personName ? ` [USUARIO_PERSONA_NOMBRE: ${personName}]` : '';
       const membershipIdTag = membershipId ? ` [USUARIO_MEMBERSHIP_ID: ${membershipId}]` : '';
+      const monthExpenseTag = monthExpense != null ? ` [USUARIO_GASTO_MES: ${monthExpense}]` : '';
+      const monthIncomeTag = monthIncome != null ? ` [USUARIO_INGRESO_MES: ${monthIncome}]` : '';
 
       base44.agents.addMessage(c, {
         role: 'user',
-        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag}${nameTag}${roleTag}${personIdTag}${personNameTag}${membershipIdTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
+        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag}${nameTag}${roleTag}${personIdTag}${personNameTag}${membershipIdTag}${monthExpenseTag}${monthIncomeTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
       });
     });
   }, [currentUser, familyId]);

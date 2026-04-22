@@ -32,7 +32,11 @@ export default function FamilyAdmin() {
 
   const linkPersonMutation = useMutation({
     mutationFn: ({ membershipId, personId }) =>
-      base44.entities.FamilyMembership.update(membershipId, { person_id: personId || null }),
+      base44.functions.invoke('linkPersonToMember', {
+        membership_id: membershipId,
+        person_id: personId || null,
+        family_id: familyId,
+      }),
     onMutate: async ({ membershipId, personId }) => {
       await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
       const previous = queryClient.getQueryData(['memberships', familyId]);
@@ -43,7 +47,10 @@ export default function FamilyAdmin() {
     },
     onError: (err, _, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
-      toast({ title: 'Error al vincular', variant: 'destructive' });
+      toast({ title: 'Error al vincular', description: err?.message || 'No se pudo guardar el vínculo.', variant: 'destructive' });
+    },
+    onSuccess: () => {
+      toast({ title: 'Vínculo guardado', description: 'El integrante quedó vinculado correctamente.' });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
