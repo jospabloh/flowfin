@@ -79,14 +79,14 @@ Deno.serve(async (req) => {
         };
       });
 
-    // Per-person spending breakdown
+    // Per-person spending breakdown — include ALL persons so AI knows the full roster
     const byPerson = persons.map((p: { id: string; name?: string; icon?: string }) => ({
       id: p.id,
       name: p.name ?? 'Sin nombre',
       icon: p.icon ?? '👤',
       expense: Math.round((personExpense[p.id] || 0) * 100) / 100,
       income: Math.round((personIncome[p.id] || 0) * 100) / 100,
-    })).filter((p: { expense: number; income: number }) => p.expense > 0 || p.income > 0);
+    }));
 
     const monthSummary = {
       totalExpense: Math.round(totalExpense * 100) / 100,
@@ -146,9 +146,17 @@ Deno.serve(async (req) => {
       most_active_day: rawProfile.most_active_day ?? null,
     } : null;
 
+    // Full persons list (id + name) so the agent knows who is in the family
+    const personsList = persons.map((p: { id: string; name?: string; icon?: string }) => ({
+      id: p.id,
+      name: p.name ?? 'Sin nombre',
+      icon: p.icon ?? '👤',
+    }));
+
     return Response.json({
       monthSummary,
       currentUser: currentUserCtx,
+      persons: personsList,
       upcomingPayments,
       anomalies,
       userProfile,
