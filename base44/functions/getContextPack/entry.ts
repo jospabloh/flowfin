@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 5000;
 
 /** Wraps a promise with a 3-second AbortController-style timeout via Promise.race */
 function withTimeout<T>(promise: Promise<T>, ms: number = TIMEOUT_MS): Promise<T> {
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // Fetch in parallel with timeout
     const [transactions, scheduledPayments, categories, anomalyAlerts, userProfiles] = await withTimeout(
       Promise.all([
-        base44.entities.Transaction.filter({ family_id: familyId }, '-date', 50),
+        base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500),
         base44.entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }),
         base44.entities.Category.filter({ family_id: familyId }),
         base44.entities.AnomalyAlert.filter({ family_id: familyId, seen: false }),
