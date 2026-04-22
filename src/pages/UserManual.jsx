@@ -198,11 +198,19 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
     id: 'asistente', icon: '🤖', title: 'Asistente IA',
     content: `El Asistente IA es la característica estrella de FlowFin. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural.
 
-Acceso rápido: En todas las pantallas (excepto el propio Asistente) hay un botón flotante 💬 en la esquina inferior derecha, siempre visible por encima de la barra de navegación.
+Acceso rápido: En móvil hay un botón flotante ✨ en la esquina inferior derecha. En desktop está integrado en la sidebar. El botón siempre está visible por encima de la barra de navegación.
 
 Idioma: El asistente responde en el idioma activo de la app, según el locale configurado en Mi Familia. Si la app está en español, responde en español; si está en inglés, responde en inglés. Cambia el idioma desde Mi Familia → Idioma/región y el asistente lo sigue automáticamente.
 
 Reconocimiento de voz: El micrófono usa el mismo idioma que la app, para una transcripción más precisa.
+
+Inteligencia del Asistente:
+El asistente ahora cuenta con:
+• Normalización de comercios: reconoce variaciones en nombres de tiendas mexicanas (ej: "soriana", "bodega soriana", "soriana express" → misma tienda)
+• Detección de cantidades atípicas: te advierte si gastas significativamente más de lo normal en una categoría
+• Chips predictivos: sugerencias de acciones rápidas según la hora del día y el día de la semana
+• Context personal: el asistente sabe quiénes son todos los miembros de tu familia y personaliza respuestas por persona
+• Gasto recurrente: detecta automáticamente si un gasto se repite cada mes (≥3 meses consecutivos)
 
 Cálculos automáticos:
 El asistente puede calcular montos con propinas o porcentajes:
@@ -250,6 +258,15 @@ También funciona con voz:
 
 Acciones pendientes: Si un movimiento no tiene persona o categoría, aparece marcado con ⚠️ en Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes?"
 
+Alertas de anomalía:
+El asistente detecta automáticamente gastos que se salen del patrón. Si gastas significativamente más de lo normal en una categoría (usando z-score estadístico), el asistente te lo señala. El sistema analiza 13 semanas de historial para establecer el patrón normal y alertar cuando hay spikes importantes.
+
+Perfil de usuario:
+El asistente mantiene un perfil estadístico de tu familia: categorías principales, gasto promedio semanal, métodos de pago preferidos y días más activos. Esta información se actualiza diariamente y se usa para mejorar sugerencias.
+
+Gastos recurrentes:
+Si un gasto se repite al menos 3 meses seguidos con una variación ≤40%, el asistente lo detecta como recurrente. Te pregunta si deseas crear un Pago Programado automáticamente o dejar que lo registre manualmente cada mes.
+
 Costo: El asistente consume créditos Base44 por mensaje.
 Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
   },
@@ -270,6 +287,7 @@ Todos los integrantes aprobados pueden:
 
 El administrador además puede:
 • Aprobar o rechazar solicitudes de acceso.
+• Editar el rol y permisos de cualquier miembro de la familia.
 • Gestionar catálogos (rubros, subrubros, personas, formas de pago).
 • Configurar los parámetros de la familia (moneda, locale, etc.).
 
@@ -513,6 +531,10 @@ const glossary = [
   { term: 'Archivado', def: 'Estado de la cuenta cuando la licencia lleva más de 14 días vencida sin renovarse. La cuenta queda en solo lectura total y se elimina automáticamente 15 días después si no se reactiva.' },
   { term: 'Auto-renovación', def: 'Opción de licencia que renueva automáticamente el plan cada mes en la fecha de vencimiento, evitando interrupciones del servicio. Solo administradores pueden activar esta opción.' },
   { term: 'Tutorial interactivo', def: 'Guía paso a paso que aparece al entrar por primera vez a FlowFin. Recorre los módulos principales con un spotlight contextual y puede descartarse permanentemente con el checkbox "No mostrar más".' },
+  { term: 'Anomalía de gasto', def: 'Gasto que se desvía significativamente del patrón normal en una categoría. El sistema usa z-score estadístico para identificar spikes inesperados basándose en 13 semanas de historial.' },
+  { term: 'Perfil de usuario', def: 'Estadísticas automáticas de tu familia: categorías principales, gasto promedio semanal, métodos de pago preferidos y días más activos. Se actualiza diariamente y mejora las sugerencias del Asistente.' },
+  { term: 'Gasto recurrente', def: 'Transacción que se repite regularmente (≥3 meses consecutivos con varianza ≤40%). El Asistente lo detecta y sugiere crear un Pago Programado automático.' },
+  { term: 'Normalización de comercios', def: 'Capacidad del Asistente para reconocer que "Soriana", "Bodega Soriana" y "Soriana Express" son la misma tienda, consolidando gastos similares.' },
 ];
 
 export default function UserManual() {

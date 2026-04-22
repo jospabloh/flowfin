@@ -2,13 +2,32 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.12.0';
+const CURRENT_VERSION = '2.13.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.13.0',
+    date: '2026-04-22',
+    label: 'Actual',
+    changes: [
+      'Asistente IA: Fase 1 — consistencia visual con helpers centralizados de formateo, componente Spinner unificado y tokens de color semánticos mejorados',
+      'Asistente IA: Fase 2 — inteligencia programática con normalizador de 50+ comercios mexicanos, sugerencias con scoring de confianza y detección de cantidades atípicas',
+      'Asistente IA: Fase 2 — chips predictivos por horario y día de semana, auto-selección de método de pago preferido, acciones rápidas dinámicas para el chat',
+      'Asistente IA: Fase 3 — Base44 IA como capa activa con context pack automático (resumen mensual + próximos pagos) en cada conversación',
+      'Detección de anomalías: nuevas entidades AnomalyAlert (z-score de picos de gasto) y UserProfile (estadísticas familiares semanales)',
+      'Chat: detección automática de gastos recurrentes (≥3 meses con varianza ≤40%); máximo 3 anomalías en el contexto del Asistente',
+      'Chat: user identity mapping via membership ID (sin filtrar por email) y per-person context personalizado',
+      'Chat: todos los miembros de la familia incluidos en contexto byPerson para respuestas más precisas',
+      'Permisos: admin puede actualizar cualquier membresía de la familia vía RLS',
+      'UI: botón flotante del Asistente ahora hidden en desktop (visible solo en móvil); icono actualizado a Sparkles',
+      'Persistencia: family member assignment y chat spending amounts persisten correctamente entre sesiones',
+      'Formularios: optimistic updates en linkPersonMutation mantienen el dropdown actualizado',
+    ],
+  },
+  {
     version: '2.12.0',
     date: '2026-04-21',
-    label: 'Actual',
+    label: '',
     changes: [
       'Tutorial interactivo: nuevo sistema guiado paso a paso con spotlight contextual al iniciar FlowFin por primera vez',
       'Tutorial: checkbox "No mostrar más" en el pie del tutorial para descartar permanentemente desde cualquier paso',
