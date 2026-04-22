@@ -22,21 +22,26 @@ export default function FamilyAdmin() {
     queryKey: ['memberships', familyId],
     queryFn: () => base44.entities.FamilyMembership.filter({ family_id: familyId }),
     enabled: !!familyId,
+    staleTime: 30_000,
   });
 
   const { data: persons = [] } = useQuery({
     queryKey: ['persons', familyId],
     queryFn: () => base44.entities.Person.filter({ family_id: familyId }),
     enabled: !!familyId,
+    staleTime: 30_000,
   });
 
   const linkPersonMutation = useMutation({
-    mutationFn: ({ membershipId, personId }) =>
-      base44.functions.invoke('linkPersonToMember', {
+    mutationFn: async ({ membershipId, personId }) => {
+      const result = await base44.functions.invoke('linkPersonToMember', {
         membership_id: membershipId,
         person_id: personId || null,
         family_id: familyId,
-      }),
+      });
+      if (result?.error) throw new Error(result.error);
+      return result;
+    },
     onMutate: async ({ membershipId, personId }) => {
       await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
       const previous = queryClient.getQueryData(['memberships', familyId]);
@@ -50,10 +55,10 @@ export default function FamilyAdmin() {
       toast({ title: 'Error al vincular', description: err?.message || 'No se pudo guardar el vínculo.', variant: 'destructive' });
     },
     onSuccess: (_data, { membershipId, personId }) => {
-      // Confirm the optimistic update so a background refetch can't override it
       queryClient.setQueryData(['memberships', familyId], (old = []) =>
         old.map(m => m.id === membershipId ? { ...m, person_id: personId || null } : m)
       );
+      queryClient.invalidateQueries({ queryKey: ['memberships', familyId] });
       toast({ title: 'Vínculo guardado', description: 'El integrante quedó vinculado correctamente.' });
     },
   });
@@ -80,46 +85,46 @@ export default function FamilyAdmin() {
       target_user_id: m.user_id,
     }),
     onMutate: async (m) => {
-      await queryClient.cancelQueries({ queryKey: ['memberships'] });
-      const previous = queryClient.getQueryData(['memberships']);
+      await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
+      const previous = queryClient.getQueryData(['memberships', familyId]);
       // Optimistic: update membership to approved
-      queryClient.setQueryData(['memberships'], (old = []) =>
+      queryClient.setQueryData(['memberships', familyId], (old = []) =>
         old.map(mem => mem.id === m.id ? { ...mem, status: 'approved' } : mem)
       );
       return { previous };
     },
     onError: (err, _, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({
         title: 'Error al aprobar',
         description: err?.message || 'No se pudo aprobar la solicitud.',
         variant: 'destructive',
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
 
   // Reject membership mutation
   const rejectMemberMutation = useMutation({
     mutationFn: (m) => base44.entities.FamilyMembership.update(m.id, { status: 'rejected' }),
     onMutate: async (m) => {
-      await queryClient.cancelQueries({ queryKey: ['memberships'] });
-      const previous = queryClient.getQueryData(['memberships']);
+      await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
+      const previous = queryClient.getQueryData(['memberships', familyId]);
       // Optimistic: update membership to rejected
-      queryClient.setQueryData(['memberships'], (old = []) =>
+      queryClient.setQueryData(['memberships', familyId], (old = []) =>
         old.map(mem => mem.id === m.id ? { ...mem, status: 'rejected' } : mem)
       );
       return { previous };
     },
     onError: (err, _, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({
         title: 'Error al rechazar',
         description: err?.message || 'No se pudo rechazar la solicitud.',
         variant: 'destructive',
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
 
   // Remove member mutation
@@ -129,23 +134,23 @@ export default function FamilyAdmin() {
       target_user_id: m.user_id,
     }),
     onMutate: async (m) => {
-      await queryClient.cancelQueries({ queryKey: ['memberships'] });
-      const previous = queryClient.getQueryData(['memberships']);
+      await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
+      const previous = queryClient.getQueryData(['memberships', familyId]);
       // Optimistic: remove membership
-      queryClient.setQueryData(['memberships'], (old = []) =>
+      queryClient.setQueryData(['memberships', familyId], (old = []) =>
         old.filter(mem => mem.id !== m.id)
       );
       return { previous };
     },
     onError: (err, _, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['memberships'], ctx.previous);
+      if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({
         title: 'Error al eliminar miembro',
         description: err?.message || 'No se pudo eliminar el miembro.',
         variant: 'destructive',
       });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['memberships', familyId] }),
   });
 
   // Invite user mutation
