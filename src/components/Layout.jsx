@@ -2,7 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, List, Plus, BarChart2, MoreHorizontal,
   TrendingUp, CreditCard, Building, BookOpen, Settings,
-  HelpCircle, Info, X, Sparkles, Users, MessageCircle,
+  HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank, ChevronRight,
   Wallet, ShieldCheck
 } from 'lucide-react';
@@ -236,13 +236,13 @@ export default function Layout() {
           </div>
         </main>
 
-        {/* Floating Assistant Button */}
+        {/* Floating Assistant Button — mobile only (desktop uses sidebar) */}
         {!isAssistantPage && (
           <button onClick={() => handleNavClick('/Assistant')}
-            className="fixed right-4 md:bottom-6 md:right-6 z-50 w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
+            className="md:hidden fixed right-4 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
             style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)' }}
             aria-label="Abrir asistente inteligente">
-            <MessageCircle className="w-5 h-5" aria-hidden="true" />
+            <Sparkles className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
 

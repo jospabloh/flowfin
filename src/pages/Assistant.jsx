@@ -9,7 +9,7 @@ import MessageBubble from '@/components/MessageBubble';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function Assistant() {
-  const { currentUser, familyId, familyConfig } = useFamily();
+  const { currentUser, familyId, familyConfig, membership } = useFamily();
   const { toast } = useToast();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -31,6 +31,8 @@ export default function Assistant() {
 
     const sessionDate = new Date().toLocaleDateString(activeLocale);
     const userEmail = currentUser?.email || '';
+    const memberName = membership?.user_name || '';
+    const memberRole = membership?.role || '';
 
     Promise.all([
       base44.agents.createConversation({
@@ -48,10 +50,18 @@ export default function Assistant() {
       const ctx = ctxRes?.data || {};
       const ctxStr = Object.keys(ctx).length > 0 ? ` [CONTEXT: ${JSON.stringify(ctx)}]` : '';
       const emailTag = userEmail ? ` [USUARIO_EMAIL: ${userEmail}]` : '';
+      const nameTag = memberName ? ` [USUARIO_NOMBRE: ${memberName}]` : '';
+      const roleTag = memberRole ? ` [USUARIO_ROL: ${memberRole}]` : '';
+
+      // Inject resolved person identity from context pack (admin-configured mapping)
+      const personId = ctx.currentUser?.personId;
+      const personName = ctx.currentUser?.personName;
+      const personIdTag = personId ? ` [USUARIO_PERSONA_ID: ${personId}]` : '';
+      const personNameTag = personName ? ` [USUARIO_PERSONA_NOMBRE: ${personName}]` : '';
 
       base44.agents.addMessage(c, {
         role: 'user',
-        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
+        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag}${nameTag}${roleTag}${personIdTag}${personNameTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
       });
     });
   }, [currentUser, familyId]);
