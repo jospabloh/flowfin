@@ -37,6 +37,10 @@
       "default": "pending",
       "description": "Estado de la membres\u00eda"
     },
+    "person_id": {
+      "type": "string",
+      "description": "ID del Person (integrante) vinculado a este usuario. El admin lo configura para que el asistente IA identifique al usuario."
+    },
     "tutorial_state": {
       "type": "object",
       "description": "Estado del tutorial de configuraci\u00f3n para el administrador de esta membres\u00eda",

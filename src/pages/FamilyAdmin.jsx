@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X, ShieldCheck, AlertCircle, Link2 } from 'lucide-react';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
@@ -22,6 +22,19 @@ export default function FamilyAdmin() {
     queryKey: ['memberships', familyId],
     queryFn: () => base44.entities.FamilyMembership.filter({ family_id: familyId }),
     enabled: !!familyId,
+  });
+
+  const { data: persons = [] } = useQuery({
+    queryKey: ['persons', familyId],
+    queryFn: () => base44.entities.Person.filter({ family_id: familyId }),
+    enabled: !!familyId,
+  });
+
+  const linkPersonMutation = useMutation({
+    mutationFn: ({ membershipId, personId }) =>
+      base44.entities.FamilyMembership.update(membershipId, { person_id: personId || null }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['memberships'] }),
+    onError: () => toast({ title: 'Error al vincular', variant: 'destructive' }),
   });
 
   // Deduplicate by email: keep only the most recent membership per email
@@ -325,22 +338,45 @@ export default function FamilyAdmin() {
           Miembros ({approved.length})
         </h3>
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          {approved.map((m, i) => (
-            <div key={m.id} className={`flex items-center gap-3 px-4 py-3 ${i < approved.length - 1 ? 'border-b border-border' : ''}`}>
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                {(m.user_name || m.user_email)?.[0]?.toUpperCase()}
+          {approved.map((m, i) => {
+            const linkedPerson = persons.find(p => p.id === m.person_id);
+            return (
+              <div key={m.id} className={`px-4 py-3 ${i < approved.length - 1 ? 'border-b border-border' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                    {(m.user_name || m.user_email)?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{m.user_name || m.user_email}</p>
+                    <p className="text-xs text-muted-foreground">{m.role === 'admin' ? '👑 Administrador' : 'Miembro'}</p>
+                  </div>
+                  {m.role !== 'admin' && (
+                    <button onClick={() => handleRemoveMember(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors flex-shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {persons.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                    <select
+                      value={m.person_id || ''}
+                      onChange={e => linkPersonMutation.mutate({ membershipId: m.id, personId: e.target.value })}
+                      className="flex-1 text-xs bg-muted rounded-lg px-2 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-primary/30 border border-border"
+                    >
+                      <option value="">Sin vincular</option>
+                      {persons.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    {linkedPerson && (
+                      <span className="text-[11px] text-income font-semibold whitespace-nowrap">✓ {linkedPerson.name}</span>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">{m.user_name || m.user_email}</p>
-                <p className="text-xs text-muted-foreground">{m.role === 'admin' ? '👑 Administrador' : 'Miembro'}</p>
-              </div>
-              {m.role !== 'admin' && (
-                <button onClick={() => handleRemoveMember(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <UpgradePlansModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
