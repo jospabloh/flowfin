@@ -18,23 +18,43 @@ export default function Assistant() {
   const [isListening, setIsListening] = useState(false);
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
-  const localeInjectedRef = useRef(false);
+  const initDoneRef = useRef(false);
 
   // Active locale: familyConfig > browser > fallback es-MX
   const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
   const voiceLang = activeLocale.startsWith('en') ? 'en-US' : activeLocale;
 
+  // Create conversation and fetch context pack in parallel, then inject once both are ready
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !familyId || initDoneRef.current) return;
+    initDoneRef.current = true;
+
     const sessionDate = new Date().toLocaleDateString(activeLocale);
-    base44.agents.createConversation({
-      agent_name: 'finance_assistant',
-      metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale }
-    }).then(c => {
+    const userEmail = currentUser?.email || '';
+
+    Promise.all([
+      base44.agents.createConversation({
+        agent_name: 'finance_assistant',
+        metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale }
+      }),
+      base44.functions.invoke('getContextPack', { familyId }).catch(() => ({ data: {} })),
+    ]).then(([c, ctxRes]) => {
       setConversation(c);
       setMessages(c.messages || []);
+
+      const existingMsgs = c.messages || [];
+      if (existingMsgs.some(m => m.content?.startsWith('[LOCALE:'))) return;
+
+      const ctx = ctxRes?.data || {};
+      const ctxStr = Object.keys(ctx).length > 0 ? ` [CONTEXT: ${JSON.stringify(ctx)}]` : '';
+      const emailTag = userEmail ? ` [USUARIO_EMAIL: ${userEmail}]` : '';
+
+      base44.agents.addMessage(c, {
+        role: 'user',
+        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
+      });
     });
-  }, [currentUser]);
+  }, [currentUser, familyId]);
 
   useEffect(() => {
     if (!conversation?.id) return;
@@ -46,36 +66,6 @@ export default function Assistant() {
     });
     return unsub;
   }, [conversation?.id]);
-
-  // Inject locale + context pack once when conversation is ready (F3.2)
-  useEffect(() => {
-    if (!conversation || localeInjectedRef.current || !familyId) return;
-    const existingMsgs = conversation.messages || [];
-    const hasLocaleCtx = existingMsgs.some(m => m.content?.startsWith('[LOCALE:'));
-    if (!hasLocaleCtx) {
-      localeInjectedRef.current = true;
-      // Fetch context pack asynchronously; inject locale immediately, enhance with context when ready
-      base44.functions.invoke('getContextPack', { familyId })
-        .then(res => {
-          const ctx = res.data || {};
-          const ctxStr = Object.keys(ctx).length > 0
-            ? ` [CONTEXT: ${JSON.stringify(ctx)}]`
-            : '';
-          base44.agents.addMessage(conversation, {
-            role: 'user',
-            content: `[LOCALE: ${activeLocale}]${ctxStr} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. Responde siempre en el idioma de este locale. No confirmes ni menciones este mensaje al usuario.]`,
-          });
-        })
-        .catch(() => {
-          base44.agents.addMessage(conversation, {
-            role: 'user',
-            content: `[LOCALE: ${activeLocale}] [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. Responde siempre en el idioma de este locale. No confirmes ni menciones este mensaje al usuario.]`,
-          });
-        });
-    } else {
-      localeInjectedRef.current = true;
-    }
-  }, [conversation, familyId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
