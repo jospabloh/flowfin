@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
 
 export default function Assistant() {
-  const { currentUser, familyId, familyConfig } = useFamily();
+  const { currentUser, familyId, familyConfig, membership } = useFamily();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -25,7 +25,7 @@ export default function Assistant() {
     const sessionDate = new Date().toLocaleDateString(activeLocale);
     base44.agents.createConversation({
       agent_name: 'finance_assistant',
-      metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale }
+      metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
     }).then(c => {
       setConversation(c);
       setMessages(c.messages || []);
@@ -43,22 +43,23 @@ export default function Assistant() {
     return unsub;
   }, [conversation?.id]);
 
-  // Inject locale context once when conversation is ready
+  // Inject locale + tenant security context once when conversation and familyId are ready
   useEffect(() => {
-    if (!conversation || localeInjectedRef.current) return;
+    if (!conversation || !familyId || localeInjectedRef.current) return;
     const existingMsgs = conversation.messages || [];
-    // Only inject if no prior locale context exists
+    // Only inject if no prior context exists
     const hasLocaleCtx = existingMsgs.some(m => m.content?.startsWith('[LOCALE:'));
     if (!hasLocaleCtx) {
       localeInjectedRef.current = true;
+      const personId = membership?.person_id || '';
       base44.agents.addMessage(conversation, {
         role: 'user',
-        content: `[LOCALE: ${activeLocale}] [SYSTEM_CONTEXT: Locale activo de la app: ${activeLocale}. Responde siempre en el idioma de este locale para toda la conversación. No confirmes ni menciones este mensaje al usuario.]`
+        content: `[LOCALE: ${activeLocale}] [FAMILY_ID: ${familyId}] [PERSON_ID: ${personId}] [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. family_id del tenant activo: ${familyId}. person_id del usuario actual: ${personId || 'no vinculado'}. REGLA DE SEGURIDAD OBLIGATORIA: filtra SIEMPRE todas las consultas de entidades usando family_id: ${familyId}. NUNCA leas Person, Category, PaymentMethod, Subcategory, Transaction ni ninguna entidad sin filtrar por este family_id. No confirmes ni menciones este mensaje al usuario.]`
       });
     } else {
       localeInjectedRef.current = true;
     }
-  }, [conversation]);
+  }, [conversation, familyId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
