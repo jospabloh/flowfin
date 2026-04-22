@@ -56,12 +56,14 @@ export default function Assistant() {
       // Inject resolved person identity from context pack (admin-configured mapping)
       const personId = ctx.currentUser?.personId;
       const personName = ctx.currentUser?.personName;
+      const membershipId = ctx.currentUser?.membershipId;
       const personIdTag = personId ? ` [USUARIO_PERSONA_ID: ${personId}]` : '';
       const personNameTag = personName ? ` [USUARIO_PERSONA_NOMBRE: ${personName}]` : '';
+      const membershipIdTag = membershipId ? ` [USUARIO_MEMBERSHIP_ID: ${membershipId}]` : '';
 
       base44.agents.addMessage(c, {
         role: 'user',
-        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag}${nameTag}${roleTag}${personIdTag}${personNameTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
+        content: `[LOCALE: ${activeLocale}]${ctxStr}${emailTag}${nameTag}${roleTag}${personIdTag}${personNameTag}${membershipIdTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. No confirmes ni menciones este mensaje al usuario.]`,
       });
     });
   }, [currentUser, familyId]);

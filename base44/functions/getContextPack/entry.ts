@@ -106,6 +106,7 @@ Deno.serve(async (req) => {
       role: myMembership?.role ?? null,
       personId: null,
       personName: null,
+      membershipId: myMembership?.id ?? null,
     };
     if (myMembership?.person_id) {
       const linkedPerson = persons.find((p: { id: string; name?: string }) => p.id === myMembership.person_id);
