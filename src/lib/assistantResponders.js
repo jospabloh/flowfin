@@ -66,28 +66,20 @@ export async function respondToIntent(intent, params, ctx, locale) {
 
       let expense, income, balance, truncated;
 
-      // Shortcut: use ctx.month if range is current month and no personId filter
-      if (isCurrentMonthRange(range) && !personId) {
-        expense = ctx.month?.expense ?? 0;
-        income  = ctx.month?.income  ?? 0;
-        balance = ctx.month?.balance ?? (income - expense);
-        truncated = false;
-      } else {
-        try {
-          const res = await base44.functions.invoke('getPeriodTotals', {
-            familyId,
-            start: range.start,
-            end: range.end,
-            type: type === 'all' ? undefined : type,
-            ...(personId ? { personId } : {}),
-          });
-          expense   = res?.total?.expense ?? 0;
-          income    = res?.total?.income  ?? 0;
-          balance   = res?.total?.balance ?? (income - expense);
-          truncated = res?.truncated;
-        } catch {
-          return null;
-        }
+      try {
+        const res = await base44.functions.invoke('getPeriodTotals', {
+          familyId,
+          start: range.start,
+          end: range.end,
+          type: type === 'all' ? undefined : type,
+          ...(personId ? { personId } : {}),
+        });
+        expense   = res?.total?.expense ?? 0;
+        income    = res?.total?.income  ?? 0;
+        balance   = res?.total?.balance ?? (income - expense);
+        truncated = res?.truncated;
+      } catch {
+        return null;
       }
 
       const period = periodLabel(range, locale);
