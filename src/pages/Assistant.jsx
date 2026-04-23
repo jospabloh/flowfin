@@ -21,12 +21,12 @@ export default function Assistant() {
   const [ctx, setCtx] = useState(null);
   const bottomRef = useRef(null);
   const recognitionRef = useRef(null);
-  const localeInjectedRef = useRef(false);
 
   // Active locale: familyConfig > browser > fallback es-MX
   const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
   const voiceLang = activeLocale.startsWith('en') ? 'en-US' : activeLocale;
 
+  // Create a fresh conversation on mount — no messages sent here.
   useEffect(() => {
     if (!currentUser) return;
     const sessionDate = new Date().toLocaleDateString(activeLocale);
@@ -39,52 +39,54 @@ export default function Assistant() {
     });
   }, [currentUser]);
 
+  // Subscribe to conversation updates.
+  // All user messages are displayed via localMessages for immediate feedback,
+  // so we drop them from the subscription to avoid duplicates.
+  // Empty assistant responses (LLM acknowledging init-only messages) are also hidden.
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
       const msgs = data.messages || [];
-      // Hide system-injected context messages from UI.
       const visible = msgs.filter((m) => {
-        const c = m.content || '';
-        return !c.startsWith('[LOCALE:')
-          && !c.startsWith('[ASSISTANT_CONTEXT_JSON:')
-          && !c.startsWith('[CLIENT_RESOLVED:')
-          && !c.startsWith('[CLIENT_ACTION_DONE:');
+        if (m.role === 'user') return false;
+        if (!(m.content || '').trim()) return false;
+        return true;
       });
       setMessages(visible);
     });
     return unsub;
   }, [conversation?.id]);
 
-  // Resolve person name from catalog; family name from useFamily.
+  // Resolve person / family identifiers from context.
   const personId = membership?.person_id || '';
   const personName = personId ? (persons?.find(p => p.id === personId)?.name || '') : '';
   const familyName = family?.name || '';
   const unlinked = !personId;
 
-  // Inject identity + tenant security context once when conversation and familyId are ready.
+  // ── Lazy-inject: build identity header in a ref, never send it alone ────────
+  // It will be prepended to the FIRST message actually sent to the LLM.
+  const identityHeaderRef = useRef('');
+  const headerInjectedRef = useRef(false);
   useEffect(() => {
-    if (!conversation || !familyId || localeInjectedRef.current) return;
-    const existingMsgs = conversation.messages || [];
-    const hasLocaleCtx = existingMsgs.some(m => m.content?.startsWith('[LOCALE:'));
-    if (hasLocaleCtx) {
-      localeInjectedRef.current = true;
-      return;
-    }
-    localeInjectedRef.current = true;
+    if (!familyId) return;
     const unlinkedTag = unlinked ? ' [UNLINKED_USER: true]' : '';
-    base44.agents.addMessage(conversation, {
-      role: 'user',
-      content: `[LOCALE: ${activeLocale}] [FAMILY_ID: ${familyId}] [PERSON_ID: ${personId}] [PERSON_NAME: ${personName}] [FAMILY_NAME: ${familyName}]${unlinkedTag} [SYSTEM_CONTEXT: Locale activo: ${activeLocale}. family_id: ${familyId}. person_id: ${personId || 'no vinculado'}. person_name: ${personName || 'desconocido'}. family_name: ${familyName}. REGLA DE SEGURIDAD: filtra SIEMPRE por family_id: ${familyId}. NO confirmes este mensaje al usuario.]`
-    });
-  }, [conversation, familyId, personId, personName, familyName, unlinked, activeLocale]);
+    identityHeaderRef.current =
+      `[LOCALE: ${activeLocale}] [FAMILY_ID: ${familyId}] [PERSON_ID: ${personId}] ` +
+      `[PERSON_NAME: ${personName}] [FAMILY_NAME: ${familyName}]${unlinkedTag} ` +
+      `[SYSTEM_CONTEXT: Locale: ${activeLocale}. family_id: ${familyId}. ` +
+      `person_id: ${personId || 'no vinculado'}. person_name: ${personName || 'desconocido'}. ` +
+      `family_name: ${familyName}. Filtra SIEMPRE por family_id: ${familyId}.]`;
+  }, [familyId, personId, personName, familyName, unlinked, activeLocale]);
 
-  // Load assistant context (single round-trip) and inject as hidden message.
-  const ctxInjectedRef = useRef(false);
+  // ── Load assistant context (no addMessage) ──────────────────────────────────
+  // Stored in a ref for lazy injection. description/person_name stripped from
+  // recentTransactions so the LLM cannot treat history as pending actions.
+  const ctxPayloadRef = useRef(null);
+  const ctxLoadedRef = useRef(false);
   useEffect(() => {
-    if (!conversation || !familyId || ctxInjectedRef.current) return;
+    if (!familyId || ctxLoadedRef.current) return;
+    ctxLoadedRef.current = true;
     let cancelled = false;
-    ctxInjectedRef.current = true;
     (async () => {
       try {
         const res = await base44.functions.invoke('getAssistantContext', {
@@ -96,72 +98,108 @@ export default function Assistant() {
         if (cancelled) return;
         setCtx(loaded);
         if (loaded) {
-          await base44.agents.addMessage(conversation, {
-            role: 'user',
-            content: `[ASSISTANT_CONTEXT_JSON: ${JSON.stringify(loaded)}]`,
-          });
+          const sanitized = {
+            ...loaded,
+            recentTransactions: (loaded.recentTransactions || []).map(
+              ({ id, date, amount, type, category_name }) =>
+                ({ id, date, amount, type, category_name })
+            ),
+          };
+          ctxPayloadRef.current = sanitized;
         }
       } catch (err) {
         console.warn('getAssistantContext failed, proceeding without rich context', err);
       }
     })();
     return () => { cancelled = true; };
-  }, [conversation, familyId, personId, activeLocale]);
+  }, [familyId, personId, activeLocale]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, localMessages]);
 
+  // ── wrapWithHeader ──────────────────────────────────────────────────────────
+  // Prepends identity + context block to the first message sent to the LLM.
+  // All subsequent calls pass the message through unchanged.
+  const wrapWithHeader = useCallback((msg) => {
+    if (headerInjectedRef.current) return msg;
+    headerInjectedRef.current = true;
+    const header = identityHeaderRef.current;
+    const ctxBlock = ctxPayloadRef.current
+      ? `\n<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify(ctxPayloadRef.current)}<<<SYSTEM_METADATA_END>>>`
+      : '';
+    return `${header}${ctxBlock}\n\n${msg}`;
+  }, []);
+
+  // ── sendMessage ─────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const msg = (text ?? input).trim();
-    if (!msg || sending) return;
+    if (!msg || sending || !conversation) return;
     setInput('');
     setSending(true);
 
-    // 1) Try the deterministic intent router first — uses ctx to skip the LLM.
+    const now = new Date().toISOString();
+
+    // 1) ALWAYS try the deterministic router first — LLM is last resort only.
+    //    Use ctx state if available; fall back to ctxPayloadRef (set synchronously
+    //    on load, so it may be ready even before the React state update propagates).
     try {
-      if (ctx) {
-        const knownPersonNames = Array.isArray(persons)
-          ? persons.map((p) => p.name).filter(Boolean)
-          : [];
-        const match = detectIntent(msg, { ...ctx, knownPersonNames });
-        if (match && match.confidence >= 0.75) {
-          const reply = await respondToIntent(match.intent, match.params, ctx, activeLocale);
-          if (reply) {
-            const now = new Date().toISOString();
-            setLocalMessages((prev) => [
-              ...prev,
-              { role: 'user', content: msg, created_at: now },
-              { role: 'assistant', content: reply, created_at: now },
-            ]);
-            // Fire-and-forget audit trail to the agent conversation (hidden from UI).
-            base44.agents.addMessage(conversation, {
-              role: 'user',
-              content: `[CLIENT_RESOLVED: ${match.intent}] ${msg}`,
-            }).catch(() => {});
-            setSending(false);
-            return;
-          }
+      const ctxForRouter = ctx || ctxPayloadRef.current;
+      // Pass full person objects so detectIntent can match both id and name.
+      const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
+      const routerCtx = ctxForRouter
+        ? { ...ctxForRouter, knownPersonNames }
+        : { knownPersonNames };
+
+      const match = detectIntent(msg, routerCtx);
+      // detectIntent already enforces internal confidence thresholds and returns
+      // null for ambiguous cases — no secondary threshold check needed here.
+      // respondToIntent guards familyId internally and returns null when ctx is insufficient.
+      if (match) {
+        const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
+        if (reply) {
+          setLocalMessages((prev) => [
+            ...prev,
+            { role: 'user', content: msg, created_at: now },
+            { role: 'assistant', content: reply, created_at: now },
+          ]);
+          // Fire-and-forget audit trail (REGLA #-1 returns empty on server side).
+          base44.agents.addMessage(conversation, {
+            role: 'user',
+            content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
+          }).catch(() => {});
+          setSending(false);
+          return;
         }
       }
     } catch (err) {
       console.warn('intent router failed, falling back to LLM', err);
     }
 
-    // 2) Fallback: send the raw message to the LLM agent.
-    await base44.agents.addMessage(conversation, { role: 'user', content: msg });
+    // 2) LLM fallback — only reached when detectIntent returns null (no recognized
+    //    intent) or respondToIntent returns null (router matched but can't respond).
+    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
+    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
-  }, [input, sending, ctx, persons, activeLocale, conversation]);
+  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader]);
 
   const handleConfirmTransaction = async () => {
+    if (!conversation || sending) return;
+    const msg = 'Sí, confirmo';
+    const now = new Date().toISOString();
+    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: 'Sí, confirmo' });
+    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
   };
 
   const handleModifyTransaction = async () => {
+    if (!conversation || sending) return;
+    const msg = 'No, quiero modificar los datos';
+    const now = new Date().toISOString();
+    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
     setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: 'No, quiero modificar los datos' });
+    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
   };
 
@@ -180,9 +218,8 @@ export default function Assistant() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
-  // Merge LLM-subscribed messages with locally-resolved ones for a single unified
-  // timeline. Each list is ordered independently; we merge by created_at where
-  // available, falling back to insertion order.
+  // Merge LLM-subscribed assistant messages with locally-resolved messages for a
+  // unified timeline sorted by created_at.
   const allMessages = [...messages, ...localMessages].sort((a, b) => {
     const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
     const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
