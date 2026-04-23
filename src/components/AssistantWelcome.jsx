@@ -1,4 +1,4 @@
-import { Bot, Sparkles, Calendar } from 'lucide-react';
+import { Bot, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatAmount, formatDate, formatPersonName } from '@/lib/assistantFormatters';
 
