@@ -215,7 +215,7 @@ export function detectIntent(text, ctx = {}) {
     /weekly\s*spending/.test(n)
   ) {
     let personId = findPersonMatch(n, knownPersonNames);
-    if (!personId && /\bmi\b|my\b|\bmios\b|mine/.test(n)) {
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
       personId = ctx.authPersonId;
     }
     return {
@@ -233,7 +233,7 @@ export function detectIntent(text, ctx = {}) {
     /top\s*expenses/.test(n)
   ) {
     let personId = findPersonMatch(n, knownPersonNames);
-    if (!personId && /\bmi\b|my\b|\bmios\b|mine/.test(n)) {
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
       personId = ctx.authPersonId;
     }
     return {
@@ -299,7 +299,7 @@ export function detectIntent(text, ctx = {}) {
     let personId = findPersonMatch(n, knownPersonNames);
 
     // If no explicit person mentioned, use auth user for "mi/my" questions
-    if (!personId && /\bmi\b|my\b|\bmios\b|mine/.test(n)) {
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
       personId = ctx.authPersonId;
     }
 
