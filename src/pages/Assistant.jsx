@@ -221,7 +221,9 @@ export default function Assistant() {
         <AnimatePresence>
           {allMessages.map((msg, i) => {
             const isLastMessage = i === allMessages.length - 1;
-            const isConfirmationMessage = msg.role !== 'user' && msg.content?.includes('¿Confirmas');
+            const isConfirmationMessage = msg.role !== 'user' && (
+              msg.content?.includes('¿Confirmas') || msg.content?.includes('Confirm?')
+            );
 
             return (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
