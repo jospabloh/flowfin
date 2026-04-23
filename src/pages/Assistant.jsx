@@ -140,36 +140,43 @@ export default function Assistant() {
 
     const now = new Date().toISOString();
 
-    // 1) Try the deterministic intent router — uses ctx to skip the LLM.
+    // 1) ALWAYS try the deterministic router first — LLM is last resort only.
+    //    Use ctx state if available; fall back to ctxPayloadRef (set synchronously
+    //    on load, so it may be ready even before the React state update propagates).
     try {
-      if (ctx) {
-        const knownPersonNames = Array.isArray(persons)
-          ? persons.map((p) => p.name).filter(Boolean)
-          : [];
-        const match = detectIntent(msg, { ...ctx, knownPersonNames });
-        if (match && match.confidence >= 0.75) {
-          const reply = await respondToIntent(match.intent, match.params, ctx, activeLocale);
-          if (reply) {
-            setLocalMessages((prev) => [
-              ...prev,
-              { role: 'user', content: msg, created_at: now },
-              { role: 'assistant', content: reply, created_at: now },
-            ]);
-            // Audit trail — REGLA #-1 returns empty; just records intent server-side.
-            base44.agents.addMessage(conversation, {
-              role: 'user',
-              content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
-            }).catch(() => {});
-            setSending(false);
-            return;
-          }
+      const ctxForRouter = ctx || ctxPayloadRef.current;
+      // Pass full person objects so detectIntent can match both id and name.
+      const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
+      const routerCtx = ctxForRouter
+        ? { ...ctxForRouter, knownPersonNames }
+        : { knownPersonNames };
+
+      const match = detectIntent(msg, routerCtx);
+      // detectIntent already enforces internal confidence thresholds and returns
+      // null for ambiguous cases — no secondary threshold check needed here.
+      if (match && ctxForRouter) {
+        const reply = await respondToIntent(match.intent, match.params, ctxForRouter, activeLocale);
+        if (reply) {
+          setLocalMessages((prev) => [
+            ...prev,
+            { role: 'user', content: msg, created_at: now },
+            { role: 'assistant', content: reply, created_at: now },
+          ]);
+          // Fire-and-forget audit trail (REGLA #-1 returns empty on server side).
+          base44.agents.addMessage(conversation, {
+            role: 'user',
+            content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
+          }).catch(() => {});
+          setSending(false);
+          return;
         }
       }
     } catch (err) {
       console.warn('intent router failed, falling back to LLM', err);
     }
 
-    // 2) Fallback: send to LLM. Show user message immediately via localMessages.
+    // 2) LLM fallback — only reached when detectIntent returns null (no recognized
+    //    intent) or respondToIntent returns null (router matched but can't respond).
     setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
