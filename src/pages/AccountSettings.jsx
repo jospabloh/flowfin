@@ -14,7 +14,7 @@ const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 export default function AccountSettings() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig } = useFamily();
+  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig, currentUser } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
@@ -208,8 +208,8 @@ export default function AccountSettings() {
           </div>
         )}
 
-        {/* AI Usage */}
-        <button
+        {/* AI Usage — visible only to app-level admins (h.josepablo) */}
+        {currentUser?.role === 'admin' && <button
           onClick={() => navigate('/AIUsage')}
           className="w-full bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:bg-accent transition-colors text-left"
         >
@@ -229,7 +229,7 @@ export default function AccountSettings() {
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-        </button>
+        </button>}
 
         {/* Danger Zone */}
         <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">

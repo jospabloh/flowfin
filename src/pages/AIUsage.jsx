@@ -109,7 +109,15 @@ function StatCard({ icon: Icon, label, value, accent }) {
 // Main component
 // ---------------------------------------------------------------------------
 export default function AIUsage() {
-  const { familyId, familyConfig } = useFamily();
+  const { familyId, familyConfig, currentUser } = useFamily();
+
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <p className="text-sm text-muted-foreground">Acceso restringido.</p>
+      </div>
+    );
+  }
   const locale = familyConfig?.locale || 'es-MX';
   const s = getStrings(locale);
 
