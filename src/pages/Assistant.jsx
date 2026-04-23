@@ -149,8 +149,8 @@ export default function Assistant() {
       // Pass full person objects so detectIntent can match both id and name.
       const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
       const routerCtx = ctxForRouter
-        ? { ...ctxForRouter, knownPersonNames }
-        : { knownPersonNames };
+        ? { ...ctxForRouter, knownPersonNames, authPersonId: personId }
+        : { knownPersonNames, authPersonId: personId };
 
       const match = detectIntent(msg, routerCtx);
       // detectIntent already enforces internal confidence thresholds and returns
