@@ -5,10 +5,29 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { Send, Mic, MicOff, Bot, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
+import MessageGroup from '@/components/MessageGroup';
 import AssistantWelcome from '@/components/AssistantWelcome';
 import ReceiptScanButton from '@/components/ReceiptScanButton';
 import { detectIntent } from '@/lib/assistantIntents';
 import { respondToIntent } from '@/lib/assistantResponders';
+
+function groupMessages(messages) {
+  const groups = [];
+  let i = 0;
+  while (i < messages.length) {
+    const msg = messages[i];
+    if (msg.role === 'user' || msg.kind === 'receipt') {
+      const next = messages[i + 1];
+      const hasAssistant = next?.role === 'assistant';
+      groups.push({ userMsg: msg, assistantMsg: hasAssistant ? next : null });
+      i += hasAssistant ? 2 : 1;
+    } else {
+      groups.push({ userMsg: null, assistantMsg: msg });
+      i++;
+    }
+  }
+  return groups;
+}
 
 export default function Assistant() {
   const { currentUser, family, familyId, familyConfig, membership } = useFamily();
@@ -149,8 +168,8 @@ export default function Assistant() {
       // Pass full person objects so detectIntent can match both id and name.
       const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
       const routerCtx = ctxForRouter
-        ? { ...ctxForRouter, knownPersonNames }
-        : { knownPersonNames };
+        ? { ...ctxForRouter, knownPersonNames, authPersonId: personId }
+        : { knownPersonNames, authPersonId: personId };
 
       const match = detectIntent(msg, routerCtx);
       // detectIntent already enforces internal confidence thresholds and returns
@@ -278,7 +297,7 @@ export default function Assistant() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {allMessages.length === 0 && (
           <AssistantWelcome
             ctx={ctx}
@@ -287,61 +306,54 @@ export default function Assistant() {
           />
         )}
 
-        <AnimatePresence>
-          {allMessages.map((msg, i) => {
-            const isLastMessage = i === allMessages.length - 1;
-            const isConfirmationMessage = msg.role !== 'user' && (
-              msg.content?.includes('¿Confirmas') || msg.content?.includes('Confirm?')
-            );
+        <div className="flex flex-col gap-2">
+          <AnimatePresence>
+            {groupMessages(allMessages).map((group, i, arr) => {
+              const isLastGroup = i === arr.length - 1;
+              const isConfirmation = group.assistantMsg && (
+                group.assistantMsg.content?.includes('¿Confirmas') ||
+                group.assistantMsg.content?.includes('Confirm?')
+              );
 
-            return (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                {msg.kind === 'receipt' ? (
-                  /* Receipt thumbnail bubble */
-                  <div className="flex justify-end">
-                    <div className="max-w-[70%] bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-sm overflow-hidden">
-                      {msg.thumbnailDataUrl && (
-                        <img
-                          src={msg.thumbnailDataUrl}
-                          alt={msg.content}
-                          className="w-full max-h-40 object-cover"
-                        />
-                      )}
-                      <p className="text-xs text-primary px-3 py-1.5 font-medium">{msg.content}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <MessageBubble message={msg} />
-                )}
-                {isLastMessage && isConfirmationMessage && (
-                  <div className="flex gap-2 mt-3 ml-9">
-                    <button onClick={handleConfirmTransaction}
-                      className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
-                      Sí, guardar
-                    </button>
-                    <button onClick={handleModifyTransaction}
-                      className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
-                      No, modificar
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+              return (
+                <MessageGroup
+                  key={group.userMsg?.created_at || group.assistantMsg?.created_at || i}
+                  userMsg={group.userMsg}
+                  assistantMsg={group.assistantMsg}
+                  showConfirmButtons={isLastGroup && isConfirmation}
+                  onConfirm={handleConfirmTransaction}
+                  onModify={handleModifyTransaction}
+                />
+              );
+            })}
+          </AnimatePresence>
 
-        {sending && (
-          <div className="flex gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="flex gap-1">
-                {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: `${i*0.15}s` }} />)}
+          {sending && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-muted/20 rounded-2xl p-3.5 border border-border/25 shadow-sm"
+            >
+              <div className="flex gap-3">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="flex gap-1.5">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-2 h-2 rounded-full bg-muted-foreground/60"
+                        animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.25, 1] }}
+                        transition={{ duration: 1.4, delay: i * 0.2, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </div>
         <div ref={bottomRef} />
       </div>
 

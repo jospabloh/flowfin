@@ -66,28 +66,20 @@ export async function respondToIntent(intent, params, ctx, locale) {
 
       let expense, income, balance, truncated;
 
-      // Shortcut: use ctx.month if range is current month and no personId filter
-      if (isCurrentMonthRange(range) && !personId) {
-        expense = ctx.month?.expense ?? 0;
-        income  = ctx.month?.income  ?? 0;
-        balance = ctx.month?.balance ?? (income - expense);
-        truncated = false;
-      } else {
-        try {
-          const res = await base44.functions.invoke('getPeriodTotals', {
-            familyId,
-            start: range.start,
-            end: range.end,
-            type: type === 'all' ? undefined : type,
-            ...(personId ? { personId } : {}),
-          });
-          expense   = res?.total?.expense ?? 0;
-          income    = res?.total?.income  ?? 0;
-          balance   = res?.total?.balance ?? (income - expense);
-          truncated = res?.truncated;
-        } catch {
-          return null;
-        }
+      try {
+        const res = await base44.functions.invoke('getPeriodTotals', {
+          familyId,
+          start: range.start,
+          end: range.end,
+          type: type === 'all' ? undefined : type,
+          ...(personId ? { personId } : {}),
+        });
+        expense   = res?.total?.expense ?? 0;
+        income    = res?.total?.income  ?? 0;
+        balance   = res?.total?.balance ?? (income - expense);
+        truncated = res?.truncated;
+      } catch {
+        return null;
       }
 
       const period = periodLabel(range, locale);
@@ -120,21 +112,16 @@ export async function respondToIntent(intent, params, ctx, locale) {
 
       let groups, truncated;
 
-      if (isCurrentMonthRange(range) && ctx.month?.byPerson) {
-        groups    = ctx.month.byPerson;
-        truncated = false;
-      } else {
-        try {
-          const res = await base44.functions.invoke('getBreakdownByPerson', {
-            familyId,
-            start: range.start,
-            end: range.end,
-          });
-          groups    = res?.groups ?? [];
-          truncated = res?.truncated;
-        } catch {
-          return null;
-        }
+      try {
+        const res = await base44.functions.invoke('getBreakdownByPerson', {
+          familyId,
+          start: range.start,
+          end: range.end,
+        });
+        groups    = res?.groups ?? [];
+        truncated = res?.truncated;
+      } catch {
+        return null;
       }
 
       if (!groups || groups.length === 0) {
@@ -160,23 +147,18 @@ export async function respondToIntent(intent, params, ctx, locale) {
 
       let groups, truncated;
 
-      if (isCurrentMonthRange(range) && ctx.month?.topCategories) {
-        groups    = ctx.month.topCategories;
-        truncated = false;
-      } else {
-        try {
-          const res = await base44.functions.invoke('getBreakdownByCategory', {
-            familyId,
-            start: range.start,
-            end: range.end,
-            type: type || 'expense',
-            topN: 5,
-          });
-          groups    = res?.groups ?? [];
-          truncated = res?.truncated;
-        } catch {
-          return null;
-        }
+      try {
+        const res = await base44.functions.invoke('getBreakdownByCategory', {
+          familyId,
+          start: range.start,
+          end: range.end,
+          type: type || 'expense',
+          topN: 5,
+        });
+        groups    = res?.groups ?? [];
+        truncated = res?.truncated;
+      } catch {
+        return null;
       }
 
       if (!groups || groups.length === 0) {

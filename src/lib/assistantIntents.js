@@ -214,7 +214,10 @@ export function detectIntent(text, ctx = {}) {
     /daily\s*spending/.test(n) ||
     /weekly\s*spending/.test(n)
   ) {
-    const personId = findPersonMatch(n, knownPersonNames);
+    let personId = findPersonMatch(n, knownPersonNames);
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
+      personId = ctx.authPersonId;
+    }
     return {
       intent: 'averages',
       confidence: 0.85,
@@ -229,7 +232,10 @@ export function detectIntent(text, ctx = {}) {
     /biggest\s*expenses/.test(n) ||
     /top\s*expenses/.test(n)
   ) {
-    const personId = findPersonMatch(n, knownPersonNames);
+    let personId = findPersonMatch(n, knownPersonNames);
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
+      personId = ctx.authPersonId;
+    }
     return {
       intent: 'top_transactions',
       confidence: 0.85,
@@ -248,9 +254,12 @@ export function detectIntent(text, ctx = {}) {
     if (!parsed.amount) return null; // fall to LLM if no amount
 
     const txType = isIncomeKeyword ? 'income' : 'expense';
-    const personId = parsed.personHint
+    let personId = parsed.personHint
       ? knownPersonNames.find((p) => normalize(p.name) === normalize(parsed.personHint))?.id
       : undefined;
+    if (!personId) {
+      personId = ctx.authPersonId;
+    }
 
     const confidence = parsed.amount && parsed.description ? 0.8 : 0.65;
     if (confidence < 0.75) return null; // fall to LLM
@@ -286,7 +295,13 @@ export function detectIntent(text, ctx = {}) {
     if (/ingres|income/.test(n)) type = 'income';
     if (/balance|saldo/.test(n)) type = 'all';
 
-    const personId = findPersonMatch(n, knownPersonNames);
+    // Try to find explicit person mention first
+    let personId = findPersonMatch(n, knownPersonNames);
+
+    // If no explicit person mentioned, use auth user for "mi/my" questions
+    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
+      personId = ctx.authPersonId;
+    }
 
     // Confidence is higher if there's a clear period keyword
     const hasPeriod =

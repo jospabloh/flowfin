@@ -104,6 +104,26 @@
   .touch-target { min-width: 44px; min-height: 44px; }
 }
 
+/* Chat markdown: stronger bold, tighter bullets */
+.prose strong {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.prose p {
+  margin-bottom: 0.35rem;
+}
+
+.prose ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.prose li {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+}
+
 html {
   overscroll-behavior-y: none;
 }
