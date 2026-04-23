@@ -215,9 +215,8 @@ export function detectIntent(text, ctx = {}) {
     /weekly\s*spending/.test(n)
   ) {
     let personId = findPersonMatch(n, knownPersonNames);
-    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
-      personId = ctx.authPersonId;
-    }
+    const isFamilyQ = /\b(familia|todos|all|everyone)\b/.test(n);
+    if (!personId && !isFamilyQ) personId = ctx.authPersonId;
     return {
       intent: 'averages',
       confidence: 0.85,
@@ -233,9 +232,8 @@ export function detectIntent(text, ctx = {}) {
     /top\s*expenses/.test(n)
   ) {
     let personId = findPersonMatch(n, knownPersonNames);
-    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
-      personId = ctx.authPersonId;
-    }
+    const isFamilyQ = /\b(familia|todos|all|everyone)\b/.test(n);
+    if (!personId && !isFamilyQ) personId = ctx.authPersonId;
     return {
       intent: 'top_transactions',
       confidence: 0.85,
@@ -300,11 +298,14 @@ export function detectIntent(text, ctx = {}) {
     if (/ingres|income/.test(n)) type = 'income';
     if (/balance|saldo/.test(n)) type = 'all';
 
-    // Try to find explicit person mention first
+    // 1. Explicit named person: "¿cuánto gastó Silvia?"
     let personId = findPersonMatch(n, knownPersonNames);
 
-    // If no explicit person mentioned, use auth user for "mi/my" questions
-    if (!personId && /\b(mi|my|mios|mine)\b/.test(n)) {
+    // 2. Family/all keyword → no personId (return full family totals)
+    const isFamilyQuery = /\b(familia|todos|all|everyone)\b/.test(n);
+
+    // 3. Default: always scope to the logged-in user, matching dashboard behavior
+    if (!personId && !isFamilyQuery) {
       personId = ctx.authPersonId;
     }
 
