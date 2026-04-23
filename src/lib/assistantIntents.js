@@ -280,10 +280,15 @@ export function detectIntent(text, ctx = {}) {
 
   // ── spend_period ───────────────────────────────────────────────────────────
   const spendES =
-    /cu[aá]nto\s*(gast[eé]|llevo|he\s*gastado|es\s*mi\s*gasto)/.test(n) ||
+    /cu[aá]nto\s*(gast[eé]|llev[oa]|llego|he\s*gastado|es\s*mi\s*gasto|llevo\s*gastado|llega\s*gastado)/.test(n) ||
+    /cu[aá]nto\s+llev[oa]/.test(n) ||
+    /cu[aá]nto\s+llego/.test(n) ||
+    /cu[aá]nto\s*(he|he\s*llegado)\s*gastado/.test(n) ||
     /cu[aá]nto\s*ingres[eé]/.test(n) ||
     /mi\s*ingreso/.test(n) ||
-    /\b(balance|saldo)\b/.test(n);
+    /\b(balance|saldo)\b/.test(n) ||
+    /gasto\s*(total|del\s*mes|mensual|semanal|diario)/.test(n) ||
+    /total\s*(de\s*(mis\s*)?gastos|gastado)/.test(n);
   const spendEN =
     /how\s*much\s*(have\s*i\s*spent|did\s*i\s*spend)/.test(n) ||
     /my\s*spending/.test(n) ||
