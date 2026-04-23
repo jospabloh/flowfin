@@ -204,7 +204,7 @@ export default function Assistant() {
         </div>
         <div>
           <h1 className="font-bold text-foreground text-sm">Asistente IA</h1>
-          <p className="text-xs text-muted-foreground">Registra gastos e ingresos conversando</p>
+          <p className="text-xs text-muted-foreground">Tu asistente financiero personal</p>
         </div>
       </div>
 
