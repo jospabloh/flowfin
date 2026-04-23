@@ -6,6 +6,7 @@ import { Send, Mic, MicOff, Bot, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
 import AssistantWelcome from '@/components/AssistantWelcome';
+import ReceiptScanButton from '@/components/ReceiptScanButton';
 import { detectIntent } from '@/lib/assistantIntents';
 import { respondToIntent } from '@/lib/assistantResponders';
 
@@ -218,6 +219,37 @@ export default function Assistant() {
 
   const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
 
+  // ── handleScanComplete ──────────────────────────────────────────────────────
+  // Called by ReceiptScanButton when the vision API returns a parsed receipt.
+  // Injects the structured data into the chat via sendMessage (existing flow).
+  const handleScanComplete = (parsed) => {
+    const isEn = activeLocale.startsWith('en');
+    const summary = isEn
+      ? `Scanned receipt: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`
+      : `Escaneé un ticket: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`;
+    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed })}<<<SYSTEM_METADATA_END>>>`;
+    const userPrompt = isEn
+      ? `${metadata}\n\n${summary}. Please log this expense.`
+      : `${metadata}\n\n${summary}. Por favor regístralo como gasto.`;
+
+    const scanThumbCaption = isEn ? 'Scanned receipt' : 'Ticket escaneado';
+
+    // Immediately show a thumbnail bubble so the user sees what was sent.
+    setLocalMessages((prev) => [
+      ...prev,
+      {
+        role: 'user',
+        kind: 'receipt',
+        thumbnailDataUrl: parsed.thumbnailUrl,
+        summary,
+        content: scanThumbCaption,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    sendMessage(userPrompt);
+  };
+
   // Merge LLM-subscribed assistant messages with locally-resolved messages for a
   // unified timeline sorted by created_at.
   const allMessages = [...messages, ...localMessages].sort((a, b) => {
@@ -264,7 +296,23 @@ export default function Assistant() {
 
             return (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                <MessageBubble message={msg} />
+                {msg.kind === 'receipt' ? (
+                  /* Receipt thumbnail bubble */
+                  <div className="flex justify-end">
+                    <div className="max-w-[70%] bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-sm overflow-hidden">
+                      {msg.thumbnailDataUrl && (
+                        <img
+                          src={msg.thumbnailDataUrl}
+                          alt={msg.content}
+                          className="w-full max-h-40 object-cover"
+                        />
+                      )}
+                      <p className="text-xs text-primary px-3 py-1.5 font-medium">{msg.content}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <MessageBubble message={msg} />
+                )}
                 {isLastMessage && isConfirmationMessage && (
                   <div className="flex gap-2 mt-3 ml-9">
                     <button onClick={handleConfirmTransaction}
@@ -304,6 +352,11 @@ export default function Assistant() {
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
             placeholder="Escribe o habla tu transacción..."
             className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          <ReceiptScanButton
+            onScanComplete={handleScanComplete}
+            disabled={sending || !conversation}
+            locale={activeLocale}
+          />
           <button onClick={isListening ? stopVoice : startVoice}
             className={`p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}

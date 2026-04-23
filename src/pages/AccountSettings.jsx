@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, Calendar } from 'lucide-react';
+import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, Calendar, ChevronRight } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatDate } from '@/lib/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
 export default function AccountSettings() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
@@ -205,6 +207,29 @@ export default function AccountSettings() {
             </div>
           </div>
         )}
+
+        {/* AI Usage */}
+        <button
+          onClick={() => navigate('/AIUsage')}
+          className="w-full bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:bg-accent transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Zap className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {(familyConfig?.locale || 'es-MX').startsWith('en') ? 'AI Usage' : 'Consumo de IA'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {(familyConfig?.locale || 'es-MX').startsWith('en')
+                  ? 'Scan history and API cost'
+                  : 'Historial de escaneos y costo de API'}
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        </button>
 
         {/* Danger Zone */}
         <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
