@@ -134,7 +134,7 @@ export default function Assistant() {
   // ── sendMessage ─────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const msg = (text ?? input).trim();
-    if (!msg || sending) return;
+    if (!msg || sending || !conversation) return;
     setInput('');
     setSending(true);
 
@@ -154,8 +154,9 @@ export default function Assistant() {
       const match = detectIntent(msg, routerCtx);
       // detectIntent already enforces internal confidence thresholds and returns
       // null for ambiguous cases — no secondary threshold check needed here.
-      if (match && ctxForRouter) {
-        const reply = await respondToIntent(match.intent, match.params, ctxForRouter, activeLocale);
+      // respondToIntent guards familyId internally and returns null when ctx is insufficient.
+      if (match) {
+        const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
         if (reply) {
           setLocalMessages((prev) => [
             ...prev,
@@ -183,6 +184,7 @@ export default function Assistant() {
   }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader]);
 
   const handleConfirmTransaction = async () => {
+    if (!conversation || sending) return;
     const msg = 'Sí, confirmo';
     const now = new Date().toISOString();
     setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
@@ -192,6 +194,7 @@ export default function Assistant() {
   };
 
   const handleModifyTransaction = async () => {
+    if (!conversation || sending) return;
     const msg = 'No, quiero modificar los datos';
     const now = new Date().toISOString();
     setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
