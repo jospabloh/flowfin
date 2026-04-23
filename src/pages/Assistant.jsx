@@ -84,36 +84,36 @@ export default function Assistant() {
   // recentTransactions so the LLM cannot treat history as pending actions.
   const ctxPayloadRef = useRef(null);
   const ctxLoadedRef = useRef(false);
+
+  // Reusable context fetcher — called at mount and silently after write intents.
+  const refreshContext = useCallback(async () => {
+    if (!familyId) return;
+    try {
+      const res = await base44.functions.invoke('getAssistantContext', {
+        familyId,
+        personId: personId || undefined,
+        locale: activeLocale,
+      });
+      const loaded = res?.data ?? res ?? null;
+      if (!loaded) return;
+      setCtx(loaded);
+      ctxPayloadRef.current = {
+        ...loaded,
+        recentTransactions: (loaded.recentTransactions || []).map(
+          ({ id, date, amount, type, category_name }) =>
+            ({ id, date, amount, type, category_name })
+        ),
+      };
+    } catch (err) {
+      console.warn('getAssistantContext failed, proceeding without rich context', err);
+    }
+  }, [familyId, personId, activeLocale]);
+
   useEffect(() => {
     if (!familyId || ctxLoadedRef.current) return;
     ctxLoadedRef.current = true;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await base44.functions.invoke('getAssistantContext', {
-          familyId,
-          personId: personId || undefined,
-          locale: activeLocale,
-        });
-        const loaded = res?.data ?? res ?? null;
-        if (cancelled) return;
-        setCtx(loaded);
-        if (loaded) {
-          const sanitized = {
-            ...loaded,
-            recentTransactions: (loaded.recentTransactions || []).map(
-              ({ id, date, amount, type, category_name }) =>
-                ({ id, date, amount, type, category_name })
-            ),
-          };
-          ctxPayloadRef.current = sanitized;
-        }
-      } catch (err) {
-        console.warn('getAssistantContext failed, proceeding without rich context', err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [familyId, personId, activeLocale]);
+    refreshContext();
+  }, [familyId, refreshContext]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -174,6 +174,10 @@ export default function Assistant() {
             role: 'user',
             content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
           }).catch(() => {});
+          // Silently refresh context so the next LLM turn has up-to-date balances.
+          if (match.intent === 'register_expense' || match.intent === 'register_income') {
+            refreshContext();
+          }
           setSending(false);
           return;
         }
@@ -185,9 +189,15 @@ export default function Assistant() {
     // 2) LLM fallback — only reached when detectIntent returns null (no recognized
     //    intent) or respondToIntent returns null (router matched but can't respond).
     setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
-    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
+
+    const isAnalyticalQuery = /[?¿]|cu[aá]nto|how much|qu[eé]|what|cu[aá]l|which|saldo|balance|total|gasto|spent|llevo/i.test(msg);
+    const backendMsg = isAnalyticalQuery
+      ? `${msg}\n\n[SYSTEM OVERRIDE: This is an analytical query. YOU ARE STRICTLY FORBIDDEN from doing mathematical calculations or estimating totals by reading the transaction history. YOU MUST invoke a database Tool Call to get the data. If you don't have a tool for this or it fails, reply EXACTLY: 'I do not have the exact updated figure at this moment.']`
+      : msg;
+
+    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(backendMsg) });
     setSending(false);
-  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader]);
+  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
 
   const handleConfirmTransaction = async () => {
     if (!conversation || sending) return;
