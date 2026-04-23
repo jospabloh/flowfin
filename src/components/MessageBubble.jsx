@@ -102,11 +102,13 @@ export default function MessageBubble({ message }) {
                     <Bot className="w-3.5 h-3.5 text-primary" />
                 </div>
             )}
-            <div className={cn("max-w-[85%]", isUser && "flex flex-col items-end")}>
+            <div className={cn("max-w-[85%] min-w-fit", isUser && "flex flex-col items-end")}>
                 {message.content && (
                     <div className={cn(
-                        "rounded-2xl px-4 py-2.5 text-sm",
-                        isUser ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-card border border-border text-foreground rounded-tl-sm"
+                        "rounded-2xl px-5 py-3.5",
+                        isUser
+                          ? "text-sm font-medium bg-primary text-primary-foreground rounded-tr-sm shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+                          : "text-[15px] leading-relaxed bg-card border border-border text-foreground rounded-tl-sm shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
                     )}>
                         {isUser ? (
                             <p>{message.content}</p>
