@@ -148,9 +148,14 @@ export default function Assistant() {
       const ctxForRouter = ctx || ctxPayloadRef.current;
       // Pass full person objects so detectIntent can match both id and name.
       const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
-      const routerCtx = ctxForRouter
-        ? { ...ctxForRouter, knownPersonNames, authPersonId: personId }
-        : { knownPersonNames, authPersonId: personId };
+      // Always ensure family.id is available so respondToIntent can call backend
+      // functions even if getAssistantContext hasn't finished loading yet.
+      const routerCtx = {
+        ...(ctxForRouter || {}),
+        family: ctxForRouter?.family || { id: familyId },
+        knownPersonNames,
+        authPersonId: personId,
+      };
 
       const match = detectIntent(msg, routerCtx);
       // detectIntent already enforces internal confidence thresholds and returns
