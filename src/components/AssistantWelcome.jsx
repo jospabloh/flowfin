@@ -121,9 +121,10 @@ function buildChips(ctx, currentUserId, tpl) {
 }
 
 // ---------------------------------------------------------------------------
-// Fallback when ctx is null / undefined
+// Fallback when ctx is null / undefined — skeleton that matches loaded layout
 // ---------------------------------------------------------------------------
-function GenericFallback() {
+function GenericFallback({ locale = 'es-MX' }) {
+  const greeting = locale.startsWith('en') ? 'Hello! 👋' : '¡Hola! 👋';
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -134,10 +135,12 @@ function GenericFallback() {
         <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           <Bot className="w-4 h-4 text-primary" />
         </div>
-        <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%]">
-          <p className="text-sm text-foreground">
-            ¡Hola! 👋 Soy tu asistente financiero. Dime qué gastaste o recibiste y lo registro por ti automáticamente.
-          </p>
+        <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%] space-y-2">
+          <p className="text-sm text-foreground font-medium">{greeting}</p>
+          <div className="space-y-1.5 animate-pulse">
+            <div className="h-3 bg-muted rounded-full w-full" />
+            <div className="h-3 bg-muted rounded-full w-4/5" />
+          </div>
         </div>
       </div>
     </motion.div>
@@ -155,7 +158,7 @@ function GenericFallback() {
 export default function AssistantWelcome({ ctx, locale = 'es-MX', onAction }) {
   // Graceful fallback when ctx is not yet available
   if (!ctx) {
-    return <GenericFallback />;
+    return <GenericFallback locale={locale} />;
   }
 
   const tpl = getTemplate(locale);
