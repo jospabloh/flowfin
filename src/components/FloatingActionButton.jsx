@@ -29,7 +29,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
 
   return (
     <div ref={containerRef} className="fixed right-4 z-50 flex items-center justify-center"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)', width: '64px', height: '152px' }}>
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)', width: '120px', height: '220px' }}>
 
       <AnimatePresence>
         {isExpanded && (
@@ -48,33 +48,33 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
             {/* Chat Button — top position */}
             <motion.div
               initial={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              animate={{ opacity: 1, scale: 1, y: -90, x: 0 }}
+              animate={{ opacity: 1, scale: 1, y: -110, x: 0 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
-              className="absolute flex flex-col items-center gap-1">
+              className="absolute flex flex-col items-center gap-2">
               <button
                 onClick={() => handleNavAndClose('/Assistant')}
                 className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Chat con asistente">
                 <MessageCircle className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="text-[10px] font-semibold text-foreground bg-card/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">Chat</span>
+              <span className="text-[11px] font-bold text-foreground bg-card/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-md whitespace-nowrap">Chat</span>
             </motion.div>
 
             {/* Add Transaction Button — middle position */}
             <motion.div
               initial={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              animate={{ opacity: 1, scale: 1, y: -50, x: 0 }}
+              animate={{ opacity: 1, scale: 1, y: -60, x: 0 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
-              className="absolute flex flex-col items-center gap-1">
+              className="absolute flex flex-col items-center gap-2">
               <button
                 onClick={() => handleNavAndClose('/Capture')}
                 className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Agregar movimiento">
                 <Plus className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="text-[10px] font-semibold text-foreground bg-card/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">Agregar</span>
+              <span className="text-[11px] font-bold text-foreground bg-card/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-md whitespace-nowrap">Agregar</span>
             </motion.div>
           </>
         )}
