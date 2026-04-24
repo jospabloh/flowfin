@@ -441,11 +441,11 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — fixed above nav with z-index */}
+      {/* Input — fixed above nav */}
       <div
         ref={inputBarRef}
-        className="fixed bottom-16 left-0 right-0 z-40 px-4 pt-2 pb-2 border-t border-border bg-background"
-        style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
+        className="fixed left-0 right-0 z-40 px-4 pt-2 pb-safe border-t border-border bg-background"
+        style={{ bottom: '70px' }}
       >
         <div className="flex gap-2 items-center max-w-full">
           <input
