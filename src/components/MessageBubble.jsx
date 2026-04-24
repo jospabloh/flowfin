@@ -75,15 +75,19 @@ const FunctionDisplay = ({ toolCall }) => {
     );
 };
 
-export default function MessageBubble({ message }) {
+export default function MessageBubble({ message, hideAvatar = false }) {
     const isUser = message.role === 'user';
 
     return (
         <div className={cn("flex items-end gap-2", isUser ? "flex-row-reverse" : "flex-row")}>
-            {/* Avatar — only for assistant */}
+            {/* Avatar — only for assistant, hidden when grouped */}
             {!isUser && (
-                <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mb-0.5">
-                    <Bot className="w-3.5 h-3.5 text-primary" />
+                <div className="w-7 h-7 flex-shrink-0 mb-0.5">
+                    {!hideAvatar && (
+                        <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Bot className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                    )}
                 </div>
             )}
 

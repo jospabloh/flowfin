@@ -74,10 +74,11 @@ export async function respondToIntent(intent, params, ctx, locale) {
           type: type === 'all' ? undefined : type,
           ...(personId ? { personId } : {}),
         });
-        expense   = res?.total?.expense ?? 0;
-        income    = res?.total?.income  ?? 0;
-        balance   = res?.total?.balance ?? (income - expense);
-        truncated = res?.truncated;
+        const d   = res?.data ?? res;
+        expense   = d?.total?.expense ?? 0;
+        income    = d?.total?.income  ?? 0;
+        balance   = d?.total?.balance ?? (income - expense);
+        truncated = d?.truncated;
       } catch {
         return null;
       }
@@ -118,8 +119,9 @@ export async function respondToIntent(intent, params, ctx, locale) {
           start: range.start,
           end: range.end,
         });
-        groups    = res?.groups ?? [];
-        truncated = res?.truncated;
+        const d   = res?.data ?? res;
+        groups    = d?.groups ?? [];
+        truncated = d?.truncated;
       } catch {
         return null;
       }
@@ -155,8 +157,9 @@ export async function respondToIntent(intent, params, ctx, locale) {
           type: type || 'expense',
           topN: 5,
         });
-        groups    = res?.groups ?? [];
-        truncated = res?.truncated;
+        const d   = res?.data ?? res;
+        groups    = d?.groups ?? [];
+        truncated = d?.truncated;
       } catch {
         return null;
       }
@@ -191,8 +194,9 @@ export async function respondToIntent(intent, params, ctx, locale) {
           type: type || 'expense',
           topN: topN || 5,
         });
-        groups    = res?.groups ?? [];
-        truncated = res?.truncated;
+        const d   = res?.data ?? res;
+        groups    = d?.groups ?? [];
+        truncated = d?.truncated;
       } catch {
         return null;
       }
@@ -227,8 +231,8 @@ export async function respondToIntent(intent, params, ctx, locale) {
           type: type || 'expense',
           ...(personId ? { personId } : {}),
         });
-        data      = res;
-        truncated = res?.truncated;
+        data      = res?.data ?? res;
+        truncated = data?.truncated;
       } catch {
         return null;
       }
@@ -263,8 +267,9 @@ export async function respondToIntent(intent, params, ctx, locale) {
           N: N || 10,
           ...(personId ? { personId } : {}),
         });
-        items     = res?.items ?? [];
-        truncated = res?.truncated;
+        const d   = res?.data ?? res;
+        items     = d?.items ?? [];
+        truncated = d?.truncated;
       } catch {
         return null;
       }
@@ -305,8 +310,8 @@ export async function respondToIntent(intent, params, ctx, locale) {
           previousEnd:   previousRange.end,
           type: type || 'expense',
         });
-        data      = res;
-        truncated = res?.truncated;
+        data      = res?.data ?? res;
+        truncated = data?.truncated;
       } catch {
         return null;
       }

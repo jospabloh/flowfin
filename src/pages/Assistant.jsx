@@ -294,7 +294,7 @@ export default function Assistant() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
         {allMessages.length === 0 && (
           <AssistantWelcome
             ctx={ctx}
@@ -309,9 +309,12 @@ export default function Assistant() {
             const isConfirmationMessage = msg.role !== 'user' && (
               msg.content?.includes('¿Confirmas') || msg.content?.includes('Confirm?')
             );
+            const prevMsg = allMessages[i - 1];
+            const isGrouped = prevMsg && prevMsg.role === msg.role;
 
             return (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className={isGrouped ? 'mt-1' : 'mt-3'}>
                 {msg.kind === 'receipt' ? (
                   <div className="flex justify-end">
                     <div className="max-w-[70%] bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-sm overflow-hidden">
@@ -322,7 +325,7 @@ export default function Assistant() {
                     </div>
                   </div>
                 ) : (
-                  <MessageBubble message={msg} />
+                  <MessageBubble message={msg} hideAvatar={isGrouped} />
                 )}
                 {isLastMessage && isConfirmationMessage && (
                   <div className="flex gap-2 mt-3 ml-9">
