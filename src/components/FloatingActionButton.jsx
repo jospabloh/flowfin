@@ -45,12 +45,12 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               aria-hidden="true"
             />
 
-            {/* Chat Button — top-left position */}
+            {/* Chat Button — top position */}
             <motion.div
               initial={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              animate={{ opacity: 1, scale: 1, y: -72, x: -48 }}
+              animate={{ opacity: 1, scale: 1, y: -90, x: 0 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300, delay: 0.05 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
               className="absolute flex flex-col items-center gap-1">
               <button
                 onClick={() => handleNavAndClose('/Assistant')}
@@ -61,12 +61,12 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               <span className="text-[10px] font-semibold text-foreground bg-card/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">Chat</span>
             </motion.div>
 
-            {/* Add Transaction Button — top-right position */}
+            {/* Add Transaction Button — middle position */}
             <motion.div
               initial={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              animate={{ opacity: 1, scale: 1, y: -72, x: 48 }}
+              animate={{ opacity: 1, scale: 1, y: -50, x: 0 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300, delay: 0.05 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
               className="absolute flex flex-col items-center gap-1">
               <button
                 onClick={() => handleNavAndClose('/Capture')}
