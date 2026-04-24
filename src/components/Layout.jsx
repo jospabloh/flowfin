@@ -4,7 +4,7 @@ import {
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank, ChevronRight,
-  Wallet, ShieldCheck
+  Wallet, ShieldCheck, KeyRound, BadgeCheck
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +53,8 @@ const MORE_GROUPS = [
       { to: '/FamilySettings', icon: Wallet, label: 'Mi Familia', color: 'text-rose-500', bg: 'bg-rose-500/10' },
       { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta', color: 'text-pink-500', bg: 'bg-pink-500/10' },
       { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500', bg: 'bg-amber-500/10', adminOnly: true },
+      { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', color: 'text-violet-500', bg: 'bg-violet-500/10', adminOnly: true },
+      { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', color: 'text-teal-600', bg: 'bg-teal-500/10', adminOnly: true },
     ],
   },
   {
@@ -97,6 +99,8 @@ const SIDEBAR_GROUPS = [
       { to: '/FamilySettings', icon: Wallet, label: 'Mi Familia' },
       { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta' },
       { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia', adminOnly: true },
+      { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', adminOnly: true },
+      { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', adminOnly: true },
     ],
   },
   {
@@ -197,16 +201,21 @@ export default function Layout() {
           {currentUser?.role === 'admin' && (
             <div className="px-3 border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1">
               <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
-              <button
-                onClick={() => handleNavClick('/LicenseAdmin')}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
-                  ${location.pathname === '/LicenseAdmin'
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Licencias
-              </button>
+              {[
+                { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias' },
+                { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA' },
+              ].map(({ to, icon: Icon, label }) => (
+                <button key={to}
+                  onClick={() => handleNavClick(to)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
+                    ${location.pathname === to
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
             </div>
           )}
 
@@ -369,6 +378,16 @@ export default function Layout() {
                           <ShieldCheck className="w-5 h-5" aria-hidden="true" />
                         </div>
                         <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
+                      </button>
+                      <button
+                        onClick={() => { handleNavClick('/AIUsage'); setShowMore(false); }}
+                        aria-label="Uso de IA"
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
+                          ${location.pathname === '/AIUsage' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
+                          <Sparkles className="w-5 h-5" aria-hidden="true" />
+                        </div>
+                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Uso IA</span>
                       </button>
                     </div>
                   </div>
