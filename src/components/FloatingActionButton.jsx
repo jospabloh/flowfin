@@ -51,14 +51,15 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               animate={{ opacity: 1, scale: 1, y: 0, x: -65 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
-              className="absolute flex flex-col items-center gap-2 pointer-events-auto">
+              className="absolute flex flex-col items-center gap-2 pointer-events-auto"
+              onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}
+                onClick={(e) => e.stopPropagation()}
                 className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Chat con asistente">
                 <MessageCircle className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="text-[11px] font-bold text-white bg-black/70 backdrop-blur px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap">Asistente</span>
+              <span className="text-[11px] font-bold text-white bg-black/70 backdrop-blur px-2.5 py-1.5 rounded-lg shadow-lg whitespace-nowrap pointer-events-none">Asistente</span>
             </motion.div>
 
             {/* Add Transaction Button — right position */}
@@ -67,14 +68,15 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               animate={{ opacity: 1, scale: 1, y: 0, x: 65 }}
               exit={{ opacity: 0, scale: 0, y: 0, x: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
-              className="absolute flex flex-col items-center gap-2 pointer-events-auto">
+              className="absolute flex flex-col items-center gap-2 pointer-events-auto"
+              onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}>
               <button
-                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}
+                onClick={(e) => e.stopPropagation()}
                 className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Agregar movimiento">
                 <Plus className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="text-[11px] font-bold text-white bg-black/70 backdrop-blur px-2 py-1.5 rounded-lg shadow-lg whitespace-nowrap">Agregar</span>
+              <span className="text-[11px] font-bold text-white bg-black/70 backdrop-blur px-2 py-1.5 rounded-lg shadow-lg whitespace-nowrap pointer-events-none">Agregar</span>
             </motion.div>
           </>
         )}
