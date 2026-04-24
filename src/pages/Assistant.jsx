@@ -14,8 +14,12 @@ export default function Assistant() {
   const { currentUser, family, familyId, familyConfig, membership } = useFamily();
   const { persons } = useCatalog(familyId);
   const [conversation, setConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [localMessages, setLocalMessages] = useState([]);
+  // llmMessages: only assistant messages from the LLM subscription (server-side, in order)
+  const [llmMessages, setLlmMessages] = useState([]);
+  // localPairs: {id, userMsg, botMsg?} — local resolved intent pairs, in insertion order
+  const [localPairs, setLocalPairs] = useState([]);
+  // llmUserMessages: user messages sent to the LLM (to show them before the bot replies)
+  const [llmUserMessages, setLlmUserMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -36,24 +40,18 @@ export default function Assistant() {
       metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
     }).then(c => {
       setConversation(c);
-      setMessages(c.messages || []);
+      setLlmMessages(c.messages?.filter(m => (m.content || '').trim()) || []);
     });
   }, [currentUser]);
 
-  // Subscribe to conversation updates.
-  // All user messages are displayed via localMessages for immediate feedback,
-  // so we drop them from the subscription to avoid duplicates.
-  // Empty assistant responses (LLM acknowledging init-only messages) are also hidden.
+  // Subscribe to conversation updates from the LLM.
+  // We receive all messages in order. We filter out empty assistant messages.
+  // User messages from the LLM flow are tracked separately so we can pair them with bot replies.
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const msgs = data.messages || [];
-      const visible = msgs.filter((m) => {
-        if (m.role === 'user') return false;
-        if (!(m.content || '').trim()) return false;
-        return true;
-      });
-      setMessages(visible);
+      const msgs = (data.messages || []).filter((m) => (m.content || '').trim());
+      setLlmMessages(msgs);
     });
     return unsub;
   }, [conversation?.id]);
@@ -117,7 +115,7 @@ export default function Assistant() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, localMessages]);
+  }, [llmMessages, localPairs, llmUserMessages]);
 
   // ── wrapWithHeader ──────────────────────────────────────────────────────────
   // Prepends identity + context block to the first message sent to the LLM.
@@ -164,21 +162,18 @@ export default function Assistant() {
       if (match) {
         const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
         if (reply) {
-          setLocalMessages((prev) => [
+          const pairId = now + Math.random();
+          setLocalPairs((prev) => [
             ...prev,
-            { role: 'user', content: msg, created_at: now },
-            { role: 'assistant', content: reply, created_at: now },
+            { id: pairId, userMsg: { role: 'user', content: msg }, botMsg: { role: 'assistant', content: reply } },
           ]);
-          // Fire-and-forget audit trail (REGLA #-1 returns empty on server side).
+          // Fire-and-forget audit trail
           base44.agents.addMessage(conversation, {
             role: 'user',
             content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
           }).catch(() => {});
-          // Silently refresh context after any write operation so next turn has fresh data.
           const isWriteIntent = match.intent === 'register_expense' || match.intent === 'register_income';
-          if (isWriteIntent) {
-            refreshContext();
-          }
+          if (isWriteIntent) refreshContext();
           setSending(false);
           return;
         }
@@ -187,9 +182,8 @@ export default function Assistant() {
       console.warn('intent router failed, falling back to LLM', err);
     }
 
-    // 2) LLM fallback — only reached when detectIntent returns null (no recognized
-    //    intent) or respondToIntent returns null (router matched but can't respond).
-    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
+    // 2) LLM fallback — show user message immediately, bot reply comes via subscription
+    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
 
     const isAnalyticalQuery = /[?¿]|cu[aá]nto|how much|qu[eé]|what|cu[aá]l|which|saldo|balance|total|gasto|spent|llevo|resumen|promedio|average|ingreso|income|breakdown/i.test(msg);
     const backendMsg = isAnalyticalQuery
@@ -204,7 +198,7 @@ export default function Assistant() {
     if (!conversation || sending) return;
     const msg = 'Sí, confirmo';
     const now = new Date().toISOString();
-    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
+    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -214,7 +208,7 @@ export default function Assistant() {
     if (!conversation || sending) return;
     const msg = 'No, quiero modificar los datos';
     const now = new Date().toISOString();
-    setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
+    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -251,7 +245,7 @@ export default function Assistant() {
     const scanThumbCaption = isEn ? 'Scanned receipt' : 'Ticket escaneado';
 
     // Immediately show a thumbnail bubble so the user sees what was sent.
-    setLocalMessages((prev) => [
+    setLlmUserMessages((prev) => [
       ...prev,
       {
         role: 'user',
@@ -259,20 +253,27 @@ export default function Assistant() {
         thumbnailDataUrl: parsed.thumbnailUrl,
         summary,
         content: scanThumbCaption,
-        created_at: new Date().toISOString(),
+        _localId: new Date().toISOString(),
       },
     ]);
 
     sendMessage(userPrompt);
   };
 
-  // Merge LLM-subscribed assistant messages with locally-resolved messages for a
-  // unified timeline sorted by created_at.
-  const allMessages = [...messages, ...localMessages].sort((a, b) => {
-    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return ta - tb;
-  });
+  // Build the final ordered message list:
+  // 1. LLM messages come from the server subscription already in correct order.
+  //    We merge llmUserMessages (shown immediately) with llmMessages (from server).
+  //    Once the server has the user message, we drop the local copy to avoid duplicates.
+  const serverUserContents = new Set(llmMessages.filter(m => m.role === 'user').map(m => m.content?.trim()));
+  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(m.content?.trim()));
+
+  // Interleave: server messages are authoritative; pending local user msgs go at the end
+  const llmTimeline = [...llmMessages, ...pendingLlmUserMsgs];
+
+  // 2. Local intent pairs (user + bot) are appended in insertion order after LLM timeline
+  const localTimeline = localPairs.flatMap(p => [p.userMsg, p.botMsg]);
+
+  const allMessages = [...llmTimeline, ...localTimeline];
 
   if (!conversation) return (
     <div className="flex items-center justify-center h-[60vh]">
