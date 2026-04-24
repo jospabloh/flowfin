@@ -366,9 +366,10 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages — scrollable */}
+      {/* Messages — scrollable with padding for fixed input */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-3 mb-nav"
+        className="flex-1 overflow-y-auto px-4 py-3"
+        style={{ paddingBottom: 'calc(75px + env(safe-area-inset-bottom, 8px))' }}
       >
         {allMessages.length === 0 && (
           <AssistantWelcome
