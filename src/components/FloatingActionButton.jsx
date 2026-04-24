@@ -4,7 +4,28 @@ import { Sparkles, Plus, MessageCircle } from 'lucide-react';
 
 export default function FloatingActionButton({ isAssistantPage, handleNavClick }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  // Load saved position on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('fab-position');
+    if (saved) {
+      try {
+        setPosition(JSON.parse(saved));
+      } catch (e) {
+        setPosition({ x: 0, y: 0 });
+      }
+    }
+  }, []);
+
+  // Save position on change
+  const handleDragEnd = (e, info) => {
+    const newPos = { x: info.offset.x, y: info.offset.y };
+    setPosition(newPos);
+    localStorage.setItem('fab-position', JSON.stringify(newPos));
+  };
 
   // Close when clicking outside
   useEffect(() => {
@@ -27,11 +48,27 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
 
   if (isAssistantPage) return null;
 
+  // Calculate secondary button positions dynamically based on viewport
+  const getSecondaryPosition = (angle) => {
+    const distance = 80;
+    const radians = (angle * Math.PI) / 180;
+    return {
+      x: Math.cos(radians) * distance,
+      y: Math.sin(radians) * distance,
+    };
+  };
+
+  const chatPos = getSecondaryPosition(135); // Upper left
+  const addPos = getSecondaryPosition(45);   // Upper right
+
   return (
     <div
       ref={containerRef}
-      className="md:hidden fixed right-4 z-50 flex items-center justify-center pointer-events-none"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)', width: '200px', height: '80px' }}>
+      className="md:hidden fixed z-50 pointer-events-none"
+      style={{
+        bottom: `calc(env(safe-area-inset-bottom, 0px) + 76px + ${position.y}px)`,
+        right: `calc(16px + ${-position.x}px)`,
+      }}>
 
       <AnimatePresence>
         {isExpanded && (
@@ -47,11 +84,11 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               aria-hidden="true"
             />
 
-            {/* Chat Button — fans upper-left */}
+            {/* Chat Button — upper-left */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
-              animate={{ opacity: 1, scale: 1, x: -58, y: -72 }}
-              exit={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1, x: chatPos.x, y: chatPos.y }}
+              exit={{ opacity: 0, scale: 0.5 }}
               transition={{ type: 'spring', damping: 22, stiffness: 260 }}
               className="absolute flex flex-col items-center gap-1.5 pointer-events-auto z-50"
               onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}>
@@ -64,11 +101,11 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none border border-white/10">Asistente</span>
             </motion.div>
 
-            {/* Add Transaction Button — fans upper-right */}
+            {/* Add Transaction Button — upper-right */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
-              animate={{ opacity: 1, scale: 1, x: 58, y: -72 }}
-              exit={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1, x: addPos.x, y: addPos.y }}
+              exit={{ opacity: 0, scale: 0.5 }}
               transition={{ type: 'spring', damping: 22, stiffness: 260, delay: 0.04 }}
               className="absolute flex flex-col items-center gap-1.5 pointer-events-auto z-50"
               onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}>
@@ -84,13 +121,22 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
         )}
       </AnimatePresence>
 
-      {/* Main Button — always visible on mobile */}
+      {/* Main Button — arrastrable */}
       <motion.button
+        ref={buttonRef}
+        drag
+        dragConstraints={{
+          top: -200,
+          left: -80,
+          right: 80,
+          bottom: 200,
+        }}
+        onDragEnd={handleDragEnd}
         initial={{ scale: 1 }}
         animate={{ scale: isExpanded ? 0.85 : 1, opacity: isExpanded ? 0.4 : 1 }}
         transition={{ type: 'spring', damping: 20, stiffness: 300 }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="absolute w-13 h-13 w-[52px] h-[52px] rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-105 touch-target pointer-events-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+        className="absolute w-[52px] h-[52px] rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-105 touch-target pointer-events-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background cursor-grab active:cursor-grabbing"
         aria-label="Abrir opciones flotantes"
         aria-expanded={isExpanded}>
         <motion.div animate={{ rotate: isExpanded ? 20 : 0 }} transition={{ type: 'spring', damping: 20, stiffness: 300 }}>
