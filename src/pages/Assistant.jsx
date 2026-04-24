@@ -287,12 +287,14 @@ export default function Assistant() {
     if (!raw) return '';
     let s = raw;
 
-    // 1. Remove SYSTEM_METADATA JSON block (can be very large)
+    // 1. Remove SYSTEM_METADATA JSON block
     s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
 
-    // 2. If message starts with internal header tags, strip everything up to the last \n\n
-    //    (the actual user text always comes after the header block)
-    const headerPattern = /^\s*\[(?:LOCALE|CLIENT_RESOLVED|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
+    // 2. Strip [CLIENT_RESOLVED: intent] prefix (with or without newlines after)
+    s = s.replace(/^\s*\[CLIENT_RESOLVED:[^\]]*\]\s*/g, '');
+
+    // 3. If message still starts with internal header tags, strip up to last \n\n
+    const headerPattern = /^\s*\[(?:LOCALE|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
     if (headerPattern.test(s)) {
       const lastDouble = s.lastIndexOf('\n\n');
       s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
@@ -300,8 +302,8 @@ export default function Assistant() {
 
     s = s.trim();
 
-    // 3. Safety: if what remains still looks like raw JSON or a system tag, hide it
-    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM)/.test(s)) {
+    // 4. Safety: hide raw JSON or leftover system tags
+    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT)/.test(s)) {
       return '';
     }
 
@@ -311,18 +313,16 @@ export default function Assistant() {
   const serverUserContents = new Set(
     llmMessages.filter(m => m.role === 'user').map(m => cleanUserContent(m.content))
   );
-  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(cleanUserContent(m.content)));
+  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(cleanUserContent(m.content) || m.content));
 
-  // Clean server user messages before display (strip internal headers/metadata)
-  // Filter out messages that become empty after cleaning (pure system/context messages)
+  // Clean and filter server messages
   const cleanedLlmMessages = llmMessages
     .map(m => m.role === 'user' ? { ...m, content: cleanUserContent(m.content) } : m)
     .filter(m => m.role !== 'user' || (m.content && m.content.trim().length > 0));
 
-  // Interleave: server messages are authoritative; pending local user msgs go at the end
   const llmTimeline = [...cleanedLlmMessages, ...pendingLlmUserMsgs];
 
-  // 2. Local intent pairs (user + bot) are appended in insertion order after LLM timeline
+  // Local intent pairs appended after LLM timeline
   const localTimeline = localPairs.flatMap(p => [p.userMsg, p.botMsg]);
 
   const allMessages = [...llmTimeline, ...localTimeline];

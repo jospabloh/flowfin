@@ -132,6 +132,17 @@ export function detectIntent(text, ctx = {}) {
   const n = normalize(text);
   const range = resolveDateRange(text, today);
 
+  // ── capabilities ───────────────────────────────────────────────────────────
+  if (
+    /qu[eé]\s*puedes\s*(hacer|ayudarme)/.test(n) ||
+    /para\s*qu[eé]\s*(sirves|eres)/.test(n) ||
+    /\b(ayuda|help|ayúdame|help\s*me)\b/.test(n) ||
+    /what\s*can\s*you\s*do/.test(n) ||
+    /how\s*can\s*you\s*help/.test(n)
+  ) {
+    return { intent: 'capabilities', confidence: 0.95, params: {} };
+  }
+
   // ── compare_periods ────────────────────────────────────────────────────────
   if (
     /este\s*mes\s*(vs|versus|contra)\s*(el\s*)?mes\s*(pasado|anterior)/.test(n) ||

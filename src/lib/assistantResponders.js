@@ -385,6 +385,42 @@ export async function respondToIntent(intent, params, ctx, locale) {
       return lines.join('\n');
     }
 
+    // ── capabilities ─────────────────────────────────────────────────────────
+    case 'capabilities': {
+      if (en) {
+        return `💡 Here's what I can help you with:
+
+**💳 Record transactions**
+Log expenses, income, investments, MSI installments, scheduled payments, and rent — just tell me what you spent or received.
+
+**📊 Consult your finances**
+Ask me about expenses, income, or balances for any period (today, this week, this month, etc.) or per person.
+
+**📅 Upcoming payments**
+See what you have pending in the next few days: scheduled payments, MSI installments, and rent.
+
+**📈 Reports & comparisons**
+Top spending categories, merchants, compare this month vs last month, and more.
+
+What would you like to do?`;
+      }
+      return `💡 Esto es lo que puedo hacer por ti:
+
+**💳 Registrar movimientos**
+Gastos, ingresos, inversiones, MSI, pagos programados y rentas — solo cuéntame qué pagaste o recibiste.
+
+**📊 Consultar tus finanzas**
+Pregúntame por gastos, ingresos o saldos de cualquier período (hoy, esta semana, este mes, etc.) o por persona.
+
+**📅 Pagos próximos**
+Revisa qué tienes pendiente en los próximos días: pagos programados, mensualidades MSI y rentas.
+
+**📈 Reportes y comparaciones**
+Top categorías de gasto, comercios frecuentes, comparativa con el mes anterior y más.
+
+¿En qué te ayudo hoy?`;
+    }
+
     default:
       return null;
   }
