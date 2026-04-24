@@ -259,20 +259,24 @@ export default function Assistant() {
   // 1. LLM messages come from the server subscription already in correct order.
   //    We merge llmUserMessages (shown immediately) with llmMessages (from server).
   //    Once the server has the user message, we drop the local copy to avoid duplicates.
-  // Strip internal system headers and metadata blocks before comparing/displaying
+  // Strip internal system headers and metadata blocks before displaying
   function cleanUserContent(raw) {
     if (!raw) return raw;
-    return raw
-      .replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '')
-      .replace(/\[LOCALE:[^\]]*\]/g, '')
-      .replace(/\[FAMILY_ID:[^\]]*\]/g, '')
-      .replace(/\[PERSON_ID:[^\]]*\]/g, '')
-      .replace(/\[PERSON_NAME:[^\]]*\]/g, '')
-      .replace(/\[FAMILY_NAME:[^\]]*\]/g, '')
-      .replace(/\[UNLINKED_USER:[^\]]*\]/g, '')
-      .replace(/\[SYSTEM_CONTEXT:[^\]]*\]/g, '')
-      .replace(/\[CLIENT_RESOLVED:[^\]]*\]/g, '')
-      .trim();
+    let s = raw;
+    // 1. Remove large SYSTEM_METADATA JSON block
+    s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
+    // 2. If message starts with [LOCALE: or [CLIENT_RESOLVED: header pattern,
+    //    everything before the last double-newline is internal — keep only what's after it
+    if (s.match(/^\s*\[(LOCALE|CLIENT_RESOLVED|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/)) {
+      const lastDouble = s.lastIndexOf('\n\n');
+      if (lastDouble !== -1) {
+        s = s.slice(lastDouble + 2);
+      } else {
+        // No double newline: the whole thing is internal, return empty
+        s = '';
+      }
+    }
+    return s.trim();
   }
 
   const serverUserContents = new Set(
