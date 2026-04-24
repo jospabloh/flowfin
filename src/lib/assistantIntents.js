@@ -286,12 +286,25 @@ export function detectIntent(text, ctx = {}) {
     /mi\s*ingreso/.test(n) ||
     /\b(balance|saldo)\b/.test(n) ||
     /gasto\s*(total|del\s*mes|mensual|semanal|diario)/.test(n) ||
-    /total\s*(de\s*(mis\s*)?gastos|gastado)/.test(n);
+    /total\s*(de\s*(mis\s*)?gastos|gastado)/.test(n) ||
+    /cu[aá]nto\s*(he\s*)?gastado\s*(en\s*)?(este|el)?\s*mes/.test(n) ||
+    /cu[aá]nto\s*(llevo|tengo)\s*(gastado|de\s*gasto)/.test(n) ||
+    /resumen\s*(del\s*mes|mensual|financiero|de\s*gastos)/.test(n) ||
+    /c[oó]mo\s*(voy|estoy|est[aá])\s*(con\s*)?(el\s*)?(gasto|dinero|presupuesto|finanzas)/.test(n) ||
+    /mis\s*(gastos|finanzas|n[uú]meros)\s*(del\s*mes|de\s*hoy|de\s*esta\s*semana)?/.test(n) ||
+    /cu[aá]nto\s*(dinero|plata)\s*(he\s*)?gastado/.test(n) ||
+    /en\s*qu[eé]\s*me\s*gast[eé]/.test(n) ||
+    /gastos?\s*(de\s*)?(hoy|esta\s*semana|este\s*mes|este\s*a[nñ]o)/.test(n) ||
+    /ingreso[s]?\s*(de\s*)?(hoy|esta\s*semana|este\s*mes|este\s*a[nñ]o)/.test(n);
   const spendEN =
     /how\s*much\s*(have\s*i\s*spent|did\s*i\s*spend)/.test(n) ||
     /my\s*spending/.test(n) ||
     /my\s*income/.test(n) ||
-    /\b(balance)\b/.test(n);
+    /\b(balance)\b/.test(n) ||
+    /how\s*(am\s*i\s*doing|are\s*my\s*finances)/.test(n) ||
+    /spending\s*(summary|total|this\s*month|today|this\s*week)/.test(n) ||
+    /total\s*(expenses?|spending|income)\s*(for|this)?\s*(month|week|year|today)?/.test(n) ||
+    /what\s*(did\s*i|have\s*i)\s*spend/.test(n);
 
   if (spendES || spendEN) {
     let type = 'expense';

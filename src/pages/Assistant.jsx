@@ -174,8 +174,9 @@ export default function Assistant() {
             role: 'user',
             content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
           }).catch(() => {});
-          // Silently refresh context so the next LLM turn has up-to-date balances.
-          if (match.intent === 'register_expense' || match.intent === 'register_income') {
+          // Silently refresh context after any write operation so next turn has fresh data.
+          const isWriteIntent = match.intent === 'register_expense' || match.intent === 'register_income';
+          if (isWriteIntent) {
             refreshContext();
           }
           setSending(false);
@@ -190,9 +191,9 @@ export default function Assistant() {
     //    intent) or respondToIntent returns null (router matched but can't respond).
     setLocalMessages((prev) => [...prev, { role: 'user', content: msg, created_at: now }]);
 
-    const isAnalyticalQuery = /[?¿]|cu[aá]nto|how much|qu[eé]|what|cu[aá]l|which|saldo|balance|total|gasto|spent|llevo/i.test(msg);
+    const isAnalyticalQuery = /[?¿]|cu[aá]nto|how much|qu[eé]|what|cu[aá]l|which|saldo|balance|total|gasto|spent|llevo|resumen|promedio|average|ingreso|income|breakdown/i.test(msg);
     const backendMsg = isAnalyticalQuery
-      ? `${msg}\n\n[SYSTEM OVERRIDE: This is an analytical query. YOU ARE STRICTLY FORBIDDEN from doing mathematical calculations or estimating totals by reading the transaction history. YOU MUST invoke a database Tool Call to get the data. If you don't have a tool for this or it fails, reply EXACTLY: 'I do not have the exact updated figure at this moment.']`
+      ? `${msg}\n\n[REGLA OBLIGATORIA: Esta es una consulta analítica. PROHIBIDO calcular o estimar totales desde el historial de conversación o desde el SYSTEM_METADATA. DEBES usar la herramienta 'read Transaction' con los filtros correctos (family_id + rango de fechas) para obtener los datos reales. Si la herramienta falla o no hay datos, responde: 'No tengo el dato exacto en este momento. ¿Quieres que lo intente de nuevo?']`
       : msg;
 
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(backendMsg) });
