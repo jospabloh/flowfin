@@ -15,11 +15,12 @@ import TransactionEditModal from '@/components/TransactionEditModal';
 import TransactionFilters from '@/components/transactions/TransactionFilters';
 import TransactionGroup from '@/components/transactions/TransactionGroup';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { useT } from '@/lib/i18n/useT';
 
 function groupByDate(transactions) {
   const groups = {};
   transactions.forEach(t => {
-    const key = t.date || 'Sin fecha';
+    const key = t.date || '__nodate__';
     if (!groups[key]) groups[key] = [];
     groups[key].push(t);
   });
@@ -27,6 +28,7 @@ function groupByDate(transactions) {
 }
 
 export default function Transactions() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { familyId, currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
@@ -73,7 +75,7 @@ export default function Transactions() {
       queryClient.setQueryData(['transactions'], (old = []) => old.filter(t => t.id !== id));
       return { previous };
     },
-    onError: (err, _, ctx) => { if (ctx?.previous) queryClient.setQueryData(['transactions'], ctx.previous); toast({ title: 'Error al eliminar', description: err?.message, variant: 'destructive' }); },
+    onError: (err, _, ctx) => { if (ctx?.previous) queryClient.setQueryData(['transactions'], ctx.previous); toast({ title: t('transactions.errorDelete'), description: err?.message, variant: 'destructive' }); },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
   });
 
@@ -93,21 +95,27 @@ export default function Transactions() {
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
   const pending = allTransactions.filter(t => !t.person_id || !t.category_id);
 
-  const handleDelete = async (id) => { if (await confirmDelete('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) deleteTransactionMutation.mutate(id); };
+  const handleDelete = async (id) => { if (await confirmDelete(t('transactions.confirmDelete'))) deleteTransactionMutation.mutate(id); };
   const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions', familyId] }); queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] }); };
 
   const handleExport = () => {
-    const rows = filtered.map(t => ({
-      Fecha: t.date, Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso', Monto: t.amount,
-      Descripción: t.description || '', Rubro: categories.find(c => c.id === t.category_id)?.name || '',
-      SubRubro: subcategories.find(s => s.id === t.subcategory_id)?.name || '',
-      Quien: persons.find(p => p.id === t.person_id)?.name || '',
-      Forma: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '',
-      Requerido: t.required_type || '', Factura: t.has_invoice ? 'Sí' : 'No', Notas: t.notes || '',
+    const h = t('transactions.excelHeaders');
+    const rows = filtered.map(tx => ({
+      [h.date]: tx.date,
+      [h.type]: tx.type === 'expense' ? t('transactions.typeLabel.expense') : t('transactions.typeLabel.income'),
+      [h.amount]: tx.amount,
+      [h.description]: tx.description || '',
+      [h.category]: categories.find(c => c.id === tx.category_id)?.name || '',
+      [h.subcategory]: subcategories.find(s => s.id === tx.subcategory_id)?.name || '',
+      [h.who]: persons.find(p => p.id === tx.person_id)?.name || '',
+      [h.method]: paymentMethods.find(m => m.id === tx.payment_method_id)?.name || '',
+      [h.required]: tx.required_type || '',
+      [h.invoice]: tx.has_invoice ? t('common.yes') : t('common.no'),
+      [h.notes]: tx.notes || '',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
+    XLSX.utils.book_append_sheet(wb, ws, t('transactions.excelSheetName'));
     XLSX.writeFile(wb, `FlowFin_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
@@ -122,10 +130,10 @@ export default function Transactions() {
         <div className="flex justify-center py-3"><Spinner size="sm" /></div>
       )}
 
-      <PageHeader title="Movimientos" subtitle={`${filtered.length} registros`}
+      <PageHeader title={t('transactions.title')} subtitle={t('transactions.recordsCount').replace('{count}', filtered.length)}
         action={
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-xl text-xs font-medium text-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
-            <Download className="w-3.5 h-3.5" /> Excel
+            <Download className="w-3.5 h-3.5" /> {t('transactions.excelButton')}
           </button>
         } />
 
@@ -137,11 +145,13 @@ export default function Transactions() {
         <div className="mx-4 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{pending.length} movimiento{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de revisar</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Falta asignar persona o categoría.</p>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              {pending.length === 1 ? t('transactions.pendingOne').replace('{count}', 1) : t('transactions.pendingMany').replace('{count}', pending.length)}
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{t('transactions.pendingHint')}</p>
           </div>
           <Link to="/Assistant" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold flex-shrink-0 hover:bg-amber-600 transition-colors">
-            <MessageCircle className="w-3.5 h-3.5" /> Asistente
+            <MessageCircle className="w-3.5 h-3.5" /> {t('transactions.assistantButton')}
           </Link>
         </div>
       )}
@@ -149,7 +159,7 @@ export default function Transactions() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
       ) : groups.length === 0 ? (
-        <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
+        <EmptyState icon="📋" title={t('transactions.emptyTitle')} description={t('transactions.emptyDesc')} />
       ) : (
         <div>
           {groups.map(([date, txns]) => (
@@ -159,7 +169,7 @@ export default function Transactions() {
           ))}
           {hasMore && (
             <div className="flex justify-center py-4">
-              <button onClick={handleLoadMore} className="px-4 py-2 bg-muted rounded-xl text-sm text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">Cargar más</button>
+              <button onClick={handleLoadMore} className="px-4 py-2 bg-muted rounded-xl text-sm text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors">{t('transactions.loadMore')}</button>
             </div>
           )}
         </div>
