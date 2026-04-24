@@ -91,11 +91,30 @@ Deno.serve(async (req) => {
     }
     const rentasCategoryId = rentasCategory.id;
 
-    // 8. Resolve person name from paid_by_id if provided
+    // 8. Resolve person name from paid_by_id if provided, fallback to membership person
     let resolvedPersonName = null;
+    let resolvedPersonId = paid_by_id || null;
+
     if (paid_by_id) {
-      const persons = await base44.asServiceRole.entities.Person.filter({ id: paid_by_id });
-      resolvedPersonName = persons[0]?.name || null;
+      const persons = await base44.asServiceRole.entities.Person.filter({ family_id: familyId });
+      const found = persons.find(p => p.id === paid_by_id);
+      resolvedPersonName = found?.name || null;
+    }
+
+    // If still no person_id, use the membership-linked person (required by Transaction schema)
+    if (!resolvedPersonId) {
+      resolvedPersonId = membership.person_id || null;
+    }
+
+    // Last resort: pick the first person in the family
+    if (!resolvedPersonId) {
+      const allPersons = await base44.asServiceRole.entities.Person.filter({ family_id: familyId });
+      resolvedPersonId = allPersons[0]?.id || null;
+      if (!resolvedPersonName && allPersons[0]) resolvedPersonName = allPersons[0].name;
+    }
+
+    if (!resolvedPersonId) {
+      return Response.json({ error: 'No hay personas registradas en la familia para asignar el ingreso.' }, { status: 400 });
     }
 
     // 9. Create RentalPayment
@@ -122,7 +141,7 @@ Deno.serve(async (req) => {
         description: `🏠 Renta ${property.name}${property.tenant_name ? ` · ${property.tenant_name}` : ''} (${month})`,
         category_id: rentasCategoryId,
         payment_method_id: payment_method_id || undefined,
-        person_id: paid_by_id || undefined,
+        person_id: resolvedPersonId,
         required_type: 'Otro',
         week: getWeekNumber(date_paid),
         rental_payment_id: createdRentalPayment.id,

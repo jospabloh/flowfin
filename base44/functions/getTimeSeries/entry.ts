@@ -1,29 +1,45 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  assertFamilyMember,
-  fetchAllTransactions,
-  toISODate,
-  daysBetween,
-} from '../_txAggregateHelper.ts';
 
-// Returns the ISO date string of the Monday of the given date's week
-function getWeekBucket(dateStr: string): string {
+function toISODate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+async function fetchAllTransactions(base44, { familyId, start, end, type, personId }) {
+  const PAGE = 200;
+  let all = [];
+  let skip = 0;
+  let truncated = false;
+  const filter = { family_id: familyId };
+  if (start) filter.date = { ...filter.date, $gte: start };
+  if (end) filter.date = { ...filter.date, $lte: end };
+  if (type && type !== 'all') filter.type = type;
+  if (personId) filter.person_id = personId;
+
+  while (true) {
+    const page = await base44.asServiceRole.entities.Transaction.filter(filter, '-date', PAGE, skip);
+    all = all.concat(page || []);
+    if (!page || page.length < PAGE) break;
+    skip += PAGE;
+    if (all.length >= 2000) { truncated = true; break; }
+  }
+  return { transactions: all, truncated };
+}
+
+function getWeekBucket(dateStr) {
   const d = new Date(dateStr);
-  const dow = d.getUTCDay(); // 0=Sun
-  const diff = dow === 0 ? -6 : 1 - dow; // shift to Monday
+  const dow = d.getUTCDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
   const monday = new Date(d);
   monday.setUTCDate(d.getUTCDate() + diff);
   return toISODate(monday);
 }
 
-// Returns 'YYYY-MM-01' for the month bucket
-function getMonthBucket(dateStr: string): string {
+function getMonthBucket(dateStr) {
   return dateStr.slice(0, 7) + '-01';
 }
 
-// Generate all expected bucket keys for a range given a granularity
-function generateBuckets(start: string, end: string, granularity: string): string[] {
-  const buckets: string[] = [];
+function generateBuckets(start, end, granularity) {
+  const buckets = [];
   const endDate = new Date(end);
   let cursor = new Date(start);
 
@@ -33,7 +49,6 @@ function generateBuckets(start: string, end: string, granularity: string): strin
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
   } else if (granularity === 'week') {
-    // Start from the Monday of the start date's week
     const dow = cursor.getUTCDay();
     const diff = dow === 0 ? -6 : 1 - dow;
     cursor.setUTCDate(cursor.getUTCDate() + diff);
@@ -42,7 +57,6 @@ function generateBuckets(start: string, end: string, granularity: string): strin
       cursor.setUTCDate(cursor.getUTCDate() + 7);
     }
   } else {
-    // month
     cursor = new Date(start.slice(0, 7) + '-01');
     const endMonth = end.slice(0, 7);
     while (toISODate(cursor).slice(0, 7) <= endMonth) {
@@ -64,33 +78,22 @@ Deno.serve(async (req) => {
     const { familyId, start, end, granularity = 'day', type = 'expense', personId } = body;
 
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
-
     if (!start || !end || new Date(start) > new Date(end)) {
       return Response.json({ error: 'invalid date range' }, { status: 400 });
     }
 
     const validGranularities = ['day', 'week', 'month'];
     if (!validGranularities.includes(granularity)) {
-      return Response.json({ error: 'invalid date range' }, { status: 400 });
-    }
-
-    // Auth check before any data query
-    try {
-      await assertFamilyMember(base44, familyId);
-    } catch {
-      return Response.json({ error: 'forbidden' }, { status: 403 });
+      return Response.json({ error: 'invalid granularity' }, { status: 400 });
     }
 
     const { transactions, truncated } = await fetchAllTransactions(base44, { familyId, start, end, type, personId });
-
     const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
 
-    // Aggregate by bucket
-    const bucketMap: Record<string, { total: number; count: number }> = {};
-
+    const bucketMap = {};
     filtered.forEach(t => {
       if (!t.date) return;
-      let bucket: string;
+      let bucket;
       if (granularity === 'day') bucket = t.date.slice(0, 10);
       else if (granularity === 'week') bucket = getWeekBucket(t.date);
       else bucket = getMonthBucket(t.date);
@@ -100,7 +103,6 @@ Deno.serve(async (req) => {
       bucketMap[bucket].count++;
     });
 
-    // Fill empty buckets and sort ascending
     const allBuckets = generateBuckets(start, end, granularity);
     const buckets = allBuckets.map(bucket => ({
       bucket,
@@ -108,13 +110,7 @@ Deno.serve(async (req) => {
       count: bucketMap[bucket]?.count ?? 0,
     }));
 
-    return Response.json({
-      period: { start, end },
-      granularity,
-      type,
-      buckets,
-      truncated,
-    });
+    return Response.json({ period: { start, end }, granularity, type, buckets, truncated });
   } catch (err) {
     console.error('getTimeSeries error:', err);
     return Response.json({ error: 'internal' }, { status: 500 });
