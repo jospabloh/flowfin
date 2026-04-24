@@ -184,18 +184,23 @@ export default function Assistant() {
     const update = () => {
       if (!inputBarRef.current) return;
       const vv = window.visualViewport;
-      if (!vv) return;
+      if (!vv) {
+        inputBarRef.current.style.bottom = '0px';
+        return;
+      }
       // Distance from bottom of visualViewport to bottom of layout viewport
-      const fromBottom = window.innerHeight - (vv.offsetTop + vv.height);
-      inputBarRef.current.style.bottom = `${Math.max(0, fromBottom)}px`;
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
+      const fromBottom = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+      inputBarRef.current.style.bottom = `${fromBottom}px`;
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     };
     update();
-    window.visualViewport?.addEventListener('resize', update);
-    window.visualViewport?.addEventListener('scroll', update);
+    const vvResize = () => update();
+    const vvScroll = () => update();
+    window.visualViewport?.addEventListener('resize', vvResize);
+    window.visualViewport?.addEventListener('scroll', vvScroll);
     return () => {
-      window.visualViewport?.removeEventListener('resize', update);
-      window.visualViewport?.removeEventListener('scroll', update);
+      window.visualViewport?.removeEventListener('resize', vvResize);
+      window.visualViewport?.removeEventListener('scroll', vvScroll);
     };
   }, []);
 
@@ -447,10 +452,10 @@ export default function Assistant() {
       {/* Input — fixed, moves up with keyboard via visualViewport */}
       <div
         ref={inputBarRef}
-        className="fixed left-0 right-0 px-4 pt-2 pb-3 border-t border-border bg-background z-50"
+        className="fixed left-0 right-0 px-4 pt-2 pb-safe border-t border-border bg-card/95 backdrop-blur-sm z-[60]"
         style={{ bottom: '0px' }}
       >
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center max-w-full">
           <input
             ref={inputRef}
             type="text"
@@ -458,9 +463,9 @@ export default function Assistant() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
-            onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
+            onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
             placeholder="Escribe o habla tu transacción..."
-            className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
+            className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
           <button onClick={isListening ? stopVoice : startVoice}
             className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
