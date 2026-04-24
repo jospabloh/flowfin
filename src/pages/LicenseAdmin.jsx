@@ -7,7 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import {
   Search, Shield, CheckCircle, AlertCircle, Clock,
   X, Loader2, ChevronRight, Users, Calendar, Mail,
-  RefreshCw, ToggleLeft, ToggleRight,
+  RefreshCw, ToggleLeft, ToggleRight, CreditCard,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -27,6 +27,112 @@ const TEST_EMAIL = 'h.jospablo@gmail.com';
 
 function fmt(iso) {
   return fmtDateUtil(iso);
+}
+
+function FamilyLicenseView() {
+  const {
+    family, isAdmin, billingStatus, licensePlan, licensedMemberLimit,
+    trialDaysLeft, activeMemberCount, trialStartAt, trialEndAt,
+    licenseActivatedAt, licenseExpiresAt,
+  } = useFamily();
+
+  // Un miembro regular (no admin de familia) no tiene acceso
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Shield className="w-10 h-10 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">Acceso restringido.</p>
+      </div>
+    );
+  }
+
+  const cfg = STATUS_CONFIG[billingStatus] || STATUS_CONFIG.trial;
+  const StatusIcon = cfg.icon;
+  const planLabel = PLAN_OPTIONS.find(p => p.value === licensePlan)?.label || licensePlan || '—';
+
+  return (
+    <div className="pb-8">
+      <PageHeader
+        title="Mi Licencia"
+        subtitle={family?.name || 'Información de tu plan'}
+        icon={<CreditCard className="w-5 h-5" />}
+      />
+
+      <div className="px-4 space-y-4 max-w-lg mx-auto">
+        {/* Status badge */}
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${cfg.color} border-current/20`}>
+          <StatusIcon className="w-5 h-5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-bold">Estado: {cfg.label}</p>
+            {billingStatus === 'trial' && trialDaysLeft !== null && (
+              <p className="text-xs mt-0.5">
+                {trialDaysLeft > 0
+                  ? `Quedan ${trialDaysLeft} días de prueba`
+                  : 'El período de prueba ha terminado'}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Plan info card */}
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detalles del plan</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-muted/50 rounded-xl p-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Plan</p>
+              <p className="text-sm font-bold text-foreground">{planLabel}</p>
+            </div>
+            <div className="bg-muted/50 rounded-xl p-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Miembros</p>
+              <p className="text-sm font-bold text-foreground">
+                {activeMemberCount ?? '—'} <span className="font-normal text-muted-foreground">/ {licensedMemberLimit}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            {trialStartAt && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Inicio de prueba
+                </span>
+                <span className="font-medium text-foreground">{fmtDateUtil(trialStartAt)}</span>
+              </div>
+            )}
+            {trialEndAt && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Fin de prueba
+                </span>
+                <span className="font-medium text-foreground">{fmtDateUtil(trialEndAt)}</span>
+              </div>
+            )}
+            {licenseActivatedAt && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <CheckCircle className="w-3.5 h-3.5" /> Licencia activada
+                </span>
+                <span className="font-medium text-foreground">{fmtDateUtil(licenseActivatedAt)}</span>
+              </div>
+            )}
+            {licenseExpiresAt && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> Vence
+                </span>
+                <span className="font-medium text-foreground">{fmtDateUtil(licenseExpiresAt)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <p className="text-[11px] text-center text-muted-foreground px-4">
+          Para cambios en tu licencia, contacta al soporte de FlowFin.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function LicenseAdmin() {
@@ -88,13 +194,9 @@ export default function LicenseAdmin() {
     }
   };
 
+  // Vista básica para admin de familia (solo lectura, solo su propia familia)
   if (!isAppAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Shield className="w-10 h-10 text-muted-foreground" />
-        <p className="text-muted-foreground text-sm">Acceso restringido a administradores del sistema.</p>
-      </div>
-    );
+    return <FamilyLicenseView />;
   }
 
   const families = data?.families || [];

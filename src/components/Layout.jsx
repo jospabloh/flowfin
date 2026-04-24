@@ -4,7 +4,7 @@ import {
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank, ChevronRight,
-  Wallet, ShieldCheck, KeyRound
+  Wallet, ShieldCheck, KeyRound, BadgeCheck
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,6 +54,7 @@ const MORE_GROUPS = [
       { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta', color: 'text-pink-500', bg: 'bg-pink-500/10' },
       { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500', bg: 'bg-amber-500/10', adminOnly: true },
       { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', color: 'text-violet-500', bg: 'bg-violet-500/10', adminOnly: true },
+      { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', color: 'text-teal-600', bg: 'bg-teal-500/10', adminOnly: true },
     ],
   },
   {
@@ -99,6 +100,7 @@ const SIDEBAR_GROUPS = [
       { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta' },
       { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia', adminOnly: true },
       { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', adminOnly: true },
+      { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', adminOnly: true },
     ],
   },
   {
