@@ -366,10 +366,9 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages — scrollable with padding for fixed input */}
+      {/* Messages — scrollable, respecting input bar height */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-3"
-        style={{ paddingBottom: 'calc(75px + env(safe-area-inset-bottom, 8px))' }}
+        className="flex-1 overflow-y-auto px-4 py-3 pb-nav"
       >
         {allMessages.length === 0 && (
           <AssistantWelcome
@@ -442,10 +441,11 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — absolute within container */}
+      {/* Input — fixed above nav with z-index */}
       <div
         ref={inputBarRef}
-        className="absolute bottom-0 left-0 right-0 px-4 pt-2 pb-safe border-t border-border bg-background"
+        className="fixed bottom-16 left-0 right-0 z-40 px-4 pt-2 pb-2 border-t border-border bg-background"
+        style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex gap-2 items-center max-w-full">
           <input
