@@ -23,6 +23,7 @@ export default function Assistant() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [inputBottomOffset, setInputBottomOffset] = useState(0);
   const [ctx, setCtx] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -119,15 +120,14 @@ export default function Assistant() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [llmMessages, localPairs, llmUserMessages]);
 
-  // Adjust layout when virtual keyboard appears on mobile
+  // Track keyboard/viewport height for input positioning
   useEffect(() => {
     if (!window.visualViewport) return;
     const onResize = () => {
-      if (!containerRef.current) return;
-      const vvHeight = window.visualViewport.height;
-      containerRef.current.style.height = `${vvHeight}px`;
-      // Scroll to bottom when keyboard appears
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // How much the viewport has shrunk from the bottom = keyboard height
+      const offset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+      setInputBottomOffset(Math.max(0, offset));
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
     };
     window.visualViewport.addEventListener('resize', onResize);
     window.visualViewport.addEventListener('scroll', onResize);
@@ -330,10 +330,13 @@ export default function Assistant() {
     </div>
   );
 
+  // Input bar height for padding the message area
+  const INPUT_BAR_H = 72;
+
   return (
     <div ref={containerRef} className="flex flex-col" style={{ height: 'calc(100dvh - 130px)' }}>
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
           <Sparkles className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -343,8 +346,11 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      {/* Messages — scrollable, padded at bottom so input doesn't overlap */}
+      <div
+        className="flex-1 overflow-y-auto px-4 py-3"
+        style={{ paddingBottom: `${INPUT_BAR_H + inputBottomOffset + 8}px` }}
+      >
         {allMessages.length === 0 && (
           <AssistantWelcome
             ctx={ctx}
@@ -395,7 +401,7 @@ export default function Assistant() {
         </AnimatePresence>
 
         {sending && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-3">
             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Bot className="w-3.5 h-3.5 text-primary" />
             </div>
@@ -416,9 +422,12 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-4 pb-4 pb-safe pt-2 border-t border-border">
-        <div className="flex gap-2">
+      {/* Input — sticky at bottom, moves up with keyboard */}
+      <div
+        className="flex-shrink-0 px-4 pt-2 pb-3 border-t border-border bg-background"
+        style={{ marginBottom: inputBottomOffset > 0 ? `${inputBottomOffset}px` : '0px' }}
+      >
+        <div className="flex gap-2 items-center">
           <input
             ref={inputRef}
             type="text"
@@ -428,9 +437,9 @@ export default function Assistant() {
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 300)}
             placeholder="Escribe o habla tu transacción..."
-            className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
           <button onClick={isListening ? stopVoice : startVoice}
-            className={`p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+            className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
           <ReceiptScanButton
@@ -439,7 +448,7 @@ export default function Assistant() {
             locale={activeLocale}
           />
           <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
-            className="p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
+            className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
             <Send className="w-5 h-5" />
           </button>
         </div>
