@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ThemeProvider } from 'next-themes';
 import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
+import { QuickSettingsProvider } from '@/lib/QuickSettingsContext';
 import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
 import TutorialController from '@/components/tutorial/TutorialController';
@@ -154,14 +155,16 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </QueryClientProvider>
-      </AuthProvider>
+      <QuickSettingsProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </AuthProvider>
+      </QuickSettingsProvider>
     </ThemeProvider>
   );
 }

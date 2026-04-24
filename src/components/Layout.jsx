@@ -12,101 +12,16 @@ import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
 import TrialBanner from './TrialBanner';
 import FloatingActionButton from './FloatingActionButton';
+import QuickSettingsTrigger from './QuickSettingsTrigger';
+import QuickSettingsModal from './QuickSettingsModal';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import { useFamily } from '@/lib/FamilyContext';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import IdleWarningDialog from './IdleWarningDialog';
 import SessionExpiredDialog from './SessionExpiredDialog';
+import { useT } from '@/lib/i18n/useT';
 
 const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports', '/Assistant'];
-
-const navItems = [
-  { to: '/Dashboard', icon: Home, label: 'Inicio' },
-  { to: '/Transactions', icon: List, label: 'Movimientos' },
-  { to: '/Capture', icon: Plus, label: '', isCenter: true },
-  { to: '/Reports', icon: BarChart2, label: 'Reportes' },
-  { to: '/more', icon: MoreHorizontal, label: 'Más' },
-];
-
-// Groups for the "Más" drawer (mobile) and sidebar groups (desktop)
-const MORE_GROUPS = [
-  {
-    label: 'Herramientas',
-    items: [
-      { to: '/Assistant', icon: Sparkles, label: 'Asistente IA', color: 'text-primary', bg: 'bg-primary/10' },
-      { to: '/Budget', icon: PiggyBank, label: 'Presupuesto', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
-    ],
-  },
-  {
-    label: 'Compromisos',
-    items: [
-      { to: '/ScheduledPayments', icon: CalendarCheck, label: 'Pagos del Mes', color: 'text-teal-600', bg: 'bg-teal-500/10' },
-      { to: '/Investments', icon: TrendingUp, label: 'Inversiones', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-      { to: '/MSI', icon: CreditCard, label: 'MSI', color: 'text-purple-500', bg: 'bg-purple-500/10' },
-      { to: '/Rentals', icon: Building, label: 'Rentas', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    ],
-  },
-  {
-    label: 'Configuración',
-    items: [
-      { to: '/Catalogs', icon: BookOpen, label: 'Catálogos', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-      { to: '/FamilySettings', icon: Wallet, label: 'Mi Familia', color: 'text-rose-500', bg: 'bg-rose-500/10' },
-      { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta', color: 'text-pink-500', bg: 'bg-pink-500/10' },
-      { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500', bg: 'bg-amber-500/10', adminOnly: true },
-    ],
-  },
-  {
-    label: 'Información',
-    items: [
-      { to: '/UserManual', icon: HelpCircle, label: 'Manual', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-      { to: '/About', icon: Info, label: 'Acerca de', color: 'text-muted-foreground', bg: 'bg-muted' },
-    ],
-  },
-];
-
-// Flat list for sidebar — with group section headers
-const SIDEBAR_GROUPS = [
-  {
-    label: null,
-    items: [
-      { to: '/Dashboard', icon: Home, label: 'Inicio' },
-      { to: '/Transactions', icon: List, label: 'Movimientos' },
-      { to: '/Reports', icon: BarChart2, label: 'Reportes' },
-    ],
-  },
-  {
-    label: 'Herramientas',
-    items: [
-      { to: '/Assistant', icon: Sparkles, label: 'Asistente IA' },
-      { to: '/Budget', icon: PiggyBank, label: 'Presupuesto' },
-    ],
-  },
-  {
-    label: 'Compromisos',
-    items: [
-      { to: '/ScheduledPayments', icon: CalendarCheck, label: 'Pagos del Mes' },
-      { to: '/Investments', icon: TrendingUp, label: 'Inversiones' },
-      { to: '/MSI', icon: CreditCard, label: 'MSI' },
-      { to: '/Rentals', icon: Building, label: 'Rentas' },
-    ],
-  },
-  {
-    label: 'Configuración',
-    items: [
-      { to: '/Catalogs', icon: BookOpen, label: 'Catálogos' },
-      { to: '/FamilySettings', icon: Wallet, label: 'Mi Familia' },
-      { to: '/AccountSettings', icon: Settings, label: 'Mi Cuenta' },
-      { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia', adminOnly: true },
-    ],
-  },
-  {
-    label: 'Información',
-    items: [
-      { to: '/UserManual', icon: HelpCircle, label: 'Manual' },
-      { to: '/About', icon: Info, label: 'Acerca de' },
-    ],
-  },
-];
 
 export default function Layout() {
   const location = useLocation();
@@ -117,6 +32,94 @@ export default function Layout() {
   const { idleState, sessionExpired, continueSession } = useSessionManager();
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
+  const t = useT();
+
+  // Nav definitions use t() so they re-render when language changes
+  const navItems = [
+    { to: '/Dashboard', icon: Home, label: t('nav.home') },
+    { to: '/Transactions', icon: List, label: t('nav.transactions') },
+    { to: '/Capture', icon: Plus, label: '', isCenter: true },
+    { to: '/Reports', icon: BarChart2, label: t('nav.reports') },
+    { to: '/more', icon: MoreHorizontal, label: t('nav.more') },
+  ];
+
+  const MORE_GROUPS = [
+    {
+      label: t('nav.tools'),
+      items: [
+        { to: '/Assistant', icon: Sparkles, label: t('nav.assistant'), color: 'text-primary', bg: 'bg-primary/10' },
+        { to: '/Budget', icon: PiggyBank, label: t('nav.budget'), color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+      ],
+    },
+    {
+      label: t('nav.commitments'),
+      items: [
+        { to: '/ScheduledPayments', icon: CalendarCheck, label: t('nav.scheduledPayments'), color: 'text-teal-600', bg: 'bg-teal-500/10' },
+        { to: '/Investments', icon: TrendingUp, label: t('nav.investments'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+        { to: '/MSI', icon: CreditCard, label: t('nav.msi'), color: 'text-purple-500', bg: 'bg-purple-500/10' },
+        { to: '/Rentals', icon: Building, label: t('nav.rentals'), color: 'text-blue-500', bg: 'bg-blue-500/10' },
+      ],
+    },
+    {
+      label: t('nav.configuration'),
+      items: [
+        { to: '/Catalogs', icon: BookOpen, label: t('nav.catalogs'), color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        { to: '/FamilySettings', icon: Wallet, label: t('nav.family'), color: 'text-rose-500', bg: 'bg-rose-500/10' },
+        { to: '/AccountSettings', icon: Settings, label: t('nav.account'), color: 'text-pink-500', bg: 'bg-pink-500/10' },
+        { to: '/FamilyAdmin', icon: Users, label: t('nav.admin'), color: 'text-amber-500', bg: 'bg-amber-500/10', adminOnly: true },
+      ],
+    },
+    {
+      label: t('nav.info'),
+      items: [
+        { to: '/UserManual', icon: HelpCircle, label: t('nav.manual'), color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+        { to: '/About', icon: Info, label: t('nav.about'), color: 'text-muted-foreground', bg: 'bg-muted' },
+      ],
+    },
+  ];
+
+  const SIDEBAR_GROUPS = [
+    {
+      label: null,
+      items: [
+        { to: '/Dashboard', icon: Home, label: t('nav.home') },
+        { to: '/Transactions', icon: List, label: t('nav.transactions') },
+        { to: '/Reports', icon: BarChart2, label: t('nav.reports') },
+      ],
+    },
+    {
+      label: t('nav.tools'),
+      items: [
+        { to: '/Assistant', icon: Sparkles, label: t('nav.assistant') },
+        { to: '/Budget', icon: PiggyBank, label: t('nav.budget') },
+      ],
+    },
+    {
+      label: t('nav.commitments'),
+      items: [
+        { to: '/ScheduledPayments', icon: CalendarCheck, label: t('nav.scheduledPayments') },
+        { to: '/Investments', icon: TrendingUp, label: t('nav.investments') },
+        { to: '/MSI', icon: CreditCard, label: t('nav.msi') },
+        { to: '/Rentals', icon: Building, label: t('nav.rentals') },
+      ],
+    },
+    {
+      label: t('nav.configuration'),
+      items: [
+        { to: '/Catalogs', icon: BookOpen, label: t('nav.catalogs') },
+        { to: '/FamilySettings', icon: Wallet, label: t('nav.family') },
+        { to: '/AccountSettings', icon: Settings, label: t('nav.account') },
+        { to: '/FamilyAdmin', icon: Users, label: t('nav.adminFamily'), adminOnly: true },
+      ],
+    },
+    {
+      label: t('nav.info'),
+      items: [
+        { to: '/UserManual', icon: HelpCircle, label: t('nav.manual') },
+        { to: '/About', icon: Info, label: t('nav.about') },
+      ],
+    },
+  ];
 
   const handleNavClick = (path) => {
     if (path !== location.pathname) navigate(path);
@@ -139,6 +142,7 @@ export default function Layout() {
       <TrialBanner />
       <IdleWarningDialog open={idleState === 'idle_warning'} onContinue={continueSession} />
       <SessionExpiredDialog open={sessionExpired} />
+      <QuickSettingsModal />
       <div className="flex flex-1 overflow-hidden">
 
         {/* Desktop Sidebar */}
@@ -196,7 +200,7 @@ export default function Layout() {
           {/* System Admin — only visible for app-level admins */}
           {currentUser?.role === 'admin' && (
             <div className="px-3 border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1">
-              <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
+              <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">{t('nav.sistema')}</p>
               <button
                 onClick={() => handleNavClick('/LicenseAdmin')}
                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
@@ -205,33 +209,38 @@ export default function Layout() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               >
                 <ShieldCheck className="w-4 h-4" />
-                Licencias
+                {t('nav.licenses')}
               </button>
             </div>
           )}
 
           {/* Bottom actions */}
           <div className="p-4 border-t border-border space-y-2">
-            <ThemeToggle showLabel />
+            <QuickSettingsTrigger size="sidebar" />
             <button onClick={() => handleNavClick('/Capture')}
               className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
               <Plus className="w-4 h-4" />
-              Registrar
+              {t('nav.register')}
             </button>
           </div>
         </aside>
 
         {/* Main content */}
         <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
-          {showBack && (
-            <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
-              <button onClick={handleBack} aria-label="Regresar"
-                className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity">
-                <ChevronLeft className="w-5 h-5" aria-hidden="true" />
-                Atrás
-              </button>
+          {/* Mobile top bar — always visible, back button shown conditionally */}
+          <div className="md:hidden flex items-center justify-between px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+            <div>
+              {showBack && (
+                <button onClick={handleBack} aria-label={t('nav.back')}
+                  className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity">
+                  <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+                  {t('nav.back')}
+                </button>
+              )}
             </div>
-          )}
+            <QuickSettingsTrigger size="mobile" />
+          </div>
+
           <div className="flex-1 mb-nav md:mb-0 overflow-y-auto hide-scrollbar" id="main-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
             <Outlet />
           </div>
@@ -253,19 +262,19 @@ export default function Layout() {
               if (item.to === '/more') {
                 return (
                   <button key="more" onClick={() => setShowMore(true)}
-                    aria-label="Abrir más opciones"
+                    aria-label={t('nav.openMore')}
                     aria-haspopup="dialog"
                     aria-expanded={showMore}
                     className={`flex flex-col items-center gap-0.5 py-1 w-full transition-all touch-target
                       ${isMoreActive ? 'text-primary' : 'text-muted-foreground'}`}>
                     <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
-                    <span className="text-[10px] font-medium">Más</span>
+                    <span className="text-[10px] font-medium">{t('nav.more')}</span>
                   </button>
                 );
               }
               if (item.isCenter) {
                 return (
-                  <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label="Registrar nuevo movimiento"
+                  <button key={item.to} onClick={() => handleNavClick(item.to)} aria-label={t('nav.newTransaction')}
                     className="flex items-center justify-center w-full py-1 transition-transform active:scale-95">
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary shadow-lg shadow-primary/30">
                       <Plus className="w-6 h-6 text-primary-foreground" aria-hidden="true" />
@@ -316,14 +325,10 @@ export default function Layout() {
                 <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3" aria-hidden="true" />
 
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-                  <h3 id="more-options-title" className="font-semibold text-foreground">Más opciones</h3>
-                  <button onClick={() => setShowMore(false)} aria-label="Cerrar" className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
+                  <h3 id="more-options-title" className="font-semibold text-foreground">{t('nav.moreOptions')}</h3>
+                  <button onClick={() => setShowMore(false)} aria-label={t('nav.closeMenu')} className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
                     <X className="w-4 h-4" />
                   </button>
-                </div>
-
-                <div className="px-4 pt-2 pb-1">
-                  <ThemeToggle showLabel />
                 </div>
 
                 {/* Grouped items */}
@@ -358,17 +363,17 @@ export default function Layout() {
                 {/* Sistema — solo visible para el app-admin (owner) */}
                 {currentUser?.role === 'admin' && (
                   <div className="px-4 pb-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 mb-2 mt-3">Sistema</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 mb-2 mt-3">{t('nav.sistema')}</p>
                     <div className="grid grid-cols-4 gap-2">
                       <button
                         onClick={() => { handleNavClick('/LicenseAdmin'); setShowMore(false); }}
-                        aria-label="Licencias"
+                        aria-label={t('nav.licenses')}
                         className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
                           ${location.pathname === '/LicenseAdmin' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
                           <ShieldCheck className="w-5 h-5" aria-hidden="true" />
                         </div>
-                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
+                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">{t('nav.licenses')}</span>
                       </button>
                     </div>
                   </div>
