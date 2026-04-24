@@ -13,7 +13,12 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
     const saved = localStorage.getItem('fab-position');
     if (saved) {
       try {
-        setPosition(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Validate that position is within reasonable bounds
+        setPosition({
+          x: Math.max(-60, Math.min(60, parsed.x || 0)),
+          y: Math.max(-150, Math.min(150, parsed.y || 0)),
+        });
       } catch (e) {
         setPosition({ x: 0, y: 0 });
       }
@@ -22,7 +27,9 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
 
   // Save position on change
   const handleDragEnd = (e, info) => {
-    const newPos = { x: info.offset.x, y: info.offset.y };
+    const x = Math.max(-60, Math.min(60, info.offset.x || 0));
+    const y = Math.max(-150, Math.min(150, info.offset.y || 0));
+    const newPos = { x, y };
     setPosition(newPos);
     localStorage.setItem('fab-position', JSON.stringify(newPos));
   };
@@ -64,10 +71,10 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
   return (
     <div
       ref={containerRef}
-      className="md:hidden fixed z-50 pointer-events-none"
+      className="hidden md:hidden fixed z-50 pointer-events-none"
       style={{
         bottom: `calc(env(safe-area-inset-bottom, 0px) + 76px + ${position.y}px)`,
-        right: `calc(16px + ${-position.x}px)`,
+        right: `calc(16px - ${position.x}px)`,
       }}>
 
       <AnimatePresence>
@@ -126,11 +133,12 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
         ref={buttonRef}
         drag
         dragConstraints={{
-          top: -200,
-          left: -80,
-          right: 80,
-          bottom: 200,
+          top: -150,
+          left: -60,
+          right: 60,
+          bottom: 150,
         }}
+        dragElastic={0.2}
         onDragEnd={handleDragEnd}
         initial={{ scale: 1 }}
         animate={{ scale: isExpanded ? 0.85 : 1, opacity: isExpanded ? 0.4 : 1 }}
