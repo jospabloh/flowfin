@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
 import TrialBanner from './TrialBanner';
+import FloatingActionButton from './FloatingActionButton';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import { useFamily } from '@/lib/FamilyContext';
 import { useSessionManager } from '@/hooks/useSessionManager';
@@ -236,15 +237,8 @@ export default function Layout() {
           </div>
         </main>
 
-        {/* Floating Assistant Button — mobile only (desktop uses sidebar) */}
-        {!isAssistantPage && (
-          <button onClick={() => handleNavClick('/Assistant')}
-            className="md:hidden fixed right-4 z-50 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-105 touch-target"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)' }}
-            aria-label="Abrir asistente inteligente">
-            <Sparkles className="w-5 h-5" aria-hidden="true" />
-          </button>
-        )}
+        {/* Floating Action Button — mobile only (desktop uses sidebar) */}
+        <FloatingActionButton isAssistantPage={isAssistantPage} handleNavClick={handleNavClick} />
 
         {/* Mobile Bottom Nav */}
         <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/95 backdrop-blur-xl border-t border-border z-40 overscroll-none"
