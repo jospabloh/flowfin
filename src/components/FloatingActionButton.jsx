@@ -58,7 +58,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
                 aria-label="Chat con asistente">
                 <MessageCircle className="w-5 h-5" aria-hidden="true" />
               </button>
-              <span className="text-[11px] font-bold text-foreground bg-card/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-md whitespace-nowrap">Chat</span>
+              <span className="text-[11px] font-bold text-foreground bg-card/95 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-md whitespace-nowrap">Asistente</span>
             </motion.div>
 
             {/* Add Transaction Button — middle position */}
