@@ -368,7 +368,7 @@ export default function Assistant() {
 
       {/* Messages — scrollable, respecting input + nav */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-3 pb-[140px]"
+        className="flex-1 overflow-y-auto px-4 py-3 pb-20"
       >
         {allMessages.length === 0 && (
           <AssistantWelcome
@@ -444,7 +444,8 @@ export default function Assistant() {
       {/* Input — in flow, respects nav spacing */}
       <div
         ref={inputBarRef}
-        className="px-4 pt-2 pb-safe border-t border-border bg-background flex-shrink-0"
+        className="fixed bottom-16 left-0 right-0 px-4 pt-2 border-t border-border bg-background z-40"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex gap-2 items-center max-w-full">
           <input
