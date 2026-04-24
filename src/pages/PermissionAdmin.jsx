@@ -84,6 +84,17 @@ export default function PermissionAdmin() {
   const isPlatformAdmin = currentUser?.role === 'admin';
   const isFamilyAdmin = isAdmin;
 
+  // Construye el árbol: páginas raíz + sus hijos (sections y actions) — ANTES de cualquier return
+  const tree = useMemo(() => {
+    const pages = PERMISSION_REGISTRY.filter(i => i.kind === 'page').sort((a, b) => a.order - b.order);
+    return pages.map(page => ({
+      ...page,
+      children: PERMISSION_REGISTRY
+        .filter(i => i.parent === page.key)
+        .sort((a, b) => a.order - b.order),
+    }));
+  }, []);
+
   // Load permissions from database on mount
   useEffect(() => {
     const loadPermissions = async () => {
@@ -112,17 +123,6 @@ export default function PermissionAdmin() {
   if (!isPlatformAdmin && !isFamilyAdmin) {
     return <Navigate to="/Dashboard" replace />;
   }
-
-  // Construye el árbol: páginas raíz + sus hijos (sections y actions)
-  const tree = useMemo(() => {
-    const pages = PERMISSION_REGISTRY.filter(i => i.kind === 'page').sort((a, b) => a.order - b.order);
-    return pages.map(page => ({
-      ...page,
-      children: PERMISSION_REGISTRY
-        .filter(i => i.parent === page.key)
-        .sort((a, b) => a.order - b.order),
-    }));
-  }, []);
 
   const toggleExpand = (key) => {
     setExpandedPages(prev => {
