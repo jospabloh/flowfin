@@ -3,16 +3,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
     const body = await req.json();
     const { familyId, months = 3 } = body;
     if (!familyId) return Response.json({ error: 'Missing familyId' }, { status: 400 });
 
+    // Use service role (RLS enforced by entities)
+    const entities = base44.asServiceRole.entities;
+    
     // Fetch last N months of transactions
-    const allTx = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', 2000);
-    const categories = await base44.entities.Category.filter({ family_id: familyId });
+    const allTx = await entities.Transaction.filter({ family_id: familyId }, '-date', 2000);
+    const categories = await entities.Category.filter({ family_id: familyId });
 
     const now = new Date();
     const cutoff = new Date(now.getFullYear(), now.getMonth() - months, 1);

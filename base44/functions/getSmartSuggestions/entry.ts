@@ -3,12 +3,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await req.json();
     const { familyId, description, type = 'expense' } = body;
 
@@ -16,15 +10,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing familyId' }, { status: 400 });
     }
 
+    // Use service role (RLS enforced by entities)
+    const entities = base44.asServiceRole.entities;
+    
     // Fetch all transactions for this family
-    const transactions = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', 500);
+    const transactions = await entities.Transaction.filter({ family_id: familyId }, '-date', 500);
 
     // Fetch catalog data
     const [categories, subcategories, persons, paymentMethods] = await Promise.all([
-      base44.entities.Category.filter({ family_id: familyId }),
-      base44.entities.Subcategory.filter({ family_id: familyId }),
-      base44.entities.Person.filter({ family_id: familyId }),
-      base44.entities.PaymentMethod.filter({ family_id: familyId }),
+      entities.Category.filter({ family_id: familyId }),
+      entities.Subcategory.filter({ family_id: familyId }),
+      entities.Person.filter({ family_id: familyId }),
+      entities.PaymentMethod.filter({ family_id: familyId }),
     ]);
 
     // Filter transactions by type
