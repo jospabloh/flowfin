@@ -28,7 +28,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
   if (isAssistantPage) return null;
 
   return (
-    <div ref={containerRef} className="fixed right-4 z-50 md:hidden flex items-center justify-center"
+    <div ref={containerRef} className="fixed right-4 z-50 flex items-center justify-center"
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 76px)', width: '64px', height: '152px' }}>
 
       <AnimatePresence>
