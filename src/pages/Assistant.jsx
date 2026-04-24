@@ -281,7 +281,7 @@ export default function Assistant() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-130px)] md:h-[calc(100vh-40px)]">
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 130px)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border">
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
@@ -367,7 +367,7 @@ export default function Assistant() {
       </div>
 
       {/* Input */}
-      <div className="px-4 pb-4 pt-2 border-t border-border">
+      <div className="px-4 pb-4 pb-safe pt-2 border-t border-border">
         <div className="flex gap-2">
           <input type="text" value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
