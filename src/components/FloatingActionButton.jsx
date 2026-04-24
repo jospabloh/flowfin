@@ -16,8 +16,8 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [isExpanded]);
 
   const handleNavAndClose = (path) => {
