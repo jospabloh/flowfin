@@ -1,72 +1,138 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion';
 import { Sparkles, Plus, MessageCircle } from 'lucide-react';
+
+const BTN = 52;
+const EDGE = 12;
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function navPad() {
+  return window.innerWidth < 768 ? 80 : EDGE;
+}
+
+function getBounds() {
+  return {
+    minX: EDGE,
+    maxX: window.innerWidth - BTN - EDGE,
+    minY: EDGE,
+    maxY: window.innerHeight - BTN - navPad(),
+  };
+}
+
+function getDefaultPos() {
+  const b = getBounds();
+  return { x: b.maxX - EDGE, y: b.maxY - EDGE };
+}
+
+function loadPos() {
+  try {
+    const raw = localStorage.getItem('fab-pos-v2');
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (typeof p.x !== 'number' || typeof p.y !== 'number') return null;
+    const b = getBounds();
+    return { x: clamp(p.x, b.minX, b.maxX), y: clamp(p.y, b.minY, b.maxY) };
+  } catch {
+    return null;
+  }
+}
+
+function getSecondaryInfo(fabX, fabY) {
+  const DIST = 76;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const onRight = fabX > vw * 0.55;
+  const onBottom = fabY > vh * 0.55;
+  // angle: 0=right, 90=up (screen y inverted)
+  const a1 = onRight ? (onBottom ? 135 : 225) : (onBottom ? 45 : 315);
+  const a2 = onBottom ? 90 : 270;
+  const toOff = (deg) => ({
+    x: Math.cos((deg * Math.PI) / 180) * DIST,
+    y: -Math.sin((deg * Math.PI) / 180) * DIST,
+  });
+  return {
+    off1: toOff(a1),
+    off2: toOff(a2),
+    labelsAbove: onBottom,
+  };
+}
 
 export default function FloatingActionButton({ isAssistantPage, handleNavClick }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [pos, setPos] = useState(null);
   const containerRef = useRef(null);
-  const buttonRef = useRef(null);
+  const dragControls = useDragControls();
+  const xMV = useMotionValue(0);
+  const yMV = useMotionValue(0);
+  const wasDragging = useRef(false);
 
-  // Load saved position on mount
   useEffect(() => {
-    const saved = localStorage.getItem('fab-position');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Validate that position is within reasonable bounds
-        setPosition({
-          x: Math.max(-60, Math.min(60, parsed.x || 0)),
-          y: Math.max(-150, Math.min(150, parsed.y || 0)),
-        });
-      } catch (e) {
-        setPosition({ x: 0, y: 0 });
-      }
-    }
+    const p = loadPos() ?? getDefaultPos();
+    setPos(p);
+    xMV.set(p.x);
+    yMV.set(p.y);
   }, []);
 
-  // Save position on change
-  const handleDragEnd = (e, info) => {
-    const x = Math.max(-60, Math.min(60, info.offset.x || 0));
-    const y = Math.max(-150, Math.min(150, info.offset.y || 0));
-    const newPos = { x, y };
-    setPosition(newPos);
-    localStorage.setItem('fab-position', JSON.stringify(newPos));
-  };
+  useEffect(() => {
+    const onResize = () => {
+      const b = getBounds();
+      const x = clamp(xMV.get(), b.minX, b.maxX);
+      const y = clamp(yMV.get(), b.minY, b.maxY);
+      xMV.set(x);
+      yMV.set(y);
+      setPos({ x, y });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [xMV, yMV]);
 
-  // Close when clicking outside
+  const handleDragEnd = useCallback((_, info) => {
+    if (Math.abs(info.offset.x) > 4 || Math.abs(info.offset.y) > 4) {
+      wasDragging.current = true;
+      // Reset after click event window so flag doesn't persist if no click fires
+      setTimeout(() => { wasDragging.current = false; }, 0);
+    }
+    const b = getBounds();
+    const x = clamp(xMV.get(), b.minX, b.maxX);
+    const y = clamp(yMV.get(), b.minY, b.maxY);
+    xMV.set(x);
+    yMV.set(y);
+    const newPos = { x, y };
+    setPos(newPos);
+    localStorage.setItem('fab-pos-v2', JSON.stringify(newPos));
+  }, [xMV, yMV]);
+
   useEffect(() => {
     if (!isExpanded) return;
-
-    const handleClickOutside = (e) => {
+    const onDown = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsExpanded(false);
       }
     };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
   }, [isExpanded]);
+
+  const handleButtonClick = () => {
+    if (wasDragging.current) {
+      wasDragging.current = false;
+      return;
+    }
+    setIsExpanded((v) => !v);
+  };
 
   const handleNavAndClose = (path) => {
     handleNavClick(path);
     setIsExpanded(false);
   };
 
-  if (isAssistantPage) return null;
+  if (isAssistantPage || !pos) return null;
 
-  // Calculate secondary button positions dynamically based on viewport
-  const getSecondaryPosition = (angle) => {
-    const distance = 80;
-    const radians = (angle * Math.PI) / 180;
-    return {
-      x: Math.cos(radians) * distance,
-      y: Math.sin(radians) * distance,
-    };
-  };
-
-  const chatPos = getSecondaryPosition(135); // Upper left
-  const addPos = getSecondaryPosition(45);   // Upper right
+  const b = getBounds();
+  const { off1, off2, labelsAbove } = getSecondaryInfo(pos.x, pos.y);
+  const labelClass = `text-[10px] font-bold text-white bg-black/85 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none border border-white/10`;
+  const colDir = labelsAbove ? 'flex-col-reverse' : 'flex-col';
 
   return (
     <>
@@ -76,86 +142,95 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-30 pointer-events-auto md:hidden"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-40"
             onClick={() => setIsExpanded(false)}
             aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      <div
+      <motion.div
         ref={containerRef}
-        className="md:hidden fixed z-50 pointer-events-none"
+        drag
+        dragControls={dragControls}
+        dragListener={false}
+        dragMomentum={false}
+        dragElastic={0}
+        dragConstraints={{ left: b.minX, top: b.minY, right: b.maxX, bottom: b.maxY }}
+        onDragEnd={handleDragEnd}
         style={{
-          bottom: `calc(env(safe-area-inset-bottom, 0px) + 76px + ${position.y}px)`,
-          right: `calc(16px - ${position.x}px)`,
-        }}>
-
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          x: xMV,
+          y: yMV,
+          width: BTN,
+          height: BTN,
+          zIndex: 50,
+        }}
+        className="pointer-events-none"
+      >
         <AnimatePresence>
           {isExpanded && (
             <>
-              {/* Chat Button — upper-left */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1, x: chatPos.x, y: chatPos.y }}
-                exit={{ opacity: 0, scale: 0.5 }}
+                key="chat"
+                initial={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
+                animate={{ opacity: 1, scale: 1, x: off1.x, y: off1.y }}
+                exit={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 260 }}
-                className="absolute flex flex-col items-center gap-1.5 pointer-events-auto z-50"
-                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}>
+                className={`absolute top-0 left-0 flex ${colDir} items-center gap-1.5 pointer-events-auto`}
+              >
                 <button
                   onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}
-                  className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-xl shadow-secondary/40 active:scale-95 transition-transform hover:scale-110 touch-target ring-2 ring-secondary/40 ring-offset-2 ring-offset-background"
-                  aria-label="Chat con asistente">
+                  className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-xl shadow-secondary/40 active:scale-95 transition-transform hover:scale-110 ring-2 ring-secondary/40 ring-offset-2 ring-offset-background"
+                  aria-label="Chat con asistente"
+                >
                   <MessageCircle className="w-5 h-5" aria-hidden="true" />
                 </button>
-                <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none border border-white/10">Asistente</span>
+                <span className={labelClass}>Asistente</span>
               </motion.div>
 
-              {/* Add Transaction Button — upper-right */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1, x: addPos.x, y: addPos.y }}
-                exit={{ opacity: 0, scale: 0.5 }}
+                key="add"
+                initial={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
+                animate={{ opacity: 1, scale: 1, x: off2.x, y: off2.y }}
+                exit={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
                 transition={{ type: 'spring', damping: 22, stiffness: 260, delay: 0.04 }}
-                className="absolute flex flex-col items-center gap-1.5 pointer-events-auto z-50"
-                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}>
+                className={`absolute top-0 left-0 flex ${colDir} items-center gap-1.5 pointer-events-auto`}
+              >
                 <button
                   onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}
-                  className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-110 touch-target ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
-                  aria-label="Agregar movimiento">
+                  className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-110 ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
+                  aria-label="Agregar movimiento"
+                >
                   <Plus className="w-5 h-5" aria-hidden="true" />
                 </button>
-                <span className="text-[10px] font-bold text-white bg-black/85 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-lg whitespace-nowrap pointer-events-none border border-white/10">Agregar</span>
+                <span className={labelClass}>Agregar</span>
               </motion.div>
             </>
           )}
         </AnimatePresence>
 
-        {/* Main Button — arrastrable */}
         <motion.button
-          ref={buttonRef}
-          drag
-          dragConstraints={{
-            top: -150,
-            left: -60,
-            right: 60,
-            bottom: 150,
-          }}
-          dragElastic={0.2}
-          onDragEnd={handleDragEnd}
-          initial={{ scale: 1 }}
-          animate={{ scale: isExpanded ? 0.85 : 1, opacity: isExpanded ? 0.4 : 1 }}
+          animate={{ scale: isExpanded ? 0.9 : 1 }}
           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute w-[52px] h-[52px] rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-105 touch-target pointer-events-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background cursor-grab active:cursor-grabbing"
+          onPointerDown={(e) => dragControls.start(e)}
+          onClick={handleButtonClick}
+          style={{ touchAction: 'none' }}
+          className="absolute inset-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 hover:scale-105 pointer-events-auto ring-2 ring-primary/30 ring-offset-2 ring-offset-background cursor-grab active:cursor-grabbing"
           aria-label="Abrir opciones flotantes"
-          aria-expanded={isExpanded}>
-          <motion.div animate={{ rotate: isExpanded ? 20 : 0 }} transition={{ type: 'spring', damping: 20, stiffness: 300 }}>
+          aria-expanded={isExpanded}
+        >
+          <motion.div
+            animate={{ rotate: isExpanded ? 20 : 0 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+          >
             <Sparkles className="w-5 h-5" aria-hidden="true" />
           </motion.div>
         </motion.button>
-      </div>
+      </motion.div>
     </>
   );
 }
