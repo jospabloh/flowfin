@@ -182,15 +182,10 @@ export default function Assistant() {
       console.warn('intent router failed, falling back to LLM', err);
     }
 
-    // 2) LLM fallback — show user message immediately, bot reply comes via subscription
+    // 2) LLM fallback — show user message immediately (display only the original text, not the header)
     setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
 
-    const isAnalyticalQuery = /[?¿]|cu[aá]nto|how much|qu[eé]|what|cu[aá]l|which|saldo|balance|total|gasto|spent|llevo|resumen|promedio|average|ingreso|income|breakdown/i.test(msg);
-    const backendMsg = isAnalyticalQuery
-      ? `${msg}\n\n[REGLA OBLIGATORIA: Esta es una consulta analítica. PROHIBIDO calcular o estimar totales desde el historial de conversación o desde el SYSTEM_METADATA. DEBES usar la herramienta 'read Transaction' con los filtros correctos (family_id + rango de fechas) para obtener los datos reales. Si la herramienta falla o no hay datos, responde: 'No tengo el dato exacto en este momento. ¿Quieres que lo intente de nuevo?']`
-      : msg;
-
-    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(backendMsg) });
+    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
   }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
 
