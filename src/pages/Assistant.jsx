@@ -14,12 +14,11 @@ export default function Assistant() {
   const { currentUser, family, familyId, familyConfig, membership } = useFamily();
   const { persons } = useCatalog(familyId);
   const [conversation, setConversation] = useState(null);
-  // llmMessages: only assistant messages from the LLM subscription (server-side, in order)
-  const [llmMessages, setLlmMessages] = useState([]);
-  // localPairs: {id, userMsg, botMsg?} — local resolved intent pairs, in insertion order
-  const [localPairs, setLocalPairs] = useState([]);
-  // llmUserMessages: user messages sent to the LLM (to show them before the bot replies)
-  const [llmUserMessages, setLlmUserMessages] = useState([]);
+  // allMessages: single source of truth for displayed messages, in insertion order
+  // Each entry: { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'llm', ts }
+  const [displayMessages, setDisplayMessages] = useState([]);
+  // Track server-confirmed message ids to avoid duplication
+  const serverMsgIdsRef = useRef(new Set());
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -34,6 +33,22 @@ export default function Assistant() {
   const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
   const voiceLang = activeLocale.startsWith('en') ? 'en-US' : activeLocale;
 
+  // Strip internal system headers/metadata from user message content for display
+  function cleanContent(raw) {
+    if (!raw) return '';
+    let s = raw;
+    s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
+    s = s.replace(/^\s*\[CLIENT_RESOLVED:[^\]]*\]\s*/g, '');
+    const headerPattern = /^\s*\[(?:LOCALE|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
+    if (headerPattern.test(s)) {
+      const lastDouble = s.lastIndexOf('\n\n');
+      s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
+    }
+    s = s.trim();
+    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT)/.test(s)) return '';
+    return s;
+  }
+
   // Create a fresh conversation on mount — no messages sent here.
   useEffect(() => {
     if (!currentUser) return;
@@ -43,18 +58,62 @@ export default function Assistant() {
       metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
     }).then(c => {
       setConversation(c);
-      setLlmMessages(c.messages?.filter(m => (m.content || '').trim()) || []);
+      // Load any existing messages (e.g. page refresh)
+      const existing = (c.messages || []).filter(m => (m.content || '').trim());
+      if (existing.length > 0) {
+        const msgs = existing
+          .map((m, i) => ({
+            id: m.id || `init-${i}`,
+            role: m.role,
+            content: m.role === 'user' ? cleanContent(m.content) : m.content,
+            source: 'llm',
+            ts: i,
+          }))
+          .filter(m => m.role !== 'user' || m.content);
+        setDisplayMessages(msgs);
+        msgs.forEach(m => serverMsgIdsRef.current.add(m.id));
+      }
     });
   }, [currentUser]);
 
-  // Subscribe to conversation updates from the LLM.
-  // We receive all messages in order. We filter out empty assistant messages.
-  // User messages from the LLM flow are tracked separately so we can pair them with bot replies.
+  // Subscribe to conversation updates — merge new LLM messages into displayMessages
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const msgs = (data.messages || []).filter((m) => (m.content || '').trim());
-      setLlmMessages(msgs);
+      const msgs = (data.messages || []).filter(m => (m.content || '').trim());
+      setDisplayMessages(prev => {
+        const newMsgs = [];
+        for (const m of msgs) {
+          const msgId = m.id || m._id;
+          if (!msgId) continue;
+          if (serverMsgIdsRef.current.has(msgId)) continue;
+          // Skip audit trail user messages (CLIENT_RESOLVED) — they clean to empty
+          const content = m.role === 'user' ? cleanContent(m.content) : m.content;
+          if (!content && m.role === 'user') continue;
+          serverMsgIdsRef.current.add(msgId);
+          newMsgs.push({ id: msgId, role: m.role, content, source: 'llm', ts: Date.now() + newMsgs.length });
+        }
+
+        if (newMsgs.length === 0) {
+          // Streaming update: update content of last known llm assistant message
+          const lastServerAssistant = [...msgs].reverse().find(m => m.role === 'assistant');
+          if (!lastServerAssistant) return prev;
+          const lastServerId = lastServerAssistant.id || lastServerAssistant._id;
+          // Find it in prev and update if content changed
+          const idx = prev.findIndex(m => m.id === lastServerId);
+          if (idx === -1) return prev;
+          if (prev[idx].content === lastServerAssistant.content) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], content: lastServerAssistant.content };
+          return updated;
+        }
+
+        // New messages from server: insert them between existing server msgs and local msgs
+        // Local user messages that are now confirmed by server will be deduplicated in render
+        const localOnly = prev.filter(m => m.source === 'local');
+        const serverPrev = prev.filter(m => m.source === 'llm');
+        return [...serverPrev, ...newMsgs, ...localOnly];
+      });
     });
     return unsub;
   }, [conversation?.id]);
@@ -118,7 +177,7 @@ export default function Assistant() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [llmMessages, localPairs, llmUserMessages]);
+  }, [displayMessages]);
 
   // Keep input bar pinned just above the keyboard using visualViewport
   useEffect(() => {
@@ -160,17 +219,19 @@ export default function Assistant() {
     setInput('');
     setSending(true);
 
-    const now = new Date().toISOString();
+    const now = Date.now();
+    const localUserMsgId = `local-user-${now}`;
 
-    // 1) ALWAYS try the deterministic router first — LLM is last resort only.
-    //    Use ctx state if available; fall back to ctxPayloadRef (set synchronously
-    //    on load, so it may be ready even before the React state update propagates).
+    // Add user message to display immediately
+    setDisplayMessages(prev => [
+      ...prev,
+      { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now }
+    ]);
+
+    // 1) ALWAYS try the deterministic router first
     try {
       const ctxForRouter = ctx || ctxPayloadRef.current;
-      // Pass full person objects so detectIntent can match both id and name.
       const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
-      // Always ensure family.id is available so respondToIntent can call backend
-      // functions even if getAssistantContext hasn't finished loading yet.
       const routerCtx = {
         ...(ctxForRouter || {}),
         family: ctxForRouter?.family || { id: familyId },
@@ -179,18 +240,17 @@ export default function Assistant() {
       };
 
       const match = detectIntent(msg, routerCtx);
-      // detectIntent already enforces internal confidence thresholds and returns
-      // null for ambiguous cases — no secondary threshold check needed here.
-      // respondToIntent guards familyId internally and returns null when ctx is insufficient.
       if (match) {
         const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
         if (reply) {
-          const pairId = now + Math.random();
-          setLocalPairs((prev) => [
-            ...prev,
-            { id: pairId, userMsg: { role: 'user', content: msg }, botMsg: { role: 'assistant', content: reply } },
+          const botMsgId = `local-bot-${now}`;
+          // Replace the local user message and add bot response, both marked local
+          setDisplayMessages(prev => [
+            ...prev.filter(m => m.id !== localUserMsgId),
+            { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now },
+            { id: botMsgId, role: 'assistant', content: reply, source: 'local', ts: now + 1 },
           ]);
-          // Fire-and-forget audit trail
+          // Fire-and-forget audit trail to LLM (won't appear in display since it becomes empty after clean)
           base44.agents.addMessage(conversation, {
             role: 'user',
             content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
@@ -205,9 +265,7 @@ export default function Assistant() {
       console.warn('intent router failed, falling back to LLM', err);
     }
 
-    // 2) LLM fallback — show user message immediately (display only the original text, not the header)
-    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
-
+    // 2) LLM fallback — user message already in display, now send to LLM
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
   }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
@@ -215,8 +273,8 @@ export default function Assistant() {
   const handleConfirmTransaction = async () => {
     if (!conversation || sending) return;
     const msg = 'Sí, confirmo';
-    const now = new Date().toISOString();
-    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
+    const now = Date.now();
+    setDisplayMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -225,8 +283,8 @@ export default function Assistant() {
   const handleModifyTransaction = async () => {
     if (!conversation || sending) return;
     const msg = 'No, quiero modificar los datos';
-    const now = new Date().toISOString();
-    setLlmUserMessages((prev) => [...prev, { role: 'user', content: msg, _localId: now }]);
+    const now = Date.now();
+    setDisplayMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -263,69 +321,33 @@ export default function Assistant() {
     const scanThumbCaption = isEn ? 'Scanned receipt' : 'Ticket escaneado';
 
     // Immediately show a thumbnail bubble so the user sees what was sent.
-    setLlmUserMessages((prev) => [
-      ...prev,
-      {
-        role: 'user',
-        kind: 'receipt',
-        thumbnailDataUrl: parsed.thumbnailUrl,
-        summary,
-        content: scanThumbCaption,
-        _localId: new Date().toISOString(),
-      },
-    ]);
+    const now = Date.now();
+    setDisplayMessages(prev => [...prev, {
+      id: `local-receipt-${now}`,
+      role: 'user',
+      kind: 'receipt',
+      thumbnailDataUrl: parsed.thumbnailUrl,
+      summary,
+      content: scanThumbCaption,
+      source: 'local',
+      ts: now,
+    }]);
 
     sendMessage(userPrompt);
   };
 
-  // Build the final ordered message list:
-  // 1. LLM messages come from the server subscription already in correct order.
-  //    We merge llmUserMessages (shown immediately) with llmMessages (from server).
-  //    Once the server has the user message, we drop the local copy to avoid duplicates.
-  // Strip internal system headers and metadata blocks before displaying
-  function cleanUserContent(raw) {
-    if (!raw) return '';
-    let s = raw;
-
-    // 1. Remove SYSTEM_METADATA JSON block
-    s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
-
-    // 2. Strip [CLIENT_RESOLVED: intent] prefix (with or without newlines after)
-    s = s.replace(/^\s*\[CLIENT_RESOLVED:[^\]]*\]\s*/g, '');
-
-    // 3. If message still starts with internal header tags, strip up to last \n\n
-    const headerPattern = /^\s*\[(?:LOCALE|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
-    if (headerPattern.test(s)) {
-      const lastDouble = s.lastIndexOf('\n\n');
-      s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
-    }
-
-    s = s.trim();
-
-    // 4. Safety: hide raw JSON or leftover system tags
-    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT)/.test(s)) {
-      return '';
-    }
-
-    return s;
-  }
-
-  const serverUserContents = new Set(
-    llmMessages.filter(m => m.role === 'user').map(m => cleanUserContent(m.content))
-  );
-  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(cleanUserContent(m.content) || m.content));
-
-  // Clean and filter server messages
-  const cleanedLlmMessages = llmMessages
-    .map(m => m.role === 'user' ? { ...m, content: cleanUserContent(m.content) } : m)
-    .filter(m => m.role !== 'user' || (m.content && m.content.trim().length > 0));
-
-  const llmTimeline = [...cleanedLlmMessages, ...pendingLlmUserMsgs];
-
-  // Local intent pairs appended after LLM timeline
-  const localTimeline = localPairs.flatMap(p => [p.userMsg, p.botMsg]);
-
-  const allMessages = [...llmTimeline, ...localTimeline];
+  // Deduplicate: if a local message was confirmed by server (same cleaned content), remove the local one
+  const allMessages = (() => {
+    const serverUserContents = new Set(
+      displayMessages.filter(m => m.source === 'llm' && m.role === 'user').map(m => m.content)
+    );
+    return displayMessages.filter(m => {
+      if (m.source === 'local' && m.role === 'user' && !m.kind) {
+        return !serverUserContents.has(m.content);
+      }
+      return true;
+    });
+  })();
 
   if (!conversation) return (
     <div className="flex items-center justify-center h-[60vh]">
