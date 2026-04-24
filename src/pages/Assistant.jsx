@@ -444,7 +444,7 @@ export default function Assistant() {
       {/* Input — in flow, respects nav spacing */}
       <div
         ref={inputBarRef}
-        className="fixed bottom-24 left-0 right-0 px-4 pt-2 border-t border-border bg-background z-40"
+        className="fixed bottom-22 left-0 right-0 px-4 pt-2 border-t border-border bg-background z-40"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex gap-2 items-center max-w-full">
