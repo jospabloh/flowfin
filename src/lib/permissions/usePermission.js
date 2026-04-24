@@ -1,32 +1,60 @@
 import { useFamily } from '@/lib/FamilyContext';
 import { getDefaultPermission } from './registry';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
 /**
  * usePermission — hook central para verificar permisos sobre artefactos de la app.
  *
  * Resolución en tres capas (mayor prioridad primero):
  *   1. Platform admin (User.role === 'admin') → acceso total, siempre.
- *   2. Override por membresía (futuro: MembershipPermission en DB).
- *   3. Permiso por rol (RolePermission en DB, con fallback a DEFAULT_MATRIX).
+ *   2. RolePermission en BD (por familia + rol + permission_key).
+ *   3. Fallback a DEFAULT_MATRIX (congela comportamiento actual).
  *
  * @param {string} permissionKey — key del artefacto, e.g. 'page.FamilyAdmin'
  * @returns {{ can_read, can_write, can_modify, can_delete, can_view }}
  */
 export function usePermission(permissionKey) {
-  const { currentUser, membership } = useFamily();
+  const { currentUser, membership, familyId } = useFamily();
+  const role = membership?.role ?? 'member';
+
+  // Capa 2: Fetch RolePermission desde BD
+  const { data: dbPerms } = useQuery({
+    queryKey: ['rolePermissions', familyId, role, permissionKey],
+    queryFn: async () => {
+      if (!familyId) return null;
+      try {
+        const results = await base44.entities.RolePermission.filter({
+          family_id: familyId,
+          role: role,
+          permission_key: permissionKey,
+        });
+        return results?.[0] ?? null;
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 min cache
+    enabled: !!familyId,
+  });
 
   // Capa 1: platform admin siempre tiene acceso total
   if (currentUser?.role === 'admin') {
     return { can_read: true, can_write: true, can_modify: true, can_delete: true, can_view: true };
   }
 
-  const role = membership?.role ?? 'member';
+  // Si existe permiso en BD, úsalo
+  if (dbPerms) {
+    return {
+      can_read: dbPerms.can_read ?? true,
+      can_write: dbPerms.can_write ?? true,
+      can_modify: dbPerms.can_modify ?? true,
+      can_delete: dbPerms.can_delete ?? true,
+      can_view: dbPerms.can_view ?? true,
+    };
+  }
 
-  // Capa 2 (futuro): aquí irán los overrides por membresía desde DB
-  // const override = permissionOverrides?.[membership?.id]?.[permissionKey];
-  // if (override) return override;
-
-  // Capa 3: DEFAULT_MATRIX (congela el comportamiento actual de la app)
+  // Capa 3: Fallback a DEFAULT_MATRIX
   return getDefaultPermission(role, permissionKey);
 }
 

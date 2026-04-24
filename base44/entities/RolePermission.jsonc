@@ -1,0 +1,97 @@
+{
+  "name": "RolePermission",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia. null = permisos globales de plataforma"
+    },
+    "role": {
+      "type": "string",
+      "description": "Rol: 'admin', 'member', etc."
+    },
+    "permission_key": {
+      "type": "string",
+      "description": "Key del permiso, e.g. 'page.Dashboard', 'action.Transaction.create'"
+    },
+    "can_read": {
+      "type": "boolean",
+      "default": true
+    },
+    "can_write": {
+      "type": "boolean",
+      "default": true
+    },
+    "can_modify": {
+      "type": "boolean",
+      "default": true
+    },
+    "can_delete": {
+      "type": "boolean",
+      "default": true
+    },
+    "can_view": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "role",
+    "permission_key"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        },
+        {
+          "data.family_id": null
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

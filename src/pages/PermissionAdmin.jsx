@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useFamily } from '@/lib/FamilyContext';
 import { PERMISSION_REGISTRY, PERMISSION_COLUMNS, DEFAULT_MATRIX, getDefaultPermission } from '@/lib/permissions/registry';
+import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
-import { ShieldCheck, ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { ShieldCheck, ChevronDown, ChevronRight, Info, Loader2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -70,20 +71,47 @@ function ArtifactRow({ item, role, overrides, onToggle, depth = 0 }) {
 }
 
 export default function PermissionAdmin() {
-  const { currentUser, isAdmin, membership } = useFamily();
+  const { currentUser, isAdmin, membership, familyId } = useFamily();
   const { toast } = useToast();
+
+  const [selectedRole, setSelectedRole] = useState('member');
+  const [overrides, setOverrides] = useState({});
+  const [expandedPages, setExpandedPages] = useState(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingPerms, setIsLoadingPerms] = useState(true);
 
   // Solo admin de plataforma o admin de familia pueden entrar
   const isPlatformAdmin = currentUser?.role === 'admin';
   const isFamilyAdmin = isAdmin;
 
+  // Load permissions from database on mount
+  useEffect(() => {
+    const loadPermissions = async () => {
+      if (!familyId) {
+        setIsLoadingPerms(false);
+        return;
+      }
+      try {
+        const perms = await base44.entities.RolePermission.filter({ family_id: familyId });
+        const byRole = {};
+        for (const perm of perms || []) {
+          if (!byRole[perm.role]) byRole[perm.role] = {};
+          const { family_id, role, permission_key, created_date, updated_date, created_by, id, ...permData } = perm;
+          byRole[perm.role][perm.permission_key] = permData;
+        }
+        setOverrides(byRole);
+      } catch (error) {
+        console.error('Error loading permissions:', error);
+      } finally {
+        setIsLoadingPerms(false);
+      }
+    };
+    loadPermissions();
+  }, [familyId]);
+
   if (!isPlatformAdmin && !isFamilyAdmin) {
     return <Navigate to="/Dashboard" replace />;
   }
-
-  const [selectedRole, setSelectedRole] = useState('member');
-  const [overrides, setOverrides] = useState({});
-  const [expandedPages, setExpandedPages] = useState(new Set());
 
   // Construye el árbol: páginas raíz + sus hijos (sections y actions)
   const tree = useMemo(() => {
@@ -105,7 +133,8 @@ export default function PermissionAdmin() {
     });
   };
 
-  const handleToggle = (role, permKey, colKey, value) => {
+  const handleToggle = async (role, permKey, colKey, value) => {
+    // Update local state immediately (optimistic)
     setOverrides(prev => {
       const current = getEffectivePermission(prev, role, permKey);
       const updated = { ...current, [colKey]: value };
@@ -118,19 +147,107 @@ export default function PermissionAdmin() {
       };
     });
 
-    toast({
-      title: 'Permiso actualizado',
-      description: `${PERMISSION_COLUMNS.find(c => c.key === colKey)?.label} — ${PERMISSION_REGISTRY.find(r => r.key === permKey)?.label}`,
-      duration: 2000,
-    });
+    // Save to database asynchronously
+    if (familyId) {
+      try {
+        setIsSaving(true);
+        const current = getEffectivePermission(overrides, role, permKey);
+        const updated = { ...current, [colKey]: value };
+
+        // Upsert: busca registro existente, sino crea uno
+        const existing = await base44.entities.RolePermission.filter({
+          family_id: familyId,
+          role: role,
+          permission_key: permKey,
+        });
+
+        if (existing && existing.length > 0) {
+          // Update
+          await base44.entities.RolePermission.update(existing[0].id, updated);
+        } else {
+          // Create
+          await base44.entities.RolePermission.create({
+            family_id: familyId,
+            role: role,
+            permission_key: permKey,
+            ...updated,
+          });
+        }
+
+        toast({
+          title: 'Permiso guardado',
+          description: `${PERMISSION_COLUMNS.find(c => c.key === colKey)?.label} — ${PERMISSION_REGISTRY.find(r => r.key === permKey)?.label}`,
+          duration: 2000,
+        });
+      } catch (error) {
+        toast({
+          title: 'Error al guardar',
+          description: error.message || 'No se pudo guardar el permiso',
+          variant: 'destructive',
+          duration: 3000,
+        });
+        // Rollback local state
+        setOverrides(prev => {
+          const current = getEffectivePermission(prev, role, permKey);
+          const reverted = { ...current, [colKey]: !value };
+          return {
+            ...prev,
+            [role]: {
+              ...(prev[role] ?? {}),
+              [permKey]: reverted,
+            },
+          };
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
-  const handleReset = () => {
-    setOverrides(prev => ({ ...prev, [selectedRole]: {} }));
-    toast({ title: 'Permisos restablecidos', description: `Rol "${selectedRole}" vuelve a los valores predeterminados.`, duration: 2000 });
+  const handleReset = async () => {
+    if (!familyId) return;
+    try {
+      setIsSaving(true);
+      // Delete all RolePermission records for this family + role
+      const existing = await base44.entities.RolePermission.filter({
+        family_id: familyId,
+        role: selectedRole,
+      });
+
+      for (const perm of existing || []) {
+        await base44.entities.RolePermission.delete(perm.id);
+      }
+
+      setOverrides(prev => ({ ...prev, [selectedRole]: {} }));
+      toast({ 
+        title: 'Permisos restablecidos', 
+        description: `Rol "${selectedRole}" vuelve a los valores predeterminados.`, 
+        duration: 2000 
+      });
+    } catch (error) {
+      toast({
+        title: 'Error al restablecer',
+        description: error.message || 'No se pudo restablecer los permisos',
+        variant: 'destructive',
+        duration: 3000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const hasPendingChanges = Object.keys(overrides[selectedRole] ?? {}).length > 0;
+
+  if (isLoadingPerms) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Cargando permisos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -276,10 +393,18 @@ export default function PermissionAdmin() {
           </div>
         )}
 
+        {/* Estado de guardado */}
+        {isSaving && (
+          <div className="mt-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+            <p className="text-xs text-blue-700 dark:text-blue-300">Guardando permisos...</p>
+          </div>
+        )}
+
         {/* Nota sobre persistencia */}
-        <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/60">
-          <p className="text-xs text-muted-foreground">
-            <span className="font-semibold">Próximamente:</span> Los cambios de permisos se sincronizarán con la base de datos y aplicarán en tiempo real para todos los miembros de tu familia. Por ahora, los cambios son locales a esta sesión.
+        <div className="mt-3 p-3 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200/60 dark:border-green-800/40">
+          <p className="text-xs text-green-700 dark:text-green-300">
+            <span className="font-semibold">✓ Guardado en BD:</span> Los cambios de permisos se guardan automáticamente en la base de datos y aplican en tiempo real para todos los miembros de tu familia.
           </p>
         </div>
       </div>
