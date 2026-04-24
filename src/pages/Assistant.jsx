@@ -261,22 +261,28 @@ export default function Assistant() {
   //    Once the server has the user message, we drop the local copy to avoid duplicates.
   // Strip internal system headers and metadata blocks before displaying
   function cleanUserContent(raw) {
-    if (!raw) return raw;
+    if (!raw) return '';
     let s = raw;
-    // 1. Remove large SYSTEM_METADATA JSON block
+
+    // 1. Remove SYSTEM_METADATA JSON block (can be very large)
     s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
-    // 2. If message starts with [LOCALE: or [CLIENT_RESOLVED: header pattern,
-    //    everything before the last double-newline is internal — keep only what's after it
-    if (s.match(/^\s*\[(LOCALE|CLIENT_RESOLVED|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/)) {
+
+    // 2. If message starts with internal header tags, strip everything up to the last \n\n
+    //    (the actual user text always comes after the header block)
+    const headerPattern = /^\s*\[(?:LOCALE|CLIENT_RESOLVED|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
+    if (headerPattern.test(s)) {
       const lastDouble = s.lastIndexOf('\n\n');
-      if (lastDouble !== -1) {
-        s = s.slice(lastDouble + 2);
-      } else {
-        // No double newline: the whole thing is internal, return empty
-        s = '';
-      }
+      s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
     }
-    return s.trim();
+
+    s = s.trim();
+
+    // 3. Safety: if what remains still looks like raw JSON or a system tag, hide it
+    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM)/.test(s)) {
+      return '';
+    }
+
+    return s;
   }
 
   const serverUserContents = new Set(
@@ -285,9 +291,10 @@ export default function Assistant() {
   const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(cleanUserContent(m.content)));
 
   // Clean server user messages before display (strip internal headers/metadata)
-  const cleanedLlmMessages = llmMessages.map(m =>
-    m.role === 'user' ? { ...m, content: cleanUserContent(m.content) } : m
-  );
+  // Filter out messages that become empty after cleaning (pure system/context messages)
+  const cleanedLlmMessages = llmMessages
+    .map(m => m.role === 'user' ? { ...m, content: cleanUserContent(m.content) } : m)
+    .filter(m => m.role !== 'user' || (m.content && m.content.trim().length > 0));
 
   // Interleave: server messages are authoritative; pending local user msgs go at the end
   const llmTimeline = [...cleanedLlmMessages, ...pendingLlmUserMsgs];
