@@ -71,7 +71,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
   return (
     <div
       ref={containerRef}
-      className="hidden md:hidden fixed z-50 pointer-events-none"
+      className="md:hidden fixed z-50 pointer-events-none"
       style={{
         bottom: `calc(env(safe-area-inset-bottom, 0px) + 76px + ${position.y}px)`,
         right: `calc(16px - ${position.x}px)`,
