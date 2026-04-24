@@ -8,83 +8,66 @@ const FunctionDisplay = ({ toolCall }) => {
     const name = toolCall?.name || 'Function';
     const status = toolCall?.status || 'pending';
     const results = toolCall?.results;
-    
+
     const parsedResults = (() => {
         if (!results) return null;
-        try {
-            return typeof results === 'string' ? JSON.parse(results) : results;
-        } catch {
-            return results;
-        }
+        try { return typeof results === 'string' ? JSON.parse(results) : results; }
+        catch { return results; }
     })();
-    
+
     const isError = results && (
         (typeof results === 'string' && /error|failed/i.test(results)) ||
         (parsedResults?.success === false)
     );
-    
+
     const statusConfig = {
-        pending: { icon: Clock, color: 'text-slate-400', text: 'Pending' },
-        running: { icon: Loader2, color: 'text-slate-500', text: 'Running...', spin: true },
-        in_progress: { icon: Loader2, color: 'text-slate-500', text: 'Running...', spin: true },
-        completed: isError ? 
-            { icon: AlertCircle, color: 'text-red-500', text: 'Failed' } : 
-            { icon: CheckCircle2, color: 'text-green-600', text: 'Success' },
-        success: { icon: CheckCircle2, color: 'text-green-600', text: 'Success' },
-        failed: { icon: AlertCircle, color: 'text-red-500', text: 'Failed' },
-        error: { icon: AlertCircle, color: 'text-red-500', text: 'Failed' }
-    }[status] || { icon: Zap, color: 'text-slate-500', text: '' };
-    
+        pending:     { icon: Clock,        color: 'text-muted-foreground', text: 'Pendiente' },
+        running:     { icon: Loader2,      color: 'text-primary',          text: 'Procesando…', spin: true },
+        in_progress: { icon: Loader2,      color: 'text-primary',          text: 'Procesando…', spin: true },
+        completed:   isError
+            ? { icon: AlertCircle,  color: 'text-destructive', text: 'Error' }
+            : { icon: CheckCircle2, color: 'text-income',      text: 'Listo' },
+        success:     { icon: CheckCircle2, color: 'text-income',      text: 'Listo' },
+        failed:      { icon: AlertCircle,  color: 'text-destructive', text: 'Error' },
+        error:       { icon: AlertCircle,  color: 'text-destructive', text: 'Error' },
+    }[status] || { icon: Zap, color: 'text-muted-foreground', text: '' };
+
     const Icon = statusConfig.icon;
-    const formattedName = name.split('.').pop().toLowerCase();
-    
+    const formattedName = name.split('_').join(' ');
+
     return (
-        <div className="mt-2 text-xs">
+        <div className="mt-1.5 text-xs">
             <button
                 onClick={() => setExpanded(!expanded)}
                 className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all",
-                    "hover:bg-muted hover:border-border",
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all",
+                    "hover:bg-muted",
                     expanded ? "bg-muted border-border" : "bg-card border-border"
                 )}
             >
-                <Icon className={cn("h-3 w-3", statusConfig.color, statusConfig.spin && "animate-spin")} />
-                <span className="text-foreground text-xs">{formattedName}</span>
+                <Icon className={cn("h-3 w-3 flex-shrink-0", statusConfig.color, statusConfig.spin && "animate-spin")} />
+                <span className="text-muted-foreground">{formattedName}</span>
                 {statusConfig.text && (
-                    <span className={cn("text-muted-foreground text-xs", isError && "text-destructive")}>
-                        • {statusConfig.text}
+                    <span className={cn("text-muted-foreground/70", isError && "text-destructive")}>
+                        · {statusConfig.text}
                     </span>
                 )}
                 {(toolCall.arguments_string || results) && (
-                    <ChevronRight className={cn("h-3 w-3 text-muted-foreground transition-transform ml-auto", 
-                        expanded && "rotate-90")} />
+                    <ChevronRight className={cn("h-3 w-3 text-muted-foreground/50 transition-transform ml-auto", expanded && "rotate-90")} />
                 )}
             </button>
-            
+
             {expanded && (
-                <div className="mt-1.5 ml-3 pl-3 border-l-2 border-border space-y-2">
+                <div className="mt-1 ml-3 pl-3 border-l-2 border-border space-y-1.5">
                     {toolCall.arguments_string && (
-                        <div>
-                            <div className="text-xs text-muted-foreground mb-1">Parameters:</div>
-                            <pre className="bg-muted rounded-md p-2 text-xs text-foreground whitespace-pre-wrap max-h-32 overflow-auto">
-                                {(() => {
-                                    try {
-                                        return JSON.stringify(JSON.parse(toolCall.arguments_string), null, 2);
-                                    } catch {
-                                        return toolCall.arguments_string;
-                                    }
-                                })()}
-                            </pre>
-                        </div>
+                        <pre className="bg-muted rounded p-2 text-xs text-foreground whitespace-pre-wrap max-h-28 overflow-auto">
+                            {(() => { try { return JSON.stringify(JSON.parse(toolCall.arguments_string), null, 2); } catch { return toolCall.arguments_string; } })()}
+                        </pre>
                     )}
                     {parsedResults && (
-                        <div>
-                            <div className="text-xs text-muted-foreground mb-1">Result:</div>
-                            <pre className="bg-muted rounded-md p-2 text-xs text-foreground whitespace-pre-wrap max-h-32 overflow-auto">
-                                {typeof parsedResults === 'object' ? 
-                                    JSON.stringify(parsedResults, null, 2) : String(parsedResults)}
-                            </pre>
-                        </div>
+                        <pre className="bg-muted rounded p-2 text-xs text-foreground whitespace-pre-wrap max-h-28 overflow-auto">
+                            {typeof parsedResults === 'object' ? JSON.stringify(parsedResults, null, 2) : String(parsedResults)}
+                        </pre>
                     )}
                 </div>
             )}
@@ -94,31 +77,37 @@ const FunctionDisplay = ({ toolCall }) => {
 
 export default function MessageBubble({ message }) {
     const isUser = message.role === 'user';
-    
+
     return (
-        <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
+        <div className={cn("flex items-end gap-2", isUser ? "flex-row-reverse" : "flex-row")}>
+            {/* Avatar — only for assistant */}
             {!isUser && (
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mb-0.5">
                     <Bot className="w-3.5 h-3.5 text-primary" />
                 </div>
             )}
-            <div className={cn("max-w-[85%] min-w-fit", isUser && "flex flex-col items-end")}>
+
+            <div className={cn("flex flex-col gap-1", isUser ? "items-end" : "items-start", "max-w-[80%]")}>
+                {/* Content bubble */}
                 {message.content && (
                     <div className={cn(
-                        "rounded-2xl px-5 py-3.5",
+                        "px-4 py-2.5 text-sm leading-relaxed",
                         isUser
-                          ? "text-sm font-medium bg-primary text-primary-foreground rounded-tr-sm shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
-                          : "text-[15px] leading-relaxed bg-card border border-border text-foreground rounded-tl-sm shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                            ? "bg-primary text-primary-foreground rounded-2xl rounded-br-sm"
+                            : "bg-card border border-border text-foreground rounded-2xl rounded-bl-sm"
                     )}>
                         {isUser ? (
                             <p>{message.content}</p>
                         ) : (
-                            <ReactMarkdown 
+                            <ReactMarkdown
                                 className="prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                                 components={{
-                                    p: ({ children }) => <p className="mb-1 leading-relaxed">{children}</p>,
+                                    p:  ({ children }) => <p className="mb-1 last:mb-0 leading-relaxed">{children}</p>,
                                     ul: ({ children }) => <ul className="ml-4 list-disc mb-1">{children}</ul>,
+                                    ol: ({ children }) => <ol className="ml-4 list-decimal mb-1">{children}</ol>,
                                     li: ({ children }) => <li className="my-0.5">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                                    code: ({ children }) => <code className="px-1 py-0.5 rounded bg-muted text-xs font-mono">{children}</code>,
                                 }}
                             >
                                 {message.content}
@@ -126,11 +115,12 @@ export default function MessageBubble({ message }) {
                         )}
                     </div>
                 )}
-                
+
+                {/* Tool calls */}
                 {message.tool_calls?.length > 0 && (
-                    <div className="space-y-1">
-                        {message.tool_calls.map((toolCall, idx) => (
-                            <FunctionDisplay key={idx} toolCall={toolCall} />
+                    <div className="w-full space-y-1">
+                        {message.tool_calls.map((tc, idx) => (
+                            <FunctionDisplay key={idx} toolCall={tc} />
                         ))}
                     </div>
                 )}
