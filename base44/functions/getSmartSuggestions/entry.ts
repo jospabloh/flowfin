@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -27,35 +27,27 @@ Deno.serve(async (req) => {
       base44.entities.PaymentMethod.filter({ family_id: familyId }),
     ]);
 
-    // Analyze patterns
+    // Filter transactions by type
+    const filteredTxs = transactions.filter(t => t.type === type);
+
+    // Score categories, persons and payment methods by frequency/recency
     const categoryScores = {};
     const personScores = {};
     const paymentMethodScores = {};
     const descriptionPatterns = {};
 
-    // Filter transactions by type
-    const filteredTxs = transactions.filter(t => t.type === type);
-
-    // Score categories and persons based on frequency and recency
     filteredTxs.forEach((tx, index) => {
-      const recencyBoost = 1 + (index / filteredTxs.length) * 0.5; // Recent = higher score
+      const recencyBoost = 1 + (index / filteredTxs.length) * 0.5;
 
-      // Category scoring
       if (tx.category_id) {
         categoryScores[tx.category_id] = (categoryScores[tx.category_id] || 0) + recencyBoost;
       }
-
-      // Person scoring
       if (tx.person_id) {
         personScores[tx.person_id] = (personScores[tx.person_id] || 0) + recencyBoost;
       }
-
-      // Payment method scoring
       if (tx.payment_method_id) {
         paymentMethodScores[tx.payment_method_id] = (paymentMethodScores[tx.payment_method_id] || 0) + recencyBoost;
       }
-
-      // Description patterns
       if (tx.description && tx.category_id) {
         const descKey = tx.description.toLowerCase().trim();
         if (!descriptionPatterns[descKey]) {
@@ -72,7 +64,6 @@ Deno.serve(async (req) => {
     if (description && description.length > 2) {
       const descLower = description.toLowerCase();
 
-      // Find categories by description similarity
       for (const [pattern, data] of Object.entries(descriptionPatterns)) {
         if (pattern.includes(descLower) || descLower.includes(pattern.split(' ')[0])) {
           matchedCategoryId = data.category_id;
@@ -80,7 +71,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Find persons commonly associated with this description pattern
       const relatedTxs = filteredTxs.filter(t =>
         t.description && t.description.toLowerCase().includes(descLower)
       );
@@ -92,18 +82,18 @@ Deno.serve(async (req) => {
             personFreq[tx.person_id] = (personFreq[tx.person_id] || 0) + 1;
           }
         });
-        matchedPersonId = Object.keys(personFreq).sort((a, b) => personFreq[b] - personFreq[a])[0];
+        const sortedPersons = Object.keys(personFreq).sort((a, b) => personFreq[b] - personFreq[a]);
+        matchedPersonId = sortedPersons[0] || null;
       }
     }
 
-    // Build suggestions
+    // Build top suggestions
     const topCategories = Object.entries(categoryScores)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([id]) => categories.find(c => c.id === id))
       .filter(Boolean);
 
-    // Build top persons with preferredMethodId
     const topPersons = Object.entries(personScores)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -113,11 +103,12 @@ Deno.serve(async (req) => {
 
         // Calculate most-frequently-used payment method for this person
         const personTxs = filteredTxs.filter(t => t.person_id === id && t.payment_method_id);
-        const methodFreq: Record<string, number> = {};
+        const methodFreq = {};
         personTxs.forEach(tx => {
           methodFreq[tx.payment_method_id] = (methodFreq[tx.payment_method_id] || 0) + 1;
         });
-        const preferredMethodId = Object.keys(methodFreq).sort((a, b) => methodFreq[b] - methodFreq[a])[0] ?? null;
+        const sortedMethods = Object.keys(methodFreq).sort((a, b) => methodFreq[b] - methodFreq[a]);
+        const preferredMethodId = sortedMethods[0] ?? null;
 
         return { ...person, preferredMethodId };
       })
@@ -129,7 +120,7 @@ Deno.serve(async (req) => {
       .map(([id]) => paymentMethods.find(m => m.id === id))
       .filter(Boolean);
 
-    // Calculate average amount for matched category
+    // Stats for matched category
     let avgAmount = null;
     let matchedCategory = null;
     let categoryStats = null;
@@ -154,7 +145,6 @@ Deno.serve(async (req) => {
 
       matchedCategory = categories.find(c => c.id === matchedCategoryId) ?? null;
 
-      // Find most-frequently-used subcategory for matched category + description combination
       if (description && description.length > 2) {
         const descLower = description.toLowerCase();
         const relevantTxs = filteredTxs.filter(t =>
@@ -165,19 +155,16 @@ Deno.serve(async (req) => {
         );
 
         if (relevantTxs.length > 0) {
-          const subFreq: Record<string, number> = {};
+          const subFreq = {};
           relevantTxs.forEach(tx => {
             subFreq[tx.subcategory_id] = (subFreq[tx.subcategory_id] || 0) + 1;
           });
           const topSubId = Object.keys(subFreq).sort((a, b) => subFreq[b] - subFreq[a])[0];
           matchedSubcategory = subcategories.find(s => s.id === topSubId) ?? null;
         } else {
-          // Fallback: most-frequent subcategory for category alone
-          const catSubTxs = filteredTxs.filter(t =>
-            t.category_id === matchedCategoryId && t.subcategory_id
-          );
+          const catSubTxs = filteredTxs.filter(t => t.category_id === matchedCategoryId && t.subcategory_id);
           if (catSubTxs.length > 0) {
-            const subFreq: Record<string, number> = {};
+            const subFreq = {};
             catSubTxs.forEach(tx => {
               subFreq[tx.subcategory_id] = (subFreq[tx.subcategory_id] || 0) + 1;
             });
