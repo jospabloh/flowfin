@@ -259,11 +259,34 @@ export default function Assistant() {
   // 1. LLM messages come from the server subscription already in correct order.
   //    We merge llmUserMessages (shown immediately) with llmMessages (from server).
   //    Once the server has the user message, we drop the local copy to avoid duplicates.
-  const serverUserContents = new Set(llmMessages.filter(m => m.role === 'user').map(m => m.content?.trim()));
-  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(m.content?.trim()));
+  // Strip internal system headers and metadata blocks before comparing/displaying
+  function cleanUserContent(raw) {
+    if (!raw) return raw;
+    return raw
+      .replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '')
+      .replace(/\[LOCALE:[^\]]*\]/g, '')
+      .replace(/\[FAMILY_ID:[^\]]*\]/g, '')
+      .replace(/\[PERSON_ID:[^\]]*\]/g, '')
+      .replace(/\[PERSON_NAME:[^\]]*\]/g, '')
+      .replace(/\[FAMILY_NAME:[^\]]*\]/g, '')
+      .replace(/\[UNLINKED_USER:[^\]]*\]/g, '')
+      .replace(/\[SYSTEM_CONTEXT:[^\]]*\]/g, '')
+      .replace(/\[CLIENT_RESOLVED:[^\]]*\]/g, '')
+      .trim();
+  }
+
+  const serverUserContents = new Set(
+    llmMessages.filter(m => m.role === 'user').map(m => cleanUserContent(m.content))
+  );
+  const pendingLlmUserMsgs = llmUserMessages.filter(m => !serverUserContents.has(cleanUserContent(m.content)));
+
+  // Clean server user messages before display (strip internal headers/metadata)
+  const cleanedLlmMessages = llmMessages.map(m =>
+    m.role === 'user' ? { ...m, content: cleanUserContent(m.content) } : m
+  );
 
   // Interleave: server messages are authoritative; pending local user msgs go at the end
-  const llmTimeline = [...llmMessages, ...pendingLlmUserMsgs];
+  const llmTimeline = [...cleanedLlmMessages, ...pendingLlmUserMsgs];
 
   // 2. Local intent pairs (user + bot) are appended in insertion order after LLM timeline
   const localTimeline = localPairs.flatMap(p => [p.userMsg, p.botMsg]);
