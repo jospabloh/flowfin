@@ -179,29 +179,22 @@ export default function Assistant() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages]);
 
-  // Keep input bar pinned just above the keyboard using visualViewport
+  // Keep input bar visible on iOS and other devices
   useEffect(() => {
-    const update = () => {
-      if (!inputBarRef.current) return;
-      const vv = window.visualViewport;
-      if (!vv) {
-        inputBarRef.current.style.bottom = '0px';
-        return;
-      }
-      // Distance from bottom of visualViewport to bottom of layout viewport
-      const fromBottom = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
-      inputBarRef.current.style.bottom = `${fromBottom}px`;
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    const handleFocus = () => {
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
+      }, 300);
     };
-    update();
-    const vvResize = () => update();
-    const vvScroll = () => update();
-    window.visualViewport?.addEventListener('resize', vvResize);
-    window.visualViewport?.addEventListener('scroll', vvScroll);
-    return () => {
-      window.visualViewport?.removeEventListener('resize', vvResize);
-      window.visualViewport?.removeEventListener('scroll', vvScroll);
-    };
+    
+    const input = inputRef.current;
+    if (input) {
+      input.addEventListener('focus', handleFocus);
+      return () => input.removeEventListener('focus', handleFocus);
+    }
   }, []);
 
   // ── wrapWithHeader ──────────────────────────────────────────────────────────
@@ -355,7 +348,7 @@ export default function Assistant() {
   })();
 
   if (!conversation) return (
-    <div className="flex items-center justify-center h-[60vh]">
+    <div className="flex items-center justify-center min-h-screen">
       <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
     </div>
   );
@@ -449,11 +442,10 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — fixed, moves up with keyboard via visualViewport */}
+      {/* Input — pinned to bottom with safe area */}
       <div
         ref={inputBarRef}
-        className="fixed left-0 right-0 px-4 pt-2 pb-safe border-t border-border bg-card/95 backdrop-blur-sm z-[60]"
-        style={{ bottom: '0px' }}
+        className="fixed left-0 right-0 px-4 pt-2 pb-safe border-t border-border bg-background z-[9999]"
       >
         <div className="flex gap-2 items-center max-w-full">
           <input
