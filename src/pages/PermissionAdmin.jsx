@@ -258,7 +258,7 @@ export default function PermissionAdmin() {
                       : 'bg-muted text-muted-foreground hover:bg-border'
                   }`}
                 >
-                  <span>{role === 'admin' ? 'Admin' : 'Almacenista'}</span>
+                  <span>{role === 'admin' ? 'Admin' : 'Miembro Familia'}</span>
                   <span className={isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}>
                     {c.granted}/{c.total}
                   </span>
