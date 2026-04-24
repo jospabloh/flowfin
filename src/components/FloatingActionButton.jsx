@@ -54,7 +54,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               className="absolute flex flex-col items-center gap-1">
               <button
                 onClick={() => handleNavAndClose('/Assistant')}
-                className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
+                className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Chat con asistente">
                 <MessageCircle className="w-5 h-5" aria-hidden="true" />
               </button>
