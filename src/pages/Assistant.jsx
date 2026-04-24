@@ -23,10 +23,10 @@ export default function Assistant() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [inputBottomOffset, setInputBottomOffset] = useState(0);
   const [ctx, setCtx] = useState(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const inputBarRef = useRef(null);
   const recognitionRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -120,20 +120,23 @@ export default function Assistant() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [llmMessages, localPairs, llmUserMessages]);
 
-  // Track keyboard/viewport height for input positioning
+  // Keep input bar pinned just above the keyboard using visualViewport
   useEffect(() => {
-    if (!window.visualViewport) return;
-    const onResize = () => {
-      // How much the viewport has shrunk from the bottom = keyboard height
-      const offset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-      setInputBottomOffset(Math.max(0, offset));
+    const update = () => {
+      if (!inputBarRef.current) return;
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // Distance from bottom of visualViewport to bottom of layout viewport
+      const fromBottom = window.innerHeight - (vv.offsetTop + vv.height);
+      inputBarRef.current.style.bottom = `${Math.max(0, fromBottom)}px`;
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
     };
-    window.visualViewport.addEventListener('resize', onResize);
-    window.visualViewport.addEventListener('scroll', onResize);
+    update();
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
     return () => {
-      window.visualViewport.removeEventListener('resize', onResize);
-      window.visualViewport.removeEventListener('scroll', onResize);
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
     };
   }, []);
 
@@ -330,11 +333,8 @@ export default function Assistant() {
     </div>
   );
 
-  // Input bar height for padding the message area
-  const INPUT_BAR_H = 72;
-
   return (
-    <div ref={containerRef} className="flex flex-col" style={{ height: 'calc(100dvh - 130px)' }}>
+    <div ref={containerRef} className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
@@ -346,10 +346,10 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages — scrollable, padded at bottom so input doesn't overlap */}
+      {/* Messages — scrollable, extra bottom padding so fixed input doesn't cover content */}
       <div
         className="flex-1 overflow-y-auto px-4 py-3"
-        style={{ paddingBottom: `${INPUT_BAR_H + inputBottomOffset + 8}px` }}
+        style={{ paddingBottom: '90px' }}
       >
         {allMessages.length === 0 && (
           <AssistantWelcome
@@ -422,10 +422,11 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — sticky at bottom, moves up with keyboard */}
+      {/* Input — fixed, moves up with keyboard via visualViewport */}
       <div
-        className="flex-shrink-0 px-4 pt-2 pb-3 border-t border-border bg-background"
-        style={{ marginBottom: inputBottomOffset > 0 ? `${inputBottomOffset}px` : '0px' }}
+        ref={inputBarRef}
+        className="fixed left-0 right-0 px-4 pt-2 pb-3 border-t border-border bg-background z-50"
+        style={{ bottom: '0px' }}
       >
         <div className="flex gap-2 items-center">
           <input
