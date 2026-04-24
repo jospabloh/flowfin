@@ -1,9 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  assertFamilyMember,
-  fetchAllTransactions,
-  sumByType,
-} from '../_txAggregateHelper.ts';
+
+async function fetchTotals(entities, familyId, start, end, type) {
+  const filter = { family_id: familyId };
+  if (start) filter.date = { ...filter.date, $gte: start };
+  if (end) filter.date = { ...filter.date, $lte: end };
+  if (type && type !== 'all') filter.type = type;
+
+  let all = [], skip = 0, truncated = false;
+  while (true) {
+    const page = await entities.Transaction.filter(filter, '-date', 200, skip);
+    all = all.concat(page || []);
+    if (!page || page.length < 200) break;
+    skip += 200;
+    if (all.length >= 2000) { truncated = true; break; }
+  }
+
+  let expense = 0, income = 0;
+  for (const tx of all) {
+    if (typeof tx.amount !== 'number' || isNaN(tx.amount)) continue;
+    if (tx.type === 'expense') expense += tx.amount;
+    else if (tx.type === 'income') income += tx.amount;
+  }
+  return { total: { expense, income, balance: income - expense }, truncated };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -12,64 +31,27 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { familyId, currentStart, currentEnd, previousStart, previousEnd, type = 'expense', personId } = body;
-
+    const { familyId, currentStart, currentEnd, previousStart, previousEnd, type = 'expense' } = body;
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
 
-    if (
-      !currentStart || !currentEnd || new Date(currentStart) > new Date(currentEnd) ||
-      !previousStart || !previousEnd || new Date(previousStart) > new Date(previousEnd)
-    ) {
-      return Response.json({ error: 'invalid date range' }, { status: 400 });
-    }
-
-    // Auth check before any data query
-    try {
-      await assertFamilyMember(base44, familyId);
-    } catch {
-      return Response.json({ error: 'forbidden' }, { status: 403 });
-    }
-
-    // Fetch both periods in parallel
-    const [currentFetch, previousFetch] = await Promise.all([
-      fetchAllTransactions(base44, { familyId, start: currentStart, end: currentEnd, type, personId }),
-      fetchAllTransactions(base44, { familyId, start: previousStart, end: previousEnd, type, personId }),
+    const entities = base44.asServiceRole.entities;
+    const [current, previous] = await Promise.all([
+      fetchTotals(entities, familyId, currentStart, currentEnd, type),
+      fetchTotals(entities, familyId, previousStart, previousEnd, type),
     ]);
 
-    const currentSums = sumByType(currentFetch.transactions);
-    const previousSums = sumByType(previousFetch.transactions);
-
-    // Select the right amount for comparison
-    const pickAmount = (sums: ReturnType<typeof sumByType>) => {
-      if (type === 'income') return sums.income;
-      if (type === 'all') return sums.balance;
-      return sums.expense;
-    };
-
-    const currentAmount = pickAmount(currentSums);
-    const previousAmount = pickAmount(previousSums);
-
-    const absChange = currentAmount - previousAmount;
-    const pctChange = previousAmount === 0 ? null : (absChange / Math.abs(previousAmount)) * 100;
-    const direction = absChange > 0 ? 'up' : absChange < 0 ? 'down' : 'flat';
+    const currAmt = current.total.expense;
+    const prevAmt = previous.total.expense;
+    const abs = currAmt - prevAmt;
+    const pct = prevAmt > 0 ? (abs / prevAmt) * 100 : null;
 
     return Response.json({
-      type,
-      current: {
-        period: { start: currentStart, end: currentEnd },
-        total: currentAmount,
-        count: currentSums.count,
-      },
-      previous: {
-        period: { start: previousStart, end: previousEnd },
-        total: previousAmount,
-        count: previousSums.count,
-      },
-      delta: { abs: absChange, pct: pctChange, direction },
-      truncated: currentFetch.truncated || previousFetch.truncated,
+      current,
+      previous,
+      delta: { abs, pct, direction: abs >= 0 ? 'up' : 'down' },
     });
-  } catch (err) {
-    console.error('getPeriodComparison error:', err);
-    return Response.json({ error: 'internal' }, { status: 500 });
+  } catch (error) {
+    console.error('getPeriodComparison error:', error);
+    return Response.json({ error: error.message || 'internal' }, { status: 500 });
   }
 });

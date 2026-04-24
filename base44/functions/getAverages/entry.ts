@@ -1,11 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  assertFamilyMember,
-  fetchAllTransactions,
-  sumByType,
-  quantile,
-  daysBetween,
-} from '../_txAggregateHelper.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -15,49 +8,50 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { familyId, start, end, type = 'expense', personId } = body;
-
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
 
-    // Validate date range
-    if (!start || !end || new Date(start) > new Date(end)) {
-      return Response.json({ error: 'invalid date range' }, { status: 400 });
+    const entities = base44.asServiceRole.entities;
+    const filter = { family_id: familyId };
+    if (start) filter.date = { ...filter.date, $gte: start };
+    if (end) filter.date = { ...filter.date, $lte: end };
+    if (type && type !== 'all') filter.type = type;
+    if (personId) filter.person_id = personId;
+
+    let all = [], skip = 0;
+    while (true) {
+      const page = await entities.Transaction.filter(filter, '-date', 200, skip);
+      all = all.concat(page || []);
+      if (!page || page.length < 200) break;
+      skip += 200;
+      if (all.length >= 2000) break;
     }
 
-    // Auth check before any data query
-    try {
-      await assertFamilyMember(base44, familyId);
-    } catch {
-      return Response.json({ error: 'forbidden' }, { status: 403 });
+    const amounts = all.map((tx) => tx.amount ?? 0).filter((a) => typeof a === 'number' && !isNaN(a));
+    const total = amounts.reduce((s, a) => s + a, 0);
+    const count = amounts.length;
+
+    let days = 30;
+    if (start && end) {
+      const ms = new Date(end).getTime() - new Date(start).getTime();
+      days = Math.max(1, Math.round(ms / 86400000) + 1);
     }
 
-    const { transactions, truncated } = await fetchAllTransactions(base44, { familyId, start, end, type, personId });
-
-    const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
-    const { expense, income, count } = sumByType(filtered);
-    const total = type === 'income' ? income : type === 'all' ? expense + income : expense;
-
-    const days = daysBetween(start, end);
-    const avgDaily = days > 0 ? total / days : 0;
-    const avgWeekly = avgDaily * 7;
-    const avgMonthly = days > 0 ? total / (days / 30.44) : 0;
-
-    // Median of individual amounts
-    const amounts = filtered.map(t => t.amount || 0).sort((a, b) => a - b);
-    const median = amounts.length > 0 ? quantile(amounts, 0.5) : 0;
+    const sorted = [...amounts].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length === 0 ? 0 : sorted.length % 2 !== 0
+      ? sorted[mid]
+      : (sorted[mid - 1] + sorted[mid]) / 2;
 
     return Response.json({
-      period: { start, end, days },
-      type,
       total,
-      avgDaily,
-      avgWeekly,
-      avgMonthly,
-      median,
       count,
-      truncated,
+      avgDaily: days > 0 ? total / days : 0,
+      avgWeekly: days > 0 ? (total / days) * 7 : 0,
+      avgMonthly: days > 0 ? (total / days) * 30 : 0,
+      median,
     });
-  } catch (err) {
-    console.error('getAverages error:', err);
-    return Response.json({ error: 'internal' }, { status: 500 });
+  } catch (error) {
+    console.error('getAverages error:', error);
+    return Response.json({ error: error.message || 'internal' }, { status: 500 });
   }
 });

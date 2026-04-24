@@ -1,71 +1,58 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  assertFamilyMember,
-  fetchAllTransactions,
-  sumByType,
-  daysBetween,
-} from '../_txAggregateHelper.ts';
+
+async function fetchAllTransactions(entities, { familyId, start, end, type, personId, categoryId, paymentMethodId }) {
+  const PAGE = 200;
+  let all = [];
+  let skip = 0;
+  let truncated = false;
+  const filter = { family_id: familyId };
+  if (start) filter.date = { ...filter.date, $gte: start };
+  if (end) filter.date = { ...filter.date, $lte: end };
+  if (type && type !== 'all') filter.type = type;
+  if (personId) filter.person_id = personId;
+  if (categoryId) filter.category_id = categoryId;
+  if (paymentMethodId) filter.payment_method_id = paymentMethodId;
+
+  while (true) {
+    const page = await entities.Transaction.filter(filter, '-date', PAGE, skip);
+    all = all.concat(page || []);
+    if (!page || page.length < PAGE) break;
+    skip += PAGE;
+    if (all.length >= 2000) { truncated = true; break; }
+  }
+  return { transactions: all, truncated };
+}
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const {
-      familyId,
-      start,
-      end,
-      personId,
-      categoryId,
-      paymentMethodId,
-      type = 'all',
-    } = body;
+    const { familyId, start, end, type = 'all', personId, categoryId, paymentMethodId } = body;
+    if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
 
-    if (!familyId) {
-      return Response.json({ error: 'familyId required' }, { status: 400 });
-    }
-
-    // Auth: caller must be an approved family member before any data query.
-    await assertFamilyMember(base44, familyId);
-
-    const { transactions, truncated } = await fetchAllTransactions(base44, {
-      familyId,
-      start,
-      end,
-      type,
-      personId,
-      categoryId,
-      paymentMethodId,
+    const entities = base44.asServiceRole.entities;
+    const { transactions, truncated } = await fetchAllTransactions(entities, {
+      familyId, start, end, type, personId, categoryId, paymentMethodId
     });
 
-    const total = sumByType(transactions);
-
-    const appliedFilters: Record<string, unknown> = { type };
-    if (start) appliedFilters.start = start;
-    if (end) appliedFilters.end = end;
-    if (personId) appliedFilters.personId = personId;
-    if (categoryId) appliedFilters.categoryId = categoryId;
-    if (paymentMethodId) appliedFilters.paymentMethodId = paymentMethodId;
+    let expense = 0, income = 0;
+    for (const tx of transactions) {
+      if (typeof tx.amount !== 'number' || isNaN(tx.amount)) continue;
+      if (tx.type === 'expense') expense += tx.amount;
+      else if (tx.type === 'income') income += tx.amount;
+    }
+    const balance = income - expense;
 
     return Response.json({
-      period: {
-        start: start ?? null,
-        end: end ?? null,
-        days: start && end ? daysBetween(start, end) : null,
-      },
-      total,
+      period: { start: start ?? null, end: end ?? null },
+      total: { expense, income, balance },
       truncated,
-      filters: appliedFilters,
     });
   } catch (error) {
-    const status =
-      (error as Record<string, number>).httpStatus === 403 ? 403 :
-      (error as Record<string, number>).httpStatus === 401 ? 401 : null;
-
-    if (status === 403) return Response.json({ error: 'forbidden' }, { status: 403 });
-    if (status === 401) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
     console.error('getPeriodTotals error:', error);
-    return Response.json({ error: 'internal' }, { status: 500 });
+    return Response.json({ error: error.message || 'internal' }, { status: 500 });
   }
 });
