@@ -2,13 +2,32 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.13.0';
+const CURRENT_VERSION = '2.14.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.14.0',
+    date: '2026-04-24',
+    label: 'Actual',
+    changes: [
+      'Asistente IA: nueva pantalla de bienvenida dinámica con resumen del mes, desglose por integrante y chips de acciones contextuales',
+      'Asistente IA: router determinístico — responde consultas analíticas comunes sin llamar al LLM cuando la confianza es ≥ 75%',
+      'Asistente IA: escaneo de tickets por cámara — envía foto del recibo y el Asistente extrae monto, comercio y categoría automáticamente',
+      'Asistente IA: aislamiento de datos entre familias — FAMILY_ID y PERSON_ID inyectados en cada conversación (fix crítico de seguridad)',
+      'Asistente IA: el LLM solo se activa cuando el usuario envía un mensaje (lazy-inject); ya no se dispara al abrir el chat',
+      'Asistente IA: confirmación obligatoria antes de cualquier escritura — el asistente nunca registra movimientos de forma autónoma',
+      'Asistente IA: 3 capas anti-alucinación matemática — el LLM nunca calcula montos, siempre usa datos reales via Tool Calls',
+      'Asistente IA: consultas de gasto siempre acotadas al usuario autenticado; context refresh automático tras registrar un movimiento',
+      'Asistente IA: límite de 2000 registros en consultas analíticas para totales completos y correctos',
+      'Admin: nueva página "Uso de IA" con costo mensual acumulado, historial de escaneos de tickets y filtro por fecha (solo admin de plataforma)',
+      'Admin Familia: corregida pérdida de vinculación de persona al cambiar de sección sin guardar',
+      'Admin Familia: la persona vinculada a un miembro muestra su nombre correctamente (ya no mostraba "Sin vincular" tras guardar)',
+    ],
+  },
+  {
     version: '2.13.0',
     date: '2026-04-22',
-    label: 'Actual',
+    label: '',
     changes: [
       'Asistente IA: Fase 1 — consistencia visual con helpers centralizados de formateo, componente Spinner unificado y tokens de color semánticos mejorados',
       'Asistente IA: Fase 2 — inteligencia programática con normalizador de 50+ comercios mexicanos, sugerencias con scoring de confianza y detección de cantidades atípicas',

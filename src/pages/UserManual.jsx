@@ -196,78 +196,61 @@ Si tu navegador no lo soporta, el botón mostrará un aviso.`
   },
   {
     id: 'asistente', icon: '🤖', title: 'Asistente IA',
-    content: `El Asistente IA es la característica estrella de FlowFin. Permite registrar gastos e ingresos simplemente hablando o escribiendo de forma natural.
+    content: `El Asistente IA de FlowFin permite registrar movimientos, consultar tu situación financiera y escanear tickets simplemente escribiendo o hablando de forma natural.
 
-Acceso rápido: En móvil hay un botón flotante ✨ en la esquina inferior derecha. En desktop está integrado en la sidebar. El botón siempre está visible por encima de la barra de navegación.
+Acceso rápido:
+En móvil hay un botón flotante ✨ en la esquina inferior derecha, visible desde cualquier pantalla. En desktop está integrado en la sidebar.
 
-Idioma: El asistente responde en el idioma activo de la app, según el locale configurado en Mi Familia. Si la app está en español, responde en español; si está en inglés, responde en inglés. Cambia el idioma desde Mi Familia → Idioma/región y el asistente lo sigue automáticamente.
+Idioma:
+El asistente responde en el idioma configurado en Mi Familia. Cambia el idioma desde Mi Familia → Idioma/región y el asistente lo sigue automáticamente.
 
-Reconocimiento de voz: El micrófono usa el mismo idioma que la app, para una transcripción más precisa.
+Pantalla de bienvenida:
+Al abrir el Asistente por primera vez verás una pantalla de bienvenida personalizada con:
+• Resumen del mes actual: total gastado e ingresado hasta hoy.
+• Desglose por integrante si hay más de un miembro activo.
+• Próximos compromisos: pagos programados, MSI e inversiones que vencen pronto.
+• Chips de acciones rápidas contextuales según el día y hora.
 
-Inteligencia del Asistente:
-El asistente ahora cuenta con:
-• Normalización de comercios: reconoce variaciones en nombres de tiendas mexicanas (ej: "soriana", "bodega soriana", "soriana express" → misma tienda)
-• Detección de cantidades atípicas: te advierte si gastas significativamente más de lo normal en una categoría
-• Chips predictivos: sugerencias de acciones rápidas según la hora del día y el día de la semana
-• Context personal: el asistente sabe quiénes son todos los miembros de tu familia y personaliza respuestas por persona
-• Gasto recurrente: detecta automáticamente si un gasto se repite cada mes (≥3 meses consecutivos)
+Cómo funciona por dentro:
+El asistente usa un router determinístico: para consultas comunes (¿cuánto gasté?, ¿quién gastó más?, top categorías) responde directamente con datos reales sin llamar al LLM. El LLM solo entra cuando la consulta es ambigua o requiere registro de movimientos.
 
-Cálculos automáticos:
-El asistente puede calcular montos con propinas o porcentajes:
-• "188 más 10% de propina" → calcula $206.80 y confirma antes de guardar.
-• "500 más 15%" → calcula $575.00 automáticamente.
+Registrar movimientos:
+Escribe o dicta de forma natural — el asistente identifica monto, descripción, categoría y persona:
+• "Gasté 500 en gasolina hoy"
+• "Recibí 10,000 de un cliente"
+• "Registra 1,200 del súper con TDC Like U"
 
-Matching inteligente de métodos de pago:
-El asistente reconoce variaciones de escritura:
-• "tdc like u", "TDC Like U", "like u" → resuelve al método correcto registrado.
-• "débito", "efectivo", "transfer" → busca el tipo de pago correspondiente.
-• Abreviaciones y errores menores se resuelven automáticamente.
-
-Ejemplos de uso (movimiento único):
-• "Gasté 500 en gasolina hoy" → Crea el egreso, detecta categoría y guarda.
-• "Recibí 10,000 de un cliente" → Registra el ingreso.
-• "¿Cuánto gasté esta semana?" → Muestra resumen por categoría y total.
-• "Registra 1,200 del súper pagado con tdc like u" → Detecta monto, rubro y método de pago.
-
-Registrar múltiples movimientos en un solo mensaje:
-Puedes describir varios gastos o ingresos en un mismo texto o dictado de voz:
+Múltiples movimientos en un solo mensaje:
 • "Gasté 78 en la máquina y 500 en gasolina"
 • "Registra: gasolina 500, súper 1200, farmacia 200"
-• "Silvia gastó 375 en comida y yo 78 en la máquina"
+El asistente los lista todos, pide confirmación y guarda al confirmar.
 
-El asistente detecta todos los movimientos, los resume y pide confirmación antes de guardarlos:
-"✅ Identifiqué 3 movimientos:
-1. $78 — Máquina expendedora (Alimentación, Pablo)
-2. $500 — Gasolina (Transporte, Pablo)
-3. $1,200 — Súper (Alimentación, Silvia)
-¿Los guardo todos?"
+Confirmación obligatoria:
+El asistente NUNCA registra movimientos de forma autónoma. Siempre muestra el resumen y espera que confirmes antes de guardar cualquier dato.
 
-Si falta algún dato en uno de los movimientos, preguntará solo por lo que hace falta.
+Escaneo de tickets 📷:
+Toca el ícono de cámara en la barra de entrada del Asistente. Selecciona o toma una foto del recibo y el Asistente extrae el monto, el comercio y la categoría sugerida. La imagen se comprime automáticamente antes de enviarse. El límite es de 50 escaneos por familia por día.
 
-Campos obligatorios que siempre pedirá antes de guardar:
-• Monto
-• Tipo (egreso o ingreso)
-• Categoría (Rubro)
-• Persona (integrante de la familia)
-• Fecha (si no se menciona, usa hoy)
+Consultas analíticas:
+• "¿Cuánto gasté este mes?" → total del mes actual para ti
+• "¿Quién gastó más en abril?" → desglose por persona
+• "¿Cuál es mi top categoría?" → ranking de rubros
+• "¿Cuánto llevamos de gasolina este mes?" → consulta por comercio o categoría
+• "Compara este mes con el anterior" → variación porcentual
 
-También funciona con voz:
-1. Toca el ícono del micrófono en el Asistente.
-2. Habla naturalmente en español — puedes dictar varios gastos de una vez.
-3. El asistente confirma y guarda.
+Matching inteligente:
+• Normalización de comercios: "soriana", "bodega soriana", "soriana express" → mismo comercio
+• Métodos de pago: "tdc like u", "like u", "TDC Like U" → resuelve al método registrado
+• Fechas en español: "ayer", "antier", "el lunes", "la semana pasada"
+• Propinas: "188 más 10% de propina" → calcula $206.80 automáticamente
 
-Acciones pendientes: Si un movimiento no tiene persona o categoría, aparece marcado con ⚠️ en Movimientos. Puedes pedirle al asistente que los complete: "¿Cuáles movimientos están pendientes?"
+Voz:
+Toca el ícono del micrófono. El asistente usa el mismo idioma de la app. Puedes dictar varios gastos de una vez.
 
-Alertas de anomalía:
-El asistente detecta automáticamente gastos que se salen del patrón. Si gastas significativamente más de lo normal en una categoría (usando z-score estadístico), el asistente te lo señala. El sistema analiza 13 semanas de historial para establecer el patrón normal y alertar cuando hay spikes importantes.
+Acciones pendientes:
+Los movimientos sin categoría o persona aparecen con ⚠️ en Movimientos. Pregunta: "¿Cuáles movimientos están pendientes?" y el asistente los lista.
 
-Perfil de usuario:
-El asistente mantiene un perfil estadístico de tu familia: categorías principales, gasto promedio semanal, métodos de pago preferidos y días más activos. Esta información se actualiza diariamente y se usa para mejorar sugerencias.
-
-Gastos recurrentes:
-Si un gasto se repite al menos 3 meses seguidos con una variación ≤40%, el asistente lo detecta como recurrente. Te pregunta si deseas crear un Pago Programado automáticamente o dejar que lo registre manualmente cada mes.
-
-Costo: El asistente consume créditos Base44 por mensaje.
+Costo: El asistente y el escaneo de tickets consumen créditos Base44 por uso.
 Privacidad: Los datos se procesan dentro de la plataforma Base44. No se comparten con terceros.`
   },
   {
@@ -531,10 +514,10 @@ const glossary = [
   { term: 'Archivado', def: 'Estado de la cuenta cuando la licencia lleva más de 14 días vencida sin renovarse. La cuenta queda en solo lectura total y se elimina automáticamente 15 días después si no se reactiva.' },
   { term: 'Auto-renovación', def: 'Opción de licencia que renueva automáticamente el plan cada mes en la fecha de vencimiento, evitando interrupciones del servicio. Solo administradores pueden activar esta opción.' },
   { term: 'Tutorial interactivo', def: 'Guía paso a paso que aparece al entrar por primera vez a FlowFin. Recorre los módulos principales con un spotlight contextual y puede descartarse permanentemente con el checkbox "No mostrar más".' },
-  { term: 'Anomalía de gasto', def: 'Gasto que se desvía significativamente del patrón normal en una categoría. El sistema usa z-score estadístico para identificar spikes inesperados basándose en 13 semanas de historial.' },
-  { term: 'Perfil de usuario', def: 'Estadísticas automáticas de tu familia: categorías principales, gasto promedio semanal, métodos de pago preferidos y días más activos. Se actualiza diariamente y mejora las sugerencias del Asistente.' },
-  { term: 'Gasto recurrente', def: 'Transacción que se repite regularmente (≥3 meses consecutivos con varianza ≤40%). El Asistente lo detecta y sugiere crear un Pago Programado automático.' },
-  { term: 'Normalización de comercios', def: 'Capacidad del Asistente para reconocer que "Soriana", "Bodega Soriana" y "Soriana Express" son la misma tienda, consolidando gastos similares.' },
+  { term: 'Normalización de comercios', def: 'Capacidad del Asistente para reconocer variaciones de un mismo comercio ("Soriana", "Bodega Soriana", "Soriana Express") y asociarlas a la misma categoría.' },
+  { term: 'Router determinístico', def: 'Sistema interno del Asistente que responde consultas analíticas comunes (gasto del mes, top categorías, desglose por persona) directamente con datos reales sin llamar al LLM, haciendo las respuestas más rápidas y precisas.' },
+  { term: 'Escaneo de tickets', def: 'Función del Asistente que permite fotografiar un recibo de compra. La IA extrae monto, comercio y categoría sugerida automáticamente. Límite: 50 escaneos por familia por día.' },
+  { term: 'Uso de IA', def: 'Página de administración (solo admin de plataforma) que muestra el costo mensual acumulado de IA y el historial de escaneos de tickets con detalle de tokens y costo por escaneo.' },
 ];
 
 export default function UserManual() {
