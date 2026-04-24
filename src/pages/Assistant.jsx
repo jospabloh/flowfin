@@ -366,9 +366,9 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages — scrollable */}
+      {/* Messages — scrollable, respecting input + nav */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-3"
+        className="flex-1 overflow-y-auto px-4 py-3 pb-[140px]"
       >
         {allMessages.length === 0 && (
           <AssistantWelcome
