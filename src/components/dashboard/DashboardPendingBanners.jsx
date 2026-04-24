@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Bell, TrendingUp, ChevronRight } from 'lucide-react';
+import { useT } from '@/lib/i18n/useT';
 
 export default function DashboardPendingBanners({ pendingScheduled, pendingInvestments, pendingRentals }) {
+  const t = useT();
   return (
     <>
       {pendingScheduled.length > 0 && (
@@ -11,7 +13,9 @@ export default function DashboardPendingBanners({ pendingScheduled, pendingInves
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
-              {pendingScheduled.length} pago{pendingScheduled.length > 1 ? 's' : ''} programado{pendingScheduled.length > 1 ? 's' : ''} pendiente{pendingScheduled.length > 1 ? 's' : ''}
+              {pendingScheduled.length === 1
+                ? t('dashboard.pendingScheduledOne').replace('{count}', 1)
+                : t('dashboard.pendingScheduledMany').replace('{count}', pendingScheduled.length)}
             </p>
             <p className="text-xs text-amber-700 dark:text-amber-400 truncate">
               {pendingScheduled.slice(0, 3).map(p => p.name).join(', ')}{pendingScheduled.length > 3 ? '…' : ''}
@@ -28,7 +32,9 @@ export default function DashboardPendingBanners({ pendingScheduled, pendingInves
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-rose-800 dark:text-rose-300">
-              {pendingInvestments.length} inversión{pendingInvestments.length > 1 ? 'es' : ''} con pago próximo
+              {pendingInvestments.length === 1
+                ? t('dashboard.pendingInvestmentsOne').replace('{count}', 1)
+                : t('dashboard.pendingInvestmentsMany').replace('{count}', pendingInvestments.length)}
             </p>
             <p className="text-xs text-rose-700 dark:text-rose-400 truncate">
               {pendingInvestments.slice(0, 3).map(p => p.name).join(', ')}{pendingInvestments.length > 3 ? '…' : ''}
@@ -45,7 +51,9 @@ export default function DashboardPendingBanners({ pendingScheduled, pendingInves
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
-              {pendingRentals.length} renta{pendingRentals.length > 1 ? 's' : ''} sin confirmar este mes
+              {pendingRentals.length === 1
+                ? t('dashboard.pendingRentalsOne').replace('{count}', 1)
+                : t('dashboard.pendingRentalsMany').replace('{count}', pendingRentals.length)}
             </p>
             <p className="text-xs text-blue-700 dark:text-blue-400 truncate">
               {pendingRentals.slice(0, 3).map(p => p.name).join(', ')}{pendingRentals.length > 3 ? '…' : ''}

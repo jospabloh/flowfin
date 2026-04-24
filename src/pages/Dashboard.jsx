@@ -1,9 +1,10 @@
 import Spinner from '@/components/Spinner';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 import PageHeader from '@/components/PageHeader';
-import ThemeToggle from '@/components/ThemeToggle';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useT } from '@/lib/i18n/useT';
+import { useQuickSettings } from '@/lib/QuickSettingsContext';
 import DashboardFilters from '@/components/dashboard/DashboardFilters';
 import DashboardPendingBanners from '@/components/dashboard/DashboardPendingBanners';
 import DashboardSummaryCards from '@/components/dashboard/DashboardSummaryCards';
@@ -13,6 +14,9 @@ import DashboardRecentMovements from '@/components/dashboard/DashboardRecentMove
 import DashboardUpcomingPayments from '@/components/dashboard/DashboardUpcomingPayments';
 
 export default function Dashboard() {
+  const t = useT();
+  const { lang } = useQuickSettings();
+  const dateLocale = lang === 'en' ? enUS : es;
   const {
     period, setPeriod,
     personFilter, setPersonFilter,
@@ -34,9 +38,8 @@ export default function Dashboard() {
       )}
 
       <PageHeader
-        title={format(new Date(), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
-        subtitle="Resumen familiar"
-        action={<div className="md:hidden"><ThemeToggle /></div>}
+        title={format(new Date(), 'MMMM yyyy', { locale: dateLocale }).replace(/^\w/, c => c.toUpperCase())}
+        subtitle={t('dashboard.subtitle')}
       />
 
       <DashboardFilters

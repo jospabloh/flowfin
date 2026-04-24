@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
+import { useT } from '@/lib/i18n/useT';
 
 export default function DashboardSummaryCards({ income, expense, balance }) {
+  const t = useT();
   const cards = [
-    { label: 'Ingresos', amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
-    { label: 'Egresos', amount: expense, type: 'expense', icon: TrendingDown, link: '/Reports?type=expense' },
-    { label: 'Balance', amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet, link: null },
+    { label: t('dashboard.income'), amount: income, type: 'income', icon: TrendingUp, link: '/Reports?type=income' },
+    { label: t('dashboard.expense'), amount: expense, type: 'expense', icon: TrendingDown, link: '/Reports?type=expense' },
+    { label: t('dashboard.balance'), amount: Math.abs(balance), type: balance >= 0 ? 'income' : 'expense', icon: Wallet, link: null },
   ];
 
   return (
