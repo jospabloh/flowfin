@@ -40,7 +40,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-30"
               onClick={() => setIsExpanded(false)}
               aria-hidden="true"
             />
@@ -53,7 +53,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
               className="absolute flex flex-col items-center gap-2">
               <button
-                onClick={() => handleNavAndClose('/Assistant')}
+                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Assistant'); }}
                 className="w-12 h-12 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center shadow-lg shadow-secondary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Chat con asistente">
                 <MessageCircle className="w-5 h-5" aria-hidden="true" />
@@ -69,7 +69,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
               transition={{ type: 'spring', damping: 25, stiffness: 250, delay: 0.05 }}
               className="absolute flex flex-col items-center gap-2">
               <button
-                onClick={() => handleNavAndClose('/Capture')}
+                onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}
                 className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 active:scale-95 transition-transform hover:scale-110 touch-target"
                 aria-label="Agregar movimiento">
                 <Plus className="w-5 h-5" aria-hidden="true" />
