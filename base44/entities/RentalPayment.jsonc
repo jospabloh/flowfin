@@ -52,9 +52,10 @@
           }
         },
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -66,9 +67,10 @@
           }
         },
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -80,9 +82,10 @@
           }
         },
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -94,9 +97,10 @@
           }
         },
         {
-          "user_condition": {
-            "role": "user"
-          }
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

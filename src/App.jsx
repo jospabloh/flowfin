@@ -33,6 +33,7 @@ const AccountSettings = lazy(() => import('@/pages/AccountSettings'));
 const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
 const Budget = lazy(() => import('@/pages/Budget'));
 const AIUsage = lazy(() => import('@/pages/AIUsage'));
+const PermissionAdmin = lazy(() => import('@/pages/PermissionAdmin'));
 
 const FamilyGate = ({ children }) => {
   const { isLoading, membership, family, membershipError, refetchMembership } = useFamily();
@@ -142,6 +143,7 @@ const AuthenticatedApp = () => {
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />
               <Route path="/Budget" element={<Suspense fallback={<LoadingFallback />}><Budget /></Suspense>} />
               <Route path="/AIUsage" element={<Suspense fallback={<LoadingFallback />}><AIUsage /></Suspense>} />
+              <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionAdmin /></Suspense>} />
             </Route>
             <Route path="*" element={<PageNotFound />} />
           </Routes>
