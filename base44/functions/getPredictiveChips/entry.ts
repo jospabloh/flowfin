@@ -3,17 +3,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ chips: [] }, { status: 401 });
-
     const { familyId } = await req.json();
     if (!familyId) return Response.json({ chips: [] });
 
+    // Use service role (RLS enforced by entities)
+    const entities = base44.asServiceRole.entities;
+    
     // Fetch last 200 transactions sorted by -date
-    const transactions = await base44.entities.Transaction.filter({ family_id: familyId }, '-date', 200);
+    const transactions = await entities.Transaction.filter({ family_id: familyId }, '-date', 200);
 
     // Fetch categories for label fallback
-    const categories = await base44.entities.Category.filter({ family_id: familyId });
+    const categories = await entities.Category.filter({ family_id: familyId });
 
     // Determine current dayOfWeek and timeSlot from server time
     const now = new Date();
