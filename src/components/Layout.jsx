@@ -22,18 +22,23 @@ const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports', '/A
 
 const navItems = [
   { to: '/Dashboard', icon: Home, label: 'Inicio' },
-  { to: '/Transactions', icon: List, label: 'Movimientos' },
   { to: '/Capture', icon: Plus, label: '', isCenter: true },
-  { to: '/Reports', icon: BarChart2, label: 'Reportes' },
+  { to: '/Assistant', icon: Sparkles, label: 'Asistente' },
   { to: '/more', icon: MoreHorizontal, label: 'Más' },
 ];
 
 // Groups for the "Más" drawer (mobile) and sidebar groups (desktop)
 const MORE_GROUPS = [
   {
+    label: 'Navegación',
+    items: [
+      { to: '/Transactions', icon: List, label: 'Movimientos', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+      { to: '/Reports', icon: BarChart2, label: 'Reportes', color: 'text-green-600', bg: 'bg-green-500/10' },
+    ],
+  },
+  {
     label: 'Herramientas',
     items: [
-      { to: '/Assistant', icon: Sparkles, label: 'Asistente IA', color: 'text-primary', bg: 'bg-primary/10' },
       { to: '/Budget', icon: PiggyBank, label: 'Presupuesto', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
     ],
   },
