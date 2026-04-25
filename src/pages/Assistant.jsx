@@ -14,11 +14,10 @@ export default function Assistant() {
   const { currentUser, family, familyId, familyConfig, membership } = useFamily();
   const { persons } = useCatalog(familyId);
   const [conversation, setConversation] = useState(null);
-  // allMessages: single source of truth for displayed messages, in insertion order
-  // Each entry: { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'llm', ts }
-  const [displayMessages, setDisplayMessages] = useState([]);
-  // Track server-confirmed message ids to avoid duplication
-  const serverMsgIdsRef = useRef(new Set());
+  // messages: array of { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'server', ts }
+  const [messages, setMessages] = useState([]);
+  // Track ids already added from server to avoid duplication
+  const serverIdsRef = useRef(new Set());
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -67,57 +66,62 @@ export default function Assistant() {
       const existing = (c.messages || []).filter(m => (m.content || '').trim());
       if (existing.length > 0) {
         const msgs = existing
-          .map((m, i) => ({
-            id: m.id || `init-${i}`,
-            role: m.role,
-            content: m.role === 'user' ? cleanContent(m.content) : m.content,
-            source: 'llm',
-            ts: i,
-          }))
-          .filter(m => m.role !== 'user' || m.content);
-        setDisplayMessages(msgs);
-        msgs.forEach(m => serverMsgIdsRef.current.add(m.id));
+          .map((m, i) => {
+            const content = m.role === 'user' ? cleanContent(m.content) : m.content;
+            if (m.role === 'user' && !content) return null;
+            const id = m.id || `init-${i}`;
+            serverIdsRef.current.add(id);
+            return { id, role: m.role, content, source: 'server', ts: i };
+          })
+          .filter(Boolean);
+        setMessages(msgs);
       }
     });
   }, [currentUser]);
 
-  // Subscribe to conversation updates — merge new LLM messages into displayMessages
+  // Subscribe to conversation updates from server
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const msgs = (data.messages || []).filter(m => (m.content || '').trim());
-      setDisplayMessages(prev => {
-        const newMsgs = [];
-        for (const m of msgs) {
-          const msgId = m.id || m._id;
-          if (!msgId) continue;
-          if (serverMsgIdsRef.current.has(msgId)) continue;
-          // Skip audit trail user messages (CLIENT_RESOLVED) — they clean to empty
+      const serverMsgs = (data.messages || []).filter(m => (m.content || '').trim());
+
+      setMessages(prev => {
+        let updated = [...prev];
+        let changed = false;
+
+        for (const m of serverMsgs) {
+          const id = m.id || m._id;
+          if (!id) continue;
+
+          // Already tracked — check if streaming update needed
+          if (serverIdsRef.current.has(id)) {
+            if (m.role === 'assistant') {
+              const idx = updated.findIndex(x => x.id === id);
+              if (idx !== -1 && updated[idx].content !== m.content) {
+                updated = [...updated];
+                updated[idx] = { ...updated[idx], content: m.content };
+                changed = true;
+              }
+            }
+            continue;
+          }
+
+          // New message from server
           const content = m.role === 'user' ? cleanContent(m.content) : m.content;
-          if (!content && m.role === 'user') continue;
-          serverMsgIdsRef.current.add(msgId);
-          newMsgs.push({ id: msgId, role: m.role, content, source: 'llm', ts: Date.now() + newMsgs.length });
+          if (m.role === 'user' && !content) continue; // skip internal system messages
+
+          serverIdsRef.current.add(id);
+
+          // Remove any local optimistic message with the same content to avoid duplication
+          const beforeLen = updated.length;
+          updated = updated.filter(x => !(x.source === 'local' && x.role === m.role && x.content === content));
+          if (updated.length < beforeLen) changed = true;
+
+          updated = [...updated, { id, role: m.role, content, source: 'server', ts: Date.now() }];
+          changed = true;
         }
 
-        if (newMsgs.length === 0) {
-          // Streaming update: update content of last known llm assistant message
-          const lastServerAssistant = [...msgs].reverse().find(m => m.role === 'assistant');
-          if (!lastServerAssistant) return prev;
-          const lastServerId = lastServerAssistant.id || lastServerAssistant._id;
-          // Find it in prev and update if content changed
-          const idx = prev.findIndex(m => m.id === lastServerId);
-          if (idx === -1) return prev;
-          if (prev[idx].content === lastServerAssistant.content) return prev;
-          const updated = [...prev];
-          updated[idx] = { ...updated[idx], content: lastServerAssistant.content };
-          return updated;
-        }
-
-        // New messages from server: insert them between existing server msgs and local msgs
-        // Local user messages that are now confirmed by server will be deduplicated in render
-        const localOnly = prev.filter(m => m.source === 'local');
-        const serverPrev = prev.filter(m => m.source === 'llm');
-        return [...serverPrev, ...newMsgs, ...localOnly];
+        return changed ? updated : prev;
       });
     });
     return unsub;
@@ -182,7 +186,7 @@ export default function Assistant() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [displayMessages]);
+  }, [messages]);
 
   // Keep input bar visible on iOS and other devices
   useEffect(() => {
@@ -225,8 +229,8 @@ export default function Assistant() {
     const now = Date.now();
     const localUserMsgId = `local-user-${now}`;
 
-    // Add user message to display immediately
-    setDisplayMessages(prev => [
+    // Add user message to display immediately (optimistic)
+    setMessages(prev => [
       ...prev,
       { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now }
     ]);
@@ -248,7 +252,7 @@ export default function Assistant() {
         if (reply) {
           const botMsgId = `local-bot-${now}`;
           // Replace the local user message and add bot response, both marked local
-          setDisplayMessages(prev => [
+          setMessages(prev => [
             ...prev.filter(m => m.id !== localUserMsgId),
             { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now },
             { id: botMsgId, role: 'assistant', content: reply, source: 'local', ts: now + 1 },
@@ -277,7 +281,7 @@ export default function Assistant() {
     if (!conversation || sending) return;
     const msg = 'Sí, confirmo';
     const now = Date.now();
-    setDisplayMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
+    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -287,7 +291,7 @@ export default function Assistant() {
     if (!conversation || sending) return;
     const msg = 'No, quiero modificar los datos';
     const now = Date.now();
-    setDisplayMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
+    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
     setSending(true);
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
@@ -329,7 +333,7 @@ export default function Assistant() {
 
     // 1. Show thumbnail bubble immediately (clean, no JSON)
     const now = Date.now();
-    setDisplayMessages(prev => [...prev, {
+    setMessages(prev => [...prev, {
       id: `local-receipt-${now}`,
       role: 'user',
       kind: 'receipt',
@@ -355,9 +359,9 @@ export default function Assistant() {
     setSending(false);
   };
 
-  // Detect if last assistant message is asking who the expense belongs to
+  // Detect if last assistant message is asking who the expense belongs to (person chips)
   const personQuestionChips = (() => {
-    const lastAssistant = [...displayMessages].reverse().find(m => m.role === 'assistant');
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAssistant?.content) return null;
     const c = lastAssistant.content;
     const isPersonQuestion =
@@ -365,8 +369,6 @@ export default function Assistant() {
       /¿de\s*qui[eé]n\s*es/.test(c.toLowerCase()) ||
       /¿es\s*de\s*\w+\s*o\s*\w+\?/i.test(c) ||
       /¿para\s*qui[eé]n/.test(c.toLowerCase()) ||
-      /¿pablo\s*o\s*silvia\?/i.test(c) ||
-      /¿silvia\s*o\s*pablo\?/i.test(c) ||
       /who\s*(is\s*this|does\s*this\s*belong)/i.test(c) ||
       (/¿[^?]*\s*o\s*[^?]*\?/.test(c) && persons?.some(p => c.toLowerCase().includes(p.name.toLowerCase())));
     if (!isPersonQuestion) return null;
@@ -374,18 +376,16 @@ export default function Assistant() {
     return persons.map(p => ({ id: p.id, name: p.name }));
   })();
 
-  // Deduplicate: if a local message was confirmed by server (same cleaned content), remove the local one
-  const allMessages = (() => {
-    const serverUserContents = new Set(
-      displayMessages.filter(m => m.source === 'llm' && m.role === 'user').map(m => m.content)
-    );
-    return displayMessages.filter(m => {
-      if (m.source === 'local' && m.role === 'user' && !m.kind) {
-        return !serverUserContents.has(m.content);
-      }
-      return true;
-    });
-  })();
+  // Detect if last assistant message is a confirmation question (Sí/No chips)
+  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+  const isLastMsgConfirmation = !sending && lastAssistantMsg && (
+    lastAssistantMsg.content?.includes('¿Confirmas') ||
+    lastAssistantMsg.content?.includes('¿Lo guardo') ||
+    lastAssistantMsg.content?.includes('¿Los guardo') ||
+    lastAssistantMsg.content?.includes('¿Guardamos') ||
+    lastAssistantMsg.content?.includes('Confirm?') ||
+    lastAssistantMsg.content?.includes('Shall I save')
+  );
 
   if (!conversation) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -408,7 +408,7 @@ export default function Assistant() {
 
       {/* Messages — scrollable area */}
       <div className="flex-1 overflow-y-auto px-4 py-3 pb-4">
-        {allMessages.length === 0 && (
+        {messages.length === 0 && (
           <AssistantWelcome
             ctx={ctx}
             locale={activeLocale}
@@ -417,21 +417,12 @@ export default function Assistant() {
         )}
 
         <AnimatePresence>
-          {allMessages.map((msg, i) => {
-            const isLastMessage = i === allMessages.length - 1;
-            const isConfirmationMessage = msg.role !== 'user' && (
-              msg.content?.includes('¿Confirmas') ||
-              msg.content?.includes('¿Lo guardo') ||
-              msg.content?.includes('¿Los guardo') ||
-              msg.content?.includes('¿Guardamos') ||
-              msg.content?.includes('Confirm?') ||
-              msg.content?.includes('Shall I save')
-            );
-            const prevMsg = allMessages[i - 1];
+          {messages.map((msg, i) => {
+            const prevMsg = messages[i - 1];
             const isGrouped = prevMsg && prevMsg.role === msg.role;
 
             return (
-              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 className={isGrouped ? 'mt-1' : 'mt-3'}>
                 {msg.kind === 'receipt' ? (
                   <div className="flex justify-end">
@@ -445,19 +436,6 @@ export default function Assistant() {
                 ) : (
                   <MessageBubble message={msg} hideAvatar={isGrouped} />
                 )}
-                {isLastMessage && isConfirmationMessage && (
-                  <div className="flex gap-2 mt-3 ml-9">
-                    <button onClick={handleConfirmTransaction}
-                      className="flex-1 py-2.5 rounded-lg bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
-                      Sí, guardar
-                    </button>
-                    <button onClick={handleModifyTransaction}
-                      className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
-                      No, modificar
-                    </button>
-                  </div>
-                )}
-
               </motion.div>
             );
           })}
@@ -485,10 +463,22 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Person chips — shown above input when LLM asks who the expense belongs to */}
-      {personQuestionChips && !sending && (
-        <div className="flex-shrink-0 px-4 pb-2 pt-1 flex flex-wrap gap-2 border-t border-border bg-background">
-          {personQuestionChips.map(p => (
+      {/* Action chips — shown above input bar, never hidden by sending state */}
+      {(isLastMsgConfirmation || (personQuestionChips && !sending)) && (
+        <div className="flex-shrink-0 px-4 pb-2 pt-2 border-t border-border bg-background flex flex-wrap gap-2">
+          {isLastMsgConfirmation && (
+            <>
+              <button onClick={handleConfirmTransaction}
+                className="flex-1 py-2.5 rounded-xl bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
+                ✅ Sí, guardar
+              </button>
+              <button onClick={handleModifyTransaction}
+                className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
+                ✏️ No, modificar
+              </button>
+            </>
+          )}
+          {!isLastMsgConfirmation && personQuestionChips && personQuestionChips.map(p => (
             <button
               key={p.id}
               onClick={() => sendMessage(p.name)}
