@@ -143,7 +143,6 @@ export default function ReceiptScanButton({ onScanComplete, disabled = false, lo
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
