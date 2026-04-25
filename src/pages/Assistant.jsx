@@ -334,8 +334,8 @@ export default function Assistant() {
     setSending(true);
     const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed })}<<<SYSTEM_METADATA_END>>>`;
     const llmMessage = isEn
-      ? `${metadata}\n\n${summary}. Please log this expense.`
-      : `${metadata}\n\n${summary}. Por favor regístralo como gasto.`;
+      ? `${metadata}\n\n${summary}. This is a scanned receipt. Read the Category and Person entities first, then show me a confirmation summary and ask who this expense belongs to before saving. Do NOT save yet.`
+      : `${metadata}\n\n${summary}. Esto es un ticket escaneado. Lee las entidades Category y Person primero, luego muéstrame un resumen de confirmación y pregúntame a quién pertenece este gasto antes de guardar. NO guardes todavía. Al confirmar, guarda usando write Transaction.`;
 
     await base44.agents.addMessage(conversation, {
       role: 'user',
@@ -343,6 +343,25 @@ export default function Assistant() {
     });
     setSending(false);
   };
+
+  // Detect if last assistant message is asking who the expense belongs to
+  const personQuestionChips = (() => {
+    const lastAssistant = [...displayMessages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant?.content) return null;
+    const c = lastAssistant.content;
+    const isPersonQuestion =
+      /¿a\s*qui[eé]n\s*pertenece/.test(c.toLowerCase()) ||
+      /¿de\s*qui[eé]n\s*es/.test(c.toLowerCase()) ||
+      /¿es\s*de\s*\w+\s*o\s*\w+\?/i.test(c) ||
+      /¿para\s*qui[eé]n/.test(c.toLowerCase()) ||
+      /¿pablo\s*o\s*silvia\?/i.test(c) ||
+      /¿silvia\s*o\s*pablo\?/i.test(c) ||
+      /who\s*(is\s*this|does\s*this\s*belong)/i.test(c) ||
+      (/¿[^?]*\s*o\s*[^?]*\?/.test(c) && persons?.some(p => c.toLowerCase().includes(p.name.toLowerCase())));
+    if (!isPersonQuestion) return null;
+    if (!persons || persons.length === 0) return null;
+    return persons.map(p => ({ id: p.id, name: p.name }));
+  })();
 
   // Deduplicate: if a local message was confirmed by server (same cleaned content), remove the local one
   const allMessages = (() => {
@@ -425,6 +444,19 @@ export default function Assistant() {
                       className="flex-1 py-2.5 rounded-lg bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
                       No, modificar
                     </button>
+                  </div>
+                )}
+                {isLastMessage && personQuestionChips && (
+                  <div className="flex flex-wrap gap-2 mt-3 ml-9">
+                    {personQuestionChips.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => sendMessage(p.name)}
+                        className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
+                      >
+                        {p.name}
+                      </button>
+                    ))}
                   </div>
                 )}
               </motion.div>
