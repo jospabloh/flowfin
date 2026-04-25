@@ -56,10 +56,10 @@ Deno.serve(async (req) => {
       status: 'approved',
     });
 
-    // Update user's family_id in their profile
+    // Update user's family_id in their profile and promote to admin
     const userData = { ...(user.data || {}), family_id: family.id };
     delete userData.data;
-    await base44.asServiceRole.entities.User.update(user.id, { data: userData });
+    await base44.asServiceRole.entities.User.update(user.id, { data: userData, role: 'admin' });
 
     // Seed categories
     if (default_categories?.length) {
