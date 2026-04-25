@@ -37,15 +37,20 @@ export default function Assistant() {
   function cleanContent(raw) {
     if (!raw) return '';
     let s = raw;
+    // Strip system metadata blocks
     s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
+    // Strip CLIENT_RESOLVED audit trail
     s = s.replace(/^\s*\[CLIENT_RESOLVED:[^\]]*\]\s*/g, '');
+    // Strip RECEIPT_SCAN internal instruction
+    s = s.replace(/^\s*\[RECEIPT_SCAN\]\s*/g, '');
+    // If message starts with known system headers, strip everything up to the last \n\n
     const headerPattern = /^\s*\[(?:LOCALE|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
     if (headerPattern.test(s)) {
       const lastDouble = s.lastIndexOf('\n\n');
       s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
     }
     s = s.trim();
-    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT)/.test(s)) return '';
+    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT|RECEIPT)/.test(s)) return '';
     return s;
   }
 
@@ -310,11 +315,17 @@ export default function Assistant() {
   const handleScanComplete = async (parsed) => {
     if (!conversation || sending) return;
     const isEn = activeLocale.startsWith('en');
-    const summary = isEn
-      ? `Scanned receipt: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`
-      : `Escaneé un ticket: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`;
+    const transactions = parsed.transactions || [parsed];
+    const count = transactions.length;
 
-    const scanThumbCaption = isEn ? 'Ticket escaneado' : 'Ticket escaneado';
+    // Build a human-readable summary of what was found
+    const summary = count > 1
+      ? (isEn
+          ? `Scanned image: found ${count} transactions. ${transactions.map(t => `${t.merchant ?? '?'} $${t.amount ?? '?'} (${t.date ?? '?'})`).join(', ')}.`
+          : `Imagen escaneada: encontré ${count} transacciones. ${transactions.map(t => `${t.merchant ?? '?'} $${t.amount ?? '?'} (${t.date ?? '?'})`).join(', ')}.`)
+      : (isEn
+          ? `Scanned receipt: ${parsed.merchant ?? '?'}, $${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`
+          : `Ticket escaneado: ${parsed.merchant ?? '?'}, $${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`);
 
     // 1. Show thumbnail bubble immediately (clean, no JSON)
     const now = Date.now();
@@ -324,22 +335,22 @@ export default function Assistant() {
       kind: 'receipt',
       thumbnailDataUrl: parsed.thumbnailUrl,
       summary,
-      content: scanThumbCaption,
+      content: isEn ? 'Scanned image' : 'Imagen escaneada',
       source: 'local',
       ts: now,
     }]);
 
-    // 2. Send to LLM with metadata hidden — do NOT call sendMessage() to avoid
-    //    a second visible user bubble with raw JSON content.
+    // 2. Send to LLM with metadata hidden — the content is NOT shown as a user bubble
+    //    because cleanContent strips everything before \n\n and the instructions block
     setSending(true);
-    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed })}<<<SYSTEM_METADATA_END>>>`;
-    const llmMessage = isEn
-      ? `${metadata}\n\n${summary}. This is a scanned receipt. Read the Category and Person entities first, then show me a confirmation summary and ask who this expense belongs to before saving. Do NOT save yet.`
-      : `${metadata}\n\n${summary}. Esto es un ticket escaneado. Lee las entidades Category y Person primero, luego muéstrame un resumen de confirmación y pregúntame a quién pertenece este gasto antes de guardar. NO guardes todavía. Al confirmar, guarda usando write Transaction.`;
+    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed, all_transactions: transactions })}<<<SYSTEM_METADATA_END>>>`;
+    const instruction = isEn
+      ? `${metadata}\n\n[RECEIPT_SCAN] ${summary}. Read Category and Person entities. Then show a confirmation summary for ALL ${count} transaction(s) and ask who they belong to before saving. Do NOT save yet.`
+      : `${metadata}\n\n[RECEIPT_SCAN] ${summary}. Lee las entidades Category y Person. Luego muestra un resumen de confirmación de TODAS las ${count} transacción(es) y pregúntame a quién pertenecen antes de guardar. NO guardes todavía.`;
 
     await base44.agents.addMessage(conversation, {
       role: 'user',
-      content: wrapWithHeader(llmMessage),
+      content: wrapWithHeader(instruction),
     });
     setSending(false);
   };
@@ -446,19 +457,7 @@ export default function Assistant() {
                     </button>
                   </div>
                 )}
-                {isLastMessage && personQuestionChips && (
-                  <div className="flex flex-wrap gap-2 mt-3 ml-9">
-                    {personQuestionChips.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => sendMessage(p.name)}
-                        className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+
               </motion.div>
             );
           })}
@@ -485,6 +484,21 @@ export default function Assistant() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Person chips — shown above input when LLM asks who the expense belongs to */}
+      {personQuestionChips && !sending && (
+        <div className="flex-shrink-0 px-4 pb-2 pt-1 flex flex-wrap gap-2 border-t border-border bg-background">
+          {personQuestionChips.map(p => (
+            <button
+              key={p.id}
+              onClick={() => sendMessage(p.name)}
+              className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Input — in-flow at bottom */}
       <div

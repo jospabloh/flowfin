@@ -8,13 +8,19 @@ const COST_PER_M_OUTPUT_TOKENS = 4.00;
 const COST_PER_M_CACHE_READ_TOKENS = COST_PER_M_INPUT_TOKENS * 0.08;
 
 const RECEIPT_SYSTEM_PROMPT =
-  'You are a receipt-parsing assistant. Extract structured data from the provided receipt image. ' +
-  'Return ONLY a valid JSON object with these fields: ' +
-  '{ "amount": number, "currency": string (3-letter ISO code), "merchant": string, ' +
-  '"date": string (YYYY-MM-DD or original text if unparseable), ' +
+  'You are a receipt-parsing assistant. Extract ALL transactions from the provided image. ' +
+  'The image may be a bank statement, receipt list, or single receipt with multiple line items. ' +
+  'Return ONLY a valid JSON object with this structure: ' +
+  '{ "transactions": [ { "amount": number, "currency": string (3-letter ISO), "merchant": string, ' +
+  '"date": string (YYYY-MM-DD), ' +
   '"category_guess": string (one of: Food, Groceries, Transport, Health, Entertainment, Education, Shopping, Utilities, Other), ' +
-  '"confidence": number (0-1) }. ' +
-  'If you cannot identify a clear receipt, return { "error": "not_a_receipt" }. ' +
+  '"confidence": number (0-1) } ], ' +
+  '"merge_same_merchant_same_day": boolean (true if multiple identical merchant+date entries should be summed into one) }. ' +
+  'Rules: ' +
+  '1. Extract EVERY transaction visible, do not skip any. ' +
+  '2. If the same merchant appears multiple times on the same day with different amounts, list them ALL separately — do NOT sum them. Set merge_same_merchant_same_day=false. ' +
+  '3. Only set merge_same_merchant_same_day=true if all entries are IDENTICAL (same merchant, same date, same amount repeated). ' +
+  '4. If you cannot identify any receipt or transaction, return { "error": "not_a_receipt" }. ' +
   'No markdown, no explanation, ONLY the JSON object.';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -27,10 +33,34 @@ function computeCostUsd(usage) {
 }
 
 function extractJson(text) {
+  // Try array-wrapped object first, then plain object
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error('no_json_in_response');
   return text.slice(start, end + 1);
+}
+
+function normalizeScannedResult(parsed) {
+  // New format: { transactions: [...], merge_same_merchant_same_day: bool }
+  if (Array.isArray(parsed.transactions)) {
+    let txs = parsed.transactions;
+    // Apply merging only if all same merchant+date AND flag is true
+    if (parsed.merge_same_merchant_same_day) {
+      const grouped = {};
+      for (const tx of txs) {
+        const key = `${tx.merchant}|${tx.date}`;
+        if (!grouped[key]) grouped[key] = { ...tx };
+        else grouped[key].amount = Math.round((grouped[key].amount + tx.amount) * 100) / 100;
+      }
+      txs = Object.values(grouped);
+    }
+    return txs;
+  }
+  // Legacy single-transaction format
+  if (parsed.amount !== undefined) {
+    return [{ amount: parsed.amount, currency: parsed.currency, merchant: parsed.merchant, date: parsed.date, category_guess: parsed.category_guess, confidence: parsed.confidence }];
+  }
+  return null;
 }
 
 function toISODate(d) {
@@ -107,7 +137,7 @@ Deno.serve(async (req) => {
 
     const visionBody = {
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      max_tokens: 1200,
       system: RECEIPT_SYSTEM_PROMPT,
       messages: [
         {
@@ -161,6 +191,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'parse_failed', raw: rawText.slice(0, 200) }, { status: 422 });
     }
 
+    if (parsed.error) {
+      return Response.json({ error: parsed.error }, { status: 422 });
+    }
+
+    const transactions = normalizeScannedResult(parsed);
+    if (!transactions || transactions.length === 0) {
+      return Response.json({ error: 'no_transactions_found' }, { status: 422 });
+    }
+
+    // Use first transaction as the "primary" for backward compat, include all in array
+    const primary = transactions[0];
+
     const usage = {
       tokens_in: visionData.usage.input_tokens,
       tokens_out: visionData.usage.output_tokens,
@@ -188,7 +230,7 @@ Deno.serve(async (req) => {
       console.warn('Failed to persist AssistantUsage row:', persistErr);
     }
 
-    return Response.json({ ...parsed, usage });
+    return Response.json({ ...primary, transactions, usage });
 
   } catch (error) {
     const httpStatus = error.httpStatus;
