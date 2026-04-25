@@ -305,20 +305,18 @@ export default function Assistant() {
 
   // ── handleScanComplete ──────────────────────────────────────────────────────
   // Called by ReceiptScanButton when the vision API returns a parsed receipt.
-  // Injects the structured data into the chat via sendMessage (existing flow).
-  const handleScanComplete = (parsed) => {
+  // Shows a clean thumbnail bubble and sends metadata+context directly to LLM
+  // WITHOUT adding another visible user message bubble.
+  const handleScanComplete = async (parsed) => {
+    if (!conversation || sending) return;
     const isEn = activeLocale.startsWith('en');
     const summary = isEn
       ? `Scanned receipt: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`
       : `Escaneé un ticket: ${parsed.merchant ?? '?'}, ${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`;
-    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed })}<<<SYSTEM_METADATA_END>>>`;
-    const userPrompt = isEn
-      ? `${metadata}\n\n${summary}. Please log this expense.`
-      : `${metadata}\n\n${summary}. Por favor regístralo como gasto.`;
 
-    const scanThumbCaption = isEn ? 'Scanned receipt' : 'Ticket escaneado';
+    const scanThumbCaption = isEn ? 'Ticket escaneado' : 'Ticket escaneado';
 
-    // Immediately show a thumbnail bubble so the user sees what was sent.
+    // 1. Show thumbnail bubble immediately (clean, no JSON)
     const now = Date.now();
     setDisplayMessages(prev => [...prev, {
       id: `local-receipt-${now}`,
@@ -331,7 +329,19 @@ export default function Assistant() {
       ts: now,
     }]);
 
-    sendMessage(userPrompt);
+    // 2. Send to LLM with metadata hidden — do NOT call sendMessage() to avoid
+    //    a second visible user bubble with raw JSON content.
+    setSending(true);
+    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed })}<<<SYSTEM_METADATA_END>>>`;
+    const llmMessage = isEn
+      ? `${metadata}\n\n${summary}. Please log this expense.`
+      : `${metadata}\n\n${summary}. Por favor regístralo como gasto.`;
+
+    await base44.agents.addMessage(conversation, {
+      role: 'user',
+      content: wrapWithHeader(llmMessage),
+    });
+    setSending(false);
   };
 
   // Deduplicate: if a local message was confirmed by server (same cleaned content), remove the local one
