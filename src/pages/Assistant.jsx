@@ -392,7 +392,12 @@ export default function Assistant() {
           {allMessages.map((msg, i) => {
             const isLastMessage = i === allMessages.length - 1;
             const isConfirmationMessage = msg.role !== 'user' && (
-              msg.content?.includes('¿Confirmas') || msg.content?.includes('Confirm?')
+              msg.content?.includes('¿Confirmas') ||
+              msg.content?.includes('¿Lo guardo') ||
+              msg.content?.includes('¿Los guardo') ||
+              msg.content?.includes('¿Guardamos') ||
+              msg.content?.includes('Confirm?') ||
+              msg.content?.includes('Shall I save')
             );
             const prevMsg = allMessages[i - 1];
             const isGrouped = prevMsg && prevMsg.role === msg.role;
