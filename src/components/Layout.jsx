@@ -231,7 +231,13 @@ export default function Layout() {
         </aside>
 
         {/* Main content */}
-        <main className={`flex-1 flex flex-col overflow-hidden ${isAssistantPage ? 'h-screen' : 'min-h-screen'}`}>
+        <main
+          className="flex-1 flex flex-col overflow-hidden"
+          style={isAssistantPage ? {
+            height: '100dvh',
+            paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+          } : undefined}
+        >
           {showBack && (
             <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
               <button onClick={handleBack} aria-label="Regresar"
