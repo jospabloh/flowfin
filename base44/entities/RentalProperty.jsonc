@@ -1,0 +1,109 @@
+{
+  "name": "RentalProperty",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del inmueble"
+    },
+    "address": {
+      "type": "string"
+    },
+    "tenant_name": {
+      "type": "string",
+      "description": "Nombre del inquilino"
+    },
+    "base_rent": {
+      "type": "number",
+      "description": "Renta base mensual"
+    },
+    "payment_day": {
+      "type": "number",
+      "description": "D\u00eda de pago esperado"
+    },
+    "concepts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Conceptos adicionales (mantenimiento, agua, etc.)"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "base_rent"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    }
+  }
+}
