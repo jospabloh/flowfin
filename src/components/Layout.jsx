@@ -231,7 +231,7 @@ export default function Layout() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <main className={`flex-1 flex flex-col overflow-hidden ${isAssistantPage ? 'h-screen' : 'min-h-screen'}`}>
           {showBack && (
             <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
               <button onClick={handleBack} aria-label="Regresar"
@@ -241,7 +241,11 @@ export default function Layout() {
               </button>
             </div>
           )}
-          <div className="flex-1 mb-nav md:mb-0 overflow-y-auto hide-scrollbar" id="main-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div
+            className={`flex-1 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar'}`}
+            id="main-scroll"
+            style={!isAssistantPage ? { WebkitOverflowScrolling: 'touch' } : undefined}
+          >
             <Outlet />
           </div>
         </main>

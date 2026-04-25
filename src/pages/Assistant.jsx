@@ -364,7 +364,7 @@ export default function Assistant() {
   );
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative">
+    <div ref={containerRef} className="flex flex-col h-full relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
@@ -376,10 +376,8 @@ export default function Assistant() {
         </div>
       </div>
 
-      {/* Messages — scrollable, respecting input + nav */}
-      <div
-        className="flex-1 overflow-y-auto px-4 py-3 pb-20"
-      >
+      {/* Messages — scrollable area */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 pb-4">
         {allMessages.length === 0 && (
           <AssistantWelcome
             ctx={ctx}
@@ -456,11 +454,11 @@ export default function Assistant() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — in flow, respects nav spacing */}
+      {/* Input — in-flow at bottom */}
       <div
         ref={inputBarRef}
-        className="fixed bottom-20 left-0 right-0 px-4 pt-2 border-t border-border bg-background z-40"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        className="flex-shrink-0 px-4 pt-2 border-t border-border bg-background"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 12px))' }}
       >
         <div className="flex gap-2 items-center max-w-full">
           <input
