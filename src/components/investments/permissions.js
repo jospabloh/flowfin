@@ -18,6 +18,9 @@ export default {
     { key: 'investment.payments.add',      parent: 'investment.payments', label: 'Registrar Pago' },
     // New keys (Paso 2)
     { key: 'investment.payments.history',  parent: 'investment.payments', label: 'Historial de Pagos' },
+    // Phase 3
+    { key: 'investment.payments.edit',     parent: 'investment.payments', label: 'Editar Pago' },
+    { key: 'investment.payments.delete',   parent: 'investment.payments', label: 'Eliminar Pago' },
   ],
   defaults: {
     admin: {
@@ -32,6 +35,8 @@ export default {
       'investment.payments':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'investment.payments.add':     { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'investment.payments.history': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'investment.payments.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'investment.payments.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
       'investment.view':             { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
@@ -45,6 +50,8 @@ export default {
       'investment.payments':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'investment.payments.add':     { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'investment.payments.history': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'investment.payments.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'investment.payments.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
   },
 };

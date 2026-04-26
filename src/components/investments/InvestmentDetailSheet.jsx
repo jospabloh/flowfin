@@ -8,6 +8,7 @@ import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { useCanView, usePermission } from '@/lib/permissions/usePermission';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -27,7 +28,12 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
   const fmtMXN = v => formatCurrency(v, { locale, currency });
   const sheetStyle = useBottomSheetStyle(0.90);
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
+  const canViewHistory  = useCanView('investment.payments.history');
+  const canViewDetail   = useCanView('investment.view.detail_sheet');
+  const { can_modify: canEditPayment }   = usePermission('investment.payments.edit');
+  const { can_delete: canDeletePayment } = usePermission('investment.payments.delete');
   if (!selected) return null;
+  if (!canViewDetail) return null;
 
   const handleDeletePay = async (id) => {
     if (await confirmDelete('¿Eliminar este pago?')) onDeletePayment(id);
@@ -78,9 +84,9 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
                 </div>
               )}
               <button onClick={onPay} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-4">Registrar Pago</button>
-              <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>
+              {canViewHistory && <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>}
               <div className="space-y-2">
-                {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
+                {canViewHistory && (selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
                   : selectedPayments.map(p => (
                     <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                       <div className="flex-1">
@@ -89,15 +95,19 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
                       </div>
                       <div className="flex items-center gap-2">
                         <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
-                        <button onClick={() => onEditPayment(p)} aria-label="Editar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-muted rounded-lg transition-colors flex items-center justify-center">
-                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        <button onClick={() => handleDeletePay(p.id)} aria-label="Eliminar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center">
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </button>
+                        {canEditPayment && (
+                          <button onClick={() => onEditPayment(p)} aria-label="Editar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-muted rounded-lg transition-colors flex items-center justify-center">
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                        )}
+                        {canDeletePayment && (
+                          <button onClick={() => handleDeletePay(p.id)} aria-label="Eliminar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-destructive/10 rounded-lg transition-colors flex items-center justify-center">
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  )))}
               </div>
             </div>
           </motion.div>

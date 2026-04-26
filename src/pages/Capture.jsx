@@ -31,8 +31,15 @@ export default function Capture() {
   const { stats, increment } = useUsageStats();
   const { recordCapture, findAssociation, syncFamilyRulesFromDB, getDescriptionCount } = useMemory();
 
-  const { can_write: canUseAdvanced } = usePermission('capture.form.advanced');
-  const canViewPredictiveChips = useCanView('capture.ai_assist.suggestions');
+  const { can_write: canUseAdvanced }     = usePermission('capture.form.advanced');
+  const canViewPredictiveChips            = useCanView('capture.ai_assist.suggestions');
+  const { can_write: canUseVoice }        = usePermission('capture.input.voice');
+  const { can_write: canUsePhoto }        = usePermission('capture.input.photo');
+  const { can_write: canUseAiExtract }    = usePermission('capture.input.ai_extract');
+  const { can_write: canEditAmount }      = usePermission('capture.fields.amount.edit');
+  const { can_write: canEditDate }        = usePermission('capture.fields.date.edit');
+  const { can_write: canToggleInvoice }   = usePermission('capture.fields.invoice.toggle');
+  const canViewBasicForm                  = useCanView('capture.form.basic');
 
   const today = todayISO();
 
@@ -420,6 +427,7 @@ export default function Capture() {
       </div>
 
       {/* Amount input */}
+      {canViewBasicForm && (
       <div className="px-4 mt-4">
         <div className={`rounded-2xl border-2 transition-colors p-4 ${type === 'expense' ? 'border-expense/30 bg-expense/5' : 'border-income/30 bg-income/5'}`}>
           <p className="text-xs text-muted-foreground mb-1">Monto ({currency})</p>
@@ -427,10 +435,12 @@ export default function Capture() {
             <span className="text-2xl font-light text-muted-foreground">{currencySymbol}</span>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0.00" inputMode="decimal"
-              className="flex-1 text-4xl font-black bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
+              disabled={!canEditAmount}
+              className="flex-1 text-4xl font-black bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30 disabled:opacity-60 disabled:cursor-not-allowed" />
           </div>
         </div>
       </div>
+      )}
 
       {/* F2.6 — Atypical amount warning */}
       {atypicalWarning && (
@@ -450,19 +460,23 @@ export default function Capture() {
             className={`w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 ${description.length > 10 && !categoryId ? 'pr-32' : 'pr-24'}`} />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             {/* F3.5 — AI extraction button: visible when description is long and category is not yet matched */}
-            {description.length > 10 && !categoryId && (
+            {canUseAiExtract && description.length > 10 && !categoryId && (
               <button onClick={handleAiExtract} disabled={aiExtracting} aria-label="Entender con IA"
                 className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all touch-target disabled:opacity-60">
                 {aiExtracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               </button>
             )}
-            <button onClick={isListening ? stopVoice : startVoice}
-              className={`p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
-            <button onClick={() => fileRef.current?.click()} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
-              <Camera className="w-4 h-4" />
-            </button>
+            {canUseVoice && (
+              <button onClick={isListening ? stopVoice : startVoice}
+                className={`p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
+            {canUsePhoto && (
+              <button onClick={() => fileRef.current?.click()} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
+                <Camera className="w-4 h-4" />
+              </button>
+            )}
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
           </div>
         </div>
@@ -650,7 +664,8 @@ export default function Capture() {
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' && canUseAdvanced ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            disabled={!canEditDate}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed" />
           {date !== today && (
             <span className="absolute -top-2 left-3 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
               {date < today.slice(0, 7) ? 'Mes anterior' : 'Fecha pasada'}
@@ -669,7 +684,7 @@ export default function Capture() {
       </div>
 
       {/* Invoice toggle (expense only, advanced) */}
-      {type === 'expense' && canUseAdvanced && (
+      {type === 'expense' && canUseAdvanced && canToggleInvoice && (
         <div className="px-4 mt-2">
           <button onClick={() => setHasInvoice(!hasInvoice)}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all

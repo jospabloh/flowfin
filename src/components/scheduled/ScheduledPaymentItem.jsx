@@ -69,7 +69,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
       <div className="flex gap-2 mt-3 flex-wrap">
         {item.is_active !== false && canMark && (
           isPaid ? (
-            <button onClick={() => onUnmark(item)} disabled={isUnmarking}
+            <button onClick={() => onUnmark && onUnmark(item)} disabled={isUnmarking || !onUnmark}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
               {isUnmarking ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar</>}
             </button>

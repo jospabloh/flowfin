@@ -1,9 +1,10 @@
 export default {
   module: { key: 'module.MSI', label: 'MSI', order: 9 },
   sections: [
-    { key: 'msi.view',     label: 'Ver MSI',       order: 1 },
-    { key: 'msi.crud',     label: 'Gestionar MSI', order: 2 },
-    { key: 'msi.payments', label: 'Pagos',          order: 3 },
+    { key: 'msi.view',          label: 'Ver MSI',              order: 1 },
+    { key: 'msi.crud',          label: 'Gestionar MSI',        order: 2 },
+    { key: 'msi.payments',      label: 'Pagos',                order: 3 },
+    { key: 'msi.toggle_status', label: 'Cambiar Estado MSI',   order: 4 },
   ],
   actions: [
     { key: 'msi.view.list',         parent: 'msi.view',     label: 'Listar Compras MSI' },
@@ -18,6 +19,10 @@ export default {
     { key: 'msi.payments.record',   parent: 'msi.payments', label: 'Registrar Pago' },
     // New keys (Paso 2)
     { key: 'msi.payments.history',  parent: 'msi.payments', label: 'Historial de Pagos' },
+    // Phase 3
+    { key: 'msi.payments.edit',     parent: 'msi.payments',      label: 'Editar Pago' },
+    { key: 'msi.payments.delete',   parent: 'msi.payments',      label: 'Eliminar Pago' },
+    { key: 'msi.toggle_status.pause_resume', parent: 'msi.toggle_status', label: 'Pausar / Reactivar MSI' },
   ],
   defaults: {
     admin: {
@@ -32,6 +37,10 @@ export default {
       'msi.payments':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'msi.payments.record':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'msi.payments.history': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'msi.payments.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.payments.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.toggle_status':               { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.toggle_status.pause_resume':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
       'msi.view':             { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
@@ -45,6 +54,10 @@ export default {
       'msi.payments':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'msi.payments.record':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'msi.payments.history': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'msi.payments.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.payments.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.toggle_status':               { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'msi.toggle_status.pause_resume':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
   },
 };

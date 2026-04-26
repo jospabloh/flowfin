@@ -6,6 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import { ShieldCheck, ChevronDown, ChevronRight, Info, Loader2, Pencil } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { useCanView, usePermission } from '@/lib/permissions/usePermission';
 
 function getEffectivePermission(overrides, role, key) {
   return overrides?.[role]?.[key] ?? getDefaultPermission(role, key);
@@ -77,6 +78,8 @@ export default function PermissionAdmin() {
 
   const isPlatformAdmin = currentUser?.role === 'admin';
   const isFamilyAdmin = isAdmin;
+  const canViewPerms = useCanView('permission.manage.view');
+  const { can_modify: canEditPerms } = usePermission('permission.manage.edit');
 
   // Construye módulos con sus secciones
   const modules = useMemo(() => {
@@ -120,6 +123,10 @@ export default function PermissionAdmin() {
   }, [familyId]);
 
   if (!isPlatformAdmin && !isFamilyAdmin) {
+    return <Navigate to="/Dashboard" replace />;
+  }
+
+  if (!canViewPerms) {
     return <Navigate to="/Dashboard" replace />;
   }
 
@@ -214,7 +221,7 @@ export default function PermissionAdmin() {
         title="Permisos"
         subtitle="Configura qué puede ver y hacer cada rol en el sistema."
         icon={<ShieldCheck className="w-5 h-5" />}
-        action={
+        action={canEditPerms ? (
           <button
             onClick={() => setIsEditMode(!isEditMode)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -226,7 +233,7 @@ export default function PermissionAdmin() {
             <Pencil className="w-4 h-4" />
             {isEditMode ? 'Hecho' : 'Editar'}
           </button>
-        }
+        ) : null}
       />
 
       <div className="px-4 pb-8 max-w-4xl mx-auto">

@@ -1,8 +1,9 @@
 export default {
   module: { key: 'module.Reports', label: 'Reportes', order: 4 },
   sections: [
-    { key: 'reports.view',   label: 'Ver Reportes',      order: 1 },
-    { key: 'reports.export', label: 'Exportar Reportes', order: 2 },
+    { key: 'reports.view',   label: 'Ver Reportes',           order: 1 },
+    { key: 'reports.export', label: 'Exportar Reportes',      order: 2 },
+    { key: 'reports.preset', label: 'Vistas Preconfiguradas', order: 3 },
   ],
   actions: [
     { key: 'reports.view.charts',      parent: 'reports.view',   label: 'Gráficos' },
@@ -21,6 +22,13 @@ export default {
     { key: 'reports.export.image',     parent: 'reports.export', label: 'Descargar Imagen' },
     // New key (Paso 2)
     { key: 'reports.export.share',     parent: 'reports.export', label: 'Compartir' },
+
+    // Phase 3 — preset views
+    { key: 'reports.preset.by_category.view', parent: 'reports.preset', label: 'Vista Por Categoría' },
+    { key: 'reports.preset.by_person.view',   parent: 'reports.preset', label: 'Vista Por Persona' },
+    { key: 'reports.preset.by_method.view',   parent: 'reports.preset', label: 'Vista Por Método de Pago' },
+    { key: 'reports.preset.monthly.view',     parent: 'reports.preset', label: 'Vista Mensual' },
+    { key: 'reports.preset.comparative.view', parent: 'reports.preset', label: 'Vista Comparativa' },
   ],
   defaults: {
     admin: {
@@ -39,6 +47,12 @@ export default {
       'reports.export.pdf':      { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'reports.export.image':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'reports.export.share':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset':                    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_category.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_person.view':     { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_method.view':     { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.monthly.view':       { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.comparative.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
     },
     member: {
       'reports.view':            { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
@@ -56,6 +70,12 @@ export default {
       'reports.export.pdf':      { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'reports.export.image':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'reports.export.share':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: false },
+      'reports.preset':                    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_category.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_person.view':     { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.by_method.view':     { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.monthly.view':       { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'reports.preset.comparative.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
     },
   },
 };

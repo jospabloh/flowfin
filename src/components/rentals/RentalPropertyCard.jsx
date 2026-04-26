@@ -18,6 +18,9 @@ export default function RentalPropertyCard({ prop, rentalPayments, unmarkingId, 
   const { can_delete: canDelete } = usePermission('rental.property.delete');
   const { can_write: canRecord }  = usePermission('rental.payments.record');
   const { can_modify: canReverse }= usePermission('rental.payments.reverse');
+  const { can_view: canViewHistory } = usePermission('rental.payments.history');
+  const { can_modify: canEditPayment }  = usePermission('rental.payments.edit');
+  const { can_delete: canDeletePayment } = usePermission('rental.payments.delete');
 
   return (
     <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
@@ -70,7 +73,7 @@ export default function RentalPropertyCard({ prop, rentalPayments, unmarkingId, 
         </div>
       </div>
 
-      {propPayments.slice(0, 3).map(pay => (
+      {canViewHistory && propPayments.slice(0, 3).map(pay => (
         <div key={pay.id} className="flex items-center justify-between mt-2 pt-2 border-t border-border text-xs text-muted-foreground">
           <span>{pay.month}{pay.paid_by ? ` · ${pay.paid_by}` : ''}</span>
           <span className="text-income font-medium">{fmt(pay.amount)}</span>

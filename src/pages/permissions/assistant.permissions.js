@@ -14,6 +14,8 @@ export default {
     { key: 'assistant.features.register',       parent: 'assistant.features', label: 'Registrar Movimientos' },
     // New keys (Paso 2)
     { key: 'assistant.features.predictive_chips', parent: 'assistant.features', label: 'Chips predictivos' },
+    // Phase 3
+    { key: 'assistant.features.receipt.scan',   parent: 'assistant.features', label: 'Botón Escanear Recibo' },
   ],
   defaults: {
     admin: {
@@ -25,6 +27,7 @@ export default {
       'assistant.features.receipt':          { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
       'assistant.features.register':         { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
       'assistant.features.predictive_chips': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'assistant.features.receipt.scan':     { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
     },
     member: {
       'assistant.chat':                      { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
@@ -35,6 +38,7 @@ export default {
       'assistant.features.receipt':          { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
       'assistant.features.register':         { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
       'assistant.features.predictive_chips': { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'assistant.features.receipt.scan':     { can_read: true, can_write: true,  can_modify: false, can_delete: false, can_view: true },
     },
   },
 };

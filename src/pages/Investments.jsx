@@ -12,7 +12,7 @@ import InvestmentDetailSheet from '@/components/investments/InvestmentDetailShee
 import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
 import InvestmentFormSheet from '@/components/investments/InvestmentFormSheet';
 import Spinner from '@/components/Spinner';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const EMPTY_FORM = { name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: TODAY_ISO, payment_day: '28' };
@@ -25,6 +25,8 @@ export default function Investments() {
 
   const { can_write: canCreate }  = usePermission('investment.crud.create');
   const { can_write: canPayment } = usePermission('investment.payments.add');
+  const canViewList = useCanView('investment.view.list');
+  const canViewDetail = useCanView('investment.view.detail');
 
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -117,12 +119,14 @@ export default function Investments() {
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
+      ) : !canViewList ? (
+        <EmptyState icon="🔒" title="Sin acceso" description="No tienes permiso para ver el listado de inversiones" />
       ) : investments.length === 0 ? (
         <EmptyState icon="📈" title="Sin inversiones" description="Registra tu primera inversión o compromiso de pago" />
       ) : (
         <div className="px-4 space-y-3">
           {investments.map(inv => (
-            <InvestmentCard key={inv.id} inv={inv} allPayments={allPayments} onSelect={setSelected}
+            <InvestmentCard key={inv.id} inv={inv} allPayments={allPayments} onSelect={canViewDetail ? setSelected : undefined}
               onQuickPay={(inv, paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '' }); setShowPayForm(true); }} />
           ))}
         </div>

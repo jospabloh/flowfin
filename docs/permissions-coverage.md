@@ -1,12 +1,12 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-04-26T21:16:21.483Z
+Generated: 2026-04-26T23:33:51.178Z
 
-**Total declared keys:** 172  
-**Total action keys:** 115  
-**Used keys:** 74  
+**Total declared keys:** 215  
+**Total action keys:** 149  
+**Used keys:** 132  
 **Missing (ERROR):** 0  
-**Orphans (WARN):** 59  
+**Orphans (WARN):** 35  
 
 ---
 
@@ -25,28 +25,32 @@ Generated: 2026-04-26T21:16:21.483Z
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `investment.view.list` | Listar Inversiones | RV | RV | _orphan_ |
-| `investment.view.detail` | Detalles de Inversión | RV | RV | _orphan_ |
-| `investment.view.detail_sheet` | Hoja de detalle | RV | RV | _orphan_ |
+| `investment.view.list` | Listar Inversiones | RV | RV | `src/pages/Investments.jsx:28` |
+| `investment.view.detail` | Detalles de Inversión | RV | RV | `src/pages/Investments.jsx:29` |
+| `investment.view.detail_sheet` | Hoja de detalle | RV | RV | `src/components/investments/InvestmentDetailSheet.jsx:32` |
 | `investment.crud.create` | Crear Inversión | RWMDV | RWMDV | `src/pages/Investments.jsx:26` |
 | `investment.crud.edit` | Editar Inversión | RWMDV | RWMDV | _orphan_ |
 | `investment.crud.delete` | Eliminar Inversión | RWMDV | RWMDV | _orphan_ |
 | `investment.payments.add` | Registrar Pago | RWMDV | RWMDV | `src/components/investments/InvestmentCard.jsx:37`, `src/pages/Investments.jsx:27` |
-| `investment.payments.history` | Historial de Pagos | RV | RV | _orphan_ |
+| `investment.payments.history` | Historial de Pagos | RV | RV | `src/components/investments/InvestmentDetailSheet.jsx:31` |
+| `investment.payments.edit` | Editar Pago | RWMDV | RWMDV | `src/components/investments/InvestmentDetailSheet.jsx:33` |
+| `investment.payments.delete` | Eliminar Pago | RWMDV | RWMDV | `src/components/investments/InvestmentDetailSheet.jsx:34` |
 
 ## Rentas (`module.Rentals`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `rental.view.list` | Listar Propiedades | RV | RV | _orphan_ |
+| `rental.view.list` | Listar Propiedades | RV | RV | `src/pages/Rentals.jsx:27` |
 | `rental.view.detail` | Detalles de Propiedad | RV | RV | _orphan_ |
-| `rental.view.detail_sheet` | Hoja de detalle | RV | RV | _orphan_ |
+| `rental.view.detail_sheet` | Hoja de detalle | RV | RV | `src/pages/Rentals.jsx:28` |
 | `rental.property.create` | Registrar Propiedad | RWMDV | RWMDV | `src/pages/Rentals.jsx:26` |
 | `rental.property.edit` | Editar Propiedad | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:17` |
 | `rental.property.delete` | Eliminar Propiedad | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:18` |
 | `rental.payments.record` | Registrar Pago | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:19` |
 | `rental.payments.reverse` | Revertir Pago | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:20` |
-| `rental.payments.history` | Historial de Pagos | RV | RV | _orphan_ |
+| `rental.payments.history` | Historial de Pagos | RV | RV | `src/components/rentals/RentalPropertyCard.jsx:21` |
+| `rental.payments.edit` | Editar Pago | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:22` |
+| `rental.payments.delete` | Eliminar Pago | RWMDV | RWMDV | `src/components/rentals/RentalPropertyCard.jsx:23` |
 
 ## Reportes (`module.Reports`)
 
@@ -65,25 +69,31 @@ Generated: 2026-04-26T21:16:21.483Z
 | `reports.export.pdf` | Descargar PDF | RV | RV | `src/pages/Reports.jsx:48` |
 | `reports.export.image` | Descargar Imagen | RV | RV | `src/pages/Reports.jsx:49` |
 | `reports.export.share` | Compartir | RV | R | `src/pages/Reports.jsx:50` |
+| `reports.preset.by_category.view` | Vista Por Categoría | RV | RV | `src/pages/Reports.jsx:51` |
+| `reports.preset.by_person.view` | Vista Por Persona | RV | RV | `src/pages/Reports.jsx:52` |
+| `reports.preset.by_method.view` | Vista Por Método de Pago | RV | RV | `src/pages/Reports.jsx:53` |
+| `reports.preset.monthly.view` | Vista Mensual | RV | RV | `src/pages/Reports.jsx:54` |
+| `reports.preset.comparative.view` | Vista Comparativa | RV | RV | `src/pages/Reports.jsx:55` |
 
 ## Pagos del Mes (`module.ScheduledPayments`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `scheduled.view.list` | Listar Pagos Programados | RV | RV | _orphan_ |
+| `scheduled.view.list` | Listar Pagos Programados | RV | RV | `src/pages/ScheduledPayments.jsx:27` |
 | `scheduled.view.calendar` | Vista Calendario | RV | RV | _orphan_ |
 | `scheduled.create.form` | Nuevo Pago Programado | RWMDV | R | `src/pages/ScheduledPayments.jsx:26` |
 | `scheduled.mark.action` | Registrar como Pagado | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:34` |
 | `scheduled.manage.edit` | Editar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:35` |
 | `scheduled.manage.delete` | Eliminar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:36` |
+| `scheduled.payments.unmark` | Desmarcar como Pagado | RWMDV | RV | `src/pages/ScheduledPayments.jsx:28` |
 
 ## Movimientos (`module.Transactions`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `transaction.view.list` | Listar Movimientos | RV | RV | _orphan_ |
-| `transaction.view.filter` | Filtrar y Buscar | RV | RV | _orphan_ |
-| `transaction.view.export` | Exportar a Excel | RV | RV | `src/pages/Transactions.jsx:40` |
+| `transaction.view.list` | Listar Movimientos | RV | RV | `src/pages/Transactions.jsx:40` |
+| `transaction.view.filter` | Filtrar y Buscar | RV | RV | `src/pages/Transactions.jsx:41` |
+| `transaction.view.export` | Exportar a Excel | RV | RV | `src/pages/Transactions.jsx:42` |
 | `transaction.view.search` | Búsqueda | RV | RV | `src/pages/Transactions.jsx:38` |
 | `transaction.view.pending_banner` | Banner de pendientes | RV | RV | `src/pages/Transactions.jsx:39` |
 | `transaction.create.manual` | Entrada Manual | RWMDV | RWV | _orphan_ |
@@ -93,6 +103,13 @@ Generated: 2026-04-26T21:16:21.483Z
 | `transaction.edit.category` | Cambiar Categoría | RWMDV | RMV | _orphan_ |
 | `transaction.edit.amount` | Cambiar Monto | RWMDV | RMV | _orphan_ |
 | `transaction.delete.action` | Eliminar Registro | RWMDV | RDV | `src/components/transactions/TransactionGroup.jsx:19` |
+| `transaction.fields.amount.edit` | Editar Monto | RWMDV | RMV | `src/components/TransactionEditModal.jsx:35` |
+| `transaction.fields.date.edit` | Editar Fecha | RWMDV | RMV | `src/components/TransactionEditModal.jsx:36` |
+| `transaction.fields.category.edit` | Editar Categoría | RWMDV | RMV | `src/components/TransactionEditModal.jsx:37` |
+| `transaction.fields.person.edit` | Editar Persona | RWMDV | RMV | `src/components/TransactionEditModal.jsx:38` |
+| `transaction.fields.payment_method.edit` | Editar Forma de Pago | RWMDV | RMV | `src/components/TransactionEditModal.jsx:39` |
+| `transaction.fields.description.edit` | Editar Descripción | RWMDV | RMV | `src/components/TransactionEditModal.jsx:40` |
+| `transaction.fields.invoice.toggle` | Toggle Factura | RWMDV | RMV | `src/components/TransactionEditModal.jsx:41` |
 
 ## Mi Cuenta (`module.AccountSettings`)
 
@@ -102,6 +119,7 @@ Generated: 2026-04-26T21:16:21.483Z
 | `account.profile.edit` | Editar Perfil | RWMDV | RWMV | _orphan_ |
 | `account.profile.password` | Cambiar Contraseña | RWMV | RWMV | _orphan_ |
 | `account.profile.delete` | Eliminar Cuenta | RDV | RDV | `src/pages/AccountSettings.jsx:19` |
+| `account.license.view` | Ver Info de Licencia | RV | RV | `src/pages/AccountSettings.jsx:20` |
 
 ## Uso de IA (`module.AIUsage`)
 
@@ -120,12 +138,13 @@ Generated: 2026-04-26T21:16:21.483Z
 | `assistant.features.receipt` | Escanear Tickets | RWV | RWV | _orphan_ |
 | `assistant.features.register` | Registrar Movimientos | RWV | RWV | _orphan_ |
 | `assistant.features.predictive_chips` | Chips predictivos | RV | RV | `src/pages/Assistant.jsx:20` |
+| `assistant.features.receipt.scan` | Botón Escanear Recibo | RWV | RWV | `src/pages/Assistant.jsx:21` |
 
 ## Presupuesto (`module.Budget`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `budget.view.recommendations` | Recomendaciones | RV | RV | _orphan_ |
+| `budget.view.recommendations` | Recomendaciones | RV | RV | `src/pages/Budget.jsx:25` |
 | `budget.view.health` | Salud Financiera | RV | RV | _orphan_ |
 | `budget.view.cards` | Tarjetas de resumen | RV | RV | `src/pages/Budget.jsx:22` |
 | `budget.view.chart` | Gráfico de barras | RV | RV | `src/pages/Budget.jsx:23` |
@@ -135,9 +154,15 @@ Generated: 2026-04-26T21:16:21.483Z
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `capture.form.basic` | Campos Básicos | RWMDV | RWV | _orphan_ |
+| `capture.form.basic` | Campos Básicos | RWMDV | RWV | `src/pages/Capture.jsx:42` |
 | `capture.form.advanced` | Opciones Avanzadas | RWMDV | R | `src/pages/Capture.jsx:34` |
 | `capture.ai_assist.suggestions` | Sugerencias Automáticas | RV | RV | `src/pages/Capture.jsx:35` |
+| `capture.input.voice` | Entrada por Voz | RWV | RWV | `src/pages/Capture.jsx:36` |
+| `capture.input.photo` | Escanear Ticket | RWV | RWV | `src/pages/Capture.jsx:37` |
+| `capture.input.ai_extract` | Entender con IA | RWV | RWV | `src/pages/Capture.jsx:38` |
+| `capture.fields.amount.edit` | Editar Monto | RWMDV | RWV | `src/pages/Capture.jsx:39` |
+| `capture.fields.date.edit` | Editar Fecha (backdating) | RWMDV | RWV | `src/pages/Capture.jsx:40` |
+| `capture.fields.invoice.toggle` | Toggle Factura | RWMDV | RWV | `src/pages/Capture.jsx:41` |
 
 ## Catálogos (`module.Catalogs`)
 
@@ -159,12 +184,16 @@ Generated: 2026-04-26T21:16:21.483Z
 | `catalog.methods.create` | Crear Forma | RWMDV | RWMDV | `src/pages/Catalogs.jsx:180` |
 | `catalog.methods.edit` | Editar Forma | RWMDV | RWMDV | `src/pages/Catalogs.jsx:181` |
 | `catalog.methods.delete` | Eliminar Forma | RWMDV | RWMDV | `src/pages/Catalogs.jsx:182` |
+| `catalog.required_types.view` | Ver Tipos de Gasto | RV | RV | `src/pages/Catalogs.jsx:183` |
+| `catalog.required_types.edit` | Editar Tipos de Gasto | RWMDV | RWMDV | `src/pages/Catalogs.jsx:184` |
+| `catalog.transfer_destinations.view` | Ver Destinos de Transferencia | RV | RV | `src/pages/Catalogs.jsx:185` |
+| `catalog.transfer_destinations.edit` | Editar Destinos de Transferencia | RWMDV | RWMDV | `src/pages/Catalogs.jsx:186` |
 
 ## Manual (`module.UserManual`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `docs.manual.view` | Acceder Documentación | RV | RV | _orphan_ |
+| `docs.manual.view` | Acceder Documentación | RV | RV | `src/pages/UserManual.jsx:564` |
 
 ## Acerca de (`module.About`)
 
@@ -176,11 +205,13 @@ Generated: 2026-04-26T21:16:21.483Z
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `family.admin.members.view` | Ver Miembros | RV | none | _orphan_ |
-| `family.admin.members.invite` | Invitar Miembro | RWMDV | none | _orphan_ |
-| `family.admin.members.approve` | Aprobar Solicitudes | RWMDV | none | _orphan_ |
-| `family.admin.members.remove` | Eliminar Miembro | RWMDV | none | _orphan_ |
-| `family.admin.billing.view` | Ver Estado | RV | none | _orphan_ |
+| `family.admin.members.view` | Ver Miembros | RV | none | `src/pages/FamilyAdmin.jsx:15` |
+| `family.admin.members.invite` | Invitar Miembro | RWMDV | none | `src/pages/FamilyAdmin.jsx:16` |
+| `family.admin.members.approve` | Aprobar Solicitudes | RWMDV | none | `src/pages/FamilyAdmin.jsx:17` |
+| `family.admin.members.remove` | Eliminar Miembro | RWMDV | none | `src/pages/FamilyAdmin.jsx:19` |
+| `family.admin.members.link` | Vincular a Persona | RWMDV | none | `src/pages/FamilyAdmin.jsx:20` |
+| `family.admin.members.reject` | Rechazar Solicitudes | RWMDV | none | `src/pages/FamilyAdmin.jsx:18` |
+| `family.admin.billing.view` | Ver Estado | RV | none | `src/pages/FamilyAdmin.jsx:21` |
 | `family.admin.billing.upgrade` | Mejorar Plan | RWMDV | none | _orphan_ |
 
 ## Mi Familia (`module.FamilySettings`)
@@ -195,7 +226,7 @@ Generated: 2026-04-26T21:16:21.483Z
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `license.manage.view` | Ver Licencia | none | none | _orphan_ |
+| `license.manage.view` | Ver Licencia | none | none | `src/pages/LicenseAdmin.jsx:39` |
 | `license.manage.activate` | Activar Licencia | none | none | _orphan_ |
 | `license.manage.deactivate` | Desactivar Licencia | none | none | _orphan_ |
 
@@ -203,45 +234,38 @@ Generated: 2026-04-26T21:16:21.483Z
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `msi.view.list` | Listar Compras MSI | RV | RV | _orphan_ |
+| `msi.view.list` | Listar Compras MSI | RV | RV | `src/pages/MSIPage.jsx:35` |
 | `msi.view.track` | Seguimiento de Pagos | RV | RV | _orphan_ |
-| `msi.view.detail_sheet` | Hoja de detalle | RV | RV | _orphan_ |
+| `msi.view.detail_sheet` | Hoja de detalle | RV | RV | `src/pages/MSIPage.jsx:36` |
 | `msi.crud.create` | Registrar Compra MSI | RWMDV | RWMDV | `src/pages/MSIPage.jsx:33` |
 | `msi.crud.edit` | Editar MSI | RWMDV | RWMDV | _orphan_ |
 | `msi.crud.delete` | Eliminar MSI | RWMDV | RWMDV | _orphan_ |
 | `msi.payments.record` | Registrar Pago | RWMDV | RWMDV | `src/pages/MSIPage.jsx:34` |
-| `msi.payments.history` | Historial de Pagos | RV | RV | _orphan_ |
+| `msi.payments.history` | Historial de Pagos | RV | RV | `src/pages/MSIPage.jsx:37` |
+| `msi.payments.edit` | Editar Pago | RWMDV | RWMDV | `src/pages/MSIPage.jsx:39` |
+| `msi.payments.delete` | Eliminar Pago | RWMDV | RWMDV | `src/pages/MSIPage.jsx:40` |
+| `msi.toggle_status.pause_resume` | Pausar / Reactivar MSI | RWMDV | RWMDV | `src/pages/MSIPage.jsx:38` |
 
 ## Permisos (`module.PermissionAdmin`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `permission.manage.view` | Ver Matriz | RV | none | _orphan_ |
-| `permission.manage.edit` | Editar Permisos | RWMDV | none | _orphan_ |
+| `permission.manage.view` | Ver Matriz | RV | none | `src/pages/PermissionAdmin.jsx:81` |
+| `permission.manage.edit` | Editar Permisos | RWMDV | none | `src/pages/PermissionAdmin.jsx:82` |
 | `permission.manage.reset` | Restablecer Valores | RWMDV | none | _orphan_ |
 
 ## Orphan Keys (declared but not used)
 
-- `investment.view.list`
-- `investment.view.detail`
-- `investment.view.detail_sheet`
 - `investment.crud.edit`
 - `investment.crud.delete`
-- `investment.payments.history`
-- `rental.view.list`
 - `rental.view.detail`
-- `rental.view.detail_sheet`
-- `rental.payments.history`
 - `reports.view.trends`
 - `reports.view.by_category`
 - `reports.view.by_person`
 - `reports.view.by_method`
 - `reports.view.monthly`
 - `reports.view.comparative`
-- `scheduled.view.list`
 - `scheduled.view.calendar`
-- `transaction.view.list`
-- `transaction.view.filter`
 - `transaction.create.manual`
 - `transaction.create.voice`
 - `transaction.create.receipt`
@@ -254,31 +278,17 @@ Generated: 2026-04-26T21:16:21.483Z
 - `ai.usage.export`
 - `assistant.features.receipt`
 - `assistant.features.register`
-- `budget.view.recommendations`
 - `budget.view.health`
-- `capture.form.basic`
 - `catalog.categories.view`
 - `catalog.subcategories.view`
 - `catalog.persons.view`
 - `catalog.methods.view`
-- `docs.manual.view`
 - `docs.about.view`
-- `family.admin.members.view`
-- `family.admin.members.invite`
-- `family.admin.members.approve`
-- `family.admin.members.remove`
-- `family.admin.billing.view`
 - `family.admin.billing.upgrade`
-- `license.manage.view`
 - `license.manage.activate`
 - `license.manage.deactivate`
-- `msi.view.list`
 - `msi.view.track`
-- `msi.view.detail_sheet`
 - `msi.crud.edit`
 - `msi.crud.delete`
-- `msi.payments.history`
-- `permission.manage.view`
-- `permission.manage.edit`
 - `permission.manage.reset`
 

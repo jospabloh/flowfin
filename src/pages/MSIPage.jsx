@@ -16,7 +16,7 @@ import { parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
@@ -30,8 +30,14 @@ function getNextMSIPayment(msi, payments) {
 export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId, currency, familyConfig } = useFamily();
-  const { can_write: canCreate } = usePermission('msi.crud.create');
-  const { can_write: canPay } = usePermission('msi.payments.record');
+  const { can_write: canCreate }  = usePermission('msi.crud.create');
+  const { can_write: canPay }     = usePermission('msi.payments.record');
+  const canViewList    = useCanView('msi.view.list');
+  const canViewDetail  = useCanView('msi.view.detail_sheet');
+  const canViewHistory = useCanView('msi.payments.history');
+  const { can_modify: canToggleStatus } = usePermission('msi.toggle_status.pause_resume');
+  const { can_modify: canEditPayment }   = usePermission('msi.payments.edit');
+  const { can_delete: canDeletePayment } = usePermission('msi.payments.delete');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -206,6 +212,8 @@ export default function MSIPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
+      ) : !canViewList ? (
+        <EmptyState icon="🔒" title="Sin acceso" description="No tienes permiso para ver el listado de MSI" />
       ) : msiList.length === 0 ? (
         <EmptyState icon="💳" title="Sin MSI" description="Registra tus compras a meses sin intereses" />
       ) : (
@@ -267,9 +275,11 @@ export default function MSIPage() {
                   {selected.concept && <p className="text-xs text-muted-foreground mt-0.5">{selected.concept}</p>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => toggleMSIStatusMutation.mutate(selected)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected.is_active ? 'bg-income/10 text-income hover:bg-income/20' : 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'}`}>
-                    {selected.is_active ? 'Pausar' : 'Reactivar'}
-                  </button>
+                  {canToggleStatus && (
+                    <button onClick={() => toggleMSIStatusMutation.mutate(selected)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selected.is_active ? 'bg-income/10 text-income hover:bg-income/20' : 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'}`}>
+                      {selected.is_active ? 'Pausar' : 'Reactivar'}
+                    </button>
+                  )}
                   <button onClick={() => setSelected(null)} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
                 </div>
               </div>
@@ -311,9 +321,9 @@ export default function MSIPage() {
                     Registrar Pago
                   </button>
                 )}
-                <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>
+                {canViewHistory && <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>}
                 <div className="space-y-2">
-                  {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
+                  {canViewHistory && (selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
                     : selectedPayments.map(p => (
                       <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                         <div className="flex-1">
@@ -322,15 +332,19 @@ export default function MSIPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
-                          <button onClick={() => { setEditingPayment(p); setEditPayForm({ amount: p.amount.toString(), paid_date: p.paid_date }); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
-                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                          </button>
-                          <button onClick={async () => { if (await confirmDelete('¿Eliminar este pago?')) deletePaymentMutation.mutate(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </button>
+                          {canEditPayment && (
+                            <button onClick={() => { setEditingPayment(p); setEditPayForm({ amount: p.amount.toString(), paid_date: p.paid_date }); }} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                            </button>
+                          )}
+                          {canDeletePayment && (
+                            <button onClick={async () => { if (await confirmDelete('¿Eliminar este pago?')) deletePaymentMutation.mutate(p.id); }} className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors">
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </button>
+                          )}
                         </div>
                       </div>
-                    ))}
+                    )))}
                 </div>
               </div>
             </motion.div>

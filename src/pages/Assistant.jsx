@@ -18,6 +18,7 @@ export default function Assistant() {
   const { can_write: canUseVoice } = usePermission('assistant.chat.voice');
   const { can_write: canClear } = usePermission('assistant.chat.clear');
   const canViewChips = useCanView('assistant.features.predictive_chips');
+  const canScanReceipt = useCanView('assistant.features.receipt.scan');
   const [conversation, setConversation] = useState(null);
   // messages: array of { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'server', ts }
   const [messages, setMessages] = useState([]);
@@ -518,11 +519,13 @@ export default function Assistant() {
               {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
           )}
-          <ReceiptScanButton
-            onScanComplete={handleScanComplete}
-            disabled={sending || !conversation}
-            locale={activeLocale}
-          />
+          {canScanReceipt && (
+            <ReceiptScanButton
+              onScanComplete={handleScanComplete}
+              disabled={sending || !conversation}
+              locale={activeLocale}
+            />
+          )}
           {canSend && (
             <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
               className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">

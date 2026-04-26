@@ -10,6 +10,7 @@ import {
   RefreshCw, ToggleLeft, ToggleRight, CreditCard,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 const PLAN_OPTIONS = [
   { value: 'home', label: 'FlowFin Home', limit: 4, price: '$299 MXN/mes', desc: 'De 1 a 4 miembros' },
@@ -35,9 +36,10 @@ function FamilyLicenseView() {
     trialDaysLeft, activeMemberCount, trialStartAt, trialEndAt,
     licenseActivatedAt, licenseExpiresAt,
   } = useFamily();
+  const canViewLicense = useCanView('license.manage.view');
 
-  // Un miembro regular (no admin de familia) no tiene acceso
-  if (!isAdmin) {
+  // Un miembro regular (no admin de familia) o sin permiso no tiene acceso
+  if (!isAdmin || !canViewLicense) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Shield className="w-10 h-10 text-muted-foreground" />

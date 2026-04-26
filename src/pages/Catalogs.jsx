@@ -1,6 +1,6 @@
 // Cache buster
 import { useState, useEffect } from 'react';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, Trash2, X, Pencil, Save } from 'lucide-react';
@@ -180,6 +180,10 @@ export default function Catalogs() {
   const { can_write: canCreateMet }  = usePermission('catalog.methods.create');
   const { can_modify: canEditMet }   = usePermission('catalog.methods.edit');
   const { can_delete: canDeleteMet } = usePermission('catalog.methods.delete');
+  const canViewRequiredTypes   = useCanView('catalog.required_types.view');
+  const { can_modify: canEditRequiredTypes } = usePermission('catalog.required_types.edit');
+  const canViewTransferDest    = useCanView('catalog.transfer_destinations.view');
+  const { can_modify: canEditTransferDest } = usePermission('catalog.transfer_destinations.edit');
 
   // FamilyConfig for tipos de gasto and destinos de transferencia
   const { data: configs = [] } = useQuery({
@@ -618,37 +622,53 @@ export default function Catalogs() {
         </TabsContent>
 
         <TabsContent value="required_types" className="space-y-3">
-          <p className="text-xs text-muted-foreground">Define cómo clasifican sus gastos (Necesario, Gusto, etc.)</p>
-          <TagField
-            label="Tipos de gasto requerido"
-            value={requiredTypes}
-            onChange={setRequiredTypes}
-          />
-          <button
-            onClick={() => saveConfig('required_types', requiredTypes)}
-            disabled={savingConfig}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+          {!canViewRequiredTypes ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Sin acceso a esta sección.</p>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Define cómo clasifican sus gastos (Necesario, Gusto, etc.)</p>
+              <TagField
+                label="Tipos de gasto requerido"
+                value={requiredTypes}
+                onChange={canEditRequiredTypes ? setRequiredTypes : () => {}}
+              />
+              {canEditRequiredTypes && (
+                <button
+                  onClick={() => saveConfig('required_types', requiredTypes)}
+                  disabled={savingConfig}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              )}
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="transfer_dest" className="space-y-3">
-          <p className="text-xs text-muted-foreground">Destinos frecuentes para el campo "Transferido a" (ej: Actinver, DAYMAC)</p>
-          <TagField
-            label="Destinos de transferencia"
-            value={transferDestinations}
-            onChange={setTransferDestinations}
-          />
-          <button
-            onClick={() => saveConfig('transfer_destinations', transferDestinations)}
-            disabled={savingConfig}
-            className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
-          >
-            <Save className="w-3.5 h-3.5" />
-            {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+          {!canViewTransferDest ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Sin acceso a esta sección.</p>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Destinos frecuentes para el campo "Transferido a" (ej: Actinver, DAYMAC)</p>
+              <TagField
+                label="Destinos de transferencia"
+                value={transferDestinations}
+                onChange={canEditTransferDest ? setTransferDestinations : () => {}}
+              />
+              {canEditTransferDest && (
+                <button
+                  onClick={() => saveConfig('transfer_destinations', transferDestinations)}
+                  disabled={savingConfig}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {savedConfig ? '¡Guardado!' : savingConfig ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              )}
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>

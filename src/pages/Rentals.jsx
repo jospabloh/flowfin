@@ -12,7 +12,7 @@ import RentalPropertyCard from '@/components/rentals/RentalPropertyCard';
 import RentalPaymentSheet from '@/components/rentals/RentalPaymentSheet';
 import RentalPropertyFormSheet from '@/components/rentals/RentalPropertyFormSheet';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
@@ -24,6 +24,8 @@ export default function Rentals() {
   const { toast } = useToast();
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { can_write: canCreate } = usePermission('rental.property.create');
+  const canViewList    = useCanView('rental.view.list');
+  const canViewDetail  = useCanView('rental.view.detail_sheet');
 
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
@@ -144,13 +146,15 @@ export default function Rentals() {
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
+      ) : !canViewList ? (
+        <EmptyState icon="🔒" title="Sin acceso" description="No tienes permiso para ver el listado de propiedades" />
       ) : properties.length === 0 ? (
         <EmptyState icon="🏠" title="Sin propiedades" description="Registra tus inmuebles para darles seguimiento de cobro" />
       ) : (
         <div className="px-4 space-y-3">
           {properties.map(prop => (
             <RentalPropertyCard key={prop.id} prop={prop} rentalPayments={rentalPayments} unmarkingId={unmarkingId}
-              deleteMutationPending={deletePropMutation.isPending} onEdit={openEditProp} onDelete={handleDeleteProp} onPay={openPayForm} onUnmark={handleUnmark} />
+              deleteMutationPending={deletePropMutation.isPending} onEdit={canViewDetail ? openEditProp : undefined} onDelete={handleDeleteProp} onPay={openPayForm} onUnmark={handleUnmark} />
           ))}
         </div>
       )}

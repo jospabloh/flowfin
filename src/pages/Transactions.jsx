@@ -37,6 +37,8 @@ export default function Transactions() {
 
   const canViewSearch        = useCanView('transaction.view.search');
   const canViewPendingBanner = useCanView('transaction.view.pending_banner');
+  const canViewList          = useCanView('transaction.view.list');
+  const canViewFilter        = useCanView('transaction.view.filter');
   const { can_read: canExport } = usePermission('transaction.view.export');
 
   const [search, setSearch] = useState('');
@@ -134,7 +136,7 @@ export default function Transactions() {
           </button>
         ) : null} />
 
-      {canViewSearch && (
+      {(canViewSearch || canViewFilter) && (
         <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters} setShowFilters={setShowFilters}
           filterType={filterType} setFilterType={setFilterType} filterCat={filterCat} setFilterCat={setFilterCat}
           filterPerson={filterPerson} setFilterPerson={setFilterPerson} categories={categories} persons={persons} activeFilters={activeFilters} />
@@ -155,6 +157,8 @@ export default function Transactions() {
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
+      ) : !canViewList ? (
+        <EmptyState icon="🔒" title="Sin acceso" description="No tienes permiso para ver el listado de movimientos" />
       ) : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (

@@ -7,10 +7,18 @@ import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 export default function FamilyAdmin() {
   const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit } = useFamily();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const canViewMembers   = useCanView('family.admin.members.view');
+  const canInvite        = useCanView('family.admin.members.invite');
+  const canApprove       = useCanView('family.admin.members.approve');
+  const canReject        = useCanView('family.admin.members.reject');
+  const canRemove        = useCanView('family.admin.members.remove');
+  const canLink          = useCanView('family.admin.members.link');
+  const canViewBilling   = useCanView('family.admin.billing.view');
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -224,7 +232,7 @@ export default function FamilyAdmin() {
       <PageHeader title="Admin Familia" subtitle={family?.name} />
 
       {/* Billing status card */}
-      {billingStatus && billingStatus !== 'active' && (
+      {canViewBilling && billingStatus && billingStatus !== 'active' && (
         <div className={`mx-4 mt-4 p-3 rounded-2xl border flex items-center gap-3 ${
           isReadOnly
             ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
@@ -277,29 +285,31 @@ export default function FamilyAdmin() {
       </div>
 
       {/* Invitar miembro */}
-      <div className="mx-4 mt-4">
-        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-          <UserPlus className="w-4 h-4 text-muted-foreground" />
-          Invitar miembro
-        </h3>
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-          <p className="text-xs text-muted-foreground">El invitado recibirá un correo para acceder a la app. Luego deberá unirse con el código de familia.</p>
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={e => setInviteEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
-            />
-            <button onClick={handleInvite} disabled={inviteUserMutation.isPending || !inviteEmail.trim() || isReadOnly || approved.length >= licensedMemberLimit}
-              className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
-              {inviteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Invitar
-            </button>
+      {canInvite && (
+        <div className="mx-4 mt-4">
+          <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+            <UserPlus className="w-4 h-4 text-muted-foreground" />
+            Invitar miembro
+          </h3>
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            <p className="text-xs text-muted-foreground">El invitado recibirá un correo para acceder a la app. Luego deberá unirse con el código de familia.</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                placeholder="correo@ejemplo.com"
+                className="flex-1 bg-muted rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button onClick={handleInvite} disabled={inviteUserMutation.isPending || !inviteEmail.trim() || isReadOnly || approved.length >= licensedMemberLimit}
+                className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
+                {inviteUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                Invitar
+              </button>
             </div>
-            </div>
-            </div>
+          </div>
+        </div>
+      )}
 
       {/* Solicitudes pendientes */}
       <div data-tutorial="family-admin-pending-card" className="mx-4 mt-4">
@@ -326,22 +336,26 @@ export default function FamilyAdmin() {
                   <p className="text-xs text-muted-foreground">{m.user_email}</p>
                 </div>
 
-                <button
-                  onClick={() =>
-                    !isReadOnly && approved.length < licensedMemberLimit && handleApprove(m)
-                  }
-                  disabled={isReadOnly || approved.length >= licensedMemberLimit}
-                  className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                </button>
+                {canApprove && (
+                  <button
+                    onClick={() =>
+                      !isReadOnly && approved.length < licensedMemberLimit && handleApprove(m)
+                    }
+                    disabled={isReadOnly || approved.length >= licensedMemberLimit}
+                    className="p-2 rounded-xl bg-income/10 text-income hover:bg-income/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle className="w-5 h-5" />
+                  </button>
+                )}
 
-                <button
-                  onClick={() => handleReject(m)}
-                  className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors"
-                >
-                  <XCircle className="w-5 h-5" />
-                </button>
+                {canReject && (
+                  <button
+                    onClick={() => handleReject(m)}
+                    className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors"
+                  >
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -378,13 +392,13 @@ export default function FamilyAdmin() {
                     <p className="text-sm font-medium text-foreground truncate">{m.user_name || m.user_email}</p>
                     <p className="text-xs text-muted-foreground">{m.role === 'admin' ? '👑 Administrador' : 'Miembro'}</p>
                   </div>
-                  {m.role !== 'admin' && (
+                  {canRemove && m.role !== 'admin' && (
                     <button onClick={() => handleRemoveMember(m)} className="p-2 rounded-xl bg-expense/10 text-expense hover:bg-expense/20 transition-colors flex-shrink-0">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
                 </div>
-                {persons.length > 0 && (
+                {canLink && persons.length > 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                     {linkedPerson ? (

@@ -8,6 +8,7 @@ import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';
 import ApplyPaymentModal from '@/components/ApplyPaymentModal';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -31,6 +32,13 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   const [txData, setTxData] = useState(transaction);
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
+  const { can_modify: canEditAmount }       = usePermission('transaction.fields.amount.edit');
+  const { can_modify: canEditDate }         = usePermission('transaction.fields.date.edit');
+  const { can_modify: canEditCategory }     = usePermission('transaction.fields.category.edit');
+  const { can_modify: canEditPerson }       = usePermission('transaction.fields.person.edit');
+  const { can_modify: canEditPaymentMethod }= usePermission('transaction.fields.payment_method.edit');
+  const { can_modify: canEditDescription }  = usePermission('transaction.fields.description.edit');
+  const { can_modify: canToggleInvoice }    = usePermission('transaction.fields.invoice.toggle');
 
   useEffect(() => {
     if (!modalRef.current) return;
@@ -118,21 +126,24 @@ export default function TransactionEditModal({ transaction, categories, subcateg
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Monto</label>
             <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+              disabled={!canEditAmount}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed" />
           </div>
 
           {/* Description */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Descripción</label>
             <input type="text" value={form.description} onChange={e => set('description', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+              disabled={!canEditDescription}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed" />
           </div>
 
           {/* Date */}
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
             <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+              disabled={!canEditDate}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60 disabled:cursor-not-allowed" />
           </div>
 
           {/* Category + Subcategory */}
@@ -144,7 +155,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                 onChange={e => { set('category_id', e.target.value); set('subcategory_id', ''); }}
                 placeholder="— Rubro"
                 options={categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
-                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+                disabled={!canEditCategory}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
             <div>
@@ -154,7 +166,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                 onChange={e => set('subcategory_id', e.target.value)}
                 placeholder="— Sub"
                 options={filteredSubs.map(s => ({ value: s.id, label: s.name }))}
-                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+                disabled={!canEditCategory}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -167,7 +180,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
               onChange={e => set('person_id', e.target.value)}
               placeholder="— Persona"
               options={persons.map(p => ({ value: p.id, label: p.name }))}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+              disabled={!canEditPerson}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -181,7 +195,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
               onChange={e => set('payment_method_id', e.target.value)}
               placeholder={form.type === 'income' ? '— Cuenta / Origen' : '— Forma'}
               options={paymentMethods.map(m => ({ value: m.id, label: m.name }))}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm"
+              disabled={!canEditPaymentMethod}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 

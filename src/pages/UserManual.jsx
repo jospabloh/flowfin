@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Search, X } from 'lucide-react';
+import { useCanView } from '@/lib/permissions/usePermission';
+import EmptyState from '@/components/EmptyState';
 
 const sections = [
   {
@@ -559,6 +561,7 @@ const glossary = [
 ];
 
 export default function UserManual() {
+   const canViewManual = useCanView('docs.manual.view');
    const [search, setSearch] = useState('');
 
    const filteredSections = useMemo(() => {
@@ -574,6 +577,15 @@ export default function UserManual() {
    }, [search]);
 
    const hasResults = filteredSections.length > 0 || filteredGlossary.length > 0;
+
+   if (!canViewManual) {
+     return (
+       <div data-tutorial="manual-root" className="pb-8">
+         <PageHeader title="Manual de Usuario" subtitle="Guía completa de FlowFin" />
+         <EmptyState icon="🔒" title="Sin acceso" description="No tienes permiso para ver el manual de usuario" />
+       </div>
+     );
+   }
 
    return (
      <div data-tutorial="manual-root" className="pb-8">

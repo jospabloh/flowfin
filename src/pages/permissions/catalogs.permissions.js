@@ -1,10 +1,12 @@
 export default {
   module: { key: 'module.Catalogs', label: 'Catálogos', order: 11 },
   sections: [
-    { key: 'catalog.categories',   label: 'Rubros',          order: 1 },
-    { key: 'catalog.subcategories',label: 'SubRubros',        order: 2 },
-    { key: 'catalog.persons',      label: 'Personas',         order: 3 },
-    { key: 'catalog.methods',      label: 'Formas de Pago',   order: 4 },
+    { key: 'catalog.categories',        label: 'Rubros',                   order: 1 },
+    { key: 'catalog.subcategories',     label: 'SubRubros',                order: 2 },
+    { key: 'catalog.persons',           label: 'Personas',                 order: 3 },
+    { key: 'catalog.methods',           label: 'Formas de Pago',           order: 4 },
+    { key: 'catalog.required_types',    label: 'Tipos de Gasto',           order: 5 },
+    { key: 'catalog.transfer_destinations', label: 'Destinos de Transferencia', order: 6 },
   ],
   actions: [
     { key: 'catalog.categories.view',         parent: 'catalog.categories',    label: 'Ver Rubros' },
@@ -26,6 +28,12 @@ export default {
     { key: 'catalog.methods.create',          parent: 'catalog.methods',       label: 'Crear Forma' },
     { key: 'catalog.methods.edit',            parent: 'catalog.methods',       label: 'Editar Forma' },
     { key: 'catalog.methods.delete',          parent: 'catalog.methods',       label: 'Eliminar Forma' },
+
+    { key: 'catalog.required_types.view',     parent: 'catalog.required_types',         label: 'Ver Tipos de Gasto' },
+    { key: 'catalog.required_types.edit',     parent: 'catalog.required_types',         label: 'Editar Tipos de Gasto' },
+
+    { key: 'catalog.transfer_destinations.view', parent: 'catalog.transfer_destinations', label: 'Ver Destinos de Transferencia' },
+    { key: 'catalog.transfer_destinations.edit', parent: 'catalog.transfer_destinations', label: 'Editar Destinos de Transferencia' },
   ],
   defaults: {
     admin: {
@@ -52,6 +60,14 @@ export default {
       'catalog.methods.create':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.methods.edit':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.methods.delete':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+
+      'catalog.required_types':              { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.required_types.view':         { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.required_types.edit':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+
+      'catalog.transfer_destinations':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.transfer_destinations.view':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.transfer_destinations.edit':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
       'catalog.categories':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
@@ -77,6 +93,14 @@ export default {
       'catalog.methods.create':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.methods.edit':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.methods.delete':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+
+      'catalog.required_types':              { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.required_types.view':         { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.required_types.edit':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+
+      'catalog.transfer_destinations':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.transfer_destinations.view':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.transfer_destinations.edit':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
   },
 };

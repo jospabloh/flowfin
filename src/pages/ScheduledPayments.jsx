@@ -12,7 +12,7 @@ import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
 import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
 import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
 import { todayISO } from '@/lib/formatters';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
@@ -24,6 +24,8 @@ export default function ScheduledPayments() {
   const registerPayment = useRegisterPaymentWithTransaction();
   const { toast } = useToast();
   const { can_write: canCreate } = usePermission('scheduled.create.form');
+  const canViewList  = useCanView('scheduled.view.list');
+  const { can_view: canUnmark } = usePermission('scheduled.payments.unmark');
 
 
   const [showForm, setShowForm] = useState(false);
@@ -115,14 +117,20 @@ export default function ScheduledPayments() {
         )} />
 
       <div className="px-4 space-y-3">
-        {payments.length === 0 && (
+        {!canViewList ? (
+          <div className="text-center py-12 bg-card border border-border rounded-2xl">
+            <p className="text-3xl mb-2">🔒</p>
+            <p className="text-sm font-semibold text-foreground">Sin acceso</p>
+            <p className="text-xs text-muted-foreground mt-1">No tienes permiso para ver los pagos programados.</p>
+          </div>
+        ) : payments.length === 0 ? (
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
             <p className="text-3xl mb-2">📅</p>
             <p className="text-sm font-semibold text-foreground">Sin pagos programados</p>
             <p className="text-xs text-muted-foreground mt-1">{isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.'}</p>
           </div>
-        )}
-        {sorted.map(item => {
+        ) : null}
+        {canViewList && sorted.map(item => {
           const isPaid = paidThisMonth.has(item.id);
           const cat = categories.find(c => c.id === item.category_id);
           const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === item.id);
@@ -130,7 +138,7 @@ export default function ScheduledPayments() {
             <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
               isUnmarking={unmarkingId === item.id} isAdmin={isAdmin} persons={persons}
               onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
-              onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+              onUnmark={canUnmark ? handleUnmark : null} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
               onDelete={(id) => deleteMutation.mutate(id)} />
           );
         })}

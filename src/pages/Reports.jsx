@@ -48,6 +48,20 @@ export default function Reports() {
   const { can_read: canExportPDF }   = usePermission('reports.export.pdf');
   const { can_read: canExportImage } = usePermission('reports.export.image');
   const { can_read: canShare }       = usePermission('reports.export.share');
+  const canPresetByCategory   = useCanView('reports.preset.by_category.view');
+  const canPresetByPerson     = useCanView('reports.preset.by_person.view');
+  const canPresetByMethod     = useCanView('reports.preset.by_method.view');
+  const canPresetMonthly      = useCanView('reports.preset.monthly.view');
+  const canPresetComparative  = useCanView('reports.preset.comparative.view');
+
+  // Map preset label to permission
+  const presetPermMap = {
+    'Por Categoría': canPresetByCategory,
+    'Por Persona': canPresetByPerson,
+    'Por Método Pago': canPresetByMethod,
+    'Mensual': canPresetMonthly,
+    'Comparativa': canPresetComparative,
+  };
 
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get('type');
@@ -163,12 +177,15 @@ export default function Reports() {
       </div>
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
-        {PRESETS[reportType].map((p, i) => (
-          <button key={i} onClick={() => { setPreset(i); setUserPref('report_preset', i); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${preset === i ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
-            {p.label}
-          </button>
-        ))}
+        {PRESETS[reportType].filter(p => presetPermMap[p.label] !== false).map((p, i) => {
+          const origIdx = PRESETS[reportType].indexOf(p);
+          return (
+            <button key={origIdx} onClick={() => { setPreset(origIdx); setUserPref('report_preset', origIdx); }}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${preset === origIdx ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
       {canViewFilter && (

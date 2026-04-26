@@ -22,6 +22,7 @@ export default function Budget() {
   const canViewCards = useCanView('budget.view.cards');
   const canViewChart = useCanView('budget.view.chart');
   const canViewPeriodSelector = useCanView('budget.view.period_selector');
+  const canViewRecommendations = useCanView('budget.view.recommendations');
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['budget_suggestion', familyId, months],
@@ -163,31 +164,33 @@ export default function Budget() {
               </div>
             )}
 
-            {/* Detail list */}
-            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-border">
-                <h3 className="text-sm font-semibold text-foreground">Detalle por categoría</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Basado en {data?.expense_count} transacciones</p>
-              </div>
-              {suggestions.map((s, i) => (
-                <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < suggestions.length - 1 ? 'border-b border-border' : ''}`}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
-                    style={{ backgroundColor: `${s.category_color}20` }}>
-                    {s.category_icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{s.category_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Promedio: {fmt(s.avg_monthly)}/mes · {s.months_with_data} mes{s.months_with_data > 1 ? 'es' : ''} con datos
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-foreground tabular-nums">{fmt(s.suggested_budget)}</p>
-                    <p className="text-[10px] text-muted-foreground">sugerido</p>
-                  </div>
+            {/* Detail list (recommendations) */}
+            {canViewRecommendations && (
+              <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
+                  <h3 className="text-sm font-semibold text-foreground">Detalle por categoría</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Basado en {data?.expense_count} transacciones</p>
                 </div>
-              ))}
-            </div>
+                {suggestions.map((s, i) => (
+                  <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i < suggestions.length - 1 ? 'border-b border-border' : ''}`}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ backgroundColor: `${s.category_color}20` }}>
+                      {s.category_icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{s.category_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Promedio: {fmt(s.avg_monthly)}/mes · {s.months_with_data} mes{s.months_with_data > 1 ? 'es' : ''} con datos
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-foreground tabular-nums">{fmt(s.suggested_budget)}</p>
+                      <p className="text-[10px] text-muted-foreground">sugerido</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

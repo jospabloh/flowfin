@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { usePermission } from '@/lib/permissions/usePermission';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
@@ -17,6 +17,7 @@ export default function AccountSettings() {
   const navigate = useNavigate();
   const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig, currentUser } = useFamily();
   const { can_write: canDeleteAccount } = usePermission('account.profile.delete');
+  const canViewLicense = useCanView('account.license.view');
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
@@ -146,7 +147,7 @@ export default function AccountSettings() {
         </div>
 
         {/* License Info Card */}
-        {billingStatus && (
+        {canViewLicense && billingStatus && (
           <div className={`border-2 rounded-2xl p-4 shadow-sm ${statusInfo.bg} ${statusInfo.border}`}>
             <div className="flex items-start gap-3 mb-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${statusInfo.bg}`}>

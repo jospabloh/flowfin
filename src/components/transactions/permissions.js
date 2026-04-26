@@ -5,6 +5,7 @@ export default {
     { key: 'transaction.create', label: 'Crear Movimiento',   order: 2 },
     { key: 'transaction.edit',   label: 'Editar Movimiento',  order: 3 },
     { key: 'transaction.delete', label: 'Eliminar Movimiento',order: 4 },
+    { key: 'transaction.fields', label: 'Edición por Campo',  order: 5 },
   ],
   actions: [
     { key: 'transaction.view.list',         parent: 'transaction.view',   label: 'Listar Movimientos' },
@@ -23,6 +24,15 @@ export default {
     { key: 'transaction.edit.amount',       parent: 'transaction.edit',   label: 'Cambiar Monto' },
 
     { key: 'transaction.delete.action',     parent: 'transaction.delete', label: 'Eliminar Registro' },
+
+    // Phase 3 — field-level granularity
+    { key: 'transaction.fields.amount.edit',         parent: 'transaction.fields', label: 'Editar Monto' },
+    { key: 'transaction.fields.date.edit',           parent: 'transaction.fields', label: 'Editar Fecha' },
+    { key: 'transaction.fields.category.edit',       parent: 'transaction.fields', label: 'Editar Categoría' },
+    { key: 'transaction.fields.person.edit',         parent: 'transaction.fields', label: 'Editar Persona' },
+    { key: 'transaction.fields.payment_method.edit', parent: 'transaction.fields', label: 'Editar Forma de Pago' },
+    { key: 'transaction.fields.description.edit',    parent: 'transaction.fields', label: 'Editar Descripción' },
+    { key: 'transaction.fields.invoice.toggle',      parent: 'transaction.fields', label: 'Toggle Factura' },
   ],
   defaults: {
     admin: {
@@ -42,6 +52,14 @@ export default {
       'transaction.edit.amount':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'transaction.delete':              { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'transaction.delete.action':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields':                      { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.amount.edit':          { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.date.edit':            { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.category.edit':        { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.person.edit':          { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.payment_method.edit':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.description.edit':     { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'transaction.fields.invoice.toggle':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
       'transaction.view':                { can_read: true, can_write: true,  can_modify: true,  can_delete: false, can_view: true },
@@ -60,6 +78,14 @@ export default {
       'transaction.edit.amount':         { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
       'transaction.delete':              { can_read: true, can_write: false, can_modify: false, can_delete: true,  can_view: true },
       'transaction.delete.action':       { can_read: true, can_write: false, can_modify: false, can_delete: true,  can_view: true },
+      'transaction.fields':                      { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.amount.edit':          { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.date.edit':            { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.category.edit':        { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.person.edit':          { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.payment_method.edit':  { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.description.edit':     { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
+      'transaction.fields.invoice.toggle':       { can_read: true, can_write: false, can_modify: true,  can_delete: false, can_view: true },
     },
   },
 };

@@ -19,6 +19,9 @@ export default {
     { key: 'rental.payments.reverse',  parent: 'rental.payments', label: 'Revertir Pago' },
     // New keys (Paso 2)
     { key: 'rental.payments.history',  parent: 'rental.payments', label: 'Historial de Pagos' },
+    // Phase 3
+    { key: 'rental.payments.edit',     parent: 'rental.payments', label: 'Editar Pago' },
+    { key: 'rental.payments.delete',   parent: 'rental.payments', label: 'Eliminar Pago' },
   ],
   defaults: {
     admin: {
@@ -34,6 +37,8 @@ export default {
       'rental.payments.record':   { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'rental.payments.reverse':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'rental.payments.history':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'rental.payments.edit':     { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'rental.payments.delete':   { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
       'rental.view':              { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
@@ -48,6 +53,8 @@ export default {
       'rental.payments.record':   { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'rental.payments.reverse':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'rental.payments.history':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'rental.payments.edit':     { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'rental.payments.delete':   { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
   },
 };
