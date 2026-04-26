@@ -4,72 +4,70 @@
   "properties": {
     "family_id": {
       "type": "string",
-      "description": "ID de la familia destinataria"
+      "description": "ID de la familia asociada"
     },
     "email_type": {
       "type": "string",
-      "enum": [
-        "trial_welcome",
-        "trial_day20",
-        "trial_day27",
-        "trial_day29",
-        "trial_ended",
-        "archived_warning",
-        "deletion_warning",
-        "license_expiry_10d",
-        "license_expiry_5d",
-        "license_expiry_1d",
-        "license_expired",
-        "grace_period_warning",
-        "license_view_only",
-        "license_archived",
-        "license_deletion_warning",
-        "renewal_upcoming",
-        "renewal_confirmed"
-      ],
-      "description": "Tipo de email. Combinado con family_id forma la clave de deduplicaci\u00f3n"
+      "description": "Tipo de email: trial_welcome, trial_day20, trial_day27, trial_day29, trial_ended, archived_warning, deletion_warning, license_expiry_10d, license_expiry_5d, license_expiry_1d, license_expired, grace_period_warning, license_view_only, license_archived, license_deletion_warning, renewal_upcoming, renewal_confirmed"
     },
     "recipient_email": {
       "type": "string",
-      "description": "Email del administrador destinatario"
+      "description": "Correo del destinatario"
     },
     "status": {
       "type": "string",
-      "enum": ["pending", "sent", "failed"],
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
       "default": "pending",
-      "description": "Estado de env\u00edo: pending, sent, failed"
-    },
-    "sent_at": {
-      "type": "string",
-      "description": "Timestamp ISO del env\u00edo exitoso"
+      "description": "Estado del env\u00edo"
     },
     "retry_count": {
       "type": "number",
       "default": 0,
-      "description": "N\u00famero de intentos realizados (m\u00e1ximo 3)"
+      "description": "N\u00famero de intentos de reenv\u00edo"
+    },
+    "sent_at": {
+      "type": "string",
+      "description": "ISO datetime cuando fue enviado exitosamente"
     },
     "last_attempt_at": {
       "type": "string",
-      "description": "Timestamp ISO del \u00faltimo intento de env\u00edo"
+      "description": "ISO datetime del \u00faltimo intento"
     },
     "error_message": {
       "type": "string",
       "description": "Mensaje de error del \u00faltimo intento fallido"
     }
   },
-  "required": ["family_id", "email_type", "recipient_email"],
+  "required": [
+    "family_id",
+    "email_type",
+    "recipient_email",
+    "status"
+  ],
   "rls": {
     "create": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "update": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "delete": {
-      "user_condition": { "role": "admin" }
+      "user_condition": {
+        "role": "admin"
+      }
     }
   }
 }
