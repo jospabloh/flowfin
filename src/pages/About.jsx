@@ -2,13 +2,27 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.14.0';
+const CURRENT_VERSION = '2.15.0';
 
 const VERSION_HISTORY = [
   {
-    version: '2.14.0',
+    version: '2.15.0',
     date: '2026-04-24',
     label: 'Actual',
+    changes: [
+      'Botón flotante de acción (FAB): reemplaza el botón del Asistente — al tocarlo se despliegan dos opciones: "Chat" (Asistente IA) y "Agregar" (Captura); con animación spring',
+      'FAB: arrastrable a cualquier posición de la pantalla; recuerda su posición; los botones secundarios se ajustan dinámicamente según el cuadrante donde esté',
+      'FAB: visible en móvil, tablet y desktop; etiquetas "Chat" y "Agregar" bajo cada botón para mayor claridad',
+      'Sistema de permisos centralizado: nueva página Admin Permisos (solo administradores) con tabla editable de artefactos y roles (Leer / Crear / Modificar / Eliminar)',
+      'Jerarquía de roles: platform admin, family admin y miembro regular con accesos diferenciados y bien definidos',
+      'Mi Licencia: nueva sección en Configuración para administradores de familia — muestra estado del plan, fechas y miembros sin acceso a datos de otras familias',
+      'Fix RLS crítico: Pagos Programados y Rentas ahora pueden ser creados, editados y eliminados por cualquier miembro de la familia (antes estaban restringidos incorrectamente)',
+    ],
+  },
+  {
+    version: '2.14.0',
+    date: '2026-04-24',
+    label: '',
     changes: [
       'Asistente IA: nueva pantalla de bienvenida dinámica con resumen del mes, desglose por integrante y chips de acciones contextuales',
       'Asistente IA: router determinístico — responde consultas analíticas comunes sin llamar al LLM cuando la confianza es ≥ 75%',
