@@ -346,11 +346,16 @@ El botón "Más" abre un panel con todas las secciones organizadas en grupos:
 
 • Herramientas — Asistente IA y Presupuesto
 • Compromisos — Pagos del Mes, Inversiones, MSI y Rentas
-• Configuración — Catálogos, Mi Familia, Mi Cuenta y Admin Familia (solo administradores)
+• Configuración — Catálogos, Mi Familia, Mi Cuenta, Admin Familia, Permisos y Mi Licencia (estos últimos solo para administradores)
 • Información — Manual y Acerca de
-• Sistema — Licencias (solo administradores; acceso a la consola de administración de licencias)
+• Sistema — Licencias y Uso de IA (solo para admin de plataforma)
 
-El botón flotante 💬 en la esquina inferior derecha abre directamente el Asistente IA desde cualquier pantalla.
+Botón flotante de acción (FAB):
+El botón ✨ en la esquina inferior derecha es el acceso rápido a las acciones más frecuentes. Al tocarlo se despliegan dos opciones:
+• 💬 Chat — abre el Asistente IA
+• ➕ Agregar — abre la pantalla de Captura
+
+Puedes arrastrar el FAB a cualquier lugar de la pantalla; recuerda su posición entre sesiones. Los botones secundarios se ajustan automáticamente para no salirse de la pantalla según el cuadrante donde esté el FAB. Toca fuera del FAB para cerrarlo sin navegar.
 
 En escritorio / tablet (barra lateral):
 La barra lateral izquierda muestra todos los módulos organizados en las mismas secciones con etiquetas de grupo.
@@ -462,7 +467,37 @@ Todos los planes incluyen acceso completo a todos los módulos. El pago se proce
 Modo solo lectura:
 Cuando la cuenta está en modo solo lectura, la pantalla de Captura muestra un aviso y el botón de guardar queda deshabilitado. Todos los reportes, el dashboard y el historial siguen disponibles. Para reactivar el acceso completo, contacta soporte.
 
+Mi Licencia (solo family admins):
+Los administradores de familia tienen acceso a "Mi Licencia" en Configuración. Desde ahí pueden ver el estado actual del plan de su familia, las fechas de inicio y vencimiento, el número de miembros activos y el tipo de plan contratado. Esta vista es solo de consulta; para cambios en el plan o renovaciones, contacta soporte.
+
 Nota: Solo el administrador puede aprobar nuevos miembros y gestionar la familia. Si eliminas tu cuenta siendo administrador, la familia queda sin administrador. Contacta soporte si necesitas transferir la administración.`
+  },
+  {
+    id: 'permisos', icon: '🔐', title: 'Roles y permisos',
+    content: `FlowFin maneja tres niveles de acceso con responsabilidades bien definidas.
+
+Roles disponibles:
+
+Platform admin (admin de plataforma):
+• Acceso total al panel Sistema: Licencias y Uso de IA para todas las familias.
+• Puede gestionar y activar licencias de cualquier familia.
+• Acceso a la página Admin Permisos.
+• No ve el menú de Admin Familia a menos que también sea admin de su familia.
+
+Family admin (admin de familia):
+• Puede aprobar o rechazar solicitudes de acceso a la familia.
+• Ve "Mi Licencia" en Configuración: estado del plan, fechas y miembros de su familia (solo lectura, sin gestión ni datos de otras familias).
+• Puede usar Admin Permisos para ver y ajustar permisos por rol.
+• Gestiona catálogos (rubros, subrubros, personas, formas de pago).
+• Puede crear, editar y eliminar Pagos Programados, Rentas, Inversiones y MSI de cualquier integrante.
+
+Miembro regular:
+• Ve y registra movimientos, inversiones, MSI, rentas y pagos programados de toda la familia.
+• No tiene acceso a Admin Familia, Permisos, Mi Licencia ni Sistema.
+• Si intenta navegar directamente a páginas de admin, es redirigido al Dashboard.
+
+Admin Permisos (solo administradores):
+Accesible desde Más → Configuración → Permisos. Muestra una tabla de todos los artefactos de la app (páginas, secciones y acciones) con columnas Leer / Crear / Modificar / Eliminar. Los checkboxes permiten ajustar qué puede hacer cada rol sin afectar el comportamiento actual de los demás.`
   },
   {
     id: 'mifamilia', icon: '🏠', title: 'Mi Familia (configuración)',
@@ -493,8 +528,8 @@ const glossary = [
   { term: 'Motor de reglas', def: 'Sistema que detecta palabras clave en la descripción y sugiere Rubro/SubRubro automáticamente, sin IA.' },
   { term: 'Asistente IA', def: 'Chatbot inteligente que entiende lenguaje natural y registra transacciones automáticamente por texto o voz.' },
   { term: 'Código de familia', def: 'Código único alfanumérico (ej: GARCIA123) que se comparte con los integrantes para que soliciten acceso a la familia.' },
-  { term: 'Admin Familia', def: 'Administrador de la familia con permisos para aprobar miembros y gestionar el acceso.' },
-  { term: 'Mi Familia', def: 'Sección de configuración personal exclusiva de cada familia: nombre, moneda, tipos de gasto, etc.' },
+  { term: 'Admin Familia', def: 'Administrador de la familia con permisos para aprobar miembros, gestionar accesos y configurar catálogos.' },
+  { term: 'Mi Familia', def: 'Sección de configuración global de la familia: nombre, moneda, locale, tipos de gasto y destinos de transferencia. Solo editable por el admin de familia.' },
   { term: 'Catálogos', def: 'Datos maestros de la app: Rubros, SubRubros, Personas y Formas de Pago.' },
   { term: 'Sugerencias inteligentes', def: 'Sistema que analiza el historial familiar y propone rubros, personas y métodos de pago frecuentes mientras escribes la descripción.' },
   { term: 'Pagos Programados', def: 'Módulo para hacer seguimiento de pagos fijos mensuales como servicios, suscripciones o colegiaturas.' },
@@ -503,9 +538,12 @@ const glossary = [
   { term: 'Detección de duplicados', def: 'Verificación automática que avisa si un movimiento ya fue registrado con monto y categoría similares en la misma fecha.' },
   { term: 'Memoria inteligente', def: 'Sistema que aprende los hábitos de captura de la familia (categorías, personas, métodos de pago) y los sugiere automáticamente, sin IA ni créditos.' },
   { term: 'Preferencias de usuario', def: 'Configuración personal que la app recuerda entre sesiones: filtros del dashboard, tipo de reporte, etc.' },
-  { term: 'Mi Cuenta', def: 'Sección para gestionar el perfil personal del usuario, incluyendo la opción de eliminar la cuenta.' },
-  { term: 'Mi Familia', def: 'Panel de configuración global de la familia: nombre, moneda, locale, tipos de gasto y destinos de transferencia.' },
+  { term: 'Mi Cuenta', def: 'Sección para gestionar el perfil personal del usuario, incluyendo estado de licencia, planes disponibles y eliminación de cuenta.' },
+  { term: 'Mi Licencia', def: 'Vista de solo lectura para administradores de familia que muestra el estado del plan, fechas de vencimiento y número de miembros activos.' },
   { term: 'Movimientos pendientes', def: 'Transacciones sin categoría o persona asignada, marcadas con ⚠️ para revisión posterior.' },
+  { term: 'FAB', def: 'Botón flotante de acción (Floating Action Button) — el botón ✨ arrastrable que al expandirse ofrece acceso rápido al Asistente IA (Chat) y a la pantalla de Captura (Agregar).' },
+  { term: 'Admin Permisos', def: 'Página (solo administradores) que muestra y permite editar la tabla de permisos por rol para todos los artefactos de la app.' },
+  { term: 'Platform admin', def: 'Administrador de la plataforma FlowFin con acceso total al panel Sistema (Licencias y Uso de IA) para todas las familias.' },
   { term: 'Sincronización automática', def: 'Proceso por el cual un pago registrado en MSI, Inversiones, Pagos Programados o Rentas genera automáticamente el movimiento correspondiente en el registro general.' },
   { term: 'Vinculación de pagos', def: 'Asociación entre una transacción del registro general y un pago especializado (MSI, inversión, pago programado o renta). Puede ser automática o manual.' },
   { term: 'Pago vinculado', def: 'Transacción que tiene un origen identificado en un módulo especializado. Se muestra con una etiqueta de color en la lista de movimientos.' },
