@@ -1,4 +1,4 @@
-import { X, Users, MessageCircle, ExternalLink, Check } from 'lucide-react';
+import { X, MessageCircle, ExternalLink, Check } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFamily } from '@/lib/FamilyContext';
 
