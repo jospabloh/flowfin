@@ -1,6 +1,7 @@
 import { Loader2, Check, Pencil, Trash2 } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
 
@@ -12,6 +13,11 @@ export default function RentalPropertyCard({ prop, rentalPayments, unmarkingId, 
   const thisMonthRecord = propPayments.find(p => p.month === THIS_MONTH && p.is_paid);
   const paidThisMonth = !!thisMonthRecord;
   const totalCollected = propPayments.filter(p => p.is_paid).reduce((s, p) => s + (p.amount || 0), 0);
+
+  const { can_modify: canEdit }   = usePermission('rental.property.edit');
+  const { can_delete: canDelete } = usePermission('rental.property.delete');
+  const { can_write: canRecord }  = usePermission('rental.payments.record');
+  const { can_modify: canReverse }= usePermission('rental.payments.reverse');
 
   return (
     <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
@@ -36,22 +42,30 @@ export default function RentalPropertyCard({ prop, rentalPayments, unmarkingId, 
       <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
         <p className="text-xs text-muted-foreground">Total cobrado: {fmt(totalCollected)}</p>
         <div className="flex items-center gap-2">
-          <button onClick={() => onEdit(prop)} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar propiedad">
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button onClick={() => onDelete(prop)} disabled={deleteMutationPending} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50" title="Eliminar propiedad">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          {canEdit && (
+            <button onClick={() => onEdit(prop)} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Editar propiedad">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => onDelete(prop)} disabled={deleteMutationPending} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50" title="Eliminar propiedad">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           {paidThisMonth ? (
-            <button onClick={() => onUnmark(prop, thisMonthRecord)} disabled={unmarkingId === thisMonthRecord?.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold disabled:opacity-60 transition-opacity">
-              {unmarkingId === thisMonthRecord?.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-              Desmarcar
-            </button>
+            canReverse && (
+              <button onClick={() => onUnmark(prop, thisMonthRecord)} disabled={unmarkingId === thisMonthRecord?.id}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold disabled:opacity-60 transition-opacity">
+                {unmarkingId === thisMonthRecord?.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Desmarcar
+              </button>
+            )
           ) : (
-            <button onClick={() => onPay(prop)} className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
-              Registrar cobro
-            </button>
+            canRecord && (
+              <button onClick={() => onPay(prop)} className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary hover:text-primary-foreground transition-colors">
+                Registrar cobro
+              </button>
+            )
           )}
         </div>
       </div>

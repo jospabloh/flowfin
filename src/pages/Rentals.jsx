@@ -12,6 +12,7 @@ import RentalPropertyCard from '@/components/rentals/RentalPropertyCard';
 import RentalPaymentSheet from '@/components/rentals/RentalPaymentSheet';
 import RentalPropertyFormSheet from '@/components/rentals/RentalPropertyFormSheet';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
@@ -22,6 +23,7 @@ export default function Rentals() {
   const { familyId } = useFamily();
   const { toast } = useToast();
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
+  const { can_write: canCreate } = usePermission('rental.property.create');
 
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
@@ -138,7 +140,7 @@ export default function Rentals() {
     <div className="pb-24">
       <ConfirmDialog />
       <PageHeader title="Rentas" subtitle="Cobro de propiedades"
-        action={<button onClick={openNewProp} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button>} />
+        action={canCreate ? <button onClick={openNewProp} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button> : null} />
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>

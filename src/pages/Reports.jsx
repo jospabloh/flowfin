@@ -15,6 +15,7 @@ import { es } from 'date-fns/locale';
 import ReportChart from '@/components/reports/ReportChart';
 import ReportBreakdown from '@/components/reports/ReportBreakdown';
 import ReportDetailSheet from '@/components/reports/ReportDetailSheet';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const PRESETS = {
   expense: [
@@ -39,6 +40,14 @@ export default function Reports() {
   const locale = familyConfig?.locale || 'es-MX';
   const { categories, persons, paymentMethods } = useCatalog(familyId);
   const { getUserPref, setUserPref } = useMemory();
+
+  const canViewFilter    = useCanView('reports.view.filter');
+  const canViewChart     = useCanView('reports.view.charts');
+  const canViewBreakdown = useCanView('reports.view.breakdown');
+  const canViewDetail    = useCanView('reports.view.detail');
+  const { can_read: canExportPDF }   = usePermission('reports.export.pdf');
+  const { can_read: canExportImage } = usePermission('reports.export.image');
+  const { can_read: canShare }       = usePermission('reports.export.share');
 
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get('type');
@@ -162,45 +171,51 @@ export default function Reports() {
         ))}
       </div>
 
-      <div className="flex gap-2 px-4 mb-4">
-        <div className="flex-1">
-          <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+      {canViewFilter && (
+        <div className="flex gap-2 px-4 mb-4">
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-muted-foreground mb-1 block">Hasta</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
         </div>
-        <div className="flex-1">
-          <label className="text-xs text-muted-foreground mb-1 block">Hasta</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-        </div>
-      </div>
+      )}
 
-      <div className="flex gap-2 px-4 mb-4">
-        <div className="flex-1">
-          <Select value={filterCategory || '__all__'} onValueChange={v => setFilterCategory(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card"><SelectValue placeholder="Todas las categorías" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todas las categorías</SelectItem>
-              {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      {canViewFilter && (
+        <div className="flex gap-2 px-4 mb-4">
+          <div className="flex-1">
+            <Select value={filterCategory || '__all__'} onValueChange={v => setFilterCategory(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card"><SelectValue placeholder="Todas las categorías" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas las categorías</SelectItem>
+                {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.icon} {c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Select value={filterPerson || '__all__'} onValueChange={v => setFilterPerson(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card"><SelectValue placeholder="Todas las personas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas las personas</SelectItem>
+                {persons.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="flex-1">
-          <Select value={filterPerson || '__all__'} onValueChange={v => setFilterPerson(v === '__all__' ? '' : v)}>
-            <SelectTrigger className="w-full h-9 text-sm rounded-xl border-border bg-card"><SelectValue placeholder="Todas las personas" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Todas las personas</SelectItem>
-              {persons.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       <div ref={reportRef} className="px-4 space-y-4 bg-background">
-        <ReportChart tableData={tableData} cfg={cfg} categories={categories} persons={persons}
-          paymentMethods={paymentMethods} formatVal={formatVal} onSelectDetail={setSelectedDetail} />
-        {tableData.length > 0 ? (
+        {canViewChart && (
+          <ReportChart tableData={tableData} cfg={cfg} categories={categories} persons={persons}
+            paymentMethods={paymentMethods} formatVal={formatVal} onSelectDetail={setSelectedDetail} />
+        )}
+        {canViewBreakdown && tableData.length > 0 ? (
           <ReportBreakdown tableData={tableData} cfg={cfg} totalVal={totalVal} filtered={filtered}
             formatVal={formatVal} categories={categories} persons={persons} paymentMethods={paymentMethods} onSelectDetail={setSelectedDetail} />
-        ) : (
+        ) : !canViewChart ? null : (
           <div className="bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
             <p className="text-sm text-muted-foreground">Sin datos para el período seleccionado</p>
           </div>
@@ -208,16 +223,22 @@ export default function Reports() {
       </div>
 
       <div className="flex gap-3 px-4 mt-4">
-        <button onClick={shareAsPDF} disabled={sharing} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors shadow-sm">
-          <Share2 className="w-4 h-4" /> Compartir PDF
-        </button>
-        <button onClick={shareAsPNG} disabled={sharing} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-muted text-foreground text-sm font-semibold disabled:opacity-50 hover:bg-muted/70 transition-colors">
-          <Download className="w-4 h-4" /> PNG
-        </button>
+        {(canExportPDF || canShare) && (
+          <button onClick={shareAsPDF} disabled={sharing} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors shadow-sm">
+            <Share2 className="w-4 h-4" /> Compartir PDF
+          </button>
+        )}
+        {canExportImage && (
+          <button onClick={shareAsPNG} disabled={sharing} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-muted text-foreground text-sm font-semibold disabled:opacity-50 hover:bg-muted/70 transition-colors">
+            <Download className="w-4 h-4" /> PNG
+          </button>
+        )}
       </div>
 
-      <ReportDetailSheet selectedDetail={selectedDetail} detailLabel={detailLabel} detailTransactions={detailTransactions}
-        categories={categories} persons={persons} paymentMethods={paymentMethods} onClose={() => setSelectedDetail(null)} />
+      {canViewDetail && (
+        <ReportDetailSheet selectedDetail={selectedDetail} detailLabel={detailLabel} detailTransactions={detailTransactions}
+          categories={categories} persons={persons} paymentMethods={paymentMethods} onClose={() => setSelectedDetail(null)} />
+      )}
     </div>
   );
 }

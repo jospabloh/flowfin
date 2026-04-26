@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import ProgressBar from '@/components/ProgressBar';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -33,6 +34,7 @@ export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay 
   const next = getNextPayment(inv, allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= TODAY_ISO)));
   const done = paid >= inv.total_payments;
   const isDue = !done && next && next.diff <= 7;
+  const { can_write: canPay } = usePermission('investment.payments.add');
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
@@ -61,7 +63,7 @@ export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay 
           <p className="text-xs text-muted-foreground mt-1">{fmt(inv.payment_amount)} / pago</p>
         )}
       </button>
-      {!done && next && (
+      {canPay && !done && next && (
         <div className="px-4 pb-3 pt-0">
           <button
             onClick={e => { e.stopPropagation(); onQuickPay(inv, paid); }}

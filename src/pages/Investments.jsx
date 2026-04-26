@@ -12,6 +12,7 @@ import InvestmentDetailSheet from '@/components/investments/InvestmentDetailShee
 import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
 import InvestmentFormSheet from '@/components/investments/InvestmentFormSheet';
 import Spinner from '@/components/Spinner';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const EMPTY_FORM = { name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: TODAY_ISO, payment_day: '28' };
@@ -21,6 +22,9 @@ export default function Investments() {
   const { familyId } = useFamily();
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
+
+  const { can_write: canCreate }  = usePermission('investment.crud.create');
+  const { can_write: canPayment } = usePermission('investment.payments.add');
 
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -109,7 +113,7 @@ export default function Investments() {
       )}
 
       <PageHeader title="Inversiones" subtitle="Seguimiento de pagos"
-        action={<button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button>} />
+        action={canCreate ? <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button> : null} />
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>

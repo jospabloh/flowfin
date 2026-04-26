@@ -9,10 +9,15 @@ import AssistantWelcome from '@/components/AssistantWelcome';
 import ReceiptScanButton from '@/components/ReceiptScanButton';
 import { detectIntent } from '@/lib/assistantIntents';
 import { respondToIntent } from '@/lib/assistantResponders';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 export default function Assistant() {
   const { currentUser, family, familyId, familyConfig, membership } = useFamily();
   const { persons } = useCatalog(familyId);
+  const { can_write: canSend } = usePermission('assistant.chat.send');
+  const { can_write: canUseVoice } = usePermission('assistant.chat.voice');
+  const { can_write: canClear } = usePermission('assistant.chat.clear');
+  const canViewChips = useCanView('assistant.features.predictive_chips');
   const [conversation, setConversation] = useState(null);
   // messages: array of { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'server', ts }
   const [messages, setMessages] = useState([]);
@@ -503,23 +508,27 @@ export default function Assistant() {
             inputMode="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
+            onKeyDown={e => e.key === 'Enter' && canSend && sendMessage(input)}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
             placeholder="Escribe o habla tu transacción..."
             className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
-          <button onClick={isListening ? stopVoice : startVoice}
-            className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </button>
+          {canUseVoice && (
+            <button onClick={isListening ? stopVoice : startVoice}
+              className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          )}
           <ReceiptScanButton
             onScanComplete={handleScanComplete}
             disabled={sending || !conversation}
             locale={activeLocale}
           />
-          <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
-            className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
-            <Send className="w-5 h-5" />
-          </button>
+          {canSend && (
+            <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
+              className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
+              <Send className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
     </div>

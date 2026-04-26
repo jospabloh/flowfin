@@ -1,8 +1,9 @@
 // Cache buster
 import { useState, useEffect } from 'react';
+import { usePermission } from '@/lib/permissions/usePermission';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Trash2, X, Pencil, Check, Save } from 'lucide-react';
+import { Plus, Trash2, X, Pencil, Save } from 'lucide-react';
 import NativeSelect from '@/components/NativeSelect';
 import PageHeader from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -167,6 +168,19 @@ export default function Catalogs() {
   const [addingTab, setAddingTab] = useState(null);
   const [editing, setEditing] = useState(null); // { entity, id }
 
+  const { can_write: canCreateCat }  = usePermission('catalog.categories.create');
+  const { can_modify: canEditCat }   = usePermission('catalog.categories.edit');
+  const { can_delete: canDeleteCat } = usePermission('catalog.categories.delete');
+  const { can_write: canCreateSub }  = usePermission('catalog.subcategories.create');
+  const { can_modify: canEditSub }   = usePermission('catalog.subcategories.edit');
+  const { can_delete: canDeleteSub } = usePermission('catalog.subcategories.delete');
+  const { can_write: canCreatePer }  = usePermission('catalog.persons.create');
+  const { can_modify: canEditPer }   = usePermission('catalog.persons.edit');
+  const { can_delete: canDeletePer } = usePermission('catalog.persons.delete');
+  const { can_write: canCreateMet }  = usePermission('catalog.methods.create');
+  const { can_modify: canEditMet }   = usePermission('catalog.methods.edit');
+  const { can_delete: canDeleteMet } = usePermission('catalog.methods.delete');
+
   // FamilyConfig for tipos de gasto and destinos de transferencia
   const { data: configs = [] } = useQuery({
     queryKey: ['familyConfig', familyId],
@@ -318,9 +332,11 @@ export default function Catalogs() {
         </TabsList>
 
         <TabsContent value="categories" className="space-y-2">
-          <button onClick={() => setAddingTab('cat')} aria-label="Agregar nueva categoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
-            <Plus className="w-4 h-4" /> Nueva categoría
-          </button>
+          {canCreateCat && (
+            <button onClick={() => setAddingTab('cat')} aria-label="Agregar nueva categoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
+              <Plus className="w-4 h-4" /> Nueva categoría
+            </button>
+          )}
           {addingTab === 'cat' && (
             <InlineForm
               fields={[
@@ -354,12 +370,16 @@ export default function Catalogs() {
                       <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
                     </div>
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                    <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {canEditCat && (
+                      <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {canDeleteCat && (
+                      <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   {editing?.id === cat.id && editing?.entity === 'Category' && (
                     <div className="px-3 pb-3">
@@ -383,9 +403,11 @@ export default function Catalogs() {
         </TabsContent>
 
         <TabsContent value="subcategories" className="space-y-2">
-          <button onClick={() => setAddingTab('sub')} aria-label="Agregar nueva subcategoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
-            <Plus className="w-4 h-4" /> Nueva subcategoría
-          </button>
+          {canCreateSub && (
+            <button onClick={() => setAddingTab('sub')} aria-label="Agregar nueva subcategoría" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
+              <Plus className="w-4 h-4" /> Nueva subcategoría
+            </button>
+          )}
           {addingTab === 'sub' && (
             <InlineForm
               fields={[
@@ -418,12 +440,16 @@ export default function Catalogs() {
                         <div key={sub.id} className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
                           <div className="flex items-center justify-between px-3 py-2.5">
                             <p className="text-sm font-medium text-foreground flex-1">{sub.name}</p>
-                            <button onClick={() => setEditing(editing?.id === sub.id ? null : { entity: 'Subcategory', id: sub.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {canEditSub && (
+                              <button onClick={() => setEditing(editing?.id === sub.id ? null : { entity: 'Subcategory', id: sub.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {canDeleteSub && (
+                              <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                           {sub.keywords?.length > 0 && editing?.id !== sub.id && (
                             <div className="flex flex-wrap gap-1 px-3 pb-2">
@@ -457,9 +483,11 @@ export default function Catalogs() {
         </TabsContent>
 
         <TabsContent value="persons" className="space-y-2">
-          <button onClick={() => setAddingTab('person')} aria-label="Agregar nueva persona" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
-            <Plus className="w-4 h-4" /> Nueva persona
-          </button>
+          {canCreatePer && (
+            <button onClick={() => setAddingTab('person')} aria-label="Agregar nueva persona" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
+              <Plus className="w-4 h-4" /> Nueva persona
+            </button>
+          )}
           {addingTab === 'person' && (
             <InlineForm
               fields={[
@@ -488,12 +516,16 @@ export default function Catalogs() {
                       {p.avatar_initial || p.name?.charAt(0)}
                     </div>
                     <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
-                    <button onClick={() => setEditing(editing?.id === p.id ? null : { entity: 'Person', id: p.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {canEditPer && (
+                      <button onClick={() => setEditing(editing?.id === p.id ? null : { entity: 'Person', id: p.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {canDeletePer && (
+                      <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   {editing?.id === p.id && editing?.entity === 'Person' && (
                     <div className="px-3 pb-3">
@@ -516,9 +548,11 @@ export default function Catalogs() {
         </TabsContent>
 
         <TabsContent value="methods" className="space-y-2">
-          <button onClick={() => setAddingTab('method')} aria-label="Agregar nueva forma de pago" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
-            <Plus className="w-4 h-4" /> Nueva forma de pago
-          </button>
+          {canCreateMet && (
+            <button onClick={() => setAddingTab('method')} aria-label="Agregar nueva forma de pago" className="flex items-center gap-2 text-primary text-sm font-medium mb-2 touch-target">
+              <Plus className="w-4 h-4" /> Nueva forma de pago
+            </button>
+          )}
           {addingTab === 'method' && (
             <InlineForm
               fields={[
@@ -550,12 +584,16 @@ export default function Catalogs() {
                         <p className="text-sm font-medium text-foreground">{m.name}</p>
                         <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
                       </div>
-                      <button onClick={() => setEditing(editing?.id === m.id ? null : { entity: 'PaymentMethod', id: m.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {canEditMet && (
+                        <button onClick={() => setEditing(editing?.id === m.id ? null : { entity: 'PaymentMethod', id: m.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {canDeleteMet && (
+                        <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                     {editing?.id === m.id && editing?.entity === 'PaymentMethod' && (
                       <div className="px-3 pb-3">

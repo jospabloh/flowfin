@@ -11,6 +11,7 @@ import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
 import TutorialController from '@/components/tutorial/TutorialController';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 
 // Lazy-loaded pages
@@ -34,6 +35,16 @@ const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
 const Budget = lazy(() => import('@/pages/Budget'));
 const AIUsage = lazy(() => import('@/pages/AIUsage'));
 const PermissionAdmin = lazy(() => import('@/pages/PermissionAdmin'));
+
+/**
+ * PermissionRoute — wraps a page element and redirects to /Dashboard
+ * if the user lacks can_view for the given permission key.
+ */
+function PermissionRoute({ permission, element }) {
+  const canView = useCanView(permission);
+  if (!canView) return <Navigate to="/Dashboard" replace />;
+  return element;
+}
 
 const FamilyGate = ({ children }) => {
   const { isLoading, membership, family, membershipError, refetchMembership } = useFamily();
@@ -136,14 +147,14 @@ const AuthenticatedApp = () => {
               <Route path="/Catalogs" element={<Suspense fallback={<LoadingFallback />}><Catalogs /></Suspense>} />
               <Route path="/FamilySettings" element={<Suspense fallback={<LoadingFallback />}><FamilySettings /></Suspense>} />
               <Route path="/AccountSettings" element={<Suspense fallback={<LoadingFallback />}><AccountSettings /></Suspense>} />
-              <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><FamilyAdmin /></Suspense>} />
+              <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.FamilyAdmin" element={<FamilyAdmin />} /></Suspense>} />
               <Route path="/LicenseAdmin" element={<Suspense fallback={<LoadingFallback />}><LicenseAdmin /></Suspense>} />
               <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />
               <Route path="/Budget" element={<Suspense fallback={<LoadingFallback />}><Budget /></Suspense>} />
               <Route path="/AIUsage" element={<Suspense fallback={<LoadingFallback />}><AIUsage /></Suspense>} />
-              <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionAdmin /></Suspense>} />
+              <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.PermissionAdmin" element={<PermissionAdmin />} /></Suspense>} />
             </Route>
             <Route path="*" element={<PageNotFound />} />
           </Routes>
