@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, AlertCircle, Clock, Zap } from 'lucide-react';
+import { X, AlertCircle, Zap } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
 import UpgradePlansModal from './UpgradePlansModal';
 

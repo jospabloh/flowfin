@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
-import { Mail, MessageCircle, Heart, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 
 const CURRENT_VERSION = '2.15.0';
 

@@ -4,9 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
 import PageHeader from '@/components/PageHeader';
-import AmountDisplay from '@/components/AmountDisplay';
 import { PiggyBank, TrendingDown, RefreshCw, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 const MONTHS_OPTIONS = [
   { value: 1, label: 'Último mes' },
@@ -18,6 +18,10 @@ export default function Budget() {
   const { familyId, currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const [months, setMonths] = useState(3);
+
+  const canViewCards = useCanView('budget.view.cards');
+  const canViewChart = useCanView('budget.view.chart');
+  const canViewPeriodSelector = useCanView('budget.view.period_selector');
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['budget_suggestion', familyId, months],
@@ -50,15 +54,17 @@ export default function Budget() {
 
       <div className="px-4 space-y-4">
         {/* Period selector */}
-        <div className="flex gap-2">
-          {MONTHS_OPTIONS.map(opt => (
-            <button key={opt.value} onClick={() => setMonths(opt.value)}
-              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all
-                ${months === opt.value ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {canViewPeriodSelector && (
+          <div className="flex gap-2">
+            {MONTHS_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setMonths(opt.value)}
+                className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all
+                  ${months === opt.value ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Info banner */}
         <div className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/20 rounded-2xl">
@@ -84,24 +90,26 @@ export default function Budget() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown className="w-4 h-4 text-expense" />
-                  <span className="text-xs text-muted-foreground">Presupuesto sugerido</span>
+            {canViewCards && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingDown className="w-4 h-4 text-expense" />
+                    <span className="text-xs text-muted-foreground">Presupuesto sugerido</span>
+                  </div>
+                  <p className="text-lg font-black text-expense tabular-nums">{fmt(data?.total_suggested_budget)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">/ mes</p>
                 </div>
-                <p className="text-lg font-black text-expense tabular-nums">{fmt(data?.total_suggested_budget)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">/ mes</p>
-              </div>
-              <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <PiggyBank className="w-4 h-4 text-income" />
-                  <span className="text-xs text-muted-foreground">Ingreso prom. mensual</span>
+                <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <PiggyBank className="w-4 h-4 text-income" />
+                    <span className="text-xs text-muted-foreground">Ingreso prom. mensual</span>
+                  </div>
+                  <p className="text-lg font-black text-income tabular-nums">{fmt(data?.avg_monthly_income)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">/ mes</p>
                 </div>
-                <p className="text-lg font-black text-income tabular-nums">{fmt(data?.avg_monthly_income)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">/ mes</p>
               </div>
-            </div>
+            )}
 
             {/* Coverage indicator */}
             {coverage !== null && (
@@ -131,7 +139,7 @@ export default function Budget() {
             )}
 
             {/* Bar chart */}
-            {suggestions.length > 0 && (
+            {canViewChart && suggestions.length > 0 && (
               <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Distribución por rubro</h3>
                 <div style={{ height: Math.min(suggestions.length * 32 + 20, 300) }}>

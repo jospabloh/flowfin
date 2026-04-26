@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useFamily } from '@/lib/FamilyContext';
-import { PERMISSION_REGISTRY, PERMISSION_COLUMNS, DEFAULT_MATRIX, getDefaultPermission } from '@/lib/permissions/registry';
+import { PERMISSION_REGISTRY, getDefaultPermission } from '@/lib/permissions/registry';
 import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
-import { ShieldCheck, ChevronDown, ChevronRight, Info, Loader2, BarChart3, Pencil } from 'lucide-react';
+import { ShieldCheck, ChevronDown, ChevronRight, Info, Loader2, Pencil } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 

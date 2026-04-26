@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 const DefaultFallback = () => (
   <div className="fixed inset-0 flex items-center justify-center">
@@ -9,7 +10,17 @@ const DefaultFallback = () => (
   </div>
 );
 
-export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthenticatedElement }) {
+/**
+ * PermissionGate — inner component that calls useCanView (a hook) safely
+ * after auth has resolved. Only rendered when auth is confirmed.
+ */
+function PermissionGate({ permission, children }) {
+  const canView = useCanView(permission);
+  if (!canView) return <Navigate to="/Dashboard" replace />;
+  return children;
+}
+
+export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthenticatedElement, permission }) {
   const { isAuthenticated, isLoadingAuth, authChecked, authError, checkUserAuth } = useAuth();
 
   useEffect(() => {
@@ -31,6 +42,14 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
 
   if (!isAuthenticated) {
     return unauthenticatedElement;
+  }
+
+  if (permission) {
+    return (
+      <PermissionGate permission={permission}>
+        <Outlet />
+      </PermissionGate>
+    );
   }
 
   return <Outlet />;

@@ -15,6 +15,7 @@ import TransactionEditModal from '@/components/TransactionEditModal';
 import TransactionFilters from '@/components/transactions/TransactionFilters';
 import TransactionGroup from '@/components/transactions/TransactionGroup';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 function groupByDate(transactions) {
   const groups = {};
@@ -33,6 +34,10 @@ export default function Transactions() {
   const { toast } = useToast();
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { categories = [], subcategories = [], persons = [], paymentMethods = [] } = useCatalog(familyId);
+
+  const canViewSearch        = useCanView('transaction.view.search');
+  const canViewPendingBanner = useCanView('transaction.view.pending_banner');
+  const { can_read: canExport } = usePermission('transaction.view.export');
 
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -123,17 +128,19 @@ export default function Transactions() {
       )}
 
       <PageHeader title="Movimientos" subtitle={`${filtered.length} registros`}
-        action={
+        action={canExport ? (
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-muted rounded-xl text-xs font-medium text-foreground hover:bg-primary hover:text-primary-foreground transition-colors">
             <Download className="w-3.5 h-3.5" /> Excel
           </button>
-        } />
+        ) : null} />
 
-      <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters} setShowFilters={setShowFilters}
-        filterType={filterType} setFilterType={setFilterType} filterCat={filterCat} setFilterCat={setFilterCat}
-        filterPerson={filterPerson} setFilterPerson={setFilterPerson} categories={categories} persons={persons} activeFilters={activeFilters} />
+      {canViewSearch && (
+        <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters} setShowFilters={setShowFilters}
+          filterType={filterType} setFilterType={setFilterType} filterCat={filterCat} setFilterCat={setFilterCat}
+          filterPerson={filterPerson} setFilterPerson={setFilterPerson} categories={categories} persons={persons} activeFilters={activeFilters} />
+      )}
 
-      {pending.length > 0 && (
+      {canViewPendingBanner && pending.length > 0 && (
         <div className="mx-4 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">

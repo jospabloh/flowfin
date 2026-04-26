@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -13,6 +12,7 @@ import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
 import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
 import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
 import { todayISO } from '@/lib/formatters';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
@@ -23,6 +23,8 @@ export default function ScheduledPayments() {
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
   const { toast } = useToast();
+  const { can_write: canCreate } = usePermission('scheduled.create.form');
+
 
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -106,7 +108,7 @@ export default function ScheduledPayments() {
   return (
     <div className="pb-24">
       <PageHeader title="Pagos Programados" subtitle={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} este mes`}
-        action={isAdmin && (
+        action={(isAdmin || canCreate) && (
           <button onClick={() => { setEditingItem(null); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm">
             <Plus className="w-3.5 h-3.5" /> Agregar
           </button>

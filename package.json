@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/permissions-check.mjs && vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "permissions:check": "node scripts/permissions-check.mjs",
+    "permissions:report": "node scripts/permissions-check.mjs --report"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.26",

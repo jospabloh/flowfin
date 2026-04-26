@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,6 +16,7 @@ import { useMemory } from '@/hooks/useMemory';
 import confetti from 'canvas-confetti';
 import PersonAvatar from '@/components/PersonAvatar';
 import PredictiveChips from '@/components/PredictiveChips';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -29,6 +30,9 @@ export default function Capture() {
   const { categories, subcategories, persons, paymentMethods } = useCatalog(familyId);
   const { stats, increment } = useUsageStats();
   const { recordCapture, findAssociation, syncFamilyRulesFromDB, getDescriptionCount } = useMemory();
+
+  const { can_write: canUseAdvanced } = usePermission('capture.form.advanced');
+  const canViewPredictiveChips = useCanView('capture.ai_assist.suggestions');
 
   const today = todayISO();
 
@@ -390,17 +394,19 @@ export default function Capture() {
       )}
 
       {/* F2.1 — Predictive chips */}
-      <PredictiveChips
-        familyId={familyId}
-        onSelect={chip => {
-          if (chip.amount) setAmount(String(chip.amount));
-          if (chip.label) setDescription(chip.label);
-          if (chip.categoryId) setCategoryId(chip.categoryId);
-          if (chip.subcategoryId) setSubcategoryId(chip.subcategoryId);
-          if (chip.personId) setPersonId(chip.personId);
-          if (chip.paymentMethodId) setPaymentMethodId(chip.paymentMethodId);
-        }}
-      />
+      {canViewPredictiveChips && (
+        <PredictiveChips
+          familyId={familyId}
+          onSelect={chip => {
+            if (chip.amount) setAmount(String(chip.amount));
+            if (chip.label) setDescription(chip.label);
+            if (chip.categoryId) setCategoryId(chip.categoryId);
+            if (chip.subcategoryId) setSubcategoryId(chip.subcategoryId);
+            if (chip.personId) setPersonId(chip.personId);
+            if (chip.paymentMethodId) setPaymentMethodId(chip.paymentMethodId);
+          }}
+        />
+      )}
 
       {/* Type toggle */}
       <div className="flex mx-4 mt-4 rounded-2xl bg-muted p-1 gap-1">
@@ -530,7 +536,7 @@ export default function Capture() {
       )}
 
       {/* Category + Subcategory */}
-      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' && canUseAdvanced ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <NativeSelect
           value={categoryId}
           onChange={e => { setCategoryId(e.target.value); setSubcategoryId(''); }}
@@ -538,7 +544,7 @@ export default function Capture() {
           options={validCategories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))}
           className={`bg-card border rounded-xl px-3 py-2.5 text-sm w-full ${!categoryId ? 'border-expense/60 bg-expense/5' : 'border-border'}`}
         />
-        {type === 'expense' && (
+        {type === 'expense' && canUseAdvanced && (
           <NativeSelect
             value={subcategoryId}
             onChange={e => setSubcategoryId(e.target.value)}
@@ -641,7 +647,7 @@ export default function Capture() {
       )}
 
       {/* Date + Required (expense only) */}
-      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' && canUseAdvanced ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
@@ -651,7 +657,7 @@ export default function Capture() {
             </span>
           )}
         </div>
-        {type === 'expense' && (
+        {type === 'expense' && canUseAdvanced && (
           <NativeSelect
             value={requiredType}
             onChange={e => setRequiredType(e.target.value)}
@@ -662,8 +668,8 @@ export default function Capture() {
         )}
       </div>
 
-      {/* Invoice toggle (expense only) */}
-      {type === 'expense' && (
+      {/* Invoice toggle (expense only, advanced) */}
+      {type === 'expense' && canUseAdvanced && (
         <div className="px-4 mt-2">
           <button onClick={() => setHasInvoice(!hasInvoice)}
             className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all
@@ -674,12 +680,14 @@ export default function Capture() {
         </div>
       )}
 
-      {/* Notes */}
-      <div className="px-4 mt-2">
-        <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
-          placeholder="Notas (opcional)"
-          className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-      </div>
+      {/* Notes (advanced) */}
+      {canUseAdvanced && (
+        <div className="px-4 mt-2">
+          <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
+            placeholder="Notas (opcional)"
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+      )}
 
       {/* Save button */}
       <div className="px-4 mt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>

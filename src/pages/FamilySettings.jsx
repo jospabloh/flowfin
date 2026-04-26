@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { Save, Plus, X, Trash2, PlayCircle } from 'lucide-react';
+import { Save, X, Trash2, PlayCircle } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import LocaleSelector from '@/components/LocaleSelector';
 import { launchFlowfinTutorial } from '@/lib/tutorial/tutorialEvents';
+import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
 
 export default function FamilySettings() {
@@ -22,6 +23,10 @@ export default function FamilySettings() {
   });
 
   const { familyId, family, refetchMembership } = useFamily();
+
+  const { can_write: canSaveBasic } = usePermission('family.settings.basic');
+  const canViewLocale = useCanView('family.settings.locale');
+  const { can_write: canSaveAdvanced } = usePermission('family.settings.advanced');
 
   const { data: configs = [] } = useQuery({
     queryKey: ['familyConfig', familyId],
@@ -136,12 +141,12 @@ export default function FamilySettings() {
       )}
       
       <PageHeader title="Mi Familia" subtitle="Configuración personal"
-        action={
+        action={(canSaveBasic || canSaveAdvanced) && (
           <button onClick={handleSave} disabled={saveFamilyConfigMutation.isPending}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50">
             <Save className="w-3.5 h-3.5" /> {saveFamilyConfigMutation.isPending ? 'Guardando...' : 'Guardar'}
           </button>
-        } />
+        )} />
 
       <div className="px-4 space-y-5">
         <div data-tutorial="family-settings-card" className="bg-card border border-border rounded-2xl p-4 space-y-4 shadow-sm">
@@ -156,13 +161,15 @@ export default function FamilySettings() {
               className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
-          <LocaleSelector
-            value={config.locale}
-            onChange={locale => setConfig(c => ({ ...c, locale }))}
-            onLocaleChange={({ currency, symbol }) =>
-              setConfig(c => ({ ...c, currency, currency_symbol: symbol }))
-            }
-          />
+          {canViewLocale && (
+            <LocaleSelector
+              value={config.locale}
+              onChange={locale => setConfig(c => ({ ...c, locale }))}
+              onLocaleChange={({ currency, symbol }) =>
+                setConfig(c => ({ ...c, currency, currency_symbol: symbol }))
+              }
+            />
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Moneda</label>

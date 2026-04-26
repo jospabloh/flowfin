@@ -1,4 +1,4 @@
-import { Bot, Calendar, TrendingDown, TrendingUp, BarChart3, CreditCard, RefreshCw, Building2 } from 'lucide-react';
+import { Bot, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatAmount, formatDate, formatPersonName } from '@/lib/assistantFormatters';
 

@@ -3,6 +3,7 @@ import AmountDisplay from '@/components/AmountDisplay';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
@@ -29,6 +30,10 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
+
+  const { can_write: canMark }    = usePermission('scheduled.mark.action');
+  const { can_modify: canEdit }   = usePermission('scheduled.manage.edit');
+  const { can_delete: canDelete } = usePermission('scheduled.manage.delete');
 
   const handleDelete = async () => {
     if (await confirmDelete(`¿Eliminar "${item.name}"?`)) onDelete(item.id);
@@ -62,7 +67,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
         </div>
       </div>
       <div className="flex gap-2 mt-3 flex-wrap">
-        {item.is_active !== false && (
+        {item.is_active !== false && canMark && (
           isPaid ? (
             <button onClick={() => onUnmark(item)} disabled={isUnmarking}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
@@ -75,16 +80,16 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
             </button>
           )
         )}
-        {isAdmin && (
-          <>
-            <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button onClick={handleDelete} aria-label="Eliminar compromiso"
-              className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </>
+        {(isAdmin || canEdit) && (
+          <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
+            <Pencil className="w-4 h-4" />
+          </button>
+        )}
+        {(isAdmin || canDelete) && (
+          <button onClick={handleDelete} aria-label="Eliminar compromiso"
+            className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
+            <Trash2 className="w-4 h-4" />
+          </button>
         )}
       </div>
     </div>

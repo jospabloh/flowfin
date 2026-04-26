@@ -3,10 +3,10 @@ import {
   Home, List, Plus, BarChart2, MoreHorizontal,
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users,
-  ChevronLeft, CalendarCheck, PiggyBank, ChevronRight,
+  ChevronLeft, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
@@ -17,6 +17,7 @@ import { useFamily } from '@/lib/FamilyContext';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import IdleWarningDialog from './IdleWarningDialog';
 import SessionExpiredDialog from './SessionExpiredDialog';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 const PRIMARY_TABS = ['/Dashboard', '/Transactions', '/Capture', '/Reports', '/Assistant'];
 
@@ -122,6 +123,59 @@ export default function Layout() {
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
+  // Permission checks for nav items — called unconditionally (React hooks rules)
+  const canViewDashboard       = useCanView('module.Dashboard');
+  const canViewTransactions    = useCanView('module.Transactions');
+  const canViewReports         = useCanView('module.Reports');
+  const canViewAssistant       = useCanView('module.Assistant');
+  const canViewBudget          = useCanView('module.Budget');
+  const canViewScheduled       = useCanView('module.ScheduledPayments');
+  const canViewInvestments     = useCanView('module.Investments');
+  const canViewMSI             = useCanView('module.MSI');
+  const canViewRentals         = useCanView('module.Rentals');
+  const canViewCatalogs        = useCanView('module.Catalogs');
+  const canViewFamilySettings  = useCanView('module.FamilySettings');
+  const canViewAccountSettings = useCanView('module.AccountSettings');
+  const canViewFamilyAdmin     = useCanView('module.FamilyAdmin');
+  const canViewPermAdmin       = useCanView('module.PermissionAdmin');
+  const canViewLicenseAdmin    = useCanView('module.LicenseAdmin');
+  const canViewAIUsage         = useCanView('module.AIUsage');
+  const canViewUserManual      = useCanView('module.UserManual');
+  const canViewAbout           = useCanView('module.About');
+
+  // Map route → can_view so we can filter nav items
+  const moduleVisibility = useMemo(() => ({
+    '/Dashboard':       canViewDashboard,
+    '/Transactions':    canViewTransactions,
+    '/Capture':         true, // always visible
+    '/Reports':         canViewReports,
+    '/Assistant':       canViewAssistant,
+    '/Budget':          canViewBudget,
+    '/ScheduledPayments': canViewScheduled,
+    '/Investments':     canViewInvestments,
+    '/MSI':             canViewMSI,
+    '/Rentals':         canViewRentals,
+    '/Catalogs':        canViewCatalogs,
+    '/FamilySettings':  canViewFamilySettings,
+    '/AccountSettings': canViewAccountSettings,
+    '/FamilyAdmin':     canViewFamilyAdmin,
+    '/PermissionAdmin': canViewPermAdmin,
+    '/LicenseAdmin':    canViewLicenseAdmin,
+    '/AIUsage':         canViewAIUsage,
+    '/UserManual':      canViewUserManual,
+    '/About':           canViewAbout,
+  }), [canViewDashboard, canViewTransactions, canViewReports, canViewAssistant, canViewBudget,
+       canViewScheduled, canViewInvestments, canViewMSI, canViewRentals, canViewCatalogs,
+       canViewFamilySettings, canViewAccountSettings, canViewFamilyAdmin, canViewPermAdmin,
+       canViewLicenseAdmin, canViewAIUsage, canViewUserManual, canViewAbout]);
+
+  function canShowItem(item) {
+    // adminOnly items are shown if isAdmin OR the permission matrix allows it
+    if (item.adminOnly && !isAdmin) return false;
+    const perm = moduleVisibility[item.to];
+    return perm !== false; // undefined = not in map = show by default
+  }
+
   const handleNavClick = (path) => {
     if (path !== location.pathname) navigate(path);
   };
@@ -170,7 +224,7 @@ export default function Layout() {
                   </p>
                 )}
                 <div className="px-3 space-y-0.5">
-                  {group.items.filter(item => !item.adminOnly || isAdmin).map(item => {
+                  {group.items.filter(item => canShowItem(item)).map(item => {
                     const Icon = item.icon;
                     const active = location.pathname === item.to;
                     const showBadge = item.to === '/Transactions' && pendingCount > 0;
@@ -197,14 +251,14 @@ export default function Layout() {
             ))}
           </nav>
 
-          {/* System Admin — only visible for app-level admins */}
-          {currentUser?.role === 'admin' && (
+          {/* System Admin — only visible for app-level admins or users with explicit permission */}
+          {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
             <div className="px-3 border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1">
               <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
               {[
-                { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias' },
-                { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA' },
-              ].map(({ to, icon: Icon, label }) => (
+                { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
+                { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
+              ].filter(x => x.visible).map(({ to, icon: Icon, label }) => (
                 <button key={to}
                   onClick={() => handleNavClick(to)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
@@ -347,7 +401,7 @@ export default function Layout() {
 
                 {/* Grouped items */}
                 {MORE_GROUPS.map((group, gi) => {
-                  const filteredItems = group.items.filter(item => !item.adminOnly || isAdmin);
+                  const filteredItems = group.items.filter(item => canShowItem(item));
                   if (filteredItems.length === 0) return null;
                   return (
                     <div key={gi} className="px-4 pb-3">
@@ -374,31 +428,35 @@ export default function Layout() {
                   );
                 })}
 
-                {/* Sistema — solo visible para el app-admin (owner) */}
-                {currentUser?.role === 'admin' && (
+                {/* Sistema — solo visible para el app-admin (owner) o con permiso explícito */}
+                {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
                   <div className="px-4 pb-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 mb-2 mt-3">Sistema</p>
                     <div className="grid grid-cols-4 gap-2">
-                      <button
-                        onClick={() => { handleNavClick('/LicenseAdmin'); setShowMore(false); }}
-                        aria-label="Licencias"
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
-                          ${location.pathname === '/LicenseAdmin' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
-                          <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-                        </div>
-                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
-                      </button>
-                      <button
-                        onClick={() => { handleNavClick('/AIUsage'); setShowMore(false); }}
-                        aria-label="Uso de IA"
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
-                          ${location.pathname === '/AIUsage' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
-                          <Sparkles className="w-5 h-5" aria-hidden="true" />
-                        </div>
-                        <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Uso IA</span>
-                      </button>
+                      {(currentUser?.role === 'admin' || canViewLicenseAdmin) && (
+                        <button
+                          onClick={() => { handleNavClick('/LicenseAdmin'); setShowMore(false); }}
+                          aria-label="Licencias"
+                          className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
+                            ${location.pathname === '/LicenseAdmin' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
+                            <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+                          </div>
+                          <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
+                        </button>
+                      )}
+                      {(currentUser?.role === 'admin' || canViewAIUsage) && (
+                        <button
+                          onClick={() => { handleNavClick('/AIUsage'); setShowMore(false); }}
+                          aria-label="Uso de IA"
+                          className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
+                            ${location.pathname === '/AIUsage' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
+                            <Sparkles className="w-5 h-5" aria-hidden="true" />
+                          </div>
+                          <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Uso IA</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

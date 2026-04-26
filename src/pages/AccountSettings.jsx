@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, Calendar, ChevronRight } from 'lucide-react';
+import { AlertTriangle, LogOut, Clock, Zap, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatDate } from '@/lib/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
@@ -15,6 +16,7 @@ export default function AccountSettings() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig, currentUser } = useFamily();
+  const { can_write: canDeleteAccount } = usePermission('account.profile.delete');
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
@@ -232,26 +234,28 @@ export default function AccountSettings() {
         </button>}
 
         {/* Danger Zone */}
-        <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
-          <div className="flex items-start gap-3 mb-3">
-            <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Zona de peligro</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Estas acciones son irreversibles. Procede con cuidado.
-              </p>
+        {canDeleteAccount && (
+          <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Zona de peligro</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Estas acciones son irreversibles. Procede con cuidado.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={() => setShowDeleteFlow(true)}
-            aria-label="Eliminar cuenta de forma permanente"
-            className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors touch-target"
-          >
-            <LogOut className="w-4 h-4" />
-            Eliminar cuenta
-          </button>
-        </div>
+            <button
+              onClick={() => setShowDeleteFlow(true)}
+              aria-label="Eliminar cuenta de forma permanente"
+              className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors touch-target"
+            >
+              <LogOut className="w-4 h-4" />
+              Eliminar cuenta
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Deletion Flow Modal */}

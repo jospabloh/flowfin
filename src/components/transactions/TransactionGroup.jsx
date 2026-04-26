@@ -4,6 +4,7 @@ import PersonAvatar from '@/components/PersonAvatar';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/formatters';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 const getPaymentLinkInfo = (t) => {
   if (t.msi_payment_id) return { type: 'MSI', icon: '💳' };
@@ -14,6 +15,9 @@ const getPaymentLinkInfo = (t) => {
 };
 
 export default function TransactionGroup({ date, txns, expanded, setExpanded, categories, subcategories, persons, paymentMethods, currency, locale, onEdit, onDelete }) {
+  const { can_modify: canEdit } = usePermission('transaction.edit.details');
+  const { can_delete: canDelete } = usePermission('transaction.delete.action');
+
   return (
     <div className="px-4 mb-4">
       <div className="flex items-center gap-2 mb-2">
@@ -78,12 +82,16 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                     {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground">{t.notes}</span></>}
                   </div>
                   <div className="flex gap-2 mt-1">
-                    <button onClick={() => onEdit(t)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors touch-target">
-                      <Pencil className="w-3.5 h-3.5" /> Editar
-                    </button>
-                    <button onClick={() => onDelete(t.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors touch-target">
-                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
-                    </button>
+                    {canEdit && (
+                      <button onClick={() => onEdit(t)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors touch-target">
+                        <Pencil className="w-3.5 h-3.5" /> Editar
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => onDelete(t.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors touch-target">
+                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

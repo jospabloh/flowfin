@@ -11,6 +11,7 @@ import DashboardTopCategoriesChart from '@/components/dashboard/DashboardTopCate
 import DashboardExpenseByPersonChart from '@/components/dashboard/DashboardExpenseByPersonChart';
 import DashboardRecentMovements from '@/components/dashboard/DashboardRecentMovements';
 import DashboardUpcomingPayments from '@/components/dashboard/DashboardUpcomingPayments';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 export default function Dashboard() {
   const {
@@ -24,6 +25,13 @@ export default function Dashboard() {
     currency, locale,
     setUserPref,
   } = useDashboardData();
+
+  const canViewSummary   = useCanView('dashboard.view.summary');
+  const canViewUpcoming  = useCanView('dashboard.view.upcoming');
+  const canViewAnalytics = useCanView('dashboard.view.analytics');
+  const canViewRecent    = useCanView('dashboard.view.recent');
+  const canViewAlerts    = useCanView('dashboard.view.alerts');
+  const canViewFilters   = useCanView('dashboard.view.filters');
 
   return (
     <div className="pb-4">
@@ -39,43 +47,57 @@ export default function Dashboard() {
         action={<div className="md:hidden"><ThemeToggle /></div>}
       />
 
-      <DashboardFilters
-        period={period}
-        setPeriod={setPeriod}
-        personFilter={personFilter}
-        setPersonFilter={setPersonFilter}
-        persons={persons}
-        setUserPref={setUserPref}
-      />
+      {canViewFilters && (
+        <DashboardFilters
+          period={period}
+          setPeriod={setPeriod}
+          personFilter={personFilter}
+          setPersonFilter={setPersonFilter}
+          persons={persons}
+          setUserPref={setUserPref}
+        />
+      )}
 
-      <DashboardPendingBanners
-        pendingScheduled={pendingScheduled}
-        pendingInvestments={pendingInvestments}
-        pendingRentals={pendingRentals}
-      />
+      {canViewAlerts && (
+        <DashboardPendingBanners
+          pendingScheduled={pendingScheduled}
+          pendingInvestments={pendingInvestments}
+          pendingRentals={pendingRentals}
+        />
+      )}
 
-      <DashboardSummaryCards income={income} expense={expense} balance={balance} />
+      {canViewSummary && (
+        <DashboardSummaryCards income={income} expense={expense} balance={balance} />
+      )}
 
-      <DashboardTopCategoriesChart
-        topCategories={topCategories}
-        expense={expense}
-        currency={currency}
-        locale={locale}
-      />
+      {canViewAnalytics && (
+        <DashboardTopCategoriesChart
+          topCategories={topCategories}
+          expense={expense}
+          currency={currency}
+          locale={locale}
+        />
+      )}
 
-      <DashboardExpenseByPersonChart
-        byPerson={byPerson}
-        currency={currency}
-        locale={locale}
-      />
+      {canViewAnalytics && (
+        <DashboardExpenseByPersonChart
+          byPerson={byPerson}
+          currency={currency}
+          locale={locale}
+        />
+      )}
 
-      <DashboardRecentMovements
-        recent={recent}
-        categories={categories}
-        persons={persons}
-      />
+      {canViewRecent && (
+        <DashboardRecentMovements
+          recent={recent}
+          categories={categories}
+          persons={persons}
+        />
+      )}
 
-      <DashboardUpcomingPayments upcoming={upcoming} />
+      {canViewUpcoming && (
+        <DashboardUpcomingPayments upcoming={upcoming} />
+      )}
     </div>
   );
 }

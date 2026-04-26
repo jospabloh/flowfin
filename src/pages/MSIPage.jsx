@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
-import { Plus, X, CreditCard, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Plus, X, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
@@ -12,10 +12,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency, todayISO } from '@/lib/formatters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import Spinner from '@/components/Spinner';
-import { addMonths, parseISO, format } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+import { usePermission } from '@/lib/permissions/usePermission';
 
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
@@ -29,6 +30,8 @@ function getNextMSIPayment(msi, payments) {
 export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId, currency, familyConfig } = useFamily();
+  const { can_write: canCreate } = usePermission('msi.crud.create');
+  const { can_write: canPay } = usePermission('msi.payments.record');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -195,11 +198,11 @@ export default function MSIPage() {
       )}
 
       <PageHeader title="MSI" subtitle="Meses Sin Intereses"
-        action={
+        action={canCreate && (
           <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold">
             <Plus className="w-3.5 h-3.5" /> Nuevo
           </button>
-        } />
+        )} />
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
@@ -303,9 +306,11 @@ export default function MSIPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">{nextPayment.diff < 0 ? `¡${Math.abs(nextPayment.diff)} días vencido!` : nextPayment.diff === 0 ? '¡Hoy!' : `En ${nextPayment.diff} días`}</p>
                   </div>
                 )}
-                <button onClick={() => { handleMarkPaid(selected, selectedPayments); setSelected(null); }} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-4">
-                  Registrar Pago
-                </button>
+                {canPay && (
+                  <button onClick={() => { handleMarkPaid(selected, selectedPayments); setSelected(null); }} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-4">
+                    Registrar Pago
+                  </button>
+                )}
                 <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>
                 <div className="space-y-2">
                   {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
