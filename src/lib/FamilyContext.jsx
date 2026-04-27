@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
-async function syncUserPrefsToLS(user) {
+function syncUserPrefsToLS(user) {
   try {
     if (user?.preferences) {
       localStorage.setItem('ff_user_prefs', JSON.stringify(user.preferences));
@@ -27,7 +27,7 @@ export function FamilyProvider({ children }) {
   }, []);
 
   // ── Step 1: Load membership directly from entity SDK (no backend function) ──
-  const { data: membership, isLoading: loadingMembership, isError: membershipError, refetch: refetchMembership } = useQuery({
+  const { data: membership, isError: membershipError, refetch: refetchMembership } = useQuery({
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
       // Try by user_id first
@@ -48,7 +48,7 @@ export function FamilyProvider({ children }) {
   // ── Step 2: Load family once we have membership ──
   const familyId = membership?.family_id || null;
 
-  const { data: family, isLoading: loadingFamily } = useQuery({
+  const { data: family } = useQuery({
     queryKey: ['family', familyId],
     queryFn: async () => {
       const results = await base44.entities.Family.filter({ id: familyId });

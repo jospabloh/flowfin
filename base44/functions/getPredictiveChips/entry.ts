@@ -61,7 +61,6 @@ Deno.serve(async (req) => {
 
     // Score each entry by recency: newer entries (lower index) = higher weight
     // Weight = 1 / (recencyIndex + 1)
-    const totalCount = transactions.length;
     interface ScoredCandidate {
       tx: typeof transactions[number];
       weight: number;

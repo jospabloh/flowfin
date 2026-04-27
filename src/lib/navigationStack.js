@@ -49,7 +49,7 @@ function getTabForPath(path) {
  * Initialize multi-tab navigation system
  * Call once at app startup, passing initial route
  */
-export function initializeNavigation(initialPath) {
+export function initializeNavigation(_initialPath) {
   try {
     const stored = sessionStorage.getItem(HISTORY_KEY);
     if (stored) {

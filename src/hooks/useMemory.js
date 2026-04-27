@@ -101,11 +101,6 @@ export function useMemory() {
 
     const existing = rules.associations[key] || { count: 0, confidence: 0 };
 
-    const isSameAsPrevious = previousSuggestion &&
-      previousSuggestion.categoryId === categoryId &&
-      previousSuggestion.personId === personId &&
-      previousSuggestion.paymentMethodId === paymentMethodId;
-
     const isCorrectionOfPrevious = previousSuggestion &&
       (previousSuggestion.categoryId !== categoryId ||
        previousSuggestion.personId !== personId ||

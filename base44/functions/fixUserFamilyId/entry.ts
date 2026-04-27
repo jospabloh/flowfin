@@ -42,9 +42,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({ data: { family_id } }),
     });
 
-    let putResult = null;
     if (patchRes.ok) {
-      putResult = await patchRes.json();
+      await patchRes.json();
     } else {
       // Fallback to SDK (may still nest, but better than nothing)
       await base44.asServiceRole.entities.User.update(user_id, {
@@ -57,7 +56,8 @@ Deno.serve(async (req) => {
     const newData = updated?.[0]?.data;
 
     return Response.json({ success: true, fixed: { family_id }, newData, usedRest: patchRes?.ok });
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: message }, { status: 500 });
   }
 });
