@@ -13,8 +13,6 @@ export function useBottomSheetStyle(maxPercent = 0.92) {
   const [style, setStyle] = useState({});
 
   useEffect(() => {
-    const isMobile = globalThis.innerWidth < 768;
-
     const compute = () => {
       if (globalThis.innerWidth >= 768) {
         // Desktop: no bottom nav, just limit height

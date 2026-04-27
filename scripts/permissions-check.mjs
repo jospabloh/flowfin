@@ -23,17 +23,6 @@ const REPORT_FLAG = process.argv.includes('--report');
 // ---------------------------------------------------------------------------
 // 1. Walk src/**/*.{js,jsx} and extract used permission keys
 // ---------------------------------------------------------------------------
-async function walkFiles(dir, ext = ['.js', '.jsx']) {
-  const entries = await readdir(dir, { withFileTypes: true, recursive: true }).catch(() => []);
-  const files = [];
-  for (const e of entries) {
-    if (e.isFile() && ext.some(x => e.name.endsWith(x))) {
-      files.push(join(e.parentPath ?? e.path ?? dir, e.name));
-    }
-  }
-  return files;
-}
-
 // Fallback for older Node versions that don't support { recursive: true }
 async function walkFilesRecursive(dir, ext = ['.js', '.jsx']) {
   const files = [];

@@ -202,7 +202,7 @@ export function useTutorialState() {
     setIsHydrated(true);
   }, [membership, currentUser?.id]);
 
-  const applyTutorialUpdate = useCallback(async (updater) => {
+  const applyTutorialUpdate = useCallback((updater) => {
     let nextState;
     setTutorialState((prevState) => {
       const currentState = sanitizeTutorialState(prevState);
@@ -238,7 +238,7 @@ export function useTutorialState() {
     ].includes(rawStatus);
   }, [membership, currentUser?.id]);
 
-  const startOrResume = useCallback(async () => {
+  const startOrResume = useCallback(() => {
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.IN_PROGRESS,
@@ -247,7 +247,7 @@ export function useTutorialState() {
     }));
   }, [applyTutorialUpdate]);
 
-  const restartFromBeginning = useCallback(async () => {
+  const restartFromBeginning = useCallback(() => {
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.IN_PROGRESS,
@@ -256,7 +256,7 @@ export function useTutorialState() {
     }));
   }, [applyTutorialUpdate]);
 
-  const setCurrentStep = useCallback(async (stepId) => {
+  const setCurrentStep = useCallback((stepId) => {
     if (!stepId) return;
     return applyTutorialUpdate((prev) => ({
       ...prev,
@@ -266,7 +266,7 @@ export function useTutorialState() {
     }));
   }, [applyTutorialUpdate]);
 
-  const markPostponed = useCallback(async (stepId) => {
+  const markPostponed = useCallback((stepId) => {
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.POSTPONED,
@@ -275,7 +275,7 @@ export function useTutorialState() {
     }));
   }, [applyTutorialUpdate]);
 
-  const markSkipped = useCallback(async (stepId) => {
+  const markSkipped = useCallback((stepId) => {
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.SKIPPED,
@@ -284,7 +284,7 @@ export function useTutorialState() {
     }));
   }, [applyTutorialUpdate]);
 
-  const markCompleted = useCallback(async () => {
+  const markCompleted = useCallback(() => {
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.COMPLETED,

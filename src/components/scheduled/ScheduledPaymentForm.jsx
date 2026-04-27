@@ -6,7 +6,7 @@ import NativeSelect from '@/components/NativeSelect';
 
 const ICONS = ['💰','💡','📱','🏠','🚗','🎓','🏥','💧','🌐','📺','🎮','🛒','✈️','💳','🏋️'];
 
-export default function ScheduledPaymentForm({ item, familyId, categories, paymentMethods, onSave, onClose }) {
+export default function ScheduledPaymentForm({ item, familyId: _familyId, categories, paymentMethods, onSave, onClose }) {
   const sheetStyle = useBottomSheetStyle(0.90);
   const [name, setName] = useState(item?.name || '');
   const [description, setDescription] = useState(item?.description || '');

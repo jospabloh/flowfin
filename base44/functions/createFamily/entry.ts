@@ -42,8 +42,9 @@ Deno.serve(async (req) => {
         status: 'pending',
         retry_count: 0,
       });
-    } catch (emailErr: any) {
-      console.warn('[createFamily] Failed to queue welcome email:', emailErr.message);
+    } catch (emailErr: unknown) {
+      const emailErrorMessage = emailErr instanceof Error ? emailErr.message : String(emailErr);
+      console.warn('[createFamily] Failed to queue welcome email:', emailErrorMessage);
     }
 
     // Create admin membership
@@ -89,7 +90,8 @@ Deno.serve(async (req) => {
     }
 
     return Response.json({ success: true, family_id: family.id, join_code });
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: message }, { status: 500 });
   }
 });

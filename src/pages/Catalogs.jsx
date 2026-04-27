@@ -95,7 +95,7 @@ function InlineForm({ fields, mutation, onCancel, existingItems = [] }) {
   );
 }
 
-function EditForm({ fields, initialData, mutation, onCancel, categories = [] }) {
+function EditForm({ fields, initialData, mutation, onCancel }) {
   const [data, setData] = useState({ ...initialData });
   return (
     <div className="bg-accent/30 rounded-xl p-3 border border-primary/30 space-y-2 mt-1">

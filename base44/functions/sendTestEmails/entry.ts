@@ -292,10 +292,11 @@ Deno.serve(async (req) => {
       await sendViaResend(to, template.subject, template.html);
       results.push({ type: emailType, subject: template.subject, status: 'sent' });
       sent++;
-    } catch (err: any) {
-      results.push({ type: emailType, subject: template.subject, status: 'failed', error: err.message });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      results.push({ type: emailType, subject: template.subject, status: 'failed', error: errorMessage });
       failed++;
-      console.error(`[sendTestEmails] Failed ${emailType}:`, err.message);
+      console.error(`[sendTestEmails] Failed ${emailType}:`, errorMessage);
     }
   }
 

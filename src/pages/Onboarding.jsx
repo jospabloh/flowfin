@@ -89,7 +89,7 @@ export default function Onboarding() {
       } else {
         setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
       }
-    } catch (e) {
+    } catch {
       setError('Error al conectar. Intenta de nuevo.');
     } finally {
       setLoading(false);

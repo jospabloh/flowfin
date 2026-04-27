@@ -106,7 +106,16 @@ export default function PermissionAdmin() {
         const byRole = {};
         for (const perm of perms || []) {
           if (!byRole[perm.role]) byRole[perm.role] = {};
-          const { family_id, role, permission_key, created_date, updated_date, created_by, id, ...permData } = perm;
+          const {
+            family_id: _family_id,
+            role: _role,
+            permission_key: _permission_key,
+            created_date: _created_date,
+            updated_date: _updated_date,
+            created_by: _created_by,
+            id: _id,
+            ...permData
+          } = perm;
           byRole[perm.role][perm.permission_key] = permData;
         }
         setOverrides(byRole);
@@ -205,8 +214,6 @@ export default function PermissionAdmin() {
       </div>
     );
   }
-
-  const count = getPermissionCount(selectedRole);
 
   return (
     <div className="min-h-screen bg-background">

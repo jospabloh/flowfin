@@ -8,7 +8,7 @@
  */
 
 let _direction = 'forward'; // 'forward' | 'backward'
-let _listeners = new Set();
+const _listeners = new Set();
 
 export function getNavigationDirection() {
   return _direction;

@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
 
     // Scheduled payments — check which ones are NOT paid this month
     const currentMonth = end.slice(0, 7); // YYYY-MM
-    let paidScheduledIds = new Set();
+    const paidScheduledIds = new Set();
     try {
       const paidRecords = await entities.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth });
       for (const r of (paidRecords || [])) paidScheduledIds.add(r.scheduled_payment_id);

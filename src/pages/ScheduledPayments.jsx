@@ -23,12 +23,7 @@ export default function ScheduledPayments() {
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
   const { toast } = useToast();
-  const { can_view: canViewList }      = usePermission('scheduled.view.list');
-  const { can_view: canViewCalendar }  = usePermission('scheduled.view.calendar');
   const { can_write: canCreate }       = usePermission('scheduled.create.form');
-  const { can_write: canMark }         = usePermission('scheduled.mark.action');
-  const { can_modify: canManageEdit }  = usePermission('scheduled.manage.edit');
-  const { can_delete: canManageDel }   = usePermission('scheduled.manage.delete');
 
 
   const [showForm, setShowForm] = useState(false);
@@ -133,7 +128,7 @@ export default function ScheduledPayments() {
           const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === item.id);
           return (
             <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
-              isUnmarking={unmarkingId === item.id} isAdmin={isAdmin} persons={persons}
+              isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
               onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
               onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
               onDelete={(id) => deleteMutation.mutate(id)} />

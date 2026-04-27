@@ -30,7 +30,7 @@ function normalizeKey(description) {
 }
 
 export function useMemory() {
-  const { familyId, familyConfigId, currentUser } = useFamily();
+  const { familyConfigId, currentUser } = useFamily();
   const saveTimerRef = useRef({});
 
   // ── USER PREFERENCES ─────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export function useMemory() {
     }, 1000);
   }, [familyConfigId]);
 
-  const syncFamilyRulesFromDB = useCallback(async (familyConfigData) => {
+  const syncFamilyRulesFromDB = useCallback((familyConfigData) => {
     if (familyConfigData?.smart_rules) {
       writeLS(LS_FAMILY_RULES, familyConfigData.smart_rules);
     }

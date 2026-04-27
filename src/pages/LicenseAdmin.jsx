@@ -25,10 +25,6 @@ const STATUS_CONFIG = {
 
 const TEST_EMAIL = 'h.jospablo@gmail.com';
 
-function fmt(iso) {
-  return fmtDateUtil(iso);
-}
-
 function FamilyLicenseView() {
   const {
     family, isAdmin, billingStatus, licensePlan, licensedMemberLimit,
@@ -154,7 +150,7 @@ export default function LicenseAdmin() {
 
   const isAppAdmin = currentUser?.role === 'admin';
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['familyBillingAdmin', search],
     queryFn: () => base44.functions.invoke('getFamilyBillingStatus', { search }).then(r => r.data),
     enabled: isAppAdmin,

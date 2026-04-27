@@ -23,15 +23,7 @@ export default function Rentals() {
   const { familyId } = useFamily();
   const { toast } = useToast();
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
-  const { can_view: canViewList }      = usePermission('rental.view.list');
-  const { can_view: canViewDetail }    = usePermission('rental.view.detail');
-  const { can_view: canViewSheet }     = usePermission('rental.view.detail_sheet');
   const { can_write: canCreate }       = usePermission('rental.property.create');
-  const { can_modify: canEdit }        = usePermission('rental.property.edit');
-  const { can_delete: canDelete }      = usePermission('rental.property.delete');
-  const { can_write: canRecord }       = usePermission('rental.payments.record');
-  const { can_modify: canReverse }     = usePermission('rental.payments.reverse');
-  const { can_view: canViewHistory }   = usePermission('rental.payments.history');
 
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
