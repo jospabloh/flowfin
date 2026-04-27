@@ -1,16 +1,17 @@
 export default {
   module: { key: 'module.Catalogs', label: 'Catálogos', order: 11 },
   sections: [
-    { key: 'catalog.categories',   label: 'Rubros',          order: 1 },
-    { key: 'catalog.subcategories',label: 'SubRubros',        order: 2 },
-    { key: 'catalog.persons',      label: 'Personas',         order: 3 },
-    { key: 'catalog.methods',      label: 'Formas de Pago',   order: 4 },
+    { key: 'catalog.categories',    label: 'Rubros',          order: 1 },
+    { key: 'catalog.subcategories', label: 'SubRubros',        order: 2 },
+    { key: 'catalog.persons',       label: 'Personas',         order: 3 },
+    { key: 'catalog.methods',       label: 'Formas de Pago',   order: 4 },
   ],
   actions: [
-    { key: 'catalog.categories.view',         parent: 'catalog.categories',    label: 'Ver Rubros' },
-    { key: 'catalog.categories.create',       parent: 'catalog.categories',    label: 'Crear Rubro' },
-    { key: 'catalog.categories.edit',         parent: 'catalog.categories',    label: 'Editar Rubro' },
-    { key: 'catalog.categories.delete',       parent: 'catalog.categories',    label: 'Eliminar Rubro' },
+    { key: 'catalog.categories.view',                parent: 'catalog.categories',    label: 'Ver Rubros' },
+    { key: 'catalog.categories.create',              parent: 'catalog.categories',    label: 'Crear Rubro' },
+    { key: 'catalog.categories.edit',                parent: 'catalog.categories',    label: 'Editar Rubro' },
+    { key: 'catalog.categories.delete',              parent: 'catalog.categories',    label: 'Eliminar Rubro' },
+    { key: 'catalog.categories.exclude_from_totals', parent: 'catalog.categories',    label: 'Excluir de totales (Pago TDC)' },
 
     { key: 'catalog.subcategories.view',      parent: 'catalog.subcategories', label: 'Ver SubRubros' },
     { key: 'catalog.subcategories.create',    parent: 'catalog.subcategories', label: 'Crear SubRubro' },
@@ -29,11 +30,12 @@ export default {
   ],
   defaults: {
     admin: {
-      'catalog.categories':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.view':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
-      'catalog.categories.create':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories':                       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.view':                  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.categories.create':                { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.edit':                  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.delete':                { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.exclude_from_totals':   { can_read: true, can_write: true,  can_modify: true,  can_delete: false, can_view: true },
 
       'catalog.subcategories':        { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.subcategories.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
@@ -54,11 +56,12 @@ export default {
       'catalog.methods.delete':       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
     },
     member: {
-      'catalog.categories':         { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.view':    { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
-      'catalog.categories.create':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
-      'catalog.categories.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories':                       { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.view':                  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
+      'catalog.categories.create':                { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.edit':                  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.delete':                { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.exclude_from_totals':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: false },
 
       'catalog.subcategories':        { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.subcategories.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
