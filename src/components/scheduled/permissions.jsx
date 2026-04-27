@@ -11,15 +11,12 @@ export default {
     { key: 'scheduled.manage', label: 'Gestionar',    order: 4 },
   ],
   actions: [
-    { key: 'scheduled.view.list',       parent: 'scheduled.view',   label: 'Listar Pagos Programados' },
-    { key: 'scheduled.view.calendar',   parent: 'scheduled.view',   label: 'Vista Calendario' },
-
-    { key: 'scheduled.create.form',     parent: 'scheduled.create', label: 'Nuevo Pago Programado' },
-
-    { key: 'scheduled.mark.action',     parent: 'scheduled.mark',   label: 'Registrar como Pagado' },
-
-    { key: 'scheduled.manage.edit',     parent: 'scheduled.manage', label: 'Editar Pago' },
-    { key: 'scheduled.manage.delete',   parent: 'scheduled.manage', label: 'Eliminar Pago' },
+    { key: 'scheduled.view.list',     parent: 'scheduled.view',   label: 'Listar Pagos' },
+    { key: 'scheduled.view.calendar', parent: 'scheduled.view',   label: 'Vista Calendario' },
+    { key: 'scheduled.create.form',   parent: 'scheduled.create', label: 'Nuevo Pago Programado' },
+    { key: 'scheduled.mark.action',   parent: 'scheduled.mark',   label: 'Registrar como Pagado' },
+    { key: 'scheduled.manage.edit',   parent: 'scheduled.manage', label: 'Editar Pago' },
+    { key: 'scheduled.manage.delete', parent: 'scheduled.manage', label: 'Eliminar Pago' },
   ],
   defaults: {
     admin: {

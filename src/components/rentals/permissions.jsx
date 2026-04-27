@@ -10,13 +10,11 @@ export default {
   ],
   actions: [
     { key: 'rental.view.list',         parent: 'rental.view',     label: 'Listar Propiedades' },
-    { key: 'rental.view.detail',       parent: 'rental.view',     label: 'Detalles de Propiedad' },
+    { key: 'rental.view.detail',       parent: 'rental.view',     label: 'Detalles' },
     { key: 'rental.view.detail_sheet', parent: 'rental.view',     label: 'Hoja de detalle' },
-
     { key: 'rental.property.create',   parent: 'rental.property', label: 'Registrar Propiedad' },
     { key: 'rental.property.edit',     parent: 'rental.property', label: 'Editar Propiedad' },
     { key: 'rental.property.delete',   parent: 'rental.property', label: 'Eliminar Propiedad' },
-
     { key: 'rental.payments.record',   parent: 'rental.payments', label: 'Registrar Cobro' },
     { key: 'rental.payments.reverse',  parent: 'rental.payments', label: 'Revertir Cobro' },
     { key: 'rental.payments.history',  parent: 'rental.payments', label: 'Historial de Cobros' },
