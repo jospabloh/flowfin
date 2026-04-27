@@ -32,7 +32,7 @@
     "exclude_from_totals": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, las transacciones de esta categor\u00eda no se suman en totales ni reportes (ej: Pago TDC)"
+      "description": "Si es true, las transacciones de esta categoría no se suman en los totales de egresos (ej: Pago TDC)"
     }
   },
   "required": [

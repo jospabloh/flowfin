@@ -171,7 +171,6 @@ export default function Catalogs() {
   const { can_write: canCreateCat }  = usePermission('catalog.categories.create');
   const { can_modify: canEditCat }   = usePermission('catalog.categories.edit');
   const { can_delete: canDeleteCat } = usePermission('catalog.categories.delete');
-  const { can_modify: canToggleExclude } = usePermission('catalog.categories.exclude_from_totals');
   const { can_write: canCreateSub }  = usePermission('catalog.subcategories.create');
   const { can_modify: canEditSub }   = usePermission('catalog.subcategories.edit');
   const { can_delete: canDeleteSub } = usePermission('catalog.subcategories.delete');
@@ -368,10 +367,7 @@ export default function Catalogs() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{cat.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}
-                        {cat.exclude_from_totals && <span className="ml-1.5 text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">solo informativo</span>}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
                     </div>
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     {canEditCat && (
@@ -398,20 +394,6 @@ export default function Catalogs() {
                         mutation={{ ...updateCategoryMutation, mutate: (data, opts) => updateCategoryMutation.mutate({ id: cat.id, data }, opts), isPending: updateCategoryMutation.isPending }}
                         onCancel={() => setEditing(null)}
                       />
-                      {canToggleExclude && (
-                        <div className="mt-2 flex items-center justify-between px-1 py-2 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-                          <div>
-                            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">💳 Excluir de totales</p>
-                            <p className="text-[10px] text-blue-600 dark:text-blue-500">Ej: Pago TDC — no suma al gasto real</p>
-                          </div>
-                          <button
-                            onClick={() => updateCategoryMutation.mutate({ id: cat.id, data: { exclude_from_totals: !cat.exclude_from_totals } })}
-                            className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${cat.exclude_from_totals ? 'bg-blue-500' : 'bg-muted-foreground/30'}`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cat.exclude_from_totals ? 'translate-x-5' : 'translate-x-0'}`} />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

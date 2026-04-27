@@ -93,8 +93,12 @@ export function FamilyProvider({ children }) {
     queryKey: ['detectAnomalies', familyId],
     queryFn: () => base44.functions.invoke('detectAnomalies', { familyId }).then(r => r.data),
     enabled: !!familyId,
-    staleTime: 60 * 60 * 1000,
+    staleTime: 6 * 60 * 60 * 1000,   // 6 hours — don't refetch within same session
+    gcTime: 6 * 60 * 60 * 1000,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   useQuery({
