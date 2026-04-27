@@ -30,8 +30,14 @@ function getNextMSIPayment(msi, payments) {
 export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId, currency, familyConfig } = useFamily();
-  const { can_write: canCreate } = usePermission('msi.crud.create');
-  const { can_write: canPay } = usePermission('msi.payments.record');
+  const { can_view: canViewList }    = usePermission('msi.view.list');
+  const { can_view: canViewTrack }   = usePermission('msi.view.track');
+  const { can_view: canViewSheet }   = usePermission('msi.view.detail_sheet');
+  const { can_write: canCreate }     = usePermission('msi.crud.create');
+  const { can_modify: canEdit }      = usePermission('msi.crud.edit');
+  const { can_delete: canDel }       = usePermission('msi.crud.delete');
+  const { can_write: canPay }        = usePermission('msi.payments.record');
+  const { can_view: canViewHistory } = usePermission('msi.payments.history');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();

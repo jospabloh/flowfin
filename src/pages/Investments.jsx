@@ -23,8 +23,14 @@ export default function Investments() {
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
 
-  const { can_write: canCreate }  = usePermission('investment.crud.create');
-  const { can_write: canPayment } = usePermission('investment.payments.add');
+  const { can_view: canViewList }       = usePermission('investment.view.list');
+  const { can_view: canViewDetail }     = usePermission('investment.view.detail');
+  const { can_view: canViewSheet }      = usePermission('investment.view.detail_sheet');
+  const { can_write: canCreate }        = usePermission('investment.crud.create');
+  const { can_modify: canEdit }         = usePermission('investment.crud.edit');
+  const { can_delete: canDelete }       = usePermission('investment.crud.delete');
+  const { can_write: canPayment }       = usePermission('investment.payments.add');
+  const { can_view: canViewHistory }    = usePermission('investment.payments.history');
 
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);

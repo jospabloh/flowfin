@@ -1,0 +1,63 @@
+const ALL  = { can_read: true, can_write: true, can_modify: true, can_delete: true, can_view: true };
+const READ = { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true };
+const NONE = { can_read: false, can_write: false, can_modify: false, can_delete: false, can_view: false };
+
+export default {
+  module: { key: 'module.Reports', label: 'Reportes', order: 4 },
+  sections: [
+    { key: 'reports.view',   label: 'Ver Reportes',      order: 1 },
+    { key: 'reports.export', label: 'Exportar Reportes', order: 2 },
+  ],
+  actions: [
+    { key: 'reports.view.charts',      parent: 'reports.view',   label: 'Gráficos' },
+    { key: 'reports.view.breakdown',   parent: 'reports.view',   label: 'Desglose por Categoría' },
+    { key: 'reports.view.trends',      parent: 'reports.view',   label: 'Tendencias' },
+    { key: 'reports.view.by_category', parent: 'reports.view',   label: 'Por Categoría' },
+    { key: 'reports.view.by_person',   parent: 'reports.view',   label: 'Por Persona' },
+    { key: 'reports.view.by_method',   parent: 'reports.view',   label: 'Por Método de Pago' },
+    { key: 'reports.view.monthly',     parent: 'reports.view',   label: 'Mensual' },
+    { key: 'reports.view.comparative', parent: 'reports.view',   label: 'Comparativa' },
+    { key: 'reports.view.detail',      parent: 'reports.view',   label: 'Detalle / Drill-down' },
+    { key: 'reports.view.filter',      parent: 'reports.view',   label: 'Filtros y rango de fechas' },
+
+    { key: 'reports.export.pdf',       parent: 'reports.export', label: 'Descargar PDF' },
+    { key: 'reports.export.image',     parent: 'reports.export', label: 'Descargar Imagen' },
+    { key: 'reports.export.share',     parent: 'reports.export', label: 'Compartir' },
+  ],
+  defaults: {
+    admin: {
+      'reports.view':             ALL,
+      'reports.view.charts':      ALL,
+      'reports.view.breakdown':   ALL,
+      'reports.view.trends':      ALL,
+      'reports.view.by_category': ALL,
+      'reports.view.by_person':   ALL,
+      'reports.view.by_method':   ALL,
+      'reports.view.monthly':     ALL,
+      'reports.view.comparative': ALL,
+      'reports.view.detail':      ALL,
+      'reports.view.filter':      ALL,
+      'reports.export':           ALL,
+      'reports.export.pdf':       ALL,
+      'reports.export.image':     ALL,
+      'reports.export.share':     ALL,
+    },
+    member: {
+      'reports.view':             ALL,
+      'reports.view.charts':      READ,
+      'reports.view.breakdown':   READ,
+      'reports.view.trends':      READ,
+      'reports.view.by_category': READ,
+      'reports.view.by_person':   READ,
+      'reports.view.by_method':   READ,
+      'reports.view.monthly':     READ,
+      'reports.view.comparative': READ,
+      'reports.view.detail':      READ,
+      'reports.view.filter':      READ,
+      'reports.export':           ALL,
+      'reports.export.pdf':       READ,
+      'reports.export.image':     READ,
+      'reports.export.share':     NONE,
+    },
+  },
+};

@@ -35,6 +35,8 @@ export default function Transactions() {
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { categories = [], subcategories = [], persons = [], paymentMethods = [] } = useCatalog(familyId);
 
+  const canViewList          = useCanView('transaction.view.list');
+  const canViewFilter        = useCanView('transaction.view.filter');
   const canViewSearch        = useCanView('transaction.view.search');
   const canViewPendingBanner = useCanView('transaction.view.pending_banner');
   const { can_read: canExport } = usePermission('transaction.view.export');
@@ -134,8 +136,8 @@ export default function Transactions() {
           </button>
         ) : null} />
 
-      {canViewSearch && (
-        <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters} setShowFilters={setShowFilters}
+      {(canViewSearch || canViewFilter) && (
+        <TransactionFilters search={search} setSearch={setSearch} showFilters={showFilters && canViewFilter} setShowFilters={canViewFilter ? setShowFilters : () => {}}
           filterType={filterType} setFilterType={setFilterType} filterCat={filterCat} setFilterCat={setFilterCat}
           filterPerson={filterPerson} setFilterPerson={setFilterPerson} categories={categories} persons={persons} activeFilters={activeFilters} />
       )}
@@ -155,7 +157,7 @@ export default function Transactions() {
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Spinner /></div>
-      ) : groups.length === 0 ? (
+      ) : !canViewList ? null : groups.length === 0 ? (
         <EmptyState icon="📋" title="Sin movimientos" description="Captura tu primer movimiento con el botón +" />
       ) : (
         <div>

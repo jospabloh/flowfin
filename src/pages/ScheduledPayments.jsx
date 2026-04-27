@@ -23,7 +23,12 @@ export default function ScheduledPayments() {
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
   const { toast } = useToast();
-  const { can_write: canCreate } = usePermission('scheduled.create.form');
+  const { can_view: canViewList }      = usePermission('scheduled.view.list');
+  const { can_view: canViewCalendar }  = usePermission('scheduled.view.calendar');
+  const { can_write: canCreate }       = usePermission('scheduled.create.form');
+  const { can_write: canMark }         = usePermission('scheduled.mark.action');
+  const { can_modify: canManageEdit }  = usePermission('scheduled.manage.edit');
+  const { can_delete: canManageDel }   = usePermission('scheduled.manage.delete');
 
 
   const [showForm, setShowForm] = useState(false);

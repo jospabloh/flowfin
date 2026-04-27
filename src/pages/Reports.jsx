@@ -41,13 +41,37 @@ export default function Reports() {
   const { categories, persons, paymentMethods } = useCatalog(familyId);
   const { getUserPref, setUserPref } = useMemory();
 
-  const canViewFilter    = useCanView('reports.view.filter');
-  const canViewChart     = useCanView('reports.view.charts');
-  const canViewBreakdown = useCanView('reports.view.breakdown');
-  const canViewDetail    = useCanView('reports.view.detail');
+  const canViewFilter      = useCanView('reports.view.filter');
+  const canViewChart       = useCanView('reports.view.charts');
+  const canViewBreakdown   = useCanView('reports.view.breakdown');
+  const canViewDetail      = useCanView('reports.view.detail');
+  const canViewTrends      = useCanView('reports.view.trends');
+  const canViewByCategory  = useCanView('reports.view.by_category');
+  const canViewByPerson    = useCanView('reports.view.by_person');
+  const canViewByMethod    = useCanView('reports.view.by_method');
+  const canViewMonthly     = useCanView('reports.view.monthly');
+  const canViewComparative = useCanView('reports.view.comparative');
   const { can_read: canExportPDF }   = usePermission('reports.export.pdf');
   const { can_read: canExportImage } = usePermission('reports.export.image');
   const { can_read: canShare }       = usePermission('reports.export.share');
+
+  // Filter presets based on granular permissions
+  const filteredPresets = {
+    expense: [
+      canViewByCategory  && { label: 'Por Categoría',  rows: 'category', cols: 'none', metric: 'sum', type: 'expense' },
+      canViewByPerson    && { label: 'Por Persona',     rows: 'person',   cols: 'none', metric: 'sum', type: 'expense' },
+      canViewMonthly     && { label: 'Mensual',         rows: 'month',    cols: 'none', metric: 'sum', type: 'expense' },
+      canViewByMethod    && { label: 'Por Método Pago', rows: 'method',   cols: 'none', metric: 'sum', type: 'expense' },
+    ].filter(Boolean),
+    income: [
+      canViewByCategory  && { label: 'Por Categoría', rows: 'category', cols: 'none', metric: 'sum', type: 'income' },
+      canViewByPerson    && { label: 'Por Persona',    rows: 'person',   cols: 'none', metric: 'sum', type: 'income' },
+      canViewMonthly     && { label: 'Mensual',        rows: 'month',    cols: 'none', metric: 'sum', type: 'income' },
+    ].filter(Boolean),
+    all: [
+      canViewComparative && { label: 'Comparativa', rows: 'month', cols: 'type', metric: 'sum', type: 'all' },
+    ].filter(Boolean),
+  };
 
   const urlParams = new URLSearchParams(window.location.search);
   const typeParam = urlParams.get('type');
@@ -66,7 +90,8 @@ export default function Reports() {
     enabled: !!familyId,
   });
 
-  const cfg = PRESETS[reportType][preset] || PRESETS[reportType][0];
+  const activePresets = (filteredPresets[reportType]?.length ? filteredPresets[reportType] : PRESETS[reportType]);
+  const cfg = activePresets[preset] || activePresets[0];
 
   const excludedCategoryIds = useMemo(
     () => new Set(categories.filter(c => c.exclude_from_totals).map(c => c.id)),
@@ -160,16 +185,22 @@ export default function Reports() {
       <PageHeader title="Reportes" subtitle="Análisis dinámico" />
 
       <div className="flex gap-2 px-4 mb-4">
-        {['expense', 'income', 'all'].map(t => (
+        {['expense', 'income', canViewComparative && 'all'].filter(Boolean).map(t => (
           <button key={t} onClick={() => { setReportType(t); setPreset(0); setUserPref('report_type', t); setUserPref('report_preset', 0); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${reportType === t ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
             {t === 'expense' ? '💸 Egresos' : t === 'income' ? '💰 Ingresos' : '⚖️ Comparativa'}
           </button>
         ))}
+        {canViewTrends && (
+          <button onClick={() => { setReportType('expense'); setPreset(activePresets.findIndex(p => p.rows === 'month')); }}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all bg-muted text-muted-foreground">
+            📈 Tendencias
+          </button>
+        )}
       </div>
 
       <div className="flex gap-2 px-4 mb-4 overflow-x-auto hide-scrollbar">
-        {PRESETS[reportType].map((p, i) => (
+        {activePresets.map((p, i) => (
           <button key={i} onClick={() => { setPreset(i); setUserPref('report_preset', i); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${preset === i ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted text-muted-foreground'}`}>
             {p.label}
