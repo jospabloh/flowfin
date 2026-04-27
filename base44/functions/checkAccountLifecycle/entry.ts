@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Daily scheduled function: manages all account lifecycle state transitions and
 // queues EmailNotification records for sendLifecycleEmails to deliver.
 // Decoupled from email delivery so a failed send never blocks a status transition.
@@ -37,7 +41,7 @@ Deno.serve(async (req) => {
         family_id,
         email_type,
       });
-      const alreadyHandled = existing.some((e: any) => e.status === 'sent' || e.status === 'pending');
+      const alreadyHandled = existing.some((e: { status?: string }) => e.status === 'sent' || e.status === 'pending');
       if (alreadyHandled) return;
 
       await base44.asServiceRole.entities.EmailNotification.create({
@@ -82,8 +86,8 @@ Deno.serve(async (req) => {
           await queueEmail(family.id, 'trial_ended', adminEmail);
           stats.trial_to_view_only++;
         }
-      } catch (err: any) {
-        stats.errors.push(`trial:${family.id}: ${err.message}`);
+      } catch (err: unknown) {
+        stats.errors.push(`trial:${family.id}: ${getErrorMessage(err)}`);
       }
     }
 
@@ -112,8 +116,8 @@ Deno.serve(async (req) => {
           });
           stats.view_only_to_archived++;
         }
-      } catch (err: any) {
-        stats.errors.push(`view_only:${family.id}: ${err.message}`);
+      } catch (err: unknown) {
+        stats.errors.push(`view_only:${family.id}: ${getErrorMessage(err)}`);
       }
     }
 
@@ -146,8 +150,8 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Family.delete(family.id);
           stats.archived_deleted++;
         }
-      } catch (err: any) {
-        stats.errors.push(`archived:${family.id}: ${err.message}`);
+      } catch (err: unknown) {
+        stats.errors.push(`archived:${family.id}: ${getErrorMessage(err)}`);
       }
     }
 
@@ -196,15 +200,16 @@ Deno.serve(async (req) => {
 
         // Also queue renewal_upcoming for auto-renewal families ~5 days before the 1st
         // (handled in processMonthlyRenewal for auto_renewal=true, nothing here)
-      } catch (err: any) {
-        stats.errors.push(`active:${family.id}: ${err.message}`);
+      } catch (err: unknown) {
+        stats.errors.push(`active:${family.id}: ${getErrorMessage(err)}`);
       }
     }
 
     console.log('[checkAccountLifecycle]', JSON.stringify({ ...stats, timestamp: nowISO }));
     return Response.json({ success: true, ...stats, timestamp: nowISO });
-  } catch (error: any) {
-    console.error('[checkAccountLifecycle] Fatal error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    console.error('[checkAccountLifecycle] Fatal error:', message);
+    return Response.json({ error: message }, { status: 500 });
   }
 });

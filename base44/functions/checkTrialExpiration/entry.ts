@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // DEPRECATED: Superseded by checkAccountLifecycle, which handles the full lifecycle
 // (trial, view_only, archived, deletion, active license expiry, monthly renewal).
 // This wrapper is kept so existing scheduler configuration continues to work.
@@ -13,8 +17,9 @@ Deno.serve(async (req) => {
       delegated_to: 'checkAccountLifecycle',
       result: result.data,
     });
-  } catch (error: any) {
-    console.error('[checkTrialExpiration] Delegation error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    console.error('[checkTrialExpiration] Delegation error:', message);
+    return Response.json({ error: message }, { status: 500 });
   }
 });
