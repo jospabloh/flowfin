@@ -77,20 +77,30 @@ export function useDashboardData() {
     return inRange && inPerson;
   }), [transactions, period, personFilter, range.start, range.end]);
 
-  const income = filtered.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
-  const expense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
+  const excludedCategoryIds = useMemo(
+    () => new Set(categories.filter(c => c.exclude_from_totals).map(c => c.id)),
+    [categories],
+  );
+
+  const filteredForTotals = useMemo(
+    () => filtered.filter(t => !excludedCategoryIds.has(t.category_id)),
+    [filtered, excludedCategoryIds],
+  );
+
+  const income = filteredForTotals.filter(t => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0);
+  const expense = filteredForTotals.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
   const balance = income - expense;
 
   const topCategories = useMemo(() => {
     const map = {};
-    filtered.filter(t => t.type === 'expense').forEach(t => {
+    filteredForTotals.filter(t => t.type === 'expense').forEach(t => {
       const key = t.category_id || 'sin-cat';
       map[key] = (map[key] || 0) + (t.amount || 0);
     });
     return Object.entries(map)
       .map(([id, total]) => ({ cat: categories.find(c => c.id === id), total }))
       .sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [filtered, categories]);
+  }, [filteredForTotals, categories]);
 
   const byPerson = useMemo(() => {
     const map = {};

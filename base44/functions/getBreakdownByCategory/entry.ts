@@ -37,12 +37,16 @@ Deno.serve(async (req) => {
       entities.Category.filter({ family_id: familyId }),
     ]);
 
+    const excludedCatIds = new Set(
+      (categoriesArr || []).filter((c: Record<string, unknown>) => c.exclude_from_totals).map((c: Record<string, unknown>) => c.id as string),
+    );
     const catMap = new Map((categoriesArr || []).map((c) => [c.id, c.name ?? c.id]));
 
     const catAgg = new Map();
     let grandTotal = 0;
     for (const tx of transactions) {
       if (typeof tx.amount !== 'number' || isNaN(tx.amount)) continue;
+      if (tx.category_id && excludedCatIds.has(tx.category_id)) continue;
       const key = tx.category_id ?? '__none__';
       const entry = catAgg.get(key) ?? { total: 0, count: 0 };
       entry.total += tx.amount;
