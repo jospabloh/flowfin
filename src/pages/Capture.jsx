@@ -59,6 +59,7 @@ export default function Capture() {
   const [requiredType, setRequiredType] = useState('Necesario');
   const [hasInvoice, setHasInvoice] = useState(false);
   const [notes, setNotes] = useState('');
+  const [creditCardBalance, setCreditCardBalance] = useState('');
   const [receiptImage, setReceiptImage] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [smartSuggestions, setSmartSuggestions] = useState({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
@@ -282,7 +283,7 @@ export default function Capture() {
         setTimeout(() => {
           setShowSuccess(false);
           setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
-          setNotes(''); setReceiptImage(null); setSuggestions([]);
+          setNotes(''); setCreditCardBalance(''); setReceiptImage(null); setSuggestions([]);
         }, 1500);
       },
     });
@@ -307,6 +308,9 @@ export default function Capture() {
       person_id: personId || undefined,
       payment_method_id: paymentMethodId || undefined,
       required_type: requiredType, has_invoice: hasInvoice, notes, week,
+      ...(creditCardBalance && selectedCategory?.exclude_from_totals
+        ? { credit_card_balance: parseFloat(creditCardBalance) }
+        : {}),
     };
 
     // Check for duplicates — wrapped in try/catch so a network error never leaves saving=true
@@ -686,6 +690,29 @@ export default function Capture() {
           <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
             placeholder="Notas (opcional)"
             className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+        </div>
+      )}
+
+      {/* Saldo pendiente TDC — shown only for categories marked exclude_from_totals */}
+      {selectedCategory?.exclude_from_totals && (
+        <div className="px-4 mt-2">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-2xl space-y-2">
+            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">💳 Pago TDC — solo informativo, no suma al gasto</p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Saldo pendiente después de este pago (opcional)</label>
+              <div className="flex items-baseline gap-1 bg-card border border-border rounded-xl px-3 py-2.5">
+                <span className="text-sm text-muted-foreground">{currencySymbol}</span>
+                <input
+                  type="number"
+                  value={creditCardBalance}
+                  onChange={e => setCreditCardBalance(e.target.value)}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  className="flex-1 text-sm bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/40"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

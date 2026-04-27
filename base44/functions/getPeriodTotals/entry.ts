@@ -34,13 +34,19 @@ Deno.serve(async (req) => {
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
 
     const entities = base44.asServiceRole.entities;
-    const { transactions, truncated } = await fetchAllTransactions(entities, {
-      familyId, start, end, type, personId, categoryId, paymentMethodId
-    });
+    const [{ transactions, truncated }, categoriesArr] = await Promise.all([
+      fetchAllTransactions(entities, { familyId, start, end, type, personId, categoryId, paymentMethodId }),
+      entities.Category.filter({ family_id: familyId }),
+    ]);
+
+    const excludedCatIds = new Set(
+      (categoriesArr || []).filter((c) => c.exclude_from_totals).map((c) => c.id),
+    );
 
     let expense = 0, income = 0;
     for (const tx of transactions) {
       if (typeof tx.amount !== 'number' || isNaN(tx.amount)) continue;
+      if (tx.category_id && excludedCatIds.has(tx.category_id)) continue;
       if (tx.type === 'expense') expense += tx.amount;
       else if (tx.type === 'income') income += tx.amount;
     }

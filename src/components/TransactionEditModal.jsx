@@ -25,6 +25,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     required_type: transaction.required_type || 'Necesario',
     has_invoice: transaction.has_invoice || false,
     notes: transaction.notes || '',
+    credit_card_balance: transaction.credit_card_balance || '',
   });
   const [saving, setSaving] = useState(false);
   const [showApplyPayment, setShowApplyPayment] = useState(false);
@@ -48,10 +49,16 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     },
   });
 
+  const selectedCategory = categories.find(c => c.id === form.category_id);
+
   const handleSave = () => {
     if (!form.amount) return;
     setSaving(true);
-    const data = { ...form, amount: parseFloat(form.amount) };
+    const data = {
+      ...form,
+      amount: parseFloat(form.amount),
+      credit_card_balance: form.credit_card_balance ? parseFloat(form.credit_card_balance) : undefined,
+    };
     updateMutation.mutate(
       { id: transaction.id, data },
       {
@@ -206,6 +213,24 @@ export default function TransactionEditModal({ transaction, categories, subcateg
               placeholder="Opcional"
               className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
+
+          {/* Saldo pendiente TDC */}
+          {selectedCategory?.exclude_from_totals && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-2xl space-y-2">
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">💳 Pago TDC — solo informativo, no suma al gasto</p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Saldo pendiente después de este pago (opcional)</label>
+                <input
+                  type="number"
+                  value={form.credit_card_balance}
+                  onChange={e => set('credit_card_balance', e.target.value)}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Linked payment */}
           {(txData.msi_payment_id || txData.investment_payment_id || txData.scheduled_payment_record_id || txData.rental_payment_id) && (

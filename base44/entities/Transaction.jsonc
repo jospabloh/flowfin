@@ -99,6 +99,10 @@
     "rental_payment_id": {
       "type": "string",
       "description": "ID del pago de renta vinculado (si aplica)"
+    },
+    "credit_card_balance": {
+      "type": "number",
+      "description": "Saldo pendiente de la TDC después de este pago (solo aplica a categorías de Pago TDC)"
     }
   },
   "required": [

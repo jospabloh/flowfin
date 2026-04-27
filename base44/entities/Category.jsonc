@@ -28,6 +28,11 @@
       ],
       "default": "both",
       "description": "Aplica a egresos, ingresos o ambos"
+    },
+    "exclude_from_totals": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si es true, las transacciones de esta categoría no se suman en los totales de egresos (ej: Pago TDC)"
     }
   },
   "required": [

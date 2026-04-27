@@ -68,13 +68,19 @@ export default function Reports() {
 
   const cfg = PRESETS[reportType][preset] || PRESETS[reportType][0];
 
+  const excludedCategoryIds = useMemo(
+    () => new Set(categories.filter(c => c.exclude_from_totals).map(c => c.id)),
+    [categories],
+  );
+
   const filtered = useMemo(() => (Array.isArray(transactions) ? transactions : []).filter(t => {
     if (!t.date) return false;
     if (cfg.type !== 'all' && t.type !== cfg.type) return false;
     if (filterCategory && t.category_id !== filterCategory) return false;
     if (filterPerson && t.person_id !== filterPerson) return false;
+    if (!filterCategory && excludedCategoryIds.has(t.category_id)) return false;
     return t.date >= dateFrom && t.date <= dateTo;
-  }), [transactions, cfg, dateFrom, dateTo, filterCategory, filterPerson]);
+  }), [transactions, cfg, dateFrom, dateTo, filterCategory, filterPerson, excludedCategoryIds]);
 
   const tableData = useMemo(() => {
     const map = {};
