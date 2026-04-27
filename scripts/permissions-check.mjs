@@ -12,6 +12,7 @@ import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import process from 'node:process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -22,17 +23,6 @@ const REPORT_FLAG = process.argv.includes('--report');
 // ---------------------------------------------------------------------------
 // 1. Walk src/**/*.{js,jsx} and extract used permission keys
 // ---------------------------------------------------------------------------
-async function walkFiles(dir, ext = ['.js', '.jsx']) {
-  const entries = await readdir(dir, { withFileTypes: true, recursive: true }).catch(() => []);
-  const files = [];
-  for (const e of entries) {
-    if (e.isFile() && ext.some(x => e.name.endsWith(x))) {
-      files.push(join(e.parentPath ?? e.path ?? dir, e.name));
-    }
-  }
-  return files;
-}
-
 // Fallback for older Node versions that don't support { recursive: true }
 async function walkFilesRecursive(dir, ext = ['.js', '.jsx']) {
   const files = [];

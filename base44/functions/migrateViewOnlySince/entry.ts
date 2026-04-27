@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // ONE-TIME MIGRATION: Run once at launch.
 // Sets view_only_since = now for all families currently in view_only that have no
 // view_only_since anchor. This gives each of them a fresh 15-day window before
@@ -33,8 +37,9 @@ Deno.serve(async (req) => {
 
     console.log(`[migrateViewOnlySince] Migrated ${migrated} families:`, names.join(', '));
     return Response.json({ success: true, migrated, families: names, timestamp: nowISO });
-  } catch (error: any) {
-    console.error('[migrateViewOnlySince] Error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    console.error('[migrateViewOnlySince] Error:', message);
+    return Response.json({ error: message }, { status: 500 });
   }
 });

@@ -30,14 +30,8 @@ function getNextMSIPayment(msi, payments) {
 export default function MSIPage() {
   const queryClient = useQueryClient();
   const { familyId, currency, familyConfig } = useFamily();
-  const { can_view: canViewList }    = usePermission('msi.view.list');
-  const { can_view: canViewTrack }   = usePermission('msi.view.track');
-  const { can_view: canViewSheet }   = usePermission('msi.view.detail_sheet');
   const { can_write: canCreate }     = usePermission('msi.crud.create');
-  const { can_modify: canEdit }      = usePermission('msi.crud.edit');
-  const { can_delete: canDel }       = usePermission('msi.crud.delete');
   const { can_write: canPay }        = usePermission('msi.payments.record');
-  const { can_view: canViewHistory } = usePermission('msi.payments.history');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -70,22 +64,6 @@ export default function MSIPage() {
       toast({ title: 'Error al crear MSI', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['msi', familyId] }),
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: (data) => base44.entities.MSIPayment.create(data),
-    onMutate: async (newPay) => {
-      await queryClient.cancelQueries({ queryKey: ['msiPayments'] });
-      const previous = queryClient.getQueryData(['msiPayments']);
-      const optimistic = { ...newPay, id: `opt_${Date.now()}` };
-      queryClient.setQueryData(['msiPayments'], (old = []) => [...old, optimistic]);
-      return { previous };
-    },
-    onError: (err, _, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['msiPayments'], ctx.previous);
-      toast({ title: 'Error al marcar pago', description: err?.message || 'Intenta de nuevo.', variant: 'destructive' });
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['msiPayments'] }),
   });
 
   const updatePaymentMutation = useMutation({
@@ -133,7 +111,7 @@ export default function MSIPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['msi', familyId] }),
   });
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!form.store || !form.total_amount) return;
     createMSIMutation.mutate({ 
       ...form, 

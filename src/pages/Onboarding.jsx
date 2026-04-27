@@ -64,7 +64,7 @@ export default function Onboarding() {
     }
 
     // Reload so FamilyContext picks up the new membership cleanly
-    window.location.reload();
+    globalThis.location.reload();
   };
 
   const handleJoin = async () => {
@@ -89,7 +89,7 @@ export default function Onboarding() {
       } else {
         setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
       }
-    } catch (e) {
+    } catch {
       setError('Error al conectar. Intenta de nuevo.');
     } finally {
       setLoading(false);

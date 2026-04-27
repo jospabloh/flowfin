@@ -2,9 +2,9 @@ import { createPortal } from 'react-dom';
 import { X, Heart, Copy } from 'lucide-react';
 
 function getViewportMetrics() {
-  const vv = window.visualViewport;
-  const width = vv?.width || window.innerWidth;
-  const height = vv?.height || window.innerHeight;
+  const vv = globalThis.visualViewport;
+  const width = vv?.width || globalThis.innerWidth;
+  const height = vv?.height || globalThis.innerHeight;
   const offsetTop = vv?.offsetTop || 0;
   const offsetLeft = vv?.offsetLeft || 0;
 

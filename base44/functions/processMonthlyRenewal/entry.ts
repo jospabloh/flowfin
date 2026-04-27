@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Scheduled function: runs on the 1st of each month.
 // For active families with auto_renewal=true, extends license_expires_at by 1 month
 // and queues a renewal_confirmed email.
@@ -27,21 +31,21 @@ Deno.serve(async (req) => {
 
     const stats = { renewed: 0, upcoming_queued: 0, errors: [] as string[] };
 
-    async function getAdminEmail(familyId: string): Promise<string | null> {
+    const getAdminEmail = async (familyId: string): Promise<string | null> => {
       const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         family_id: familyId,
         role: 'admin',
         status: 'approved',
       });
       return memberships[0]?.user_email ?? null;
-    }
+    };
 
-    async function queueEmail(family_id: string, email_type: string, recipient_email: string) {
+    const queueEmail = async (family_id: string, email_type: string, recipient_email: string) => {
       const existing = await base44.asServiceRole.entities.EmailNotification.filter({
         family_id,
         email_type,
       });
-      const alreadyHandled = existing.some((e: any) => e.status === 'sent' || e.status === 'pending');
+      const alreadyHandled = existing.some((e: { status?: string }) => e.status === 'sent' || e.status === 'pending');
       if (alreadyHandled) return;
 
       await base44.asServiceRole.entities.EmailNotification.create({
@@ -51,7 +55,7 @@ Deno.serve(async (req) => {
         status: 'pending',
         retry_count: 0,
       });
-    }
+    };
 
     const autoRenewalFamilies = await base44.asServiceRole.entities.Family.filter({
       billing_status: 'active',
@@ -85,15 +89,16 @@ Deno.serve(async (req) => {
           await queueEmail(family.id, 'renewal_upcoming', adminEmail);
           stats.upcoming_queued++;
         }
-      } catch (err: any) {
-        stats.errors.push(`${family.id}: ${err.message}`);
+      } catch (err: unknown) {
+        stats.errors.push(`${family.id}: ${getErrorMessage(err)}`);
       }
     }
 
     console.log('[processMonthlyRenewal]', JSON.stringify({ ...stats, timestamp: nowISO }));
     return Response.json({ success: true, ...stats, timestamp: nowISO });
-  } catch (error: any) {
-    console.error('[processMonthlyRenewal] Fatal error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    console.error('[processMonthlyRenewal] Fatal error:', message);
+    return Response.json({ error: message }, { status: 500 });
   }
 });

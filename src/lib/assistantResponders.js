@@ -8,12 +8,6 @@ import { formatAmount, formatDate } from '@/lib/assistantFormatters';
 
 // ── Helpers internos ─────────────────────────────────────────────────────────
 
-function isCurrentMonthRange(range, today = new Date()) {
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, '0');
-  return range.start === `${y}-${m}-01`;
-}
-
 function cur(ctx) {
   return ctx.family?.currency || 'MXN';
 }

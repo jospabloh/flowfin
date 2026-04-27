@@ -10,10 +10,15 @@ function getUserPrefsKey(userId) {
 }
 
 function readLS(key) {
-  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { 
+    // Ignore localStorage parse/read failures and return null.
+    return null; 
+  }
 }
 function writeLS(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {
+    // Ignore localStorage write failures; in-memory state remains source of truth.
+  }
 }
 
 // Normalize a description for use as a rule key.
@@ -25,7 +30,7 @@ function normalizeKey(description) {
 }
 
 export function useMemory() {
-  const { familyId, familyConfigId, currentUser } = useFamily();
+  const { familyConfigId, currentUser } = useFamily();
   const saveTimerRef = useRef({});
 
   // ── USER PREFERENCES ─────────────────────────────────────────────────────────
@@ -60,7 +65,7 @@ export function useMemory() {
     }, 1000);
   }, [familyConfigId]);
 
-  const syncFamilyRulesFromDB = useCallback(async (familyConfigData) => {
+  const syncFamilyRulesFromDB = useCallback((familyConfigData) => {
     if (familyConfigData?.smart_rules) {
       writeLS(LS_FAMILY_RULES, familyConfigData.smart_rules);
     }
@@ -73,7 +78,9 @@ export function useMemory() {
         const prefsKey = getUserPrefsKey(me.id);
         writeLS(prefsKey, me.preferences);
       }
-    } catch {}
+    } catch {
+      // Ignore profile sync failures; local preferences are still usable.
+    }
   }, []);
 
   // ── ASSOCIATION LEARNING ──────────────────────────────────────────────────────
@@ -93,11 +100,6 @@ export function useMemory() {
     if (!rules.associations) rules.associations = {};
 
     const existing = rules.associations[key] || { count: 0, confidence: 0 };
-
-    const isSameAsPrevious = previousSuggestion &&
-      previousSuggestion.categoryId === categoryId &&
-      previousSuggestion.personId === personId &&
-      previousSuggestion.paymentMethodId === paymentMethodId;
 
     const isCorrectionOfPrevious = previousSuggestion &&
       (previousSuggestion.categoryId !== categoryId ||

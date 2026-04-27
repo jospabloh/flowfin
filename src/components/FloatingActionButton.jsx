@@ -8,15 +8,15 @@ const EDGE = 12;
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 function navPad() {
-  return window.innerWidth < 768 ? 80 : EDGE;
+  return globalThis.innerWidth < 768 ? 80 : EDGE;
 }
 
 function getBounds() {
   return {
     minX: EDGE,
-    maxX: window.innerWidth - BTN - EDGE,
+    maxX: globalThis.innerWidth - BTN - EDGE,
     minY: EDGE,
-    maxY: window.innerHeight - BTN - navPad(),
+    maxY: globalThis.innerHeight - BTN - navPad(),
   };
 }
 
@@ -40,8 +40,8 @@ function loadPos() {
 
 function getSecondaryInfo(fabX, fabY) {
   const DIST = 76;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const vw = globalThis.innerWidth;
+  const vh = globalThis.innerHeight;
   const onRight = fabX > vw * 0.55;
   const onBottom = fabY > vh * 0.55;
   // angle: 0=right, 90=up (screen y inverted)
@@ -83,8 +83,8 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
       yMV.set(y);
       setPos({ x, y });
     };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    globalThis.addEventListener('resize', onResize);
+    return () => globalThis.removeEventListener('resize', onResize);
   }, [xMV, yMV]);
 
   const handleDragEnd = useCallback((_, info) => {

@@ -9,6 +9,14 @@ const FROM_EMAIL = Deno.env.get('EMAIL_FROM') ?? 'FlowFin <noreply@flowfin.app>'
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
 const MAX_RETRIES = 3;
 
+type NotificationWithRetry = {
+  retry_count?: number | null;
+};
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 // ── Date formatter ─────────────────────────────────────────────────────────────
 function formatDate(iso: string | undefined): string {
   if (!iso) return '—';
@@ -52,7 +60,7 @@ function wrap(content: string): string {
 // ── Email templates ───────────────────────────────────────────────────────────
 function getEmailTemplate(
   email_type: string,
-  ctx: Record<string, any>
+  ctx: Record<string, unknown>
 ): { subject: string; html: string } | null {
   const name = ctx.family_name ?? 'tu familia';
   const trialEnd = formatDate(ctx.trial_end_at);
@@ -257,7 +265,7 @@ Deno.serve(async (req) => {
     // Gather pending + retryable failed notifications
     const pending = await base44.asServiceRole.entities.EmailNotification.filter({ status: 'pending' });
     const failed = await base44.asServiceRole.entities.EmailNotification.filter({ status: 'failed' });
-    const retryable = failed.filter((n: any) => (n.retry_count ?? 0) < MAX_RETRIES);
+    const retryable = failed.filter((n: NotificationWithRetry) => (n.retry_count ?? 0) < MAX_RETRIES);
     const toProcess = [...pending, ...retryable];
 
     for (const notification of toProcess) {
@@ -274,7 +282,7 @@ Deno.serve(async (req) => {
       }
 
       // Fetch family context for template rendering
-      let ctx: Record<string, any> = { family_name: '' };
+      let ctx: Record<string, unknown> = { family_name: '' };
       try {
         const families = await base44.asServiceRole.entities.Family.filter({ id: notification.family_id });
         if (families[0]) {
@@ -304,23 +312,25 @@ Deno.serve(async (req) => {
         });
         if (notification.status === 'failed') stats.retried++;
         stats.sent++;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = getErrorMessage(err);
         const newCount = (notification.retry_count ?? 0) + 1;
         await base44.asServiceRole.entities.EmailNotification.update(notification.id, {
           status: 'failed',
           retry_count: newCount,
           last_attempt_at: nowISO,
-          error_message: err.message,
+          error_message: message,
         });
         stats.failed++;
-        console.error(`[sendLifecycleEmails] Failed ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, err.message);
+        console.error(`[sendLifecycleEmails] Failed ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, message);
       }
     }
 
     console.log('[sendLifecycleEmails]', JSON.stringify({ ...stats, timestamp: nowISO }));
     return Response.json({ success: true, ...stats, timestamp: nowISO });
-  } catch (error: any) {
-    console.error('[sendLifecycleEmails] Fatal error:', error.message);
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    console.error('[sendLifecycleEmails] Fatal error:', message);
+    return Response.json({ error: message }, { status: 500 });
   }
 });

@@ -15,7 +15,7 @@ const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 export default function AccountSettings() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, isAdmin, familyConfig, currentUser } = useFamily();
+  const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, familyConfig, currentUser } = useFamily();
   const { can_write: canDeleteAccount } = usePermission('account.profile.delete');
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
@@ -75,7 +75,7 @@ export default function AccountSettings() {
     },
   });
 
-  const handleStartDeletion = async () => {
+  const handleStartDeletion = () => {
     startDeletionMutation.mutate();
   };
 

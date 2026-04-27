@@ -98,11 +98,11 @@ export function useSessionManager() {
 
   useEffect(() => {
     const onActivity = () => resetIdleTimers();
-    ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, onActivity, { passive: true }));
+    ACTIVITY_EVENTS.forEach(e => globalThis.addEventListener(e, onActivity, { passive: true }));
     resetIdleTimers(); // start timers immediately
 
     return () => {
-      ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, onActivity));
+      ACTIVITY_EVENTS.forEach(e => globalThis.removeEventListener(e, onActivity));
       clearTimeout(idleTimerRef.current);
       clearTimeout(logoutTimerRef.current);
     };
@@ -125,7 +125,9 @@ export function useSessionManager() {
         setSessionStatus(session.status);
         sessionIdRef.current = session.id;
       }
-    } catch {}
+    } catch {
+      // Ignore reactivation failures and keep current local session state.
+    }
   }, []);
 
   return { sessionStatus, idleState, sessionExpired, continueSession, reactivate };

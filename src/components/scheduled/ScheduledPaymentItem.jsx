@@ -6,7 +6,6 @@ import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY = new Date();
-const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
 
 function statusColor(dueDay) {
   const diff = dueDay - TODAY.getDate();
@@ -25,7 +24,7 @@ const dotMap = {
   green: 'bg-green-500', amber: 'bg-amber-400', red: 'bg-red-500', gray: 'bg-muted-foreground/30',
 };
 
-export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, persons, onMarkPaid, onUnmark, onEdit, onDelete }) {
+export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, onMarkPaid, onUnmark, onEdit, onDelete }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();

@@ -23,14 +23,7 @@ export default function Investments() {
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
 
-  const { can_view: canViewList }       = usePermission('investment.view.list');
-  const { can_view: canViewDetail }     = usePermission('investment.view.detail');
-  const { can_view: canViewSheet }      = usePermission('investment.view.detail_sheet');
   const { can_write: canCreate }        = usePermission('investment.crud.create');
-  const { can_modify: canEdit }         = usePermission('investment.crud.edit');
-  const { can_delete: canDelete }       = usePermission('investment.crud.delete');
-  const { can_write: canPayment }       = usePermission('investment.payments.add');
-  const { can_view: canViewHistory }    = usePermission('investment.payments.history');
 
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -129,7 +122,7 @@ export default function Investments() {
         <div className="px-4 space-y-3">
           {investments.map(inv => (
             <InvestmentCard key={inv.id} inv={inv} allPayments={allPayments} onSelect={setSelected}
-              onQuickPay={(inv, paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '' }); setShowPayForm(true); }} />
+              onQuickPay={(inv, _paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '' }); setShowPayForm(true); }} />
           ))}
         </div>
       )}

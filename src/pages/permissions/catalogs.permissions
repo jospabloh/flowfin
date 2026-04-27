@@ -11,6 +11,7 @@ export default {
     { key: 'catalog.categories.create',       parent: 'catalog.categories',    label: 'Crear Rubro' },
     { key: 'catalog.categories.edit',         parent: 'catalog.categories',    label: 'Editar Rubro' },
     { key: 'catalog.categories.delete',       parent: 'catalog.categories',    label: 'Eliminar Rubro' },
+    { key: 'catalog.categories.exclude_from_totals', parent: 'catalog.categories', label: 'Excluir del total' },
 
     { key: 'catalog.subcategories.view',      parent: 'catalog.subcategories', label: 'Ver SubRubros' },
     { key: 'catalog.subcategories.create',    parent: 'catalog.subcategories', label: 'Crear SubRubro' },
@@ -34,6 +35,7 @@ export default {
       'catalog.categories.create':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.categories.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.categories.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.exclude_from_totals': { can_read: true, can_write: true,  can_modify: true,  can_delete: false, can_view: true },
 
       'catalog.subcategories':        { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.subcategories.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
@@ -59,6 +61,7 @@ export default {
       'catalog.categories.create':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.categories.edit':    { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.categories.delete':  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'catalog.categories.exclude_from_totals': { can_read: true, can_write: true,  can_modify: true,  can_delete: false, can_view: true },
 
       'catalog.subcategories':        { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
       'catalog.subcategories.view':   { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },

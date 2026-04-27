@@ -49,7 +49,7 @@ function getTabForPath(path) {
  * Initialize multi-tab navigation system
  * Call once at app startup, passing initial route
  */
-export function initializeNavigation(initialPath) {
+export function initializeNavigation(_initialPath) {
   try {
     const stored = sessionStorage.getItem(HISTORY_KEY);
     if (stored) {
@@ -85,7 +85,7 @@ export function initializeNavigation(initialPath) {
   }
   
   // Browser history listeners
-  window.addEventListener('popstate', handlePopState, false);
+  globalThis.addEventListener('popstate', handlePopState, false);
   
   // Android hardware back button (Cordova/Capacitor)
   document.addEventListener('backbutton', handleAndroidBackButton, false);
@@ -264,7 +264,7 @@ export function navigateTo(path) {
   }
   
   // Sync with browser history
-  window.history.pushState({ path }, '', window.location.pathname);
+  globalThis.history.pushState({ path }, '', globalThis.location.pathname);
 }
 
 /**
@@ -278,7 +278,7 @@ export function goBack() {
   isProcessingBack = true;
   setActiveTabStack(stack.slice(0, -1));
   // Triggers popstate via React Router
-  window.history.back();
+  globalThis.history.back();
   
   requestAnimationFrame(() => {
     isProcessingBack = false;

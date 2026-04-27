@@ -16,7 +16,6 @@ export default function Assistant() {
   const { persons } = useCatalog(familyId);
   const { can_write: canSend } = usePermission('assistant.chat.send');
   const { can_write: canUseVoice } = usePermission('assistant.chat.voice');
-  const { can_write: canClear } = usePermission('assistant.chat.clear');
   const canViewChips = useCanView('assistant.features.predictive_chips');
   const [conversation, setConversation] = useState(null);
   // messages: array of { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'server', ts }
@@ -316,7 +315,7 @@ export default function Assistant() {
   };
 
   const startVoice = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
     if (!SR) { alert('Tu navegador no soporta voz'); return; }
     const r = new SR();
     r.lang = voiceLang;
@@ -482,7 +481,7 @@ export default function Assistant() {
       </div>
 
       {/* Action chips — shown above input bar, never hidden by sending state */}
-      {(isLastMsgConfirmation || (personQuestionChips && !sending)) && (
+      {(isLastMsgConfirmation || (canViewChips && personQuestionChips && !sending)) && (
         <div className="flex-shrink-0 px-4 pb-2 pt-2 border-t border-border bg-background flex flex-wrap gap-2">
           {isLastMsgConfirmation && (
             <>

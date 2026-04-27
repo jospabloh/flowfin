@@ -68,7 +68,6 @@ export default function Capture() {
   const [saving, setSaving] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { duplicates: [], pendingData: {} }
-  const [loadingSmartSuggestions, setLoadingSmartSuggestions] = useState(false);
   const [atypicalWarning, setAtypicalWarning] = useState(null); // string | null
   const [autoSubcategoryHint, setAutoSubcategoryHint] = useState(null); // string | null (description)
   const [aiExtracting, setAiExtracting] = useState(false);
@@ -88,11 +87,9 @@ export default function Capture() {
       return;
     }
     const timer = setTimeout(() => {
-      setLoadingSmartSuggestions(true);
       base44.functions.invoke('getSmartSuggestions', { familyId, description, type })
         .then(res => setSmartSuggestions(res.data || {}))
-        .catch(() => setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] }))
-        .finally(() => setLoadingSmartSuggestions(false));
+        .catch(() => setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] }));
     }, 800);
     return () => clearTimeout(timer);
   }, [description, familyId, type]);
@@ -196,7 +193,9 @@ export default function Capture() {
         if (assistantMsg?.content) {
           try {
             result = JSON.parse(assistantMsg.content.replace(/```json\n?|```\n?/g, '').trim());
-          } catch {}
+          } catch {
+            // Ignore non-JSON assistant content and continue with manual input.
+          }
           break;
         }
       }
@@ -216,7 +215,7 @@ export default function Capture() {
   };
 
   const startVoice = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
     if (!SR) { toast({ title: 'Tu navegador no soporta reconocimiento de voz', variant: 'destructive' }); return; }
     const r = new SR();
     r.lang = 'es-MX';
@@ -354,10 +353,6 @@ export default function Capture() {
   };
 
   const selectedCategory = categories.find(c => c.id === categoryId);
-  const selectedSubcategory = subcategories.find(s => s.id === subcategoryId);
-  const selectedPerson = persons.find(p => p.id === personId);
-  const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId);
-
   return (
    <div data-tutorial="capture-form-card" className="min-h-screen pb-4 overscroll-none" onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}>
       {/* Read-only mode banner */}
