@@ -100,7 +100,18 @@ function EditForm({ fields, initialData, mutation, onCancel, categories = [] }) 
   return (
     <div className="bg-accent/30 rounded-xl p-3 border border-primary/30 space-y-2 mt-1">
       {fields.map(f => (
-        f.type === 'tags' ? (
+        f.type === 'toggle' ? (
+          <div key={f.key} className="flex items-center justify-between py-1">
+            <label className="text-xs text-foreground">{f.label}</label>
+            <button
+              type="button"
+              onClick={() => setData(d => ({ ...d, [f.key]: !d[f.key] }))}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${data[f.key] ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+            >
+              <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${data[f.key] ? 'translate-x-4' : 'translate-x-0'}`} />
+            </button>
+          </div>
+        ) : f.type === 'tags' ? (
           <div key={f.key}>
             <label className="text-xs text-muted-foreground mb-1 block">{f.label}</label>
             <TagInput value={data[f.key] || []} onChange={v => setData(d => ({...d, [f.key]: v}))} />
@@ -168,9 +179,10 @@ export default function Catalogs() {
   const [addingTab, setAddingTab] = useState(null);
   const [editing, setEditing] = useState(null); // { entity, id }
 
-  const { can_write: canCreateCat }  = usePermission('catalog.categories.create');
-  const { can_modify: canEditCat }   = usePermission('catalog.categories.edit');
-  const { can_delete: canDeleteCat } = usePermission('catalog.categories.delete');
+  const { can_write: canCreateCat }    = usePermission('catalog.categories.create');
+  const { can_modify: canEditCat }     = usePermission('catalog.categories.edit');
+  const { can_delete: canDeleteCat }   = usePermission('catalog.categories.delete');
+  const { can_modify: canToggleExclude } = usePermission('catalog.categories.exclude_from_totals');
   const { can_write: canCreateSub }  = usePermission('catalog.subcategories.create');
   const { can_modify: canEditSub }   = usePermission('catalog.subcategories.edit');
   const { can_delete: canDeleteSub } = usePermission('catalog.subcategories.delete');
@@ -384,12 +396,13 @@ export default function Catalogs() {
                   {editing?.id === cat.id && editing?.entity === 'Category' && (
                     <div className="px-3 pb-3">
                       <EditForm
-                        initialData={{ name: cat.name, icon: cat.icon || '', color: cat.color, type: cat.type }}
+                        initialData={{ name: cat.name, icon: cat.icon || '', color: cat.color, type: cat.type, exclude_from_totals: cat.exclude_from_totals || false }}
                         fields={[
                           { key: 'name', label: 'Nombre' },
                           { key: 'icon', label: 'Emoji (ej: 🍽️)' },
                           { key: 'color', label: 'Color', type: 'color' },
                           { key: 'type', label: 'Tipo', type: 'select', options: [{ v: 'expense', l: 'Egreso' }, { v: 'income', l: 'Ingreso' }, { v: 'both', l: 'Ambos' }] },
+                          ...(canToggleExclude ? [{ key: 'exclude_from_totals', label: 'No sumar en totales (ej: Pago TDC)', type: 'toggle' }] : []),
                         ]}
                         mutation={{ ...updateCategoryMutation, mutate: (data, opts) => updateCategoryMutation.mutate({ id: cat.id, data }, opts), isPending: updateCategoryMutation.isPending }}
                         onCancel={() => setEditing(null)}
