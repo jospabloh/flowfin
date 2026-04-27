@@ -10,10 +10,15 @@ function getUserPrefsKey(userId) {
 }
 
 function readLS(key) {
-  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { 
+    // Ignore localStorage parse/read failures and return null.
+    return null; 
+  }
 }
 function writeLS(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {
+    // Ignore localStorage write failures; in-memory state remains source of truth.
+  }
 }
 
 // Normalize a description for use as a rule key.
@@ -73,7 +78,9 @@ export function useMemory() {
         const prefsKey = getUserPrefsKey(me.id);
         writeLS(prefsKey, me.preferences);
       }
-    } catch {}
+    } catch {
+      // Ignore profile sync failures; local preferences are still usable.
+    }
   }, []);
 
   // ── ASSOCIATION LEARNING ──────────────────────────────────────────────────────

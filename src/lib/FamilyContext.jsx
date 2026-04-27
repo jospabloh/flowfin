@@ -7,7 +7,9 @@ async function syncUserPrefsToLS(user) {
     if (user?.preferences) {
       localStorage.setItem('ff_user_prefs', JSON.stringify(user.preferences));
     }
-  } catch {}
+  } catch {
+    // Ignore localStorage write failures; preferences still come from API data.
+  }
 }
 
 const FamilyContext = createContext(null);
@@ -79,6 +81,7 @@ export function FamilyProvider({ children }) {
         const res = await base44.functions.invoke('getFamilyLicenseInfo', {});
         return res.data || null;
       } catch {
+        // Ignore transient license-info errors; UI falls back to family entity values.
         return null;
       }
     },
@@ -112,7 +115,9 @@ export function FamilyProvider({ children }) {
   // Sync family rules to localStorage
   useEffect(() => {
     if (familyConfig?.smart_rules) {
-      try { localStorage.setItem('ff_family_rules', JSON.stringify(familyConfig.smart_rules)); } catch {}
+      try { localStorage.setItem('ff_family_rules', JSON.stringify(familyConfig.smart_rules)); } catch {
+        // Ignore localStorage write failures; source of truth remains server-side config.
+      }
     }
   }, [familyConfig?.id]);
 

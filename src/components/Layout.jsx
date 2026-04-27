@@ -181,7 +181,7 @@ export default function Layout() {
   };
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (globalThis.history.length > 1) {
       navigate(-1);
     } else {
       navigate('/Dashboard');

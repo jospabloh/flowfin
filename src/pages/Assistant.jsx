@@ -316,7 +316,7 @@ export default function Assistant() {
   };
 
   const startVoice = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
     if (!SR) { alert('Tu navegador no soporta voz'); return; }
     const r = new SR();
     r.lang = voiceLang;

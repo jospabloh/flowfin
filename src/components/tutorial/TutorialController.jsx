@@ -30,7 +30,7 @@ function scrollElementIntoContainerView(element) {
     const targetTop =
       currentScrollTop +
       (elementRect.top - containerRect.top) -
-      Math.max(24, Math.min(120, window.innerHeight * 0.16));
+      Math.max(24, Math.min(120, globalThis.innerHeight * 0.16));
 
     container.scrollTo({
       top: Math.max(0, targetTop),
@@ -50,8 +50,8 @@ function getRectWithViewportSupport(element) {
   if (!element) return null;
   const rect = element.getBoundingClientRect();
 
-  const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
-  const viewportOffsetLeft = window.visualViewport?.offsetLeft || 0;
+  const viewportOffsetTop = globalThis.visualViewport?.offsetTop || 0;
+  const viewportOffsetLeft = globalThis.visualViewport?.offsetLeft || 0;
 
   return {
     top: rect.top + viewportOffsetTop,
@@ -140,9 +140,9 @@ export default function TutorialController() {
       setIsOpen(true);
     };
 
-    window.addEventListener(FLOWFIN_TUTORIAL_START_EVENT, handleManualStart);
+    globalThis.addEventListener(FLOWFIN_TUTORIAL_START_EVENT, handleManualStart);
     return () => {
-      window.removeEventListener(FLOWFIN_TUTORIAL_START_EVENT, handleManualStart);
+      globalThis.removeEventListener(FLOWFIN_TUTORIAL_START_EVENT, handleManualStart);
     };
   }, [isAdmin, restartFromBeginning]);
 
@@ -232,16 +232,16 @@ export default function TutorialController() {
     const onResize = () => updateRect();
 
     scrollContainer?.addEventListener?.('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
-    window.visualViewport?.addEventListener?.('resize', onResize);
-    window.visualViewport?.addEventListener?.('scroll', onScroll);
+    globalThis.addEventListener('resize', onResize);
+    globalThis.visualViewport?.addEventListener?.('resize', onResize);
+    globalThis.visualViewport?.addEventListener?.('scroll', onScroll);
 
     return () => {
       resizeObserver?.disconnect();
       scrollContainer?.removeEventListener?.('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-      window.visualViewport?.removeEventListener?.('resize', onResize);
-      window.visualViewport?.removeEventListener?.('scroll', onScroll);
+      globalThis.removeEventListener('resize', onResize);
+      globalThis.visualViewport?.removeEventListener?.('resize', onResize);
+      globalThis.visualViewport?.removeEventListener?.('scroll', onScroll);
     };
   }, [isOpen, resolvedTargetElement, step?.kind]);
 

@@ -29,7 +29,7 @@ export default function UserNotRegisteredError() {
     if (res.data?.success) {
       setSuccess(true);
       // Reload to re-authenticate with the now-registered account
-      setTimeout(() => window.location.reload(), 1500);
+      setTimeout(() => globalThis.location.reload(), 1500);
     } else {
       setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
     }

@@ -65,6 +65,7 @@ function readFallbackTutorialState(userId) {
     const raw = localStorage.getItem(`${FLOWFIN_TUTORIAL_STORAGE_KEY}:${userId}`);
     return raw ? sanitizeTutorialState(JSON.parse(raw)) : null;
   } catch {
+    // Ignore localStorage read/parse failures and fall back to null state.
     return null;
   }
 }
@@ -96,7 +97,9 @@ export function markTutorialDone(membershipId) {
   if (!membershipId) return;
   try {
     localStorage.setItem(TUTORIAL_DONE_PREFIX + membershipId, '1');
-  } catch {}
+  } catch {
+    // Ignore localStorage write failures; tutorial can still proceed.
+  }
 }
 
 export function useTutorialState() {

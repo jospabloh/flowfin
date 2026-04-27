@@ -51,7 +51,7 @@ export default function AppUpdateBanner() {
   };
 
   const handleRefresh = () => {
-    window.location.reload();
+    globalThis.location.reload();
   };
 
   return (

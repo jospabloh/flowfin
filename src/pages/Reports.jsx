@@ -73,7 +73,7 @@ export default function Reports() {
     ].filter(Boolean),
   };
 
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams = new URLSearchParams(globalThis.location.search);
   const typeParam = urlParams.get('type');
   const [reportType, setReportType] = useState(typeParam === 'income' ? 'income' : typeParam === 'all' ? 'all' : (getUserPref('report_type', 'expense')));
   const [preset, setPreset] = useState(() => getUserPref('report_preset', 0));

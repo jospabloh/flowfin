@@ -26,17 +26,17 @@ Deno.serve(async (req) => {
       errors: [] as string[],
     };
 
-    async function getAdminEmail(familyId: string): Promise<string | null> {
+    const getAdminEmail = async (familyId: string): Promise<string | null> => {
       const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         family_id: familyId,
         role: 'admin',
         status: 'approved',
       });
       return memberships[0]?.user_email ?? null;
-    }
+    };
 
     // Idempotent: creates an EmailNotification only if no pending/sent record exists for this family+type
-    async function queueEmail(family_id: string, email_type: string, recipient_email: string) {
+    const queueEmail = async (family_id: string, email_type: string, recipient_email: string) => {
       const existing = await base44.asServiceRole.entities.EmailNotification.filter({
         family_id,
         email_type,
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
         status: 'pending',
         retry_count: 0,
       });
-    }
+    };
 
     // ── A: Trial families ─────────────────────────────────────────────────────
     const trialFamilies = await base44.asServiceRole.entities.Family.filter({ billing_status: 'trial' });

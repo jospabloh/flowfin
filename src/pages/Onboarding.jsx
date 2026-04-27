@@ -64,7 +64,7 @@ export default function Onboarding() {
     }
 
     // Reload so FamilyContext picks up the new membership cleanly
-    window.location.reload();
+    globalThis.location.reload();
   };
 
   const handleJoin = async () => {

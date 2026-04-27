@@ -196,7 +196,9 @@ export default function Capture() {
         if (assistantMsg?.content) {
           try {
             result = JSON.parse(assistantMsg.content.replace(/```json\n?|```\n?/g, '').trim());
-          } catch {}
+          } catch {
+            // Ignore non-JSON assistant content and continue with manual input.
+          }
           break;
         }
       }
@@ -216,7 +218,7 @@ export default function Capture() {
   };
 
   const startVoice = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
     if (!SR) { toast({ title: 'Tu navegador no soporta reconocimiento de voz', variant: 'destructive' }); return; }
     const r = new SR();
     r.lang = 'es-MX';
