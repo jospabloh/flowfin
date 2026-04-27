@@ -381,6 +381,11 @@ export default function Catalogs() {
                       <p className="text-sm font-medium text-foreground">{cat.name}</p>
                       <p className="text-xs text-muted-foreground">{cat.type === 'expense' ? 'Egreso' : cat.type === 'income' ? 'Ingreso' : 'Ambos'}</p>
                     </div>
+                    {cat.exclude_from_totals && (
+                      <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap">
+                        💳 no suma
+                      </span>
+                    )}
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     {canEditCat && (
                       <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
