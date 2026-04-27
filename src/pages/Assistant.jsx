@@ -32,6 +32,7 @@ export default function Assistant() {
   const inputBarRef = useRef(null);
   const recognitionRef = useRef(null);
   const containerRef = useRef(null);
+  const scanButtonRef = useRef(null);
 
   // Active locale: familyConfig > browser > fallback es-MX
   const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
@@ -223,6 +224,18 @@ export default function Assistant() {
       : '';
     return `${header}${ctxBlock}\n\n${msg}`;
   }, []);
+
+  // ── handlePaste — intercept images pasted into the text input ───────────────
+  const handlePaste = useCallback((e) => {
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const imageItem = items.find(item => item.kind === 'file' && item.type.startsWith('image/'));
+    if (!imageItem) return; // plain-text paste — let input handle it normally
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file && scanButtonRef.current && !sending && conversation) {
+      scanButtonRef.current.processFile(file);
+    }
+  }, [sending, conversation]);
 
   // ── sendMessage ─────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text) => {
@@ -510,6 +523,7 @@ export default function Assistant() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && canSend && sendMessage(input)}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
+            onPaste={handlePaste}
             placeholder="Escribe o habla tu transacción..."
             className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
           {canUseVoice && (
@@ -519,6 +533,7 @@ export default function Assistant() {
             </button>
           )}
           <ReceiptScanButton
+            ref={scanButtonRef}
             onScanComplete={handleScanComplete}
             disabled={sending || !conversation}
             locale={activeLocale}

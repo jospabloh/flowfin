@@ -7,7 +7,7 @@
  * AssistantWelcome.jsx:8-47.
  */
 
-import { useRef, useState } from 'react';
+import { useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { compressReceiptImage } from '@/lib/receiptCompression';
@@ -48,7 +48,10 @@ function getStrings(locale) {
 /**
  * @param {{ onScanComplete: (parsed: object) => void, disabled?: boolean, locale?: string }} props
  */
-export default function ReceiptScanButton({ onScanComplete, disabled = false, locale = 'es-MX' }) {
+const ReceiptScanButton = forwardRef(function ReceiptScanButton(
+  { onScanComplete, disabled = false, locale = 'es-MX' },
+  ref
+) {
   const fileRef = useRef(null);
   const [scanning, setScanning] = useState(false);
   const { toast } = useToast();
@@ -56,12 +59,8 @@ export default function ReceiptScanButton({ onScanComplete, disabled = false, lo
   const personId = membership?.person_id || '';
   const strings = getStrings(locale);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    // Reset so the same file can be re-selected if the user retries.
-    e.target.value = '';
+  const processFile = useCallback(async (file) => {
     if (!file) return;
-
     setScanning(true);
 
     let compressed;
@@ -112,6 +111,16 @@ export default function ReceiptScanButton({ onScanComplete, disabled = false, lo
 
     // Attach the thumbnail blobUrl for the preview bubble.
     onScanComplete({ ...parsed, thumbnailUrl: compressed.blobUrl });
+  }, [familyId, personId, locale, onScanComplete, strings, toast]);
+
+  // Expose processFile so parent can trigger a scan from a pasted image.
+  useImperativeHandle(ref, () => ({ processFile, isScanning: () => scanning }), [processFile, scanning]);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    // Reset so the same file can be re-selected if the user retries.
+    e.target.value = '';
+    await processFile(file);
   };
 
   const handleButtonClick = () => {
@@ -148,4 +157,6 @@ export default function ReceiptScanButton({ onScanComplete, disabled = false, lo
       />
     </>
   );
-}
+});
+
+export default ReceiptScanButton;
