@@ -37,15 +37,28 @@
       "default": "pending",
       "description": "Estado de la membres\u00eda"
     },
-    "person_id": {
-      "type": "string",
-      "description": "ID del Person (integrante) vinculado a este usuario. El admin lo configura para que el asistente IA identifique al usuario."
-    },
     "tutorial_state": {
       "type": "object",
       "description": "Estado del tutorial de configuraci\u00f3n para el administrador de esta membres\u00eda",
       "additionalProperties": true,
       "default": {}
+    },
+    "person_id": {
+      "type": "string",
+      "description": "ID del Person (integrante) vinculado a este usuario. El admin lo configura para que el asistente IA identifique al usuario."
+    },
+    "last_active_at": {
+      "type": "string",
+      "description": "ISO datetime de la \u00faltima vez que el usuario fue activo en la app (throttled, m\u00e1x una vez cada 20 min)"
+    },
+    "last_trial_reactivation_email_at": {
+      "type": "string",
+      "description": "ISO datetime del \u00faltimo email de reactivaci\u00f3n de trial enviado a este usuario"
+    },
+    "trial_reactivation_email_count": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de emails de reactivaci\u00f3n de trial enviados durante el per\u00edodo de prueba actual"
     }
   },
   "required": [
@@ -99,9 +112,6 @@
         },
         {
           "data.family_id": "{{user.data.admin_family_ids}}"
-        },
-        {
-          "data.family_id": "{{user.data.family_id}}"
         },
         {
           "data.family_id": "{{user.data.data.family_id}}"

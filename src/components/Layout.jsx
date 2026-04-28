@@ -15,6 +15,7 @@ import FloatingActionButton from './FloatingActionButton';
 import { usePendingCount } from '@/hooks/usePendingCount';
 import { useFamily } from '@/lib/FamilyContext';
 import { useSessionManager } from '@/hooks/useSessionManager';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import IdleWarningDialog from './IdleWarningDialog';
 import SessionExpiredDialog from './SessionExpiredDialog';
 import { useCanView } from '@/lib/permissions/usePermission';
@@ -120,6 +121,7 @@ export default function Layout() {
   const pendingCount = usePendingCount();
   const { family, isAdmin, currentUser } = useFamily();
   const { idleState, sessionExpired, continueSession } = useSessionManager();
+  useActivityTracker(family?.id);
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
