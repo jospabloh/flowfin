@@ -8,7 +8,7 @@
     },
     "email_type": {
       "type": "string",
-      "description": "Tipo de email: trial_welcome, trial_day20, trial_day27, trial_day29, trial_ended, archived_warning, deletion_warning, license_expiry_10d, license_expiry_5d, license_expiry_1d, license_expired, grace_period_warning, license_view_only, license_archived, license_deletion_warning, renewal_upcoming, renewal_confirmed"
+      "description": "Tipo de email: trial_welcome, trial_day20, trial_day27, trial_day29, trial_ended, archived_warning, deletion_warning, license_expiry_10d, license_expiry_5d, license_expiry_1d, license_expired, grace_period_warning, license_view_only, license_archived, license_deletion_warning, license_activated_welcome, trial_expiry_reminder_3d, trial_expiry_reminder_2d, trial_expiry_reminder_1d, renewal_reminder_3d, renewal_reminder_2d, renewal_reminder_1d, payment_confirmed, renewal_upcoming, renewal_confirmed"
     },
     "recipient_email": {
       "type": "string",
@@ -40,6 +40,23 @@
     "error_message": {
       "type": "string",
       "description": "Mensaje de error del \u00faltimo intento fallido"
+    },
+    "notification_key": {
+      "type": "string",
+      "description": "Clave l\u00f3gica \u00fanica para prevenir duplicados. Formato: familyId:emailType o familyId:emailType:billingPeriod"
+    },
+    "billing_period": {
+      "type": "string",
+      "description": "Per\u00edodo de facturaci\u00f3n relacionado, formato YYYY-MM (cuando aplica)"
+    },
+    "scheduled_for": {
+      "type": "string",
+      "description": "ISO datetime para el que fue programada esta notificaci\u00f3n"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Contexto estructurado para el renderizado del template: plan_name, app_name, days_left, user_name, family_name, etc.",
+      "additionalProperties": true
     }
   },
   "required": [

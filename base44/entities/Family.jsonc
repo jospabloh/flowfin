@@ -40,11 +40,10 @@
         "trial",
         "active",
         "view_only",
-        "suspended",
-        "archived"
+        "suspended"
       ],
       "default": "trial",
-      "description": "Estado comercial de la familia: trial, active, view_only, suspended, archived"
+      "description": "Estado comercial de la familia: trial, active, view_only, suspended"
     },
     "license_plan": {
       "type": "string",
@@ -88,19 +87,27 @@
     "auto_renewal": {
       "type": "boolean",
       "default": false,
-      "description": "Si true, la licencia se renueva autom\u00e1ticamente el d\u00eda 1 de cada mes"
+      "description": "Indica si la familia tiene suscripci\u00f3n Mercado Pago activa (cobro externo, validaci\u00f3n manual por ACACIA)"
     },
-    "view_only_since": {
+    "last_payment_confirmed_at": {
       "type": "string",
-      "description": "Fecha en que billing_status pas\u00f3 a view_only (ISO datetime). Ancla para el conteo de 15 d\u00edas hacia archived"
+      "description": "ISO datetime cuando ACACIA confirm\u00f3 el \u00faltimo pago dentro de FlowFin"
     },
-    "archived_at": {
+    "last_payment_confirmed_by": {
       "type": "string",
-      "description": "Fecha en que la cuenta fue archivada (ISO datetime)"
+      "description": "Email del admin de plataforma que confirm\u00f3 el \u00faltimo pago"
     },
-    "scheduled_delete_at": {
+    "last_payment_period": {
       "type": "string",
-      "description": "Fecha programada para eliminaci\u00f3n definitiva (ISO datetime). 30 d\u00edas despu\u00e9s de archived_at"
+      "description": "Per\u00edodo de facturaci\u00f3n confirmado por ACACIA, formato YYYY-MM"
+    },
+    "last_payment_reference": {
+      "type": "string",
+      "description": "Referencia del \u00faltimo pago confirmado (Mercado Pago ID, folio, nota manual)"
+    },
+    "last_payment_notes": {
+      "type": "string",
+      "description": "Notas internas ACACIA del \u00faltimo pago confirmado"
     }
   },
   "required": [

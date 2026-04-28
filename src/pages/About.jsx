@@ -2,13 +2,29 @@ import { useState } from 'react';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 
-const CURRENT_VERSION = '2.15.0';
+const CURRENT_VERSION = '2.16.0';
 
 const VERSION_HISTORY = [
   {
+    version: '2.16.0',
+    date: '2026-04-28',
+    label: 'Actual',
+    changes: [
+      'Licencias: nuevo flujo de confirmación manual de pago — Pablo/ACACIA confirma el pago recibido en Mercado Pago desde el panel de Licencias con el botón "Confirmar pago recibido"',
+      'Licencias: FlowFin ya NO renueva licencias automáticamente — la renovación de acceso es 100% manual por ACACIA tras verificar el pago en Mercado Pago',
+      'Licencias: nueva función confirmLicensePayment con deduplicación por período de pago, extensión segura de vencimiento y correos de confirmación',
+      'Correos: 7 nuevas plantillas modernas — license_activated_welcome, trial_expiry_reminder_3d/2d/1d, renewal_reminder_3d/2d/1d, payment_confirmed',
+      'Correos: deduplicación por notification_key (familyId:emailType:billingPeriod) — elimina duplicados en múltiples ejecuciones de schedulers',
+      'Correos: nueva función queueBillingReminders para encolar recordatorios diarios de trial y Mercado Pago antes del día 1',
+      'Terminología actualizada: "Renovación automática" → "Suscripción Mercado Pago activa" con descripción correcta del flujo manual',
+      'Entity Family: nuevos campos last_payment_confirmed_at, last_payment_confirmed_by, last_payment_period, last_payment_reference, last_payment_notes',
+      'Entity EmailNotification: nuevos campos notification_key, billing_period, scheduled_for, metadata para soporte de deduplicación y templates enriquecidos',
+    ],
+  },
+  {
     version: '2.15.0',
     date: '2026-04-24',
-    label: 'Actual',
+    label: '',
     changes: [
       'Botón flotante de acción (FAB): reemplaza el botón del Asistente — al tocarlo se despliegan dos opciones: "Chat" (Asistente IA) y "Agregar" (Captura); con animación spring',
       'FAB: arrastrable a cualquier posición de la pantalla; recuerda su posición; los botones secundarios se ajustan dinámicamente según el cuadrante donde esté',

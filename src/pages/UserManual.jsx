@@ -440,6 +440,45 @@ Los movimientos sin categoría o sin persona asignada aparecen marcados con un i
 El contador de pendientes también aparece en el ícono de Movimientos en la barra de navegación.`
   },
   {
+    id: 'licencia', icon: '💳', title: 'Licencia, pagos y Mercado Pago',
+    content: `FlowFin usa Mercado Pago exclusivamente como plataforma de cobro externa. FlowFin NO está conectado a Mercado Pago y NO activa ni renueva licencias automáticamente.
+
+Modelo de operación:
+• Mercado Pago — gestiona el cobro mensual de forma automática el día 1 de cada mes.
+• ACACIA — verifica el pago en Mercado Pago de forma manual.
+• FlowFin — ACACIA confirma el pago en el panel de Licencias para extender el acceso.
+
+¿Cómo se activa una nueva licencia?
+1. Elige tu plan en FlowFin (Home $299/mes · Family+ $499/mes).
+2. Completa tu suscripción en Mercado Pago.
+3. ACACIA verifica el pago y confirma la licencia en el panel interno.
+4. Recibirás un correo de confirmación con los detalles de tu plan activo.
+
+¿Cómo funciona la renovación mensual?
+1. Mercado Pago cobra automáticamente el día 1 de cada mes según tu suscripción.
+2. ACACIA verifica el pago recibido en Mercado Pago.
+3. ACACIA entra al panel de Licencias y hace clic en "Confirmar pago recibido".
+4. FlowFin extiende tu licencia y te envía un correo de confirmación.
+FlowFin no extiende tu licencia de forma automática — siempre requiere confirmación manual de ACACIA.
+
+Correos que recibes:
+• Bienvenida — al activar tu plan por primera vez.
+• Recordatorio de prueba — 3, 2 y 1 días antes de que termine tu período de prueba gratuita.
+• Recordatorio de cobro Mercado Pago — 3, 2 y 1 días antes del día 1 del mes.
+  Estos correos informan que Mercado Pago realizará el cobro y que ACACIA validará el pago.
+  No confirman que FlowFin ya renovó — solo avisan sobre el cobro externo pendiente.
+• Confirmación de pago — cuando ACACIA confirma el pago, recibes correo con el período y la nueva fecha de vencimiento.
+
+Planes disponibles:
+• FlowFin Home — $299 MXN/mes · hasta 4 miembros
+• FlowFin Family+ — $499 MXN/mes · hasta 10 miembros
+
+¿Qué pasa si Mercado Pago no cobra?
+Si hubo un problema con el cobro, contáctanos antes del día 1. ACACIA no confirmará la licencia hasta que el pago sea verificado en Mercado Pago.
+
+Contacto: soporte@acaciaco.com.mx · WhatsApp +52 449 895 8291`
+  },
+  {
     id: 'cuenta', icon: '⚙️', title: 'Mi Cuenta',
     content: `La sección "Mi Cuenta" te permite gestionar tu perfil personal dentro de FlowFin.
 

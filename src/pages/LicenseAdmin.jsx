@@ -7,7 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import {
   Search, Shield, CheckCircle, AlertCircle, Clock,
   X, Loader2, ChevronRight, Users, Calendar, Mail,
-  RefreshCw, ToggleLeft, ToggleRight, CreditCard,
+  RefreshCw, ToggleLeft, ToggleRight, CreditCard, DollarSign,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -17,14 +17,26 @@ const PLAN_OPTIONS = [
 ];
 
 const STATUS_CONFIG = {
-  trial:     { label: 'Prueba',       color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30',       icon: Clock },
+  trial:     { label: 'Prueba',       color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/30',          icon: Clock },
   active:    { label: 'Activo',        color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30', icon: CheckCircle },
-  view_only: { label: 'Solo lectura',  color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/30',    icon: AlertCircle },
-  suspended: { label: 'Suspendido',    color: 'text-red-600 bg-red-50 dark:bg-red-950/30',          icon: AlertCircle },
+  view_only: { label: 'Solo lectura',  color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/30',       icon: AlertCircle },
+  suspended: { label: 'Suspendido',    color: 'text-red-600 bg-red-50 dark:bg-red-950/30',             icon: AlertCircle },
 };
 
 const TEST_EMAIL = 'h.jospablo@gmail.com';
 
+// Current billing period helper: YYYY-MM
+function currentPeriod() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function fmt(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ── Family-only read-only view ───────────────────────────────────────────────
 function FamilyLicenseView() {
   const {
     family, isAdmin, billingStatus, licensePlan, licensedMemberLimit,
@@ -32,7 +44,6 @@ function FamilyLicenseView() {
     licenseActivatedAt, licenseExpiresAt,
   } = useFamily();
 
-  // Un miembro regular (no admin de familia) no tiene acceso
   if (!isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -55,7 +66,6 @@ function FamilyLicenseView() {
       />
 
       <div className="px-4 space-y-4 max-w-lg mx-auto">
-        {/* Status badge */}
         <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${cfg.color} border-current/20`}>
           <StatusIcon className="w-5 h-5 flex-shrink-0" />
           <div>
@@ -70,7 +80,6 @@ function FamilyLicenseView() {
           </div>
         </div>
 
-        {/* Plan info card */}
         <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detalles del plan</p>
 
@@ -123,14 +132,17 @@ function FamilyLicenseView() {
           </div>
         </div>
 
-        <p className="text-[11px] text-center text-muted-foreground px-4">
-          Para cambios en tu licencia, contacta al soporte de FlowFin.
-        </p>
+        <div className="bg-muted/40 rounded-2xl px-4 py-3 border border-border">
+          <p className="text-[11px] text-muted-foreground text-center">
+            Tu suscripción se gestiona vía Mercado Pago. Para cambios en tu plan, contacta al soporte de FlowFin.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
+// ── Internal Platform Admin panel ────────────────────────────────────────────
 export default function LicenseAdmin() {
   const { currentUser } = useFamily();
   const { toast } = useToast();
@@ -138,12 +150,24 @@ export default function LicenseAdmin() {
   const [search, setSearch] = useState('');
   const [selectedFamily, setSelectedFamily] = useState(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
+
+  // General license edit form (activateLicense — for status/plan adjustments)
   const [form, setForm] = useState({
     billing_status: 'active',
     license_plan: 'home',
     licensed_member_limit: 4,
     payment_reference: '',
     activation_notes: '',
+    license_expires_at: '',
+    auto_renewal: false,
+  });
+
+  // Payment confirmation form (confirmLicensePayment)
+  const [payForm, setPayForm] = useState({
+    payment_period: currentPeriod(),
+    payment_reference: '',
+    payment_notes: '',
+    license_plan: 'home',
     license_expires_at: '',
     auto_renewal: false,
   });
@@ -157,6 +181,7 @@ export default function LicenseAdmin() {
     staleTime: 20 * 1000,
   });
 
+  // General license edit
   const activateMutation = useMutation({
     mutationFn: (payload) => base44.functions.invoke('activateLicense', payload),
     onSuccess: () => {
@@ -165,7 +190,25 @@ export default function LicenseAdmin() {
       setSelectedFamily(null);
     },
     onError: (err) => {
-      toast({ title: 'Error al activar', description: err?.message, variant: 'destructive' });
+      toast({ title: 'Error al actualizar', description: err?.message, variant: 'destructive' });
+    },
+  });
+
+  // Payment confirmation
+  const confirmPaymentMutation = useMutation({
+    mutationFn: (payload) => base44.functions.invoke('confirmLicensePayment', payload),
+    onSuccess: (res) => {
+      const d = res?.data ?? res;
+      toast({
+        title: '✅ Pago confirmado y licencia actualizada',
+        description: `Plan: ${d?.license_plan || ''} · Vence: ${d?.license_expires_at ? fmt(d.license_expires_at) : '—'}`,
+        duration: 6000,
+      });
+      queryClient.invalidateQueries({ queryKey: ['familyBillingAdmin'] });
+      setSelectedFamily(null);
+    },
+    onError: (err) => {
+      toast({ title: 'Error al confirmar pago', description: err?.message, variant: 'destructive' });
     },
   });
 
@@ -175,25 +218,18 @@ export default function LicenseAdmin() {
       const result = await base44.functions.invoke('sendTestEmails', {});
       const r = result?.data ?? result;
       toast({
-        title: `✅ Correos de prueba enviados`,
+        title: '✅ Correos de prueba enviados',
         description: `${r?.sent ?? '?'} enviados, ${r?.failed ?? 0} fallidos → ${TEST_EMAIL}`,
         duration: 6000,
       });
     } catch (err) {
-      toast({
-        title: 'Error al enviar correos de prueba',
-        description: err?.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error al enviar correos de prueba', description: err?.message, variant: 'destructive' });
     } finally {
       setTestEmailSending(false);
     }
   };
 
-  // Vista básica para admin de familia (solo lectura, solo su propia familia)
-  if (!isAppAdmin) {
-    return <FamilyLicenseView />;
-  }
+  if (!isAppAdmin) return <FamilyLicenseView />;
 
   const families = data?.families || [];
 
@@ -206,6 +242,14 @@ export default function LicenseAdmin() {
       payment_reference: f.payment_reference || '',
       activation_notes: '',
       license_expires_at: f.license_expires_at ? f.license_expires_at.slice(0, 10) : '',
+      auto_renewal: f.auto_renewal ?? false,
+    });
+    setPayForm({
+      payment_period: currentPeriod(),
+      payment_reference: f.payment_reference || '',
+      payment_notes: '',
+      license_plan: f.license_plan || 'home',
+      license_expires_at: '',
       auto_renewal: f.auto_renewal ?? false,
     });
   };
@@ -221,6 +265,19 @@ export default function LicenseAdmin() {
       activation_notes: form.activation_notes || undefined,
       license_expires_at: form.license_expires_at || undefined,
       auto_renewal: form.auto_renewal,
+    });
+  };
+
+  const handleConfirmPayment = () => {
+    if (!selectedFamily) return;
+    confirmPaymentMutation.mutate({
+      family_id: selectedFamily.id,
+      license_plan: payForm.license_plan,
+      payment_reference: payForm.payment_reference || undefined,
+      payment_period: payForm.payment_period,
+      payment_notes: payForm.payment_notes || undefined,
+      license_expires_at: payForm.license_expires_at || undefined,
+      auto_renewal: payForm.auto_renewal,
     });
   };
 
@@ -243,7 +300,7 @@ export default function LicenseAdmin() {
             <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-foreground">Correos de prueba</p>
-              <p className="text-[11px] text-muted-foreground">Envía las 17 plantillas de automatización a {TEST_EMAIL}</p>
+              <p className="text-[11px] text-muted-foreground">Envía las plantillas de automatización a {TEST_EMAIL}</p>
             </div>
           </div>
           <button
@@ -313,7 +370,7 @@ export default function LicenseAdmin() {
                       {f.auto_renewal && (
                         <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30">
                           <RefreshCw className="w-2.5 h-2.5" />
-                          Auto
+                          MP
                         </span>
                       )}
                       <span className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${cfg.color}`}>
@@ -329,7 +386,7 @@ export default function LicenseAdmin() {
                       <Users className="w-3 h-3" />
                       {f.member_count ?? '?'} / {f.licensed_member_limit || 4} miembros
                     </span>
-                    <span>Plan: <span className="font-medium text-foreground">{f.license_plan || '—'}</span></span>
+                    <span>Plan: <span className="font-medium text-foreground">{PLAN_OPTIONS.find(p => p.value === f.license_plan)?.label || f.license_plan || '—'}</span></span>
                     {daysLeft !== null && (
                       <span className={daysLeft <= 7 ? 'text-orange-500 font-semibold' : ''}>
                         {daysLeft}d restantes
@@ -343,6 +400,9 @@ export default function LicenseAdmin() {
                     {f.license_expires_at && (
                       <span>Vence: <span className="font-medium text-foreground">{fmt(f.license_expires_at)}</span></span>
                     )}
+                    {f.last_payment_period && (
+                      <span>Último pago: <span className="font-medium text-foreground">{f.last_payment_period}</span></span>
+                    )}
                   </div>
                   {f.activation_notes && (
                     <p className="text-[11px] text-muted-foreground mt-1 italic truncate">"{f.activation_notes}"</p>
@@ -354,20 +414,23 @@ export default function LicenseAdmin() {
         )}
       </div>
 
-      {/* Activation modal */}
+      {/* Modal */}
       {selectedFamily && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setSelectedFamily(null)} />
           <div
-            className="fixed inset-x-4 top-[5%] z-[51] max-w-md mx-auto bg-card rounded-3xl border border-border shadow-2xl overflow-y-auto hide-scrollbar"
-            style={{ maxHeight: '90vh' }}
+            className="fixed inset-x-4 top-[3%] z-[51] max-w-md mx-auto bg-card rounded-3xl border border-border shadow-2xl overflow-y-auto hide-scrollbar"
+            style={{ maxHeight: '94vh' }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="p-5 border-b border-border flex items-center justify-between">
+            <div className="p-5 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
               <div>
-                <h3 className="font-bold text-foreground">Modificar Licencia</h3>
+                <h3 className="font-bold text-foreground">{selectedFamily.name}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {selectedFamily.name} · <span className="font-mono">{selectedFamily.join_code}</span>
+                  <span className="font-mono">{selectedFamily.join_code}</span>
+                  {selectedFamily.license_expires_at && (
+                    <> · Vence: <span className="font-medium text-foreground">{fmt(selectedFamily.license_expires_at)}</span></>
+                  )}
                 </p>
               </div>
               <button onClick={() => setSelectedFamily(null)} className="p-1.5 rounded-xl bg-muted">
@@ -375,120 +438,242 @@ export default function LicenseAdmin() {
               </button>
             </div>
 
-            <div className="p-5 space-y-5">
-              {/* Billing status */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-2 block">Estado de facturación</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
-                    <button key={s} onClick={() => setForm(f => ({ ...f, billing_status: s }))}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                        form.billing_status === s
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/70'
-                      }`}>
-                      {cfg.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="p-5 space-y-6">
 
-              {/* Plan */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-2 block">Plan de licencia</label>
-                <div className="space-y-2">
-                  {PLAN_OPTIONS.map(p => (
-                    <button key={p.value}
-                      onClick={() => setForm(f => ({ ...f, license_plan: p.value, licensed_member_limit: p.limit }))}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all ${
-                        form.license_plan === p.value
-                          ? 'bg-primary/10 border-primary text-primary font-semibold'
-                          : 'bg-muted border-transparent text-foreground hover:bg-muted/70'
-                      }`}>
-                      <div className="text-left">
-                        <p className="font-semibold text-sm">{p.label}</p>
-                        <p className="text-[11px] text-muted-foreground">{p.desc}</p>
-                      </div>
-                      <span className={`text-xs font-bold ${form.license_plan === p.value ? 'text-primary' : 'text-muted-foreground'}`}>{p.price}</span>
-                    </button>
-                  ))}
+              {/* ── SECTION 1: Confirmar pago recibido ─────────────────────── */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Confirmación de pago</h4>
                 </div>
-              </div>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-400 -mt-2">
+                  Confirma el pago recibido en Mercado Pago. FlowFin actualizará la licencia y enviará correo de confirmación.
+                </p>
 
-              {/* Auto-renewal toggle */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-2 block">Renovación automática</label>
-                <button
-                  onClick={() => setForm(f => ({ ...f, auto_renewal: !f.auto_renewal }))}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
-                    form.auto_renewal
-                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
-                      : 'bg-muted border-transparent'
-                  }`}
-                >
-                  <div className="text-left">
-                    <p className={`text-sm font-semibold ${form.auto_renewal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                      {form.auto_renewal ? 'Renovación automática activa' : 'Renovación manual'}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {form.auto_renewal
-                        ? 'El cliente recibe aviso de FYI antes del día 1 de cada mes'
-                        : 'El cliente recibe alertas de vencimiento para pagar manualmente'}
-                    </p>
+                {/* Payment period */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Período de pago (YYYY-MM)</label>
+                  <input
+                    value={payForm.payment_period}
+                    onChange={e => setPayForm(f => ({ ...f, payment_period: e.target.value }))}
+                    placeholder="2026-05"
+                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Plan */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-2 block">Plan</label>
+                  <div className="space-y-2">
+                    {PLAN_OPTIONS.map(p => (
+                      <button key={p.value}
+                        onClick={() => setPayForm(f => ({ ...f, license_plan: p.value }))}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all ${
+                          payForm.license_plan === p.value
+                            ? 'bg-primary/10 border-primary text-primary font-semibold'
+                            : 'bg-white dark:bg-card border-transparent text-foreground hover:bg-muted/70'
+                        }`}>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm">{p.label}</p>
+                          <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                        </div>
+                        <span className={`text-xs font-bold ${payForm.license_plan === p.value ? 'text-primary' : 'text-muted-foreground'}`}>{p.price}</span>
+                      </button>
+                    ))}
                   </div>
-                  {form.auto_renewal
-                    ? <ToggleRight className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-                    : <ToggleLeft className="w-6 h-6 text-muted-foreground flex-shrink-0" />
+                </div>
+
+                {/* Payment reference */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Referencia de pago (Mercado Pago)</label>
+                  <input
+                    value={payForm.payment_reference}
+                    onChange={e => setPayForm(f => ({ ...f, payment_reference: e.target.value }))}
+                    placeholder="ID transacción, folio, nota..."
+                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Notas internas ACACIA</label>
+                  <input
+                    value={payForm.payment_notes}
+                    onChange={e => setPayForm(f => ({ ...f, payment_notes: e.target.value }))}
+                    placeholder="Observaciones del pago..."
+                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* License expiry override (optional) */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1.5 block">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Vencimiento de licencia (dejar vacío = +1 mes automático)
+                  </label>
+                  <input
+                    type="date"
+                    value={payForm.license_expires_at}
+                    onChange={e => setPayForm(f => ({ ...f, license_expires_at: e.target.value }))}
+                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Mercado Pago subscription toggle */}
+                <div>
+                  <button
+                    onClick={() => setPayForm(f => ({ ...f, auto_renewal: !f.auto_renewal }))}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                      payForm.auto_renewal
+                        ? 'bg-emerald-100 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
+                        : 'bg-white dark:bg-card border-transparent bg-muted'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className={`text-sm font-semibold ${payForm.auto_renewal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {payForm.auto_renewal ? 'Suscripción Mercado Pago activa ✓' : 'Sin suscripción Mercado Pago'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        El cobro se gestiona en Mercado Pago. La renovación de acceso en FlowFin se confirma manualmente por ACACIA.
+                      </p>
+                    </div>
+                    {payForm.auto_renewal
+                      ? <ToggleRight className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                      : <ToggleLeft className="w-6 h-6 text-muted-foreground flex-shrink-0" />
+                    }
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleConfirmPayment}
+                  disabled={confirmPaymentMutation.isPending || !payForm.payment_period}
+                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 min-h-[52px] transition-colors"
+                >
+                  {confirmPaymentMutation.isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirmando...</>
+                    : <><CheckCircle className="w-4 h-4" /> Confirmar pago recibido</>
                   }
                 </button>
               </div>
 
-              {/* Payment reference */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Referencia de pago</label>
-                <input
-                  value={form.payment_reference}
-                  onChange={e => setForm(f => ({ ...f, payment_reference: e.target.value }))}
-                  placeholder="Folio, número de transacción, etc."
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+              {/* ── SECTION 2: Ajuste general de licencia ──────────────────── */}
+              <div className="border border-border rounded-2xl p-4 space-y-4">
+                <h4 className="text-sm font-bold text-foreground">Ajuste general de licencia</h4>
+                <p className="text-[11px] text-muted-foreground -mt-2">
+                  Cambia el estado, plan o datos administrativos sin confirmar un pago específico.
+                </p>
 
-              {/* Notes */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Notas de activación (internas)</label>
-                <input
-                  value={form.activation_notes}
-                  onChange={e => setForm(f => ({ ...f, activation_notes: e.target.value }))}
-                  placeholder="Observaciones para el registro interno..."
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+                {/* Billing status */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-2 block">Estado de facturación</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
+                      <button key={s} onClick={() => setForm(f => ({ ...f, billing_status: s }))}
+                        className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                          form.billing_status === s
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/70'
+                        }`}>
+                        {cfg.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Expiry */}
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1.5 block">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Vencimiento de licencia (opcional)
-                </label>
-                <input
-                  type="date"
-                  value={form.license_expires_at}
-                  onChange={e => setForm(f => ({ ...f, license_expires_at: e.target.value }))}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+                {/* Plan */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-2 block">Plan de licencia</label>
+                  <div className="space-y-2">
+                    {PLAN_OPTIONS.map(p => (
+                      <button key={p.value}
+                        onClick={() => setForm(f => ({ ...f, license_plan: p.value, licensed_member_limit: p.limit }))}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all ${
+                          form.license_plan === p.value
+                            ? 'bg-primary/10 border-primary text-primary font-semibold'
+                            : 'bg-muted border-transparent text-foreground hover:bg-muted/70'
+                        }`}>
+                        <div className="text-left">
+                          <p className="font-semibold text-sm">{p.label}</p>
+                          <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                        </div>
+                        <span className={`text-xs font-bold ${form.license_plan === p.value ? 'text-primary' : 'text-muted-foreground'}`}>{p.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              <button
-                onClick={handleActivate}
-                disabled={activateMutation.isPending}
-                className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 min-h-[52px]"
-              >
-                {activateMutation.isPending
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-                  : <><CheckCircle className="w-4 h-4" /> Confirmar cambio</>
-                }
-              </button>
+                {/* Mercado Pago toggle */}
+                <div>
+                  <button
+                    onClick={() => setForm(f => ({ ...f, auto_renewal: !f.auto_renewal }))}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                      form.auto_renewal
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
+                        : 'bg-muted border-transparent'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <p className={`text-sm font-semibold ${form.auto_renewal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {form.auto_renewal ? 'Suscripción Mercado Pago activa ✓' : 'Sin suscripción Mercado Pago'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        El cobro se gestiona en Mercado Pago. La renovación de acceso en FlowFin se confirma manualmente por ACACIA.
+                      </p>
+                    </div>
+                    {form.auto_renewal
+                      ? <ToggleRight className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                      : <ToggleLeft className="w-6 h-6 text-muted-foreground flex-shrink-0" />
+                    }
+                  </button>
+                </div>
+
+                {/* Payment reference */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Referencia de pago</label>
+                  <input
+                    value={form.payment_reference}
+                    onChange={e => setForm(f => ({ ...f, payment_reference: e.target.value }))}
+                    placeholder="Folio, número de transacción, etc."
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Notas de activación (internas)</label>
+                  <input
+                    value={form.activation_notes}
+                    onChange={e => setForm(f => ({ ...f, activation_notes: e.target.value }))}
+                    placeholder="Observaciones para el registro interno..."
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                {/* Expiry */}
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1.5 block">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Vencimiento de licencia (opcional)
+                  </label>
+                  <input
+                    type="date"
+                    value={form.license_expires_at}
+                    onChange={e => setForm(f => ({ ...f, license_expires_at: e.target.value }))}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+
+                <button
+                  onClick={handleActivate}
+                  disabled={activateMutation.isPending}
+                  className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 min-h-[52px]"
+                >
+                  {activateMutation.isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                    : <><CheckCircle className="w-4 h-4" /> Confirmar cambio</>
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </>
