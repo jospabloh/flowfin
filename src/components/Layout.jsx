@@ -4,9 +4,10 @@ import {
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank,
-  Wallet, ShieldCheck, KeyRound, BadgeCheck
+  Wallet, ShieldCheck, KeyRound, BadgeCheck,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
@@ -114,11 +115,39 @@ const SIDEBAR_GROUPS = [
   },
 ];
 
+// Simple tooltip wrapper for collapsed sidebar items
+function NavTooltip({ label, collapsed, children }) {
+  if (!collapsed) return children;
+  return (
+    <div className="relative group/tooltip">
+      {children}
+      <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50
+        opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150">
+        <div className="bg-foreground text-background text-xs font-medium px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === 'true'; } catch { return false; }
+  });
   const pendingCount = usePendingCount();
+
+  // Persist collapsed state
+  useEffect(() => {
+    try { localStorage.setItem('sidebar_collapsed', String(collapsed)); } catch {}
+  }, [collapsed]);
+
+  // Close mobile drawer on navigation
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   const { family, isAdmin, currentUser } = useFamily();
   const { idleState, sessionExpired, continueSession } = useSessionManager();
   useActivityTracker(family?.id);
@@ -193,6 +222,135 @@ export default function Layout() {
   const isMoreActive = MORE_GROUPS.flatMap(g => g.items)
     .some(item => location.pathname === item.to);
 
+  // Shared sidebar content — used both in desktop and mobile drawer
+  const SidebarContent = ({ inDrawer = false }) => (
+    <>
+      {/* Logo + Toggle */}
+      <div className={`border-b border-border flex items-center ${collapsed && !inDrawer ? 'justify-center p-3' : 'p-4'}`}>
+        {collapsed && !inDrawer ? (
+          <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md bg-black flex-shrink-0">
+            <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md bg-black flex-shrink-0">
+              <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
+              <p className="text-xs text-muted-foreground truncate max-w-[110px]">{family?.name || 'Finanzas Familiares'}</p>
+            </div>
+          </div>
+        )}
+        {!inDrawer && (
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+            className={`p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 ${collapsed ? 'mt-2' : ''}`}
+          >
+            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+          </button>
+        )}
+      </div>
+
+      {/* Nav groups */}
+      <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar">
+        {SIDEBAR_GROUPS.map((group, gi) => (
+          <div key={gi} className={gi > 0 ? 'mt-1' : ''}>
+            {group.label && !collapsed && (
+              <p className="px-5 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                {group.label}
+              </p>
+            )}
+            {group.label && collapsed && !inDrawer && <div className="mx-3 mt-3 mb-1 border-t border-border" />}
+            <div className={`space-y-0.5 ${collapsed && !inDrawer ? 'px-2' : 'px-3'}`}>
+              {group.items.filter(item => canShowItem(item)).map(item => {
+                const Icon = item.icon;
+                const active = location.pathname === item.to;
+                const showBadge = item.to === '/Transactions' && pendingCount > 0;
+                return (
+                  <NavTooltip key={item.to} label={item.label} collapsed={collapsed && !inDrawer}>
+                    <button
+                      onClick={() => { handleNavClick(item.to); if (inDrawer) setMobileOpen(false); }}
+                      aria-label={item.label}
+                      aria-current={active ? 'page' : undefined}
+                      className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 w-full touch-target
+                        ${collapsed && !inDrawer ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
+                        ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+                      <div className="relative flex-shrink-0">
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                        {showBadge && (
+                          <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
+                            {pendingCount > 9 ? '9+' : pendingCount}
+                          </span>
+                        )}
+                      </div>
+                      {(!collapsed || inDrawer) && item.label}
+                    </button>
+                  </NavTooltip>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* System Admin */}
+      {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
+        <div className={`border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1 ${collapsed && !inDrawer ? 'px-2' : 'px-3'}`}>
+          {(!collapsed || inDrawer) && (
+            <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
+          )}
+          {collapsed && !inDrawer && <div className="mb-1" />}
+          {[
+            { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
+            { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
+          ].filter(x => x.visible).map(({ to, icon: Icon, label }) => (
+            <NavTooltip key={to} label={label} collapsed={collapsed && !inDrawer}>
+              <button
+                onClick={() => { handleNavClick(to); if (inDrawer) setMobileOpen(false); }}
+                className={`flex items-center gap-3 rounded-xl text-sm font-medium w-full transition-all touch-target
+                  ${collapsed && !inDrawer ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
+                  ${location.pathname === to
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              >
+                <Icon className="w-4 h-4" />
+                {(!collapsed || inDrawer) && label}
+              </button>
+            </NavTooltip>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom actions */}
+      <div className={`border-t border-border ${collapsed && !inDrawer ? 'p-2 space-y-2' : 'p-4 space-y-2'}`}>
+        {(!collapsed || inDrawer) ? (
+          <>
+            <ThemeToggle showLabel />
+            <button onClick={() => { handleNavClick('/Capture'); if (inDrawer) setMobileOpen(false); }}
+              className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
+              <Plus className="w-4 h-4" />
+              Registrar
+            </button>
+          </>
+        ) : (
+          <>
+            <NavTooltip label="Tema" collapsed>
+              <div className="flex justify-center"><ThemeToggle /></div>
+            </NavTooltip>
+            <NavTooltip label="Registrar" collapsed>
+              <button onClick={() => handleNavClick('/Capture')}
+                className="flex items-center justify-center w-full bg-primary text-primary-foreground rounded-xl p-2.5 hover:bg-primary/90 transition-colors shadow-sm">
+                <Plus className="w-4 h-4" />
+              </button>
+            </NavTooltip>
+          </>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col overscroll-none" id="main-app-wrapper">
       <InternetBanner />
@@ -202,89 +360,47 @@ export default function Layout() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex flex-col w-60 h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl overscroll-none">
-          {/* Logo */}
-          <div className="p-5 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-md bg-black">
-                <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
-                <p className="text-xs text-muted-foreground truncate max-w-[130px]">{family?.name || 'Finanzas Familiares'}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Nav groups */}
-          <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar">
-            {SIDEBAR_GROUPS.map((group, gi) => (
-              <div key={gi} className={gi > 0 ? 'mt-1' : ''}>
-                {group.label && (
-                  <p className="px-5 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                    {group.label}
-                  </p>
-                )}
-                <div className="px-3 space-y-0.5">
-                  {group.items.filter(item => canShowItem(item)).map(item => {
-                    const Icon = item.icon;
-                    const active = location.pathname === item.to;
-                    const showBadge = item.to === '/Transactions' && pendingCount > 0;
-                    return (
-                      <button key={item.to} onClick={() => handleNavClick(item.to)}
-                        aria-label={item.label}
-                        aria-current={active ? 'page' : undefined}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 w-full text-left touch-target
-                          ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-                        <div className="relative flex-shrink-0">
-                          <Icon className="w-4 h-4" aria-hidden="true" />
-                          {showBadge && (
-                            <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
-                              {pendingCount > 9 ? '9+' : pendingCount}
-                            </span>
-                          )}
-                        </div>
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-
-          {/* System Admin — only visible for app-level admins or users with explicit permission */}
-          {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
-            <div className="px-3 border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1">
-              <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
-              {[
-                { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
-                { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
-              ].filter(x => x.visible).map(({ to, icon: Icon, label }) => (
-                <button key={to}
-                  onClick={() => handleNavClick(to)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium w-full text-left transition-all touch-target
-                    ${location.pathname === to
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Bottom actions */}
-          <div className="p-4 border-t border-border space-y-2">
-            <ThemeToggle showLabel />
-            <button onClick={() => handleNavClick('/Capture')}
-              className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
-              <Plus className="w-4 h-4" />
-              Registrar
-            </button>
-          </div>
+        <aside
+          className={`hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl overscroll-none transition-all duration-300 overflow-hidden flex-shrink-0
+            ${collapsed ? 'w-16' : 'w-60'}`}
+        >
+          <SidebarContent />
         </aside>
+
+        {/* Mobile Drawer Overlay */}
+        <AnimatePresence>
+          {mobileOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 z-40 md:hidden"
+                onClick={() => setMobileOpen(false)}
+              />
+              <motion.aside
+                initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed left-0 top-0 bottom-0 w-72 z-50 md:hidden flex flex-col bg-card border-r border-border overscroll-none"
+              >
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md bg-black flex-shrink-0">
+                      <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/0206f467d_FlowFin_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <h1 className="font-bold text-foreground text-sm leading-tight">FlowFin</h1>
+                      <p className="text-xs text-muted-foreground truncate max-w-[140px]">{family?.name || 'Finanzas Familiares'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setMobileOpen(false)} aria-label="Cerrar menú"
+                    className="p-1.5 rounded-lg bg-muted text-muted-foreground">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <SidebarContent inDrawer />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Main content */}
         <main
@@ -294,15 +410,21 @@ export default function Layout() {
             paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
           } : undefined}
         >
-          {showBack && (
-            <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+          {/* Mobile top bar — always shown, has back or menu toggle */}
+          <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
+            {showBack ? (
               <button onClick={handleBack} aria-label="Regresar"
                 className="flex items-center gap-1 text-primary text-sm font-medium active:opacity-60 transition-opacity">
                 <ChevronLeft className="w-5 h-5" aria-hidden="true" />
                 Atrás
               </button>
-            </div>
-          )}
+            ) : (
+              <button onClick={() => setMobileOpen(true)} aria-label="Abrir menú"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <PanelLeftOpen className="w-5 h-5" />
+              </button>
+            )}
+          </div>
           <div
             className={`flex-1 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar'}`}
             id="main-scroll"
