@@ -32,6 +32,7 @@ export default {
       'scheduled.manage.delete': ALL,
     },
     member: {
+      'module.ScheduledPayments': READ,
       'scheduled.view':          ALL,
       'scheduled.view.list':     READ,
       'scheduled.view.calendar': READ,

@@ -33,6 +33,7 @@ export default {
       'investment.payments.history':  ALL,
     },
     member: {
+      'module.Investments':           READ,
       'investment.view':              ALL,
       'investment.view.list':         READ,
       'investment.view.detail':       READ,

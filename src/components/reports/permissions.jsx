@@ -42,6 +42,7 @@ export default {
       'reports.export.share':     ALL,
     },
     member: {
+      'module.Reports':           READ,
       'reports.view':             ALL,
       'reports.view.charts':      READ,
       'reports.view.breakdown':   READ,

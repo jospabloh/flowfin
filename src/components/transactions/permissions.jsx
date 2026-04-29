@@ -33,6 +33,7 @@ export default {
       'transaction.delete.action':       ALL,
     },
     member: {
+      'module.Transactions':             READ,
       'transaction.view':                ALL,
       'transaction.view.list':           READ,
       'transaction.view.filter':         READ,

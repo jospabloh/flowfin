@@ -25,6 +25,7 @@ export default {
       'dashboard.view.filters':  ALL,
     },
     member: {
+      'module.Dashboard':        READ,
       'dashboard.view':          ALL,
       'dashboard.view.summary':  READ,
       'dashboard.view.upcoming': READ,

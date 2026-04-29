@@ -35,6 +35,7 @@ export default {
       'rental.payments.history':  ALL,
     },
     member: {
+      'module.Rentals':           READ,
       'rental.view':              ALL,
       'rental.view.list':         READ,
       'rental.view.detail':       READ,
