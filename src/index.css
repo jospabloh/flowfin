@@ -132,6 +132,17 @@ body {
   overscroll-behavior: none;
 }
 
+/* Assistant chat input bar: on mobile, pad above the fixed bottom nav bar */
+.assistant-input-bar {
+  padding-bottom: 0.75rem;
+}
+
+@media (max-width: 767px) {
+  .assistant-input-bar {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @layer base {
   button, [role="tab"], [role="button"], nav a {
     -webkit-user-select: none;

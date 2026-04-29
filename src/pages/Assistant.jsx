@@ -411,7 +411,7 @@ export default function Assistant() {
   );
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full relative overflow-hidden">
+    <div ref={containerRef} className="flex flex-col h-full min-h-0 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
@@ -507,11 +507,10 @@ export default function Assistant() {
         </div>
       )}
 
-      {/* Input — in-flow at bottom */}
+      {/* Input — in-flow at bottom. On mobile, bottom padding accounts for fixed nav bar (~64px) + safe area */}
       <div
         ref={inputBarRef}
-        className="flex-shrink-0 px-4 pt-2 border-t border-border bg-background"
-        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 12px))' }}
+        className="flex-shrink-0 px-4 pt-2 border-t border-border bg-background assistant-input-bar"
       >
         <div className="flex gap-2 items-center max-w-full">
           <input

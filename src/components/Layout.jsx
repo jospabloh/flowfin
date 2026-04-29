@@ -403,13 +403,7 @@ export default function Layout() {
         </AnimatePresence>
 
         {/* Main content */}
-        <main
-          className="flex-1 flex flex-col overflow-hidden"
-          style={isAssistantPage ? {
-            height: '100dvh',
-            paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
-          } : undefined}
-        >
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0">
           {/* Mobile top bar — always shown, has back or menu toggle */}
           <div className="md:hidden flex items-center gap-2 px-3 pt-safe border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30 h-12 flex-shrink-0">
             {showBack ? (
@@ -426,7 +420,7 @@ export default function Layout() {
             )}
           </div>
           <div
-            className={`flex-1 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar'}`}
+            className={`flex-1 min-h-0 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar'}`}
             id="main-scroll"
             style={!isAssistantPage ? { WebkitOverflowScrolling: 'touch' } : undefined}
           >
