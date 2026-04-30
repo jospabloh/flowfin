@@ -12,7 +12,30 @@ function syncUserPrefsToLS(user) {
   }
 }
 
-const FamilyContext = createContext(null);
+const FamilyContext = createContext({
+  currentUser: null,
+  family: null,
+  familyId: null,
+  familyConfigId: null,
+  membership: null,
+  isAdmin: false,
+  isLoading: true,
+  membershipError: false,
+  refetchMembership: () => {},
+  familyConfig: null,
+  currency: 'MXN',
+  currencySymbol: '$',
+  billingStatus: null,
+  isReadOnly: false,
+  licensePlan: 'home',
+  licensedMemberLimit: 4,
+  trialDaysLeft: null,
+  activeMemberCount: null,
+  trialStartAt: null,
+  trialEndAt: null,
+  licenseActivatedAt: null,
+  licenseExpiresAt: null,
+});
 
 export function FamilyProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
