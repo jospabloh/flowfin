@@ -6,7 +6,9 @@ import { Users, Key, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { defaultCategories, defaultSubcategoriesByCategory, defaultPaymentMethods } from '@/lib/seedData';
 
 export default function Onboarding() {
-  const { currentUser, refetchMembership } = useFamily();
+  const familyCtx = useFamily();
+  const currentUser = familyCtx?.currentUser;
+  const refetchMembership = familyCtx?.refetchMembership;
   const [mode, setMode] = useState(null); // 'create' | 'join'
   const [familyName, setFamilyName] = useState('');
   const [joinCode, setJoinCode] = useState('');
