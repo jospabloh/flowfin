@@ -382,11 +382,13 @@ export default function Capture() {
         ? { credit_card_balance: parseFloat(creditCardBalance) }
         : {}),
       ...(tripId ? { trip_id: tripId } : {}),
-      ...(tripId && originalCurrency && originalCurrency !== currency
+      ...(tripId && originalCurrency
         ? {
             original_currency: originalCurrency,
-            original_amount: parseFloat(originalAmount) || undefined,
-            exchange_rate: exchangeRate || undefined,
+            original_amount: originalCurrency === currency
+              ? parseFloat(amount) || undefined
+              : parseFloat(originalAmount) || undefined,
+            exchange_rate: originalCurrency === currency ? 1 : (exchangeRate || undefined),
           }
         : {}),
       ...(tripId && isSplit ? { is_split: true, split_with_person_ids: splitWithPersonIds } : {}),
@@ -529,7 +531,7 @@ export default function Capture() {
               <Plane className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
               <span className="text-xs text-sky-700 dark:text-sky-400 flex-1">¿Es parte de <strong>{activeTrips[0].name}</strong>?</span>
               <button
-                onClick={() => { setTripId(activeTrips[0].id); setOriginalCurrency(activeTrips[0].currencies?.[0] || currency); }}
+                onClick={() => { setTripId(activeTrips[0].id); setOriginalCurrency(activeTrips[0].budget_currency || activeTrips[0].currencies?.[0] || currency); }}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${tripId ? 'bg-sky-600 text-white' : 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 hover:bg-sky-200'}`}
               >
                 ✓
@@ -546,7 +548,7 @@ export default function Capture() {
               <Plane className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
               <select
                 value={tripId}
-                onChange={e => { setTripId(e.target.value); if (e.target.value) { const t = activeTrips.find(x => x.id === e.target.value); setOriginalCurrency(t?.currencies?.[0] || currency); } }}
+                onChange={e => { setTripId(e.target.value); if (e.target.value) { const t = activeTrips.find(x => x.id === e.target.value); setOriginalCurrency(t?.budget_currency || t?.currencies?.[0] || currency); } }}
                 className="flex-1 text-xs bg-transparent text-sky-700 dark:text-sky-400 outline-none"
               >
                 <option value="">¿Asignar a viaje?</option>
@@ -561,22 +563,29 @@ export default function Capture() {
           {/* Exchange rate fields when trip selected */}
           {tripId && (() => {
             const selectedTrip = activeTrips.find(t => t.id === tripId);
-            return selectedTrip ? (
+            if (!selectedTrip) return null;
+            const currencyOptions = Array.from(new Set([
+              selectedTrip.budget_currency,
+              ...(selectedTrip.currencies || []),
+              currency,
+            ].filter(Boolean)));
+            const isForeign = originalCurrency && originalCurrency !== currency;
+            return (
               <div className="mt-2 space-y-2 pl-1">
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-[10px] text-muted-foreground mb-1 block">Moneda original</label>
+                    <label className="text-[10px] text-muted-foreground mb-1 block">¿En qué moneda gastaste?</label>
                     <select
                       value={originalCurrency}
                       onChange={e => setOriginalCurrency(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
                     >
-                      {(selectedTrip.currencies || [currency]).map(c => <option key={c} value={c}>{c}</option>)}
+                      {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  {originalCurrency && originalCurrency !== currency && (
+                  {isForeign && (
                     <div className="flex-1">
-                      <label className="text-[10px] text-muted-foreground mb-1 block">Monto original</label>
+                      <label className="text-[10px] text-muted-foreground mb-1 block">Monto en {originalCurrency}</label>
                       <input
                         type="number"
                         value={originalAmount}
@@ -588,7 +597,7 @@ export default function Capture() {
                     </div>
                   )}
                 </div>
-                {originalCurrency && originalCurrency !== currency && (
+                {isForeign && (
                   <p className="text-[11px] text-muted-foreground">
                     {fetchingRate ? 'Obteniendo TC...' : exchangeRate
                       ? `TC: 1 ${originalCurrency} = ${exchangeRate} ${currency} · ${date || 'Hoy'}`
@@ -633,7 +642,7 @@ export default function Capture() {
                   </div>
                 )}
               </div>
-            ) : null;
+            );
           })()}
         </div>
       )}

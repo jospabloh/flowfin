@@ -283,7 +283,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                           <p className="text-[11px] text-muted-foreground">
                             {formatDate(t.date, { locale, style: 'short' })}
                             {pm ? ` · ${pm.name}` : ''}
-                            {t.original_currency && t.original_currency !== familyCurrency
+                            {t.original_currency && (t.original_amount || t.amount)
                               ? ` · ${formatCurrency(t.original_amount || t.amount, { locale, currency: t.original_currency, decimals: 2 })} ${t.original_currency}`
                               : ''}
                             {t.is_split ? ' 👥' : ''}
