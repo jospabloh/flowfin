@@ -98,23 +98,23 @@ export default function TDCSnapshotCard() {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = async (attempt = 0) => {
     if (!familyId) return;
     try {
-      // Sequential calls to avoid rate limit when Dashboard loads many things simultaneously
       const methods = await base44.entities.PaymentMethod.filter({ family_id: familyId });
       const cards = methods.filter(m => m.type === 'credit');
       setCreditCards(cards);
 
-      // Only fetch snapshots if there are credit cards
       if (cards.length === 0) {
         setLoading(false);
         return;
       }
 
+      // Small gap between the two sequential calls
+      await new Promise(r => setTimeout(r, 500));
+
       const snaps = await base44.entities.CreditCardSnapshot.filter({ family_id: familyId });
 
-      // Latest snapshot per payment_method_id
       const latestMap = {};
       for (const s of snaps) {
         const prev = latestMap[s.payment_method_id];
@@ -123,15 +123,22 @@ export default function TDCSnapshotCard() {
         }
       }
       setSnapshots(latestMap);
+    } catch (err) {
+      // Retry with exponential backoff on rate limit (max 3 retries)
+      if (attempt < 3) {
+        const delay = (attempt + 1) * 4000;
+        setTimeout(() => load(attempt + 1), delay);
+        return;
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Delay load so Dashboard's primary data fetches go first (3s gives plenty of breathing room)
+  // Large initial delay so Dashboard's primary queries finish first
   useEffect(() => {
     if (!familyId) return;
-    const t = setTimeout(() => load(), 3000);
+    const t = setTimeout(() => load(), 8000);
     return () => clearTimeout(t);
   }, [familyId]);
 
