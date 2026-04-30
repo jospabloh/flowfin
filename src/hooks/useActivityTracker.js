@@ -30,8 +30,8 @@ export function useActivityTracker(familyId) {
   useEffect(() => {
     if (!familyId) return;
 
-    // Fire on mount (app open / page refresh)
-    sendActivity();
+    // Delay on mount so Dashboard's primary queries go first
+    const mountTimer = setTimeout(() => sendActivity(), 2000);
 
     // Also fire on visibility change (user returns to tab)
     const onVisible = () => {
@@ -40,6 +40,7 @@ export function useActivityTracker(familyId) {
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
+      clearTimeout(mountTimer);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [familyId]);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -91,25 +91,26 @@ export function FamilyProvider({ children }) {
     retry: 1,
   });
 
-  // ── Step 5: Fire-and-forget analytics ──
+  // ── Step 5: Fire-and-forget anomaly detection (delayed so primary queries go first) ──
+  const [anomalyEnabled, setAnomalyEnabled] = useState(false);
+  const anomalyTimerRef = useRef(null);
+  useEffect(() => {
+    if (!familyId) return;
+    // Wait 5s after familyId resolves before running anomaly detection
+    anomalyTimerRef.current = setTimeout(() => setAnomalyEnabled(true), 5000);
+    return () => { clearTimeout(anomalyTimerRef.current); setAnomalyEnabled(false); };
+  }, [familyId]);
+
   useQuery({
     queryKey: ['detectAnomalies', familyId],
     queryFn: () => base44.functions.invoke('detectAnomalies', { familyId }).then(r => r.data),
-    enabled: !!familyId,
-    staleTime: 6 * 60 * 60 * 1000,   // 6 hours — don't refetch within same session
+    enabled: !!familyId && anomalyEnabled,
+    staleTime: 6 * 60 * 60 * 1000,
     gcTime: 6 * 60 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-  });
-
-  useQuery({
-    queryKey: ['buildUserProfile', familyId],
-    queryFn: () => base44.functions.invoke('buildUserProfile', { familyId }).then(r => r.data),
-    enabled: !!familyId,
-    staleTime: 24 * 60 * 60 * 1000,
-    retry: false,
   });
 
   // Sync family rules to localStorage

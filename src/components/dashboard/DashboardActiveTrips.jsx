@@ -16,14 +16,18 @@ export default function DashboardActiveTrips() {
 
   useEffect(() => {
     if (!familyId) return;
-    Promise.all([
-      base44.entities.Trip.filter({ family_id: familyId }),
-      base44.entities.Transaction.filter({ family_id: familyId }),
-    ]).then(([t, tx]) => {
-      const active = (t || []).filter(x => x.status === 'active');
-      setTrips(active);
-      setTransactions((tx || []).filter(x => x.trip_id));
-    }).catch(() => {});
+    // Delay to avoid competing with Dashboard's primary data fetches
+    const t = setTimeout(async () => {
+      try {
+        const trips = await base44.entities.Trip.filter({ family_id: familyId });
+        const active = (trips || []).filter(x => x.status === 'active');
+        setTrips(active);
+        if (active.length === 0) return;
+        const txs = await base44.entities.Transaction.filter({ family_id: familyId });
+        setTransactions((txs || []).filter(x => x.trip_id));
+      } catch {}
+    }, 800);
+    return () => clearTimeout(t);
   }, [familyId]);
 
   useEffect(() => {
