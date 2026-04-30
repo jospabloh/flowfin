@@ -31,9 +31,13 @@ export default function DashboardActiveTrips() {
   }, [familyId]);
 
   useEffect(() => {
-    if (selectedTrip) {
-      import('@/components/trips/TripDetailModal').then(m => setModal(() => m.default));
-    }
+    if (!selectedTrip) return;
+    const load = (attempt = 0) => {
+      import('@/components/trips/TripDetailModal')
+        .then(m => setModal(() => m.default))
+        .catch(() => { if (attempt < 3) setTimeout(() => load(attempt + 1), 1000); });
+    };
+    load();
   }, [selectedTrip]);
 
   if (trips.length === 0) return null;
