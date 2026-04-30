@@ -1,0 +1,95 @@
+{
+  "name": "CreditCardSnapshot",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "ID del método de pago (TDC) al que pertenece este snapshot"
+    },
+    "balance": {
+      "type": "number",
+      "description": "Saldo manual capturado para la TDC"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del snapshot del saldo"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionales sobre el snapshot"
+    }
+  },
+  "required": [
+    "family_id",
+    "payment_method_id",
+    "balance",
+    "snapshot_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    }
+  }
+}

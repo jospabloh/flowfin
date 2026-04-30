@@ -103,6 +103,34 @@
     "credit_card_balance": {
       "type": "number",
       "description": "Saldo pendiente de la TDC después de este pago (solo aplica a categorías de Pago TDC)"
+    },
+    "trip_id": {
+      "type": "string",
+      "description": "ID del viaje al que pertenece esta transacción (si aplica)"
+    },
+    "original_currency": {
+      "type": "string",
+      "description": "Moneda usada al momento del gasto"
+    },
+    "original_amount": {
+      "type": "number",
+      "description": "Monto en la moneda original"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "description": "Tipo de cambio aplicado al momento del registro"
+    },
+    "is_split": {
+      "type": "boolean",
+      "default": false,
+      "description": "¿El gasto fue dividido entre participantes?"
+    },
+    "split_with_person_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de las personas con quienes se dividió este gasto"
     }
   },
   "required": [

@@ -1,0 +1,144 @@
+{
+  "name": "Trip",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nombre del viaje"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio del viaje"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de fin del viaje"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "active",
+        "closed"
+      ],
+      "default": "planned",
+      "description": "Estado del viaje"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Presupuesto total del viaje"
+    },
+    "budget_currency": {
+      "type": "string",
+      "description": "Moneda del presupuesto (ej: MXN, USD)"
+    },
+    "currencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Monedas utilizadas durante el viaje"
+    },
+    "destination_countries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Países de destino del viaje"
+    },
+    "participant_person_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs de las personas participantes del viaje"
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "ID del usuario que creó el viaje"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de cierre del viaje"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas adicionales sobre el viaje"
+    }
+  },
+  "required": [
+    "family_id",
+    "name",
+    "start_date",
+    "end_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    }
+  }
+}
