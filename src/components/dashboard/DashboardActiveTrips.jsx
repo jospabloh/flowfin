@@ -26,7 +26,7 @@ export default function DashboardActiveTrips() {
         const txs = await base44.entities.Transaction.filter({ family_id: familyId });
         setTransactions((txs || []).filter(x => x.trip_id));
       } catch {}
-    }, 800);
+    }, 4000);
     return () => clearTimeout(t);
   }, [familyId]);
 

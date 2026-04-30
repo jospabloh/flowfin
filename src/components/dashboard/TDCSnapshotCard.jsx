@@ -128,10 +128,10 @@ export default function TDCSnapshotCard() {
     }
   };
 
-  // Delay load slightly so Dashboard's primary data fetches go first
+  // Delay load so Dashboard's primary data fetches go first (3s gives plenty of breathing room)
   useEffect(() => {
     if (!familyId) return;
-    const t = setTimeout(() => load(), 600);
+    const t = setTimeout(() => load(), 3000);
     return () => clearTimeout(t);
   }, [familyId]);
 
