@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users } from 'lucide-react';
+import { getExchangeRate } from '@/services/exchangeRateService';
 import NativeSelect from '@/components/NativeSelect';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,6 +73,18 @@ export default function Capture() {
   const [autoSubcategoryHint, setAutoSubcategoryHint] = useState(null); // string | null (description)
   const [aiExtracting, setAiExtracting] = useState(false);
 
+  // Trip linking state
+  const [activeTrips, setActiveTrips] = useState([]);
+  const [tripId, setTripId] = useState('');
+  const [tripDismissed, setTripDismissed] = useState(false);
+  const [originalCurrency, setOriginalCurrency] = useState('');
+  const [originalAmount, setOriginalAmount] = useState('');
+  const [exchangeRate, setExchangeRate] = useState(null);
+  const [fetchingRate, setFetchingRate] = useState(false);
+  // Split state
+  const [isSplit, setIsSplit] = useState(false);
+  const [splitWithPersonIds, setSplitWithPersonIds] = useState([]);
+
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
 
@@ -79,6 +92,45 @@ export default function Capture() {
   useEffect(() => {
     if (familyId) syncFamilyRulesFromDB(familyConfig);
   }, [familyId]);
+
+  // Load active trips overlapping today's date
+  useEffect(() => {
+    if (!familyId) return;
+    base44.entities.Trip.filter({ family_id: familyId })
+      .then(all => {
+        const today = todayISO();
+        const active = (all || []).filter(t =>
+          (t.status === 'active' || t.status === 'planned') &&
+          t.start_date <= today && t.end_date >= today
+        );
+        setActiveTrips(active);
+        if (active.length === 1) setTripId(active[0].id);
+      })
+      .catch(() => {});
+  }, [familyId]);
+
+  // Fetch exchange rate when original currency / date changes and trip is selected
+  useEffect(() => {
+    if (!tripId || !originalCurrency || !currency || originalCurrency === currency) {
+      setExchangeRate(originalCurrency === currency ? 1 : null);
+      return;
+    }
+    let cancelled = false;
+    setFetchingRate(true);
+    getExchangeRate(date || todayISO(), originalCurrency, currency)
+      .then(rate => { if (!cancelled) { setExchangeRate(rate); setFetchingRate(false); } })
+      .catch(() => { if (!cancelled) { setExchangeRate(null); setFetchingRate(false); } });
+    return () => { cancelled = true; };
+  }, [tripId, originalCurrency, date, currency]);
+
+  // Auto-calculate amount from originalAmount × exchangeRate
+  useEffect(() => {
+    if (!tripId || !originalAmount || !exchangeRate) return;
+    const val = parseFloat(originalAmount);
+    if (!isNaN(val) && exchangeRate > 0) {
+      setAmount((val * exchangeRate).toFixed(2));
+    }
+  }, [originalAmount, exchangeRate, tripId]);
 
   // Fetch smart suggestions with debounce to avoid rate limiting
   useEffect(() => {
@@ -260,6 +312,22 @@ export default function Capture() {
     if (!description) handleDescriptionChange(`Ticket ${today}`);
   };
 
+  const checkTripBudgetAlert = async (tId) => {
+    try {
+      const [tripArr, txs] = await Promise.all([
+        base44.entities.Trip.filter({ family_id: familyId }),
+        base44.entities.Transaction.filter({ family_id: familyId }),
+      ]);
+      const t = tripArr.find(x => x.id === tId);
+      if (!t?.budget) return;
+      const total = txs.filter(x => x.trip_id === tId && x.type === 'expense').reduce((s, x) => s + (x.amount || 0), 0);
+      const pct = (total / t.budget) * 100;
+      if (pct >= 100) toast({ title: `🚨 Superaste el presupuesto de ${t.name}`, variant: 'destructive' });
+      else if (pct >= 90) toast({ title: `🔴 Llevas el 90% del presupuesto de ${t.name}`, variant: 'destructive' });
+      else if (pct >= 75) toast({ title: `⚠️ Llevas el 75% del presupuesto de ${t.name}` });
+    } catch {}
+  };
+
   const doSave = (txData) => {
     setDuplicateWarning(null);
     // Capture what the auto-suggestion was before saving (for F2.7 negative signal)
@@ -276,6 +344,7 @@ export default function Capture() {
             paymentMethodId: prevAssoc.paymentMethodId,
           } : undefined,
         });
+        if (txData.trip_id) checkTripBudgetAlert(txData.trip_id);
         setSaving(false);
         setShowSuccess(true);
         confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669','#10B981','#6EE7B7'] });
@@ -283,6 +352,8 @@ export default function Capture() {
           setShowSuccess(false);
           setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
           setNotes(''); setCreditCardBalance(''); setReceiptImage(null); setSuggestions([]);
+          setTripDismissed(false); setOriginalCurrency(''); setOriginalAmount('');
+          setExchangeRate(null); setIsSplit(false); setSplitWithPersonIds([]);
         }, 1500);
       },
     });
@@ -310,6 +381,15 @@ export default function Capture() {
       ...(creditCardBalance && selectedCategory?.exclude_from_totals
         ? { credit_card_balance: parseFloat(creditCardBalance) }
         : {}),
+      ...(tripId ? { trip_id: tripId } : {}),
+      ...(tripId && originalCurrency && originalCurrency !== currency
+        ? {
+            original_currency: originalCurrency,
+            original_amount: parseFloat(originalAmount) || undefined,
+            exchange_rate: exchangeRate || undefined,
+          }
+        : {}),
+      ...(tripId && isSplit ? { is_split: true, split_with_person_ids: splitWithPersonIds } : {}),
     };
 
     // Check for duplicates — wrapped in try/catch so a network error never leaves saving=true
@@ -438,6 +518,123 @@ export default function Capture() {
             <AlertTriangle className="w-3 h-3 flex-shrink-0" />
             {atypicalWarning} ¿Continuar?
           </p>
+        </div>
+      )}
+
+      {/* Trip suggestion chip */}
+      {activeTrips.length > 0 && !tripDismissed && type === 'expense' && (
+        <div className="px-4 mt-3">
+          {activeTrips.length === 1 ? (
+            <div className="flex items-center gap-2 px-3 py-2 bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800 rounded-xl">
+              <Plane className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
+              <span className="text-xs text-sky-700 dark:text-sky-400 flex-1">¿Es parte de <strong>{activeTrips[0].name}</strong>?</span>
+              <button
+                onClick={() => { setTripId(activeTrips[0].id); setOriginalCurrency(activeTrips[0].currencies?.[0] || currency); }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${tripId ? 'bg-sky-600 text-white' : 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-400 hover:bg-sky-200'}`}
+              >
+                ✓
+              </button>
+              <button
+                onClick={() => { setTripId(''); setTripDismissed(true); }}
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ✗
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-3 py-2 bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800 rounded-xl">
+              <Plane className="w-3.5 h-3.5 text-sky-600 flex-shrink-0" />
+              <select
+                value={tripId}
+                onChange={e => { setTripId(e.target.value); if (e.target.value) { const t = activeTrips.find(x => x.id === e.target.value); setOriginalCurrency(t?.currencies?.[0] || currency); } }}
+                className="flex-1 text-xs bg-transparent text-sky-700 dark:text-sky-400 outline-none"
+              >
+                <option value="">¿Asignar a viaje?</option>
+                {activeTrips.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+              <button onClick={() => setTripDismissed(true)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* Exchange rate fields when trip selected */}
+          {tripId && (() => {
+            const selectedTrip = activeTrips.find(t => t.id === tripId);
+            return selectedTrip ? (
+              <div className="mt-2 space-y-2 pl-1">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground mb-1 block">Moneda original</label>
+                    <select
+                      value={originalCurrency}
+                      onChange={e => setOriginalCurrency(e.target.value)}
+                      className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      {(selectedTrip.currencies || [currency]).map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {originalCurrency && originalCurrency !== currency && (
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground mb-1 block">Monto original</label>
+                      <input
+                        type="number"
+                        value={originalAmount}
+                        onChange={e => setOriginalAmount(e.target.value)}
+                        placeholder="0.00"
+                        inputMode="decimal"
+                        className="w-full bg-card border border-border rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                  )}
+                </div>
+                {originalCurrency && originalCurrency !== currency && (
+                  <p className="text-[11px] text-muted-foreground">
+                    {fetchingRate ? 'Obteniendo TC...' : exchangeRate
+                      ? `TC: 1 ${originalCurrency} = ${exchangeRate} ${currency} · ${date || 'Hoy'}`
+                      : 'No se pudo obtener el TC. Ingresa el monto manualmente.'}
+                  </p>
+                )}
+                {/* Split button — only when trip has multiple participants */}
+                {(selectedTrip.participant_person_ids?.length || 0) > 1 && (
+                  <button
+                    onClick={() => setIsSplit(!isSplit)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${isSplit ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground'}`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    Dividir gasto
+                  </button>
+                )}
+                {isSplit && (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-muted-foreground">¿Con quién divides?</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(selectedTrip.participant_person_ids || []).map(pid => {
+                        const p = persons.find(x => x.id === pid);
+                        if (!p) return null;
+                        const checked = splitWithPersonIds.includes(pid);
+                        return (
+                          <button key={pid} onClick={() => setSplitWithPersonIds(prev => checked ? prev.filter(x => x !== pid) : [...prev, pid])}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${checked ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
+                          >
+                            <span className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: p.color || '#059669' }}>
+                              {(p.avatar_initial || p.name?.[0] || '?').toUpperCase()}
+                            </span>
+                            {p.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {splitWithPersonIds.length > 0 && amount && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Tu parte: {formatCurrency(parseFloat(amount) / (splitWithPersonIds.length + 1), { locale, currency })} (de {formatCurrency(parseFloat(amount), { locale, currency })} total)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
 

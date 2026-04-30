@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFamily } from '@/lib/FamilyContext';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Plane } from 'lucide-react';
+import { todayISO } from '@/lib/formatters';
 import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';
@@ -26,10 +27,13 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     has_invoice: transaction.has_invoice || false,
     notes: transaction.notes || '',
     credit_card_balance: transaction.credit_card_balance || '',
+    trip_id: transaction.trip_id || '',
   });
   const [saving, setSaving] = useState(false);
   const [showApplyPayment, setShowApplyPayment] = useState(false);
   const [txData, setTxData] = useState(transaction);
+  const [activeTrips, setActiveTrips] = useState([]);
+  const [showTripAssign, setShowTripAssign] = useState(false);
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
 
@@ -38,6 +42,13 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     const cleanup = createFocusTrap(modalRef);
     return cleanup;
   }, []);
+
+  useEffect(() => {
+    if (!familyId) return;
+    base44.entities.Trip.filter({ family_id: familyId })
+      .then(all => setActiveTrips((all || []).filter(t => t.status === 'active' || t.status === 'planned')))
+      .catch(() => {});
+  }, [familyId]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -213,6 +224,32 @@ export default function TransactionEditModal({ transaction, categories, subcateg
               placeholder="Opcional"
               className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
+
+          {/* Retroactive trip assignment */}
+          {form.type === 'expense' && (
+            <div>
+              {!form.trip_id && !showTripAssign && activeTrips.length > 0 && (
+                <button onClick={() => setShowTripAssign(true)}
+                  className="flex items-center gap-1.5 text-xs text-primary font-medium hover:underline">
+                  <Plane className="w-3.5 h-3.5" />
+                  Asignar a viaje
+                </button>
+              )}
+              {(showTripAssign || form.trip_id) && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Viaje</label>
+                  <select
+                    value={form.trip_id || ''}
+                    onChange={e => set('trip_id', e.target.value || undefined)}
+                    className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="">— Sin viaje</option>
+                    {activeTrips.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Saldo pendiente TDC */}
           {selectedCategory?.exclude_from_totals && (

@@ -12,6 +12,8 @@ import DashboardExpenseByPersonChart from '@/components/dashboard/DashboardExpen
 import DashboardRecentMovements from '@/components/dashboard/DashboardRecentMovements';
 import DashboardUpcomingPayments from '@/components/dashboard/DashboardUpcomingPayments';
 import { useCanView } from '@/lib/permissions/usePermission';
+import TDCSnapshotCard from '@/components/dashboard/TDCSnapshotCard';
+import DashboardActiveTrips from '@/components/dashboard/DashboardActiveTrips';
 
 export default function Dashboard() {
   const {
@@ -69,6 +71,9 @@ export default function Dashboard() {
       {canViewSummary && (
         <DashboardSummaryCards income={income} expense={expense} balance={balance} />
       )}
+
+      <TDCSnapshotCard />
+      <DashboardActiveTrips />
 
       {canViewAnalytics && (
         <DashboardTopCategoriesChart

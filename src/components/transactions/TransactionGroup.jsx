@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Pencil, Trash2, Link as LinkIcon } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Pencil, Trash2, Link as LinkIcon, Plane } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import { format, parseISO } from 'date-fns';
@@ -36,7 +36,10 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
           const person = persons.find(p => p.id === t.person_id);
           const isExp = expanded === t.id;
           const linkInfo = getPaymentLinkInfo(t);
-          const desc = t.description && t.notes ? `${t.description} — ${t.notes}` : t.description || t.notes || cat?.name || 'Sin descripción';
+          const rawDesc = t.description && t.notes ? `${t.description} — ${t.notes}` : t.description || t.notes || cat?.name || 'Sin descripción';
+          const tripTagMatch = rawDesc.match(/\[Viaje: ([^\]]+)\]/);
+          const tripTag = tripTagMatch?.[1];
+          const desc = rawDesc.replace(/\s*\[Viaje:[^\]]+\]/g, '').trim() || cat?.name || 'Sin descripción';
 
           return (
             <div key={t.id} className={idx < txns.length - 1 ? 'border-b border-border' : ''}>
@@ -70,6 +73,11 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                     {cat?.exclude_from_totals && (
                       <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">
                         💳 solo informativo
+                      </span>
+                    )}
+                    {tripTag && (
+                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                        <Plane className="w-2.5 h-2.5" />{tripTag}
                       </span>
                     )}
                   </div>
