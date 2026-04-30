@@ -35,6 +35,7 @@ const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
 const Budget = lazy(() => import('@/pages/Budget'));
 const AIUsage = lazy(() => import('@/pages/AIUsage'));
 const PermissionAdmin = lazy(() => import('@/pages/PermissionAdmin'));
+const Trips = lazy(() => import('@/pages/Trips'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -153,6 +154,7 @@ const AuthenticatedApp = () => {
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />
               <Route path="/Budget" element={<Suspense fallback={<LoadingFallback />}><Budget /></Suspense>} />
+              <Route path="/Trips" element={<Suspense fallback={<LoadingFallback />}><Trips /></Suspense>} />
               <Route path="/AIUsage" element={<Suspense fallback={<LoadingFallback />}><AIUsage /></Suspense>} />
               <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.PermissionAdmin" element={<PermissionAdmin />} /></Suspense>} />
             </Route>
