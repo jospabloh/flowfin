@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -112,28 +112,6 @@ export function FamilyProvider({ children }) {
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 1,
-  });
-
-  // ── Step 5: Fire-and-forget anomaly detection (delayed so primary queries go first) ──
-  const [anomalyEnabled, setAnomalyEnabled] = useState(false);
-  const anomalyTimerRef = useRef(null);
-  useEffect(() => {
-    if (!familyId) return;
-    // Wait 30s after familyId resolves before running anomaly detection
-    anomalyTimerRef.current = setTimeout(() => setAnomalyEnabled(true), 30000);
-    return () => { clearTimeout(anomalyTimerRef.current); setAnomalyEnabled(false); };
-  }, [familyId]);
-
-  useQuery({
-    queryKey: ['detectAnomalies', familyId],
-    queryFn: () => base44.functions.invoke('detectAnomalies', { familyId }).then(r => r.data),
-    enabled: !!familyId && anomalyEnabled,
-    staleTime: 24 * 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
   });
 
   // Sync family rules to localStorage
