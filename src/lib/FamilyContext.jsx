@@ -96,8 +96,8 @@ export function FamilyProvider({ children }) {
   const anomalyTimerRef = useRef(null);
   useEffect(() => {
     if (!familyId) return;
-    // Wait 5s after familyId resolves before running anomaly detection
-    anomalyTimerRef.current = setTimeout(() => setAnomalyEnabled(true), 5000);
+    // Wait 30s after familyId resolves before running anomaly detection
+    anomalyTimerRef.current = setTimeout(() => setAnomalyEnabled(true), 30000);
     return () => { clearTimeout(anomalyTimerRef.current); setAnomalyEnabled(false); };
   }, [familyId]);
 
@@ -105,8 +105,8 @@ export function FamilyProvider({ children }) {
     queryKey: ['detectAnomalies', familyId],
     queryFn: () => base44.functions.invoke('detectAnomalies', { familyId }).then(r => r.data),
     enabled: !!familyId && anomalyEnabled,
-    staleTime: 6 * 60 * 60 * 1000,
-    gcTime: 6 * 60 * 60 * 1000,
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
