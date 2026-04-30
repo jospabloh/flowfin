@@ -57,7 +57,14 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-foreground truncate">{desc}</p>
-                    <AmountDisplay amount={t.amount} type={t.type} size="sm" />
+                    <div className="flex flex-col items-end">
+                      <AmountDisplay amount={t.amount} type={t.type} size="sm" />
+                      {t.original_currency && t.original_currency !== currency && t.original_amount > 0 && (
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {formatCurrency(t.original_amount, { locale, currency: t.original_currency, decimals: 2 })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     {sub && <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{sub.name}</span>}

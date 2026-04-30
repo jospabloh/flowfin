@@ -8,6 +8,7 @@ import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';
 import ApplyPaymentModal from '@/components/ApplyPaymentModal';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
+import { getExchangeRate } from '@/services/exchangeRateService';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -27,14 +28,20 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     notes: transaction.notes || '',
     credit_card_balance: transaction.credit_card_balance || '',
     trip_id: transaction.trip_id || '',
+    original_currency: transaction.original_currency || '',
+    original_amount: transaction.original_amount || '',
+    exchange_rate: transaction.exchange_rate || '',
   });
   const [saving, setSaving] = useState(false);
   const [showApplyPayment, setShowApplyPayment] = useState(false);
   const [txData, setTxData] = useState(transaction);
-  const [activeTrips, setActiveTrips] = useState([]);
+  const [allTrips, setAllTrips] = useState([]);
   const [showTripAssign, setShowTripAssign] = useState(false);
+  const [fetchingRate, setFetchingRate] = useState(false);
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, currency: familyCurrency } = useFamily();
+  const activeTrips = allTrips.filter(t => t.status === 'active');
+  const selectedTrip = allTrips.find(t => t.id === form.trip_id);
 
   useEffect(() => {
     if (!modalRef.current) return;
@@ -45,7 +52,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   useEffect(() => {
     if (!familyId) return;
     base44.entities.Trip.filter({ family_id: familyId })
-      .then(all => setActiveTrips((all || []).filter(t => t.status === 'active')))
+      .then(all => setAllTrips(all || []))
       .catch(() => {});
   }, [familyId]);
 
@@ -69,6 +76,20 @@ export default function TransactionEditModal({ transaction, categories, subcateg
       amount: parseFloat(form.amount),
       credit_card_balance: form.credit_card_balance ? parseFloat(form.credit_card_balance) : undefined,
     };
+    if (form.trip_id && form.original_currency) {
+      const isForeign = form.original_currency !== familyCurrency;
+      data.original_currency = form.original_currency;
+      data.original_amount = isForeign
+        ? (parseFloat(form.original_amount) || undefined)
+        : (parseFloat(form.amount) || undefined);
+      data.exchange_rate = isForeign
+        ? (parseFloat(form.exchange_rate) || undefined)
+        : 1;
+    } else {
+      data.original_currency = undefined;
+      data.original_amount = undefined;
+      data.exchange_rate = undefined;
+    }
     updateMutation.mutate(
       { id: transaction.id, data },
       {
@@ -79,6 +100,17 @@ export default function TransactionEditModal({ transaction, categories, subcateg
         },
       }
     );
+  };
+
+  const handleFetchRate = async () => {
+    if (!form.original_currency || form.original_currency === familyCurrency) return;
+    setFetchingRate(true);
+    try {
+      const rate = await getExchangeRate(form.date || new Date().toISOString().slice(0, 10), form.original_currency, familyCurrency);
+      if (rate) set('exchange_rate', String(rate));
+    } finally {
+      setFetchingRate(false);
+    }
   };
 
   const handlePaymentLinked = () => {
@@ -226,7 +258,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
           {/* Retroactive trip assignment */}
           {form.type === 'expense' && (
-            <div>
+            <div className="space-y-2">
               {!form.trip_id && !showTripAssign && activeTrips.length > 0 && (
                 <button onClick={() => setShowTripAssign(true)}
                   className="flex items-center gap-1.5 text-xs text-primary font-medium hover:underline">
@@ -239,12 +271,84 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                   <label className="text-xs text-muted-foreground mb-1 block">Viaje</label>
                   <select
                     value={form.trip_id || ''}
-                    onChange={e => set('trip_id', e.target.value || undefined)}
+                    onChange={e => {
+                      const val = e.target.value || undefined;
+                      set('trip_id', val);
+                      if (val) {
+                        const t = allTrips.find(x => x.id === val);
+                        if (!form.original_currency) {
+                          set('original_currency', t?.budget_currency || t?.currencies?.[0] || familyCurrency);
+                        }
+                      }
+                    }}
                     className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
                   >
                     <option value="">— Sin viaje</option>
-                    {activeTrips.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    {(form.trip_id && selectedTrip && selectedTrip.status !== 'active'
+                      ? [selectedTrip, ...activeTrips.filter(t => t.id !== selectedTrip.id)]
+                      : activeTrips
+                    ).map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}{t.status !== 'active' ? ' (cerrado)' : ''}
+                      </option>
+                    ))}
                   </select>
+                </div>
+              )}
+
+              {/* Currency override — only when expense is linked to a trip */}
+              {form.trip_id && (
+                <div className="rounded-xl border border-border p-3 space-y-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Moneda del gasto</p>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground mb-1 block">¿En qué moneda gastaste?</label>
+                      <select
+                        value={form.original_currency || ''}
+                        onChange={e => set('original_currency', e.target.value)}
+                        className="w-full bg-muted rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                      >
+                        <option value="">— Selecciona</option>
+                        {Array.from(new Set([
+                          selectedTrip?.budget_currency,
+                          ...(selectedTrip?.currencies || []),
+                          familyCurrency,
+                          form.original_currency,
+                        ].filter(Boolean))).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {form.original_currency && form.original_currency !== familyCurrency && (
+                      <div className="flex-1">
+                        <label className="text-[10px] text-muted-foreground mb-1 block">Monto en {form.original_currency}</label>
+                        <input type="number" inputMode="decimal" placeholder="0.00"
+                          value={form.original_amount}
+                          onChange={e => set('original_amount', e.target.value)}
+                          className="w-full bg-muted rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+                    )}
+                  </div>
+                  {form.original_currency && form.original_currency !== familyCurrency && (
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] text-muted-foreground mb-1 block">
+                          Tipo de cambio (1 {form.original_currency} = ? {familyCurrency})
+                        </label>
+                        <input type="number" inputMode="decimal" placeholder="0.00" step="0.0001"
+                          value={form.exchange_rate}
+                          onChange={e => set('exchange_rate', e.target.value)}
+                          className="w-full bg-muted rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+                      <button type="button" onClick={handleFetchRate} disabled={fetchingRate}
+                        className="px-3 py-2 rounded-xl bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50">
+                        {fetchingRate ? 'Obteniendo...' : 'Obtener TC'}
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    Útil para registros viejos sin moneda. El monto en {familyCurrency} se conserva como está.
+                  </p>
                 </div>
               )}
             </div>
