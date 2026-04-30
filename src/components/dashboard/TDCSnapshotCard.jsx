@@ -101,12 +101,18 @@ export default function TDCSnapshotCard() {
   const load = async () => {
     if (!familyId) return;
     try {
-      const [methods, snaps] = await Promise.all([
-        base44.entities.PaymentMethod.filter({ family_id: familyId }),
-        base44.entities.CreditCardSnapshot.filter({ family_id: familyId }),
-      ]);
+      // Sequential calls to avoid rate limit when Dashboard loads many things simultaneously
+      const methods = await base44.entities.PaymentMethod.filter({ family_id: familyId });
       const cards = methods.filter(m => m.type === 'credit');
       setCreditCards(cards);
+
+      // Only fetch snapshots if there are credit cards
+      if (cards.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const snaps = await base44.entities.CreditCardSnapshot.filter({ family_id: familyId });
 
       // Latest snapshot per payment_method_id
       const latestMap = {};
@@ -122,7 +128,12 @@ export default function TDCSnapshotCard() {
     }
   };
 
-  useEffect(() => { load(); }, [familyId]);
+  // Delay load slightly so Dashboard's primary data fetches go first
+  useEffect(() => {
+    if (!familyId) return;
+    const t = setTimeout(() => load(), 600);
+    return () => clearTimeout(t);
+  }, [familyId]);
 
   if (loading || creditCards.length === 0) return null;
 
