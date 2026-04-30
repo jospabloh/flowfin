@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, MapPin, Users, DollarSign, ChevronRight, Plane } from 'lucide-react';
+import { X, Calendar, MapPin, Plane } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';

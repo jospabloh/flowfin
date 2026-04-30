@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { MapPin, Calendar, Users, DollarSign } from 'lucide-react';
+import { MapPin, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { useFamily } from '@/lib/FamilyContext';
 

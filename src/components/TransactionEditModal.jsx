@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFamily } from '@/lib/FamilyContext';
 import { X, Plus, Plane } from 'lucide-react';
-import { todayISO } from '@/lib/formatters';
 import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';

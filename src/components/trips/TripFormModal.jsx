@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Check } from 'lucide-react';
+import { X, Plus, Check } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
