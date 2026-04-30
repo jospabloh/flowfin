@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { MapPin, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { useFamily } from '@/lib/FamilyContext';
+import { computeTripSpent } from '@/lib/tripBudget';
 
 function daysRemaining(endDate) {
   const today = new Date();
@@ -22,7 +23,7 @@ function formatDateRange(start, end) {
   return `${s.toLocaleDateString('es-MX', opts)} — ${e.toLocaleDateString('es-MX', opts)}`;
 }
 
-function BudgetBar({ spent, total, currency, locale }) {
+function BudgetBar({ spent, total, currency, locale, unconvertedCount = 0 }) {
   const pct = total > 0 ? Math.min((spent / total) * 100, 100) : 0;
   const color = pct >= 90 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500';
   return (
@@ -32,6 +33,9 @@ function BudgetBar({ spent, total, currency, locale }) {
       </div>
       <p className="text-[11px] text-muted-foreground">
         {formatCurrency(spent, { locale, currency, decimals: 0 })} / {formatCurrency(total, { locale, currency, decimals: 0 })} ({pct.toFixed(0)}%)
+        {unconvertedCount > 0 && (
+          <span className="ml-1 text-amber-500">· {unconvertedCount} sin tasa</span>
+        )}
       </p>
     </div>
   );
@@ -65,11 +69,10 @@ export default function TripCard({ trip, transactions = [], persons = [], onClic
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
 
-  const spent = useMemo(() => {
-    return transactions
-      .filter(t => t.trip_id === trip.id && t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-  }, [transactions, trip.id]);
+  const { spent, budgetCurrency, unconvertedCount } = useMemo(
+    () => computeTripSpent(transactions, trip, currency),
+    [transactions, trip, currency]
+  );
 
   const remaining = daysRemaining(trip.end_date);
   const isActive = trip.status === 'active';
@@ -115,7 +118,13 @@ export default function TripCard({ trip, transactions = [], persons = [], onClic
 
       {/* Budget bar */}
       {trip.budget_amount > 0 && (
-        <BudgetBar spent={spent} total={trip.budget_amount} currency={trip.budget_currency || currency} locale={locale} />
+        <BudgetBar
+          spent={spent}
+          total={trip.budget_amount}
+          currency={budgetCurrency}
+          locale={locale}
+          unconvertedCount={unconvertedCount}
+        />
       )}
 
       {/* Footer: currencies + participants */}

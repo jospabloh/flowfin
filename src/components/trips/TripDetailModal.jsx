@@ -3,6 +3,7 @@ import { X, Calendar, MapPin, Plane } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { computeTripSpent } from '@/lib/tripBudget';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#1B4332', '#D4AF37', '#059669', '#0284C7', '#7C3AED', '#DC2626', '#D97706', '#0891B2'];
@@ -61,7 +62,11 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
   const totalSpent = useMemo(() => expenses.reduce((s, t) => s + (t.amount || 0), 0), [expenses]);
 
   const budgetCur = trip.budget_currency || familyCurrency;
-  const budgetPct = trip.budget_amount > 0 ? Math.min((totalSpent / trip.budget_amount) * 100, 100) : 0;
+  const { spent: spentInBudgetCur, unconvertedCount } = useMemo(
+    () => computeTripSpent(transactions, trip, familyCurrency),
+    [transactions, trip, familyCurrency]
+  );
+  const budgetPct = trip.budget_amount > 0 ? Math.min((spentInBudgetCur / trip.budget_amount) * 100, 100) : 0;
   const budgetColor = budgetPct >= 90 ? 'bg-red-500' : budgetPct >= 75 ? 'bg-amber-500' : 'bg-emerald-500';
 
   const byCurrency = useMemo(() => {
@@ -181,10 +186,15 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Gastado</span>
                     <span className="font-bold text-foreground">
-                      {formatCurrency(totalSpent, { locale, currency: familyCurrency, decimals: 0 })} / {formatCurrency(trip.budget_amount, { locale, currency: budgetCur, decimals: 0 })}
+                      {formatCurrency(spentInBudgetCur, { locale, currency: budgetCur, decimals: 0 })} / {formatCurrency(trip.budget_amount, { locale, currency: budgetCur, decimals: 0 })}
                       <span className="text-muted-foreground ml-1">({budgetPct.toFixed(0)}%)</span>
                     </span>
                   </div>
+                  {unconvertedCount > 0 && (
+                    <p className="text-xs text-amber-500">
+                      {unconvertedCount} {unconvertedCount === 1 ? 'gasto' : 'gastos'} sin tasa de cambio — no se incluyen en la barra
+                    </p>
+                  )}
                   {trip.status !== 'closed' && (
                     <p className="text-xs text-muted-foreground">
                       {daysRemaining > 0 ? `${daysRemaining} días restantes` : 'Viaje terminado'}
