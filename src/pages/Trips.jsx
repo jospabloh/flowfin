@@ -34,7 +34,7 @@ export default function Trips() {
 
   useEffect(() => { load(); }, [familyId]);
 
-  const activeTrips = trips.filter(t => t.status === 'active' || t.status === 'planned');
+  const activeTrips = trips.filter(t => t.status === 'active');
   const closedTrips = trips.filter(t => t.status === 'closed');
 
   const handleTripClick = async (trip) => {

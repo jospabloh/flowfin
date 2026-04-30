@@ -100,7 +100,7 @@ export default function Capture() {
       .then(all => {
         const today = todayISO();
         const active = (all || []).filter(t =>
-          (t.status === 'active' || t.status === 'planned') &&
+          (t.status === 'active') &&
           t.start_date <= today && t.end_date >= today
         );
         setActiveTrips(active);
@@ -319,9 +319,9 @@ export default function Capture() {
         base44.entities.Transaction.filter({ family_id: familyId }),
       ]);
       const t = tripArr.find(x => x.id === tId);
-      if (!t?.budget) return;
+      if (!t?.budget_amount) return;
       const total = txs.filter(x => x.trip_id === tId && x.type === 'expense').reduce((s, x) => s + (x.amount || 0), 0);
-      const pct = (total / t.budget) * 100;
+      const pct = (total / t.budget_amount) * 100;
       if (pct >= 100) toast({ title: `🚨 Superaste el presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 90) toast({ title: `🔴 Llevas el 90% del presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 75) toast({ title: `⚠️ Llevas el 75% del presupuesto de ${t.name}` });

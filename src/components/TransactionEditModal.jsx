@@ -45,7 +45,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   useEffect(() => {
     if (!familyId) return;
     base44.entities.Trip.filter({ family_id: familyId })
-      .then(all => setActiveTrips((all || []).filter(t => t.status === 'active' || t.status === 'planned')))
+      .then(all => setActiveTrips((all || []).filter(t => t.status === 'active')))
       .catch(() => {});
   }, [familyId]);
 

@@ -20,7 +20,7 @@ export default function DashboardActiveTrips() {
       base44.entities.Trip.filter({ family_id: familyId }),
       base44.entities.Transaction.filter({ family_id: familyId }),
     ]).then(([t, tx]) => {
-      const active = (t || []).filter(x => x.status === 'active' || x.status === 'planned');
+      const active = (t || []).filter(x => x.status === 'active');
       setTrips(active);
       setTransactions((tx || []).filter(x => x.trip_id));
     }).catch(() => {});
@@ -67,7 +67,7 @@ export default function DashboardActiveTrips() {
           onClose={() => { setSelectedTrip(null); setModal(null); }}
           onTripUpdated={() => {
             base44.entities.Trip.filter({ family_id: familyId }).then(t => {
-              setTrips((t || []).filter(x => x.status === 'active' || x.status === 'planned'));
+              setTrips((t || []).filter(x => x.status === 'active'));
             });
           }}
         />

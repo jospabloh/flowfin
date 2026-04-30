@@ -105,7 +105,7 @@ export default function TripFormModal({ onClose, onSaved }) {
         status: 'active',
         destination_countries: countries,
         currencies,
-        budget: budget ? parseFloat(budget) : undefined,
+        budget_amount: budget ? parseFloat(budget) : undefined,
         budget_currency: budget ? (budgetCurrency || familyCurrency) : undefined,
         participant_person_ids: participantIds,
         created_by_user_id: currentUser?.id,

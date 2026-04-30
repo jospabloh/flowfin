@@ -72,7 +72,7 @@ export default function TripCard({ trip, transactions = [], persons = [], onClic
   }, [transactions, trip.id]);
 
   const remaining = daysRemaining(trip.end_date);
-  const isActive = trip.status === 'active' || trip.status === 'planned';
+  const isActive = trip.status === 'active';
 
   return (
     <button
@@ -114,8 +114,8 @@ export default function TripCard({ trip, transactions = [], persons = [], onClic
       </div>
 
       {/* Budget bar */}
-      {trip.budget > 0 && (
-        <BudgetBar spent={spent} total={trip.budget} currency={trip.budget_currency || currency} locale={locale} />
+      {trip.budget_amount > 0 && (
+        <BudgetBar spent={spent} total={trip.budget_amount} currency={trip.budget_currency || currency} locale={locale} />
       )}
 
       {/* Footer: currencies + participants */}
