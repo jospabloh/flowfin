@@ -40,7 +40,7 @@ export default function DashboardActiveTrips() {
 
   return (
     <>
-      <div className="px-4 mt-4">
+      <div className="px-4 mt-4 mb-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Viajes Activos</h2>
           <button
