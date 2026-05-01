@@ -56,7 +56,18 @@ export default function TransactionEditModal({ transaction, categories, subcateg
       .catch(() => {});
   }, [familyId]);
 
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+  const set = (key, val) => setForm(f => {
+    const updated = { ...f, [key]: val };
+    // Auto-recalculate MXN amount when original_amount or exchange_rate changes
+    if ((key === 'original_amount' || key === 'exchange_rate') && updated.original_currency && updated.original_currency !== familyCurrency) {
+      const origAmt = parseFloat(key === 'original_amount' ? val : updated.original_amount);
+      const rate = parseFloat(key === 'exchange_rate' ? val : updated.exchange_rate);
+      if (!isNaN(origAmt) && !isNaN(rate) && rate > 0) {
+        updated.amount = String((origAmt * rate).toFixed(2));
+      }
+    }
+    return updated;
+  });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Transaction.update(id, data),
@@ -107,7 +118,16 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     setFetchingRate(true);
     try {
       const rate = await getExchangeRate(form.date || new Date().toISOString().slice(0, 10), form.original_currency, familyCurrency);
-      if (rate) set('exchange_rate', String(rate));
+      if (rate) {
+        setForm(f => {
+          const updated = { ...f, exchange_rate: String(rate) };
+          const origAmt = parseFloat(f.original_amount);
+          if (!isNaN(origAmt) && origAmt > 0) {
+            updated.amount = String((origAmt * rate).toFixed(2));
+          }
+          return updated;
+        });
+      }
     } finally {
       setFetchingRate(false);
     }
