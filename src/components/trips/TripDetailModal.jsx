@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, MapPin, Plane, TrendingDown, Wallet, Tag, AlertTriangle, Pencil, CheckCircle } from 'lucide-react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { X, Calendar, MapPin, Plane, Wallet, Tag, TrendingDown, AlertTriangle, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
@@ -7,12 +7,11 @@ import { computeTripSpent } from '@/lib/tripBudget';
 
 const COLORS = ['#059669', '#D4AF37', '#0284C7', '#7C3AED', '#DC2626', '#D97706', '#0891B2', '#BE185D'];
 
-function SectionTitle({ icon: Icon, children, badge }) {
+function SectionTitle({ icon: Icon, children }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
-      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 flex-1">{children}</h3>
-      {badge}
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">{children}</h3>
     </div>
   );
 }
@@ -38,20 +37,30 @@ function PersonAvatars({ ids, persons }) {
   );
 }
 
+// Audit: flags missing category or payment method
+function auditIssues(t, categories, paymentMethods) {
+  const issues = [];
+  if (!t.category_id || !categories.find(c => c.id === t.category_id)) issues.push('Sin rubro');
+  if (!t.payment_method_id || !paymentMethods.find(m => m.id === t.payment_method_id)) issues.push('Sin forma de pago');
+  return issues;
+}
+
 export default function TripDetailModal({ trip, transactions: propTransactions, persons = [], onClose, onTripUpdated }) {
   const { currency: familyCurrency, familyConfig, familyId } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
+  const { currentUser } = useFamily();
+
   const [transactions, setTransactions] = useState(propTransactions?.filter(t => t.trip_id === trip.id) || []);
   const [categories, setCategories] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [CloseModal, setCloseModal] = useState(null);
+  // Audit edit state
   const [editingTx, setEditingTx] = useState(null);
   const [EditModal, setEditModal] = useState(null);
-  const { currentUser } = useFamily();
 
-  const loadData = () => {
+  const reload = () => {
     if (!familyId) return;
     Promise.all([
       base44.entities.Transaction.filter({ family_id: familyId }),
@@ -64,7 +73,16 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
     }).finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadData(); }, [familyId, trip.id]);
+  useEffect(() => { reload(); }, [familyId, trip.id]);
+
+  // Open edit modal lazy-loaded
+  const handleEdit = async (t) => {
+    setEditingTx(t);
+    if (!EditModal) {
+      const mod = await import('@/components/TransactionEditModal');
+      setEditModal(() => mod.default);
+    }
+  };
 
   const expenses = useMemo(() => transactions.filter(t => t.type === 'expense'), [transactions]);
   const totalMXN = useMemo(() => expenses.reduce((s, t) => s + (t.amount || 0), 0), [expenses]);
@@ -76,12 +94,6 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
   );
   const budgetPct = trip.budget_amount > 0 ? Math.min((spentInBudgetCur / trip.budget_amount) * 100, 100) : 0;
   const budgetColor = budgetPct >= 90 ? 'bg-red-500' : budgetPct >= 75 ? 'bg-amber-500' : 'bg-emerald-500';
-
-  // Audit: transactions missing category or payment method
-  const incompleteCount = useMemo(
-    () => expenses.filter(t => !t.category_id || !t.payment_method_id).length,
-    [expenses]
-  );
 
   const byCurrency = useMemo(() => {
     const map = {};
@@ -120,6 +132,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
       .slice(0, 6);
   }, [expenses, categories]);
 
+  // Group by date for timeline
   const groupedByDate = useMemo(() => {
     const sorted = [...transactions].sort((a, b) => b.date?.localeCompare(a.date));
     const groups = {};
@@ -131,18 +144,16 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
   }, [transactions]);
 
+  // Audit summary
+  const auditCount = useMemo(() =>
+    expenses.filter(t => auditIssues(t, categories, paymentMethods).length > 0).length,
+    [expenses, categories, paymentMethods]
+  );
+
   const handleCloseTrip = async () => {
     const mod = await import('@/components/trips/TripCloseModal');
     setCloseModal(() => mod.default);
     setShowCloseModal(true);
-  };
-
-  const handleEditTx = async (tx) => {
-    setEditingTx(tx);
-    if (!EditModal) {
-      const mod = await import('@/components/TransactionEditModal');
-      setEditModal(() => mod.default);
-    }
   };
 
   const isCreator = currentUser?.id === trip.created_by_user_id;
@@ -152,18 +163,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
     return Math.ceil((end - today) / (1000 * 60 * 60 * 24));
   })();
 
-  // Audit badge component
-  const AuditBadge = incompleteCount > 0 ? (
-    <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-bold">
-      <AlertTriangle className="w-3 h-3" />
-      {incompleteCount} incompleto{incompleteCount !== 1 ? 's' : ''}
-    </span>
-  ) : incompleteCount === 0 && expenses.length > 0 ? (
-    <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-bold">
-      <CheckCircle className="w-3 h-3" />
-      Todo completo
-    </span>
-  ) : null;
+  const sorted = useMemo(() => [...transactions].sort((a, b) => b.date?.localeCompare(a.date)), [transactions]);
 
   return (
     <>
@@ -231,22 +231,22 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
           {/* ── Body ── */}
           <div className="overflow-y-auto flex-1 px-5 py-5 space-y-6 hide-scrollbar">
 
-            {/* Audit Banner */}
-            {incompleteCount > 0 && (
-              <div className="flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl">
-                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            {/* ── Audit Banner ── */}
+            {!loading && auditCount > 0 && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl">
+                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                    {incompleteCount} gasto{incompleteCount !== 1 ? 's' : ''} sin completar
+                  <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                    {auditCount} gasto{auditCount !== 1 ? 's' : ''} incompleto{auditCount !== 1 ? 's' : ''}
                   </p>
-                  <p className="text-[11px] text-amber-600/80 dark:text-amber-500/80 mt-0.5">
-                    Toca ✏️ en cada gasto para agregar rubro o forma de pago. Esto mejora los reportes y elimina "Sin especificar".
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    Toca el ícono ✏️ en cada gasto para asignar rubro o forma de pago.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Budget */}
+            {/* ── Budget ── */}
             {trip.budget_amount > 0 && (
               <div>
                 <SectionTitle icon={TrendingDown}>Presupuesto</SectionTitle>
@@ -276,14 +276,14 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                   </div>
                   {unconvertedCount > 0 && (
                     <p className="text-[11px] text-amber-500 bg-amber-500/10 rounded-lg px-2 py-1">
-                      ⚠️ {unconvertedCount} gasto{unconvertedCount !== 1 ? 's' : ''} sin tipo de cambio no se incluyen
+                      ⚠️ {unconvertedCount} gasto{unconvertedCount !== 1 ? 's' : ''} sin tipo de cambio no incluidos
                     </p>
                   )}
                 </div>
               </div>
             )}
 
-            {/* By Currency */}
+            {/* ── By Currency ── */}
             {byCurrency.length > 0 && (
               <div>
                 <SectionTitle icon={Wallet}>Por Moneda</SectionTitle>
@@ -293,7 +293,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-md">{cur}</span>
                         <span className="text-xs text-muted-foreground">
-                          {cur !== familyCurrency ? 'Monto original' : 'En moneda local'}
+                          {cur !== familyCurrency ? 'Monto original' : 'Moneda local'}
                         </span>
                       </div>
                       <span className="font-bold text-foreground">
@@ -313,22 +313,21 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
               </div>
             )}
 
-            {/* By Payment Method — bar style, no chart */}
+            {/* ── By Payment Method ── */}
             {byPaymentMethod.length > 0 && (
               <div>
                 <SectionTitle icon={Wallet}>Por Forma de Pago</SectionTitle>
                 <div className="rounded-2xl bg-muted/40 p-3 space-y-2.5">
                   {byPaymentMethod.map(({ name, value }, i) => {
                     const pct = totalMXN > 0 ? (value / totalMXN) * 100 : 0;
-                    const isUnspecified = name === 'Sin especificar';
+                    const isMissing = name === 'Sin especificar';
                     return (
                       <div key={name} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                            <span className={`font-medium ${isUnspecified ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
-                              {isUnspecified ? '⚠️ ' : ''}{name}
-                            </span>
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: isMissing ? '#D97706' : COLORS[i % COLORS.length] }} />
+                            <span className={`font-medium ${isMissing ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>{name}</span>
+                            {isMissing && <AlertTriangle className="w-3 h-3 text-amber-500" />}
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
@@ -336,7 +335,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                           </div>
                         </div>
                         <div className="w-full bg-background rounded-full h-1.5 overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isUnspecified ? '#F59E0B' : COLORS[i % COLORS.length] }} />
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isMissing ? '#D97706' : COLORS[i % COLORS.length] }} />
                         </div>
                       </div>
                     );
@@ -345,27 +344,28 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
               </div>
             )}
 
-            {/* By Category */}
+            {/* ── By Category ── */}
             {byCategory.length > 0 && (
               <div>
                 <SectionTitle icon={Tag}>Por Rubro</SectionTitle>
                 <div className="space-y-2">
                   {byCategory.map(({ name, value }, i) => {
                     const pct = totalMXN > 0 ? (value / totalMXN) * 100 : 0;
-                    const isUnspecified = name === 'Sin rubro';
+                    const isMissing = name === 'Sin rubro';
                     return (
                       <div key={name} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className={`font-medium ${isUnspecified ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>
-                            {isUnspecified ? '⚠️ ' : ''}{name}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`font-medium ${isMissing ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'}`}>{name}</span>
+                            {isMissing && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                             <span className="font-bold text-foreground">{formatCurrency(value, { locale, currency: familyCurrency, decimals: 0 })}</span>
                           </div>
                         </div>
                         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isUnspecified ? '#F59E0B' : '#059669' }} />
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: isMissing ? '#D97706' : '#059669' }} />
                         </div>
                       </div>
                     );
@@ -374,10 +374,10 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
               </div>
             )}
 
-            {/* Transaction Timeline */}
+            {/* ── Transaction Timeline grouped by day ── */}
             {groupedByDate.length > 0 && (
               <div>
-                <SectionTitle icon={Calendar} badge={AuditBadge}>Gastos del Viaje</SectionTitle>
+                <SectionTitle icon={Calendar}>Gastos del Viaje</SectionTitle>
                 <div className="space-y-4">
                   {groupedByDate.map(([date, txs]) => {
                     const dayTotal = txs.filter(t => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0);
@@ -398,80 +398,82 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                             const cat = categories.find(c => c.id === t.category_id);
                             const pm = paymentMethods.find(m => m.id === t.payment_method_id);
                             const hasForeign = t.original_currency && t.original_currency !== familyCurrency;
-                            const isIncomplete = !t.category_id || !t.payment_method_id;
+                            const issues = auditIssues(t, categories, paymentMethods);
+                            const hasIssues = issues.length > 0;
 
                             return (
-                              <div key={t.id} className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-colors ${
-                                isIncomplete
-                                  ? 'bg-amber-50 dark:bg-amber-900/15 border border-amber-200/60 dark:border-amber-800/40'
-                                  : 'bg-muted/60 hover:bg-muted'
-                              }`}>
+                              <div key={t.id}
+                                className={`flex items-center gap-3 px-3.5 py-3 rounded-xl transition-colors ${
+                                  hasIssues
+                                    ? 'bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800'
+                                    : 'bg-muted/60 hover:bg-muted'
+                                }`}
+                              >
                                 {/* Icon */}
-                                <div className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center text-base flex-shrink-0 shadow-sm relative">
+                                <div className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center text-base flex-shrink-0 shadow-sm">
                                   {cat?.icon || '📋'}
-                                  {isIncomplete && (
-                                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full flex items-center justify-center">
-                                      <AlertTriangle className="w-2 h-2 text-white" />
-                                    </span>
-                                  )}
                                 </div>
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-foreground truncate">
-                                    {t.description || cat?.name || '—'}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground truncate">
+                                      {t.description || cat?.name || '—'}
+                                    </p>
+                                    {/* Audit badges */}
+                                    {issues.map(issue => (
+                                      <span key={issue}
+                                        className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-md text-[9px] font-bold flex-shrink-0">
+                                        <AlertTriangle className="w-2.5 h-2.5" />{issue}
+                                      </span>
+                                    ))}
+                                  </div>
                                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                                    {cat ? (
+                                    {cat && (
                                       <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
                                         {cat.icon} {cat.name}
                                       </span>
-                                    ) : (
-                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md font-semibold">
-                                        ⚠️ Sin rubro
-                                      </span>
                                     )}
-                                    {pm ? (
+                                    {pm && (
                                       <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">
                                         💳 {pm.name}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md font-semibold">
-                                        ⚠️ Sin forma de pago
                                       </span>
                                     )}
                                     {t.is_split && (
                                       <span className="text-[10px] text-sky-600 bg-sky-100 dark:bg-sky-900/30 px-1.5 py-0.5 rounded-md">👥 Split</span>
                                     )}
                                   </div>
+                                  {/* Foreign currency detail */}
                                   {hasForeign && (
                                     <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
                                       {formatCurrency(t.original_amount || t.amount, { locale, currency: t.original_currency, decimals: 2 })}
-                                      {t.exchange_rate ? ` × ${Number(t.exchange_rate).toFixed(4)} = ${formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 2 })}` : ' (sin TC)'}
+                                      {t.exchange_rate
+                                        ? ` × ${Number(t.exchange_rate).toFixed(4)} = ${formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 2 })}`
+                                        : ' (sin TC)'}
                                     </p>
                                   )}
                                 </div>
 
-                                {/* Amount + Edit */}
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <div className="text-right">
-                                    <p className={`font-bold text-sm ${t.type === 'expense' ? 'text-expense' : 'text-income'}`}>
-                                      {t.type === 'expense' ? '-' : '+'}{formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 2 })}
-                                    </p>
-                                    {hasForeign && (
-                                      <p className="text-[10px] font-mono text-muted-foreground">{t.original_currency}</p>
-                                    )}
-                                  </div>
+                                {/* Amount + edit button */}
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                  <p className={`font-bold text-sm ${t.type === 'expense' ? 'text-expense' : 'text-income'}`}>
+                                    {t.type === 'expense' ? '-' : '+'}{formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 2 })}
+                                  </p>
+                                  {hasForeign && (
+                                    <p className="text-[10px] font-mono text-muted-foreground">{t.original_currency}</p>
+                                  )}
+                                  {/* Edit button — always visible, highlighted when audit issues exist */}
                                   <button
-                                    onClick={() => handleEditTx(t)}
-                                    className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
-                                      isIncomplete
-                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
-                                        : 'bg-muted text-muted-foreground hover:text-foreground'
-                                    }`}
+                                    onClick={() => handleEdit(t)}
                                     title="Editar gasto"
+                                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg text-[10px] font-semibold transition-colors ${
+                                      hasIssues
+                                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                        : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-border'
+                                    }`}
                                   >
-                                    <Pencil className="w-3.5 h-3.5" />
+                                    <Pencil className="w-2.5 h-2.5" />
+                                    {hasIssues ? 'Completar' : 'Editar'}
                                   </button>
                                 </div>
                               </div>
@@ -509,7 +511,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
       {showCloseModal && CloseModal && (
         <CloseModal
           trip={trip}
-          transactions={transactions}
+          transactions={sorted}
           categories={categories}
           paymentMethods={paymentMethods}
           onClose={() => setShowCloseModal(false)}
@@ -521,7 +523,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
         />
       )}
 
-      {/* Inline Edit Modal */}
+      {/* Inline Edit Modal for audit fix */}
       {editingTx && EditModal && (
         <EditModal
           transaction={editingTx}
@@ -532,7 +534,8 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
           onClose={() => setEditingTx(null)}
           onSaved={() => {
             setEditingTx(null);
-            loadData();
+            reload();
+            onTripUpdated?.();
           }}
         />
       )}
