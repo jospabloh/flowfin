@@ -7,7 +7,7 @@ import {
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
   PanelLeftClose, PanelLeftOpen, Plane
 } from 'lucide-react';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import InternetBanner from './InternetBanner';
@@ -153,6 +153,22 @@ export default function Layout() {
   const { family, isAdmin, currentUser } = useFamily();
   const { idleState, sessionExpired, continueSession } = useSessionManager();
   useActivityTracker(family?.id);
+  const navRef = useRef(null);
+
+  // Dynamically measure the bottom nav height and expose it as a CSS variable
+  useEffect(() => {
+    const updateNavHeight = () => {
+      if (navRef.current) {
+        const h = navRef.current.getBoundingClientRect().height;
+        document.documentElement.style.setProperty('--nav-height', `${h}px`);
+      }
+    };
+    updateNavHeight();
+    const ro = new ResizeObserver(updateNavHeight);
+    if (navRef.current) ro.observe(navRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   const isAssistantPage = location.pathname === '/Assistant';
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
@@ -435,7 +451,7 @@ export default function Layout() {
         <FloatingActionButton isAssistantPage={isAssistantPage} handleNavClick={handleNavClick} />
 
         {/* Mobile Bottom Nav */}
-        <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card/95 backdrop-blur-xl border-t border-border z-40 overscroll-none"
+        <nav ref={navRef} className="fixed bottom-0 left-0 right-0 md:hidden bg-card/95 backdrop-blur-xl border-t border-border z-40 overscroll-none"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           {family?.name && (
             <div className="flex justify-center pt-1">

@@ -132,14 +132,14 @@ body {
   overscroll-behavior: none;
 }
 
-/* Assistant chat input bar: on mobile, pad above the fixed bottom nav bar */
+/* Assistant chat input bar: uses dynamic --nav-height set by JS */
 .assistant-input-bar {
   padding-bottom: 0.75rem;
 }
 
 @media (max-width: 767px) {
   .assistant-input-bar {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 8px);
   }
 }
 
