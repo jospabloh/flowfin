@@ -241,6 +241,10 @@ export default function Assistant() {
     const msg = (text ?? input).trim();
     if (!msg || sending || !conversation) return;
     setInput('');
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = '48px';
+    }
     setSending(true);
 
     const now = Date.now();
@@ -519,19 +523,33 @@ export default function Assistant() {
             value={input}
             onChange={e => {
               setInput(e.target.value);
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+              // Auto-grow
+              const el = e.target;
+              el.style.height = 'auto';
+              el.style.height = Math.min(el.scrollHeight, 120) + 'px';
             }}
             onKeyDown={e => {
+              // Enter sin Shift: nueva línea (no envía)
               if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // No enviar con Enter, solo nueva línea con Shift+Enter
+                e.preventDefault();
+                const el = e.target;
+                const start = el.selectionStart;
+                const end = el.selectionEnd;
+                const newVal = input.slice(0, start) + '\n' + input.slice(end);
+                setInput(newVal);
+                // Re-calcular altura tras el estado nuevo
+                setTimeout(() => {
+                  el.style.height = 'auto';
+                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                  el.selectionStart = el.selectionEnd = start + 1;
+                }, 0);
               }
             }}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
             onPaste={handlePaste}
             placeholder="Escribe tu mensaje..."
-            className="flex-1 bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0 resize-none overflow-hidden leading-relaxed"
-            style={{ minHeight: '48px', maxHeight: '120px' }}
+            className="flex-1 bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0 resize-none leading-relaxed"
+            style={{ minHeight: '48px', maxHeight: '120px', overflowY: 'auto' }}
           />
           {canUseVoice && (
             <button onClick={isListening ? stopVoice : startVoice}
