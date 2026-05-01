@@ -512,18 +512,27 @@ export default function Assistant() {
         ref={inputBarRef}
         className="flex-shrink-0 px-4 pt-2 border-t border-border bg-background assistant-input-bar"
       >
-        <div className="flex gap-2 items-center max-w-full">
-          <input
+        <div className="flex gap-2 items-end max-w-full">
+          <textarea
             ref={inputRef}
-            type="text"
-            inputMode="text"
+            rows={1}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && canSend && sendMessage(input)}
+            onChange={e => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // No enviar con Enter, solo nueva línea con Shift+Enter
+              }
+            }}
             onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
             onPaste={handlePaste}
-            placeholder="Escribe o habla tu transacción..."
-            className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0" />
+            placeholder="Escribe tu mensaje..."
+            className="flex-1 bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0 resize-none overflow-hidden leading-relaxed"
+            style={{ minHeight: '48px', maxHeight: '120px' }}
+          />
           {canUseVoice && (
             <button onClick={isListening ? stopVoice : startVoice}
               className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
