@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users } from 'lucide-react';
 import { getExchangeRate } from '@/services/exchangeRateService';
+import { computeTripSpent } from '@/lib/tripBudget';
 import NativeSelect from '@/components/NativeSelect';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -320,8 +321,9 @@ export default function Capture() {
       ]);
       const t = tripArr.find(x => x.id === tId);
       if (!t?.budget_amount) return;
-      const total = txs.filter(x => x.trip_id === tId && x.type === 'expense').reduce((s, x) => s + (x.amount || 0), 0);
-      const pct = (total / t.budget_amount) * 100;
+      // Use computeTripSpent so multi-currency trips (e.g. USD budget) are compared correctly
+      const { spent } = computeTripSpent(txs, t, currency);
+      const pct = (spent / t.budget_amount) * 100;
       if (pct >= 100) toast({ title: `🚨 Superaste el presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 90) toast({ title: `🔴 Llevas el 90% del presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 75) toast({ title: `⚠️ Llevas el 75% del presupuesto de ${t.name}` });
