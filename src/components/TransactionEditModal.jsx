@@ -183,11 +183,28 @@ export default function TransactionEditModal({ transaction, categories, subcateg
             ))}
           </div>
 
-          {/* Amount */}
+          {/* Amount — if trip expense in foreign currency, show original_amount as primary */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Monto</label>
-            <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            <label className="text-xs text-muted-foreground mb-1 block">
+              {form.trip_id && form.original_currency && form.original_currency !== familyCurrency
+                ? `Monto en ${form.original_currency}`
+                : `Monto (${familyCurrency})`}
+            </label>
+            {form.trip_id && form.original_currency && form.original_currency !== familyCurrency ? (
+              <div className="space-y-1.5">
+                <input type="number" inputMode="decimal"
+                  value={form.original_amount}
+                  onChange={e => set('original_amount', e.target.value)}
+                  className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+                <p className="text-[11px] text-muted-foreground px-1">
+                  = {familyCurrency} {form.amount ? Number(form.amount).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+                  {form.exchange_rate ? ` (TC: ${Number(form.exchange_rate).toFixed(4)})` : ''}
+                </p>
+              </div>
+            ) : (
+              <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
+                className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            )}
           </div>
 
           {/* Description */}
@@ -339,15 +356,6 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                         ))}
                       </select>
                     </div>
-                    {form.original_currency && form.original_currency !== familyCurrency && (
-                      <div className="flex-1">
-                        <label className="text-[10px] text-muted-foreground mb-1 block">Monto en {form.original_currency}</label>
-                        <input type="number" inputMode="decimal" placeholder="0.00"
-                          value={form.original_amount}
-                          onChange={e => set('original_amount', e.target.value)}
-                          className="w-full bg-muted rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
-                      </div>
-                    )}
                   </div>
                   {form.original_currency && form.original_currency !== familyCurrency && (
                     <div className="flex items-end gap-2">
@@ -367,7 +375,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                     </div>
                   )}
                   <p className="text-[10px] text-muted-foreground">
-                    Útil para registros viejos sin moneda. El monto en {familyCurrency} se conserva como está.
+                    El monto en {familyCurrency} se recalcula automáticamente al cambiar el monto o tipo de cambio.
                   </p>
                 </div>
               )}

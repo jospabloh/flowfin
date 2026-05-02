@@ -37,9 +37,25 @@ export function computeTripSpent(transactions, trip, familyCurrency) {
     const amount = Number(t.amount) || 0;
 
     if (t.original_currency === budgetCurrency && originalAmount > 0) {
+      // Expense already in budget currency — use original_amount directly
       spent += originalAmount;
     } else if (budgetCurrency === familyCurrency) {
+      // Budget is in family currency — use amount directly
       spent += amount;
+    } else if (t.original_currency === familyCurrency && amount > 0) {
+      // Expense in family currency, budget in foreign — convert with inferred rate
+      if (inferredFamilyToBudget) {
+        spent += amount * inferredFamilyToBudget;
+      } else {
+        unconvertedCount += 1;
+      }
+    } else if (!t.original_currency && amount > 0) {
+      // No currency info — assume family currency, apply inferred rate if available
+      if (inferredFamilyToBudget) {
+        spent += amount * inferredFamilyToBudget;
+      } else {
+        unconvertedCount += 1;
+      }
     } else if (inferredFamilyToBudget && amount > 0) {
       spent += amount * inferredFamilyToBudget;
     } else if (amount > 0) {
