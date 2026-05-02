@@ -137,7 +137,9 @@ export default function Investments() {
         onClose={() => setEditingPayment(null)} />
 
       <InvestmentPayFormModal show={showPayForm} title="Registrar Pago" form={payForm} setForm={setPayForm}
-        onSave={handlePayment} onClose={() => setShowPayForm(false)} />
+        onSave={handlePayment} onClose={() => setShowPayForm(false)}
+        investmentName={selected?.name}
+        paymentNumber={selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO)).length + 1 : undefined} />
 
       <InvestmentFormSheet show={showForm} form={form} setForm={setForm} onCreate={handleCreate} onClose={() => setShowForm(false)} />
     </div>
