@@ -6,13 +6,14 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
-import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+
 import InvestmentCard from '@/components/investments/InvestmentCard';
 import InvestmentDetailSheet from '@/components/investments/InvestmentDetailSheet';
 import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
 import InvestmentFormSheet from '@/components/investments/InvestmentFormSheet';
 import Spinner from '@/components/Spinner';
 import { usePermission } from '@/lib/permissions/usePermission';
+import { useCatalog } from '@/hooks/useCatalog';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const EMPTY_FORM = { name: '', type: '', total_amount: '', total_payments: '', payment_amount: '', start_date: TODAY_ISO, payment_day: '28' };
@@ -21,9 +22,10 @@ export default function Investments() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
-  const registerPayment = useRegisterPaymentWithTransaction();
+  // registerPayment hook kept for other payment types; investments use direct creation below
 
   const { can_write: canCreate }        = usePermission('investment.crud.create');
+  const { categories, persons, paymentMethods } = useCatalog(familyId);
 
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -32,7 +34,7 @@ export default function Investments() {
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPayForm, setEditPayForm] = useState({ amount: '', date: '', notes: '' });
   const [form, setForm] = useState(EMPTY_FORM);
-  const [payForm, setPayForm] = useState({ amount: '', date: TODAY_ISO, notes: '' });
+  const [payForm, setPayForm] = useState({ amount: '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' });
 
   const { data: investments = [], isLoading } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list('-date') });
@@ -83,15 +85,38 @@ export default function Investments() {
     if (!payForm.amount || !selected) return;
     const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
     const payData = { investment_id: selected.id, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
-    await registerPayment(() => base44.entities.InvestmentPayment.create(payData), {
-      amount: payForm.amount, date: payForm.date,
-      description: `Inversión: ${selected.name}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
-      category_id: undefined, payment_method_id: undefined, person_id: undefined,
-    });
+    const savedPayment = await base44.entities.InvestmentPayment.create(payData);
+    if (payForm.category_id && payForm.person_id) {
+      const week = (() => {
+        try {
+          const date = new Date(payForm.date + 'T12:00:00');
+          const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+          const dayNum = d.getUTCDay() || 7;
+          d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+          const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+          return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        } catch { return 1; }
+      })();
+      await base44.entities.Transaction.create({
+        family_id: familyId,
+        date: payForm.date,
+        type: 'expense',
+        amount: +payForm.amount,
+        description: `Inversión: ${selected.name} — Pago #${selectedPayments.length + 1}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
+        category_id: payForm.category_id,
+        payment_method_id: payForm.payment_method_id || undefined,
+        person_id: payForm.person_id,
+        required_type: 'Inversión',
+        week,
+        investment_payment_id: savedPayment.id,
+      });
+    }
     queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
     setShowPayForm(false); setShowPayFormSuccess(true);
     setTimeout(() => setShowPayFormSuccess(false), 3000);
-    setPayForm({ amount: '', date: TODAY_ISO, notes: '' });
+    setPayForm({ amount: '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' });
   };
 
   return (
@@ -122,7 +147,7 @@ export default function Investments() {
         <div className="px-4 space-y-3">
           {investments.map(inv => (
             <InvestmentCard key={inv.id} inv={inv} allPayments={allPayments} onSelect={setSelected}
-              onQuickPay={(inv, _paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '' }); setShowPayForm(true); }} />
+              onQuickPay={(inv, _paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' }); setShowPayForm(true); }} />
           ))}
         </div>
       )}
@@ -139,7 +164,8 @@ export default function Investments() {
       <InvestmentPayFormModal show={showPayForm} title="Registrar Pago" form={payForm} setForm={setPayForm}
         onSave={handlePayment} onClose={() => setShowPayForm(false)}
         investmentName={selected?.name}
-        paymentNumber={selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO)).length + 1 : undefined} />
+        paymentNumber={selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO)).length + 1 : undefined}
+        persons={persons} categories={categories} paymentMethods={paymentMethods} />
 
       <InvestmentFormSheet show={showForm} form={form} setForm={setForm} onCreate={handleCreate} onClose={() => setShowForm(false)} />
     </div>
