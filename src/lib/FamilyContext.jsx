@@ -62,10 +62,14 @@ export function FamilyProvider({ children }) {
       return results[0] || null;
     },
     enabled: !!currentUser,
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 6000),
+    staleTime: 5 * 60 * 1000,  // 5 min — don't re-fetch on every navigation
+    gcTime: 10 * 60 * 1000,
+    retry: (failCount, error) => {
+      // Don't retry on 429 — wait for rate limit to clear
+      if (error?.message?.includes('429') || error?.message?.includes('Rate limit')) return false;
+      return failCount < 2;
+    },
+    retryDelay: (attempt) => Math.min(2000 * 3 ** attempt, 15000),
   });
 
   // ── Step 2: Load family once we have membership ──
@@ -78,9 +82,12 @@ export function FamilyProvider({ children }) {
       return results[0] || null;
     },
     enabled: !!familyId,
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: (failCount, error) => {
+      if (error?.message?.includes('429') || error?.message?.includes('Rate limit')) return false;
+      return failCount < 2;
+    },
   });
 
   // ── Step 3: Load familyConfig ──
@@ -91,9 +98,12 @@ export function FamilyProvider({ children }) {
       return results[0] || null;
     },
     enabled: !!familyId,
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: (failCount, error) => {
+      if (error?.message?.includes('429') || error?.message?.includes('Rate limit')) return false;
+      return failCount < 2;
+    },
   });
 
   // ── Step 4: Load license info (low priority) ──

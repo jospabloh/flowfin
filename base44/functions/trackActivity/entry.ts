@@ -2,9 +2,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 /**
  * trackActivity — Updates last_active_at on the user's FamilyMembership.
- * Called from the frontend with throttling (max once per 20 min per session).
- * Safe: never throws UI-blocking errors.
+ * Server-side guard: skips update if last_active_at is less than 30 min ago.
+ * This prevents rate-limit storms even if the frontend fires multiple times.
  */
+
+const SERVER_THROTTLE_MS = 30 * 60 * 1000; // 30 minutes
 
 Deno.serve(async (req) => {
   try {
@@ -14,12 +16,10 @@ Deno.serve(async (req) => {
       return Response.json({ ok: false, reason: 'unauthenticated' }, { status: 401 });
     }
 
-    const nowISO = new Date().toISOString();
-
-    // Find the user's approved membership
-    let memberships = await base44.entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    // Find the user's approved membership (service role to reduce latency)
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
     if (!memberships.length) {
-      memberships = await base44.entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+      memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     }
 
     if (!memberships.length) {
@@ -27,7 +27,17 @@ Deno.serve(async (req) => {
     }
 
     const membership = memberships[0];
-    await base44.entities.FamilyMembership.update(membership.id, { last_active_at: nowISO });
+    const nowISO = new Date().toISOString();
+
+    // Server-side throttle: skip if updated recently
+    if (membership.last_active_at) {
+      const elapsed = Date.now() - new Date(membership.last_active_at).getTime();
+      if (elapsed < SERVER_THROTTLE_MS) {
+        return Response.json({ ok: true, skipped: true, last_active_at: membership.last_active_at });
+      }
+    }
+
+    await base44.asServiceRole.entities.FamilyMembership.update(membership.id, { last_active_at: nowISO });
 
     return Response.json({ ok: true, last_active_at: nowISO });
   } catch (error) {
