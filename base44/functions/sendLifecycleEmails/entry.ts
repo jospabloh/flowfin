@@ -1,18 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-/**
- * sendLifecycleEmails — Daily scheduled function.
- * Delivers all pending EmailNotification records via Base44 SendEmail integration.
- * Run after checkAccountLifecycle and queueBillingReminders.
- *
- * Scheduler order (daily):
- * 1. checkAccountLifecycle
- * 2. queueBillingReminders
- * 3. sendLifecycleEmails  ← this function
- */
+// sendLifecycleEmails v3 — Base44 Core.SendEmail (no Resend)
+// Daily scheduled: runs after checkAccountLifecycle and queueBillingReminders.
 
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
-const MAX_RETRIES = 3; // v2 - uses Base44 SendEmail (no Resend)
+const MAX_RETRIES = 3;
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
@@ -30,7 +22,6 @@ function formatYYYYMM(period) {
   return d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 }
 
-// ── HTML wrapper ──────────────────────────────────────────────────────────────
 function wrap(content) {
   return `<!DOCTYPE html>
 <html lang="es">
@@ -89,7 +80,6 @@ function wrap(content) {
 </html>`;
 }
 
-// ── Email templates ───────────────────────────────────────────────────────────
 function getEmailTemplate(email_type, ctx) {
   const name = ctx.family_name || 'tu familia';
   const userName = ctx.user_name ? `Hola ${ctx.user_name}` : 'Hola';
@@ -116,7 +106,6 @@ function getEmailTemplate(email_type, ctx) {
 ${cta}Empezar ahora →${ctaEnd}
 <p>Tu prueba termina el <strong>${trialEnd}</strong>. No realizamos cargos automáticos — la activación es manual a través de Mercado Pago y confirmada por ACACIA.</p>`,
     },
-
     trial_day20: {
       subject: `${name}: te quedan 10 días de prueba gratuita en FlowFin`,
       body: `<p>¡Hola!</p>
@@ -125,7 +114,6 @@ ${cta}Empezar ahora →${ctaEnd}
 <p>Para seguir disfrutando sin interrupciones, elige tu plan en FlowFin y suscríbete vía Mercado Pago. Una vez que ACACIA valide tu pago, tu licencia quedará activa.</p>
 ${cta}Ver planes →${ctaEnd}`,
     },
-
     trial_day27: {
       subject: `Quedan 3 días — No pierdas el acceso a FlowFin, ${name}`,
       body: `<p>¡Hola!</p>
@@ -134,7 +122,6 @@ ${cta}Ver planes →${ctaEnd}`,
 ${cta}Activar mi plan ahora →${ctaEnd}
 <p>Tus datos están seguros. El pago se procesa en Mercado Pago y ACACIA activa tu licencia.</p>`,
     },
-
     trial_day29: {
       subject: '¡Último aviso! Tu prueba de FlowFin termina mañana',
       body: `<p>¡Hola!</p>
@@ -142,7 +129,6 @@ ${cta}Activar mi plan ahora →${ctaEnd}
 <p>A partir del <span class="danger">${trialEnd}</span> tu cuenta entrará en modo solo lectura. No perderás ningún dato, pero no podrás registrar nuevos movimientos.</p>
 ${cta}Activar ahora — último día →${ctaEnd}`,
     },
-
     trial_ended: {
       subject: `Tu prueba de FlowFin terminó — ${name} ahora está en modo solo lectura`,
       body: `<p>¡Hola!</p>
@@ -151,7 +137,6 @@ ${cta}Activar ahora — último día →${ctaEnd}`,
 <p>Para recuperar el acceso completo, elige tu plan y suscríbete en Mercado Pago:</p>
 ${cta}Reactivar mi cuenta →${ctaEnd}`,
     },
-
     archived_warning: {
       subject: `Aviso importante: la cuenta de ${name} será archivada pronto`,
       body: `<p>¡Hola!</p>
@@ -160,7 +145,6 @@ ${cta}Reactivar mi cuenta →${ctaEnd}`,
 ${cta}Reactivar antes de que sea tarde →${ctaEnd}
 <p>¿Dudas? Escríbenos a soporte@acaciaco.com.mx</p>`,
     },
-
     deletion_warning: {
       subject: `AVISO FINAL: Los datos de ${name} serán eliminados en 3 días`,
       body: `<p>¡Hola!</p>
@@ -168,7 +152,6 @@ ${cta}Reactivar antes de que sea tarde →${ctaEnd}
 <p>Esta acción no puede deshacerse. Si deseas conservar tu historial, activa tu plan ahora:</p>
 ${cta}Reactivar y salvar mis datos →${ctaEnd}`,
     },
-
     license_expiry_10d: {
       subject: `Tu licencia de FlowFin vence en 10 días — ${name}`,
       body: `<p>¡Hola!</p>
@@ -176,21 +159,18 @@ ${cta}Reactivar y salvar mis datos →${ctaEnd}`,
 <p>Para renovar, suscríbete vía Mercado Pago. Una vez que ACACIA valide tu pago, tu licencia se extenderá sin interrupciones.</p>
 ${cta}Renovar mi licencia →${ctaEnd}`,
     },
-
     license_expiry_5d: {
       subject: `5 días para que venza tu licencia de FlowFin — Renueva ahora`,
       body: `<p>¡Hola!</p>
 <p>Tu licencia de FlowFin para <span class="hi">${name}</span> vence en <span class="warn">5 días</span> (${licenseExpires}).</p>
 ${cta}Renovar mi licencia →${ctaEnd}`,
     },
-
     license_expiry_1d: {
       subject: `¡Tu licencia de FlowFin vence mañana! Renueva hoy, ${name}`,
       body: `<p>¡Hola!</p>
 <p>Tu licencia de FlowFin para <span class="hi">${name}</span> vence <span class="danger">mañana</span>, el ${licenseExpires}.</p>
 ${cta}Renovar ahora — último día →${ctaEnd}`,
     },
-
     license_expired: {
       subject: `Tu licencia de FlowFin venció — Tienes 3 días de gracia, ${name}`,
       body: `<p>¡Hola!</p>
@@ -198,7 +178,6 @@ ${cta}Renovar ahora — último día →${ctaEnd}`,
 <p>Tienes un <span class="warn">período de gracia de 3 días</span> para renovar. Después de ese período, la cuenta pasará a modo solo lectura.</p>
 ${cta}Renovar durante el período de gracia →${ctaEnd}`,
     },
-
     grace_period_warning: {
       subject: 'Período de gracia activo — Renueva FlowFin antes de perder acceso',
       body: `<p>¡Hola!</p>
@@ -206,7 +185,6 @@ ${cta}Renovar durante el período de gracia →${ctaEnd}`,
 <p>Si no renuevas tu licencia en los próximos días, el acceso completo se suspenderá.</p>
 ${cta}Renovar mi licencia →${ctaEnd}`,
     },
-
     license_view_only: {
       subject: `${name} ahora está en modo solo lectura — Renueva para reactivar`,
       body: `<p>¡Hola!</p>
@@ -214,7 +192,6 @@ ${cta}Renovar mi licencia →${ctaEnd}`,
 <p>Para reactivar el acceso completo, renueva tu licencia:</p>
 ${cta}Renovar mi licencia →${ctaEnd}`,
     },
-
     license_archived: {
       subject: `Aviso: la cuenta de ${name} ha sido archivada`,
       body: `<p>¡Hola!</p>
@@ -222,14 +199,12 @@ ${cta}Renovar mi licencia →${ctaEnd}`,
 <p>Tienes <span class="danger">30 días</span> para reactivar tu cuenta antes de que los datos sean eliminados permanentemente.</p>
 ${cta}Reactivar mi cuenta →${ctaEnd}`,
     },
-
     license_deletion_warning: {
       subject: `AVISO FINAL: Los datos de ${name} serán eliminados en 3 días`,
       body: `<p>¡Hola!</p>
 <p>La cuenta de <span class="hi">${name}</span> ha estado archivada y sus datos serán <span class="danger">eliminados permanentemente el ${scheduledDelete}</span>.</p>
 ${cta}Reactivar y salvar mis datos →${ctaEnd}`,
     },
-
     renewal_upcoming: {
       subject: 'Recordatorio: tu suscripción Mercado Pago se cobrará pronto',
       body: `<p>¡Hola!</p>
@@ -238,10 +213,8 @@ ${cta}Reactivar y salvar mis datos →${ctaEnd}`,
 <div class="info-box">
   <p>ℹ️ Una vez que ACACIA valide el pago recibido, tu licencia FlowFin continuará activa sin interrupciones.</p>
 </div>
-<p>Si tienes dudas o hubo algún cambio en tu método de pago en Mercado Pago, contáctanos antes de la fecha de cobro.</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
-
     renewal_confirmed: {
       subject: `Pago confirmado — tu licencia FlowFin continúa activa`,
       body: `<p>¡Hola!</p>
@@ -249,12 +222,10 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 <p>Tu plan FlowFin continúa activo. Gracias por confiar en nosotros.</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
-
     trial_expiry_reminder_3d: {
       subject: 'Tu prueba de FlowFin termina en 3 días',
       body: `<p>¡Hola!</p>
 <p>Tu prueba gratuita de FlowFin para la familia <span class="hi">${name}</span> termina en <span class="warn">3 días</span>.</p>
-<p>Para continuar con acceso completo:</p>
 <ul>
   <li>Elige tu plan desde la página de FlowFin</li>
   <li>Completa tu suscripción en Mercado Pago</li>
@@ -262,7 +233,6 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 </ul>
 ${cta}Ver planes →${ctaEnd}`,
     },
-
     trial_expiry_reminder_2d: {
       subject: 'Tu prueba de FlowFin termina en 2 días',
       body: `<p>¡Hola!</p>
@@ -270,61 +240,49 @@ ${cta}Ver planes →${ctaEnd}`,
 <p>Para continuar sin interrupciones, suscríbete en Mercado Pago. ACACIA activará tu licencia una vez validado el pago.</p>
 ${cta}Activar mi plan →${ctaEnd}`,
     },
-
     trial_expiry_reminder_1d: {
       subject: 'Tu prueba de FlowFin termina mañana',
       body: `<p>¡Hola!</p>
 <p>Tu prueba gratuita de FlowFin para la familia <span class="hi">${name}</span> termina <span class="danger">mañana</span>.</p>
-<p>¡Activa tu plan hoy para evitar cualquier interrupción! El pago se gestiona en Mercado Pago y ACACIA activa tu licencia.</p>
+<p>¡Activa tu plan hoy para evitar cualquier interrupción!</p>
 ${cta}Activar ahora →${ctaEnd}`,
     },
-
     renewal_reminder_3d: {
       subject: 'Tu suscripción Mercado Pago se cobrará en 3 días',
       body: `<p>¡Hola!</p>
-<p>Este es un recordatorio de que tu suscripción de FlowFin para <span class="hi">${name}</span> se gestiona mediante <strong>Mercado Pago</strong>.</p>
-<p>El cobro está programado para el <strong>día 1</strong> (en 3 días).</p>
+<p>Tu suscripción de FlowFin para <span class="hi">${name}</span> se gestiona mediante <strong>Mercado Pago</strong>. El cobro está programado para el <strong>día 1</strong> (en 3 días).</p>
 <div class="warn-box">
-  <p>⚠️ Una vez que ACACIA valide el pago recibido en Mercado Pago, tu licencia FlowFin continuará activa.</p>
+  <p>⚠️ Una vez que ACACIA valide el pago recibido, tu licencia FlowFin continuará activa.</p>
 </div>
-<p>Si tienes dudas o hubo algún cambio en tu método de pago, contáctanos antes de la fecha de cobro:</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
-
     renewal_reminder_2d: {
       subject: 'Tu suscripción Mercado Pago se cobrará en 2 días',
       body: `<p>¡Hola!</p>
 <p>Tu suscripción de FlowFin para <span class="hi">${name}</span> en <strong>Mercado Pago</strong> se cobrará en <span class="warn">2 días</span>.</p>
 <div class="warn-box">
-  <p>⚠️ Este cobro es gestionado por Mercado Pago de forma externa. FlowFin no realiza cargos directos. ACACIA validará el pago y confirmará tu acceso.</p>
+  <p>⚠️ FlowFin no realiza cargos directos. ACACIA validará el pago y confirmará tu acceso.</p>
 </div>
-<p>¿Tienes alguna duda sobre tu método de pago? Escríbenos antes del día 1.</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
-
     renewal_reminder_1d: {
       subject: 'Tu suscripción Mercado Pago se cobrará mañana',
       body: `<p>¡Hola!</p>
 <p>Mañana, <strong>día 1 del mes</strong>, Mercado Pago realizará el cobro de tu suscripción de FlowFin para la familia <span class="hi">${name}</span>.</p>
 <div class="warn-box">
-  <p>⚠️ El cobro se gestiona en Mercado Pago. Una vez que ACACIA confirme el pago, tu licencia FlowFin continuará activa para el próximo mes.</p>
+  <p>⚠️ Una vez que ACACIA confirme el pago, tu licencia continuará activa para el próximo mes.</p>
 </div>
-<p>Si hay algún problema con tu método de pago en Mercado Pago, contáctanos de inmediato.</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
-
     license_activated_welcome: {
       subject: '¡Bienvenido a FlowFin! Tu plan ya está activo',
       body: `<p>${userName}!</p>
-<p>Tu familia <span class="hi">${name}</span> ya tiene activo el plan <span class="hi">${planName}</span> en FlowFin.</p>
-<p>Gracias por confiar en ACACIA. 🎉</p>
+<p>Tu familia <span class="hi">${name}</span> ya tiene activo el plan <span class="hi">${planName}</span> en FlowFin. Gracias por confiar en ACACIA. 🎉</p>
 <div class="info-box">
-  <p>✅ FlowFin está listo para ayudarte a organizar ingresos, egresos, pagos programados, rentas, reportes y metas financieras con una experiencia clara y simple.</p>
+  <p>✅ FlowFin está listo para ayudarte a organizar ingresos, egresos, pagos programados, rentas, reportes y metas financieras.</p>
 </div>
-<p>Accede cuando quieras desde cualquier dispositivo:</p>
 ${cta}Entrar a FlowFin →${ctaEnd}`,
     },
-
     payment_confirmed: {
       subject: 'Pago confirmado — tu licencia FlowFin continúa activa',
       body: `<p>${userName}!</p>
@@ -332,7 +290,7 @@ ${cta}Entrar a FlowFin →${ctaEnd}`,
 <div class="info-box">
   <p>✅ Tu plan <strong>${planName}</strong> continúa activo.<br>Tu próxima fecha de vencimiento es el <strong>${licenseExpires}</strong>.</p>
 </div>
-<p>Gracias por continuar con FlowFin. Tu suscripción Mercado Pago sigue activa para el siguiente ciclo.</p>
+<p>Gracias por continuar con FlowFin.</p>
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
   };
@@ -342,21 +300,19 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
   return { subject: t.subject, html: wrap(t.body) };
 }
 
-// ── Main handler ───────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const nowISO = new Date().toISOString();
     const stats = { sent: 0, failed: 0, skipped: 0, retried: 0 };
 
-    // Gather pending + retryable failed notifications
     const pending = await base44.asServiceRole.entities.EmailNotification.filter({ status: 'pending' });
     const failed = await base44.asServiceRole.entities.EmailNotification.filter({ status: 'failed' });
     const retryable = failed.filter(n => (n.retry_count ?? 0) < MAX_RETRIES);
     const toProcess = [...pending, ...retryable];
 
     for (const notification of toProcess) {
-      // Dedup check: if a record with the same notification_key is already sent, skip
+      // Dedup check
       if (notification.notification_key) {
         const byKey = await base44.asServiceRole.entities.EmailNotification.filter({
           notification_key: notification.notification_key,
@@ -380,12 +336,12 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Fetch family context + metadata for template rendering
-      let ctx = { family_name: '' };
+      // Build template context
+      let ctx = {};
+      if (notification.metadata && typeof notification.metadata === 'object') {
+        ctx = { ...notification.metadata };
+      }
       try {
-        if (notification.metadata && typeof notification.metadata === 'object') {
-          ctx = { ...notification.metadata };
-        }
         const families = await base44.asServiceRole.entities.Family.filter({ id: notification.family_id });
         if (families[0]) {
           const f = families[0];
@@ -394,13 +350,9 @@ Deno.serve(async (req) => {
             trial_end_at: f.trial_end_at,
             license_expires_at: ctx.license_expires_at || f.license_expires_at,
             scheduled_delete_at: f.scheduled_delete_at,
-            archived_at: f.archived_at,
             plan_name: ctx.plan_name || (f.license_plan === 'family_plus' ? 'FlowFin Family+' : 'FlowFin Home'),
             billing_period: ctx.billing_period || notification.billing_period,
             user_name: ctx.user_name || null,
-            app_name: 'FlowFin',
-            days_left: ctx.days_left || null,
-            days_to_first: ctx.days_to_first || null,
           };
         }
       } catch { /* non-fatal */ }
@@ -412,7 +364,6 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Use Base44 built-in SendEmail integration
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: notification.recipient_email,
           subject: template.subject,
@@ -440,7 +391,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log('[sendLifecycleEmails]', JSON.stringify({ ...stats, timestamp: nowISO }));
+    console.log('[sendLifecycleEmails] v3', JSON.stringify({ ...stats, timestamp: nowISO }));
     return Response.json({ success: true, ...stats, timestamp: nowISO });
   } catch (error) {
     const message = getErrorMessage(error);
