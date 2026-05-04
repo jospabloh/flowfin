@@ -16,7 +16,7 @@ function formatSnapshotDate(isoDate) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
 }
 
-function EditModal({ card, snapshot, onClose, onSaved, familyId, currency, locale }) {
+function EditModal({ card, snapshot, onClose, onSaved, familyId }) {
   const [balance, setBalance] = useState(snapshot ? String(snapshot.balance) : '');
   const [notes, setNotes] = useState(snapshot?.notes || '');
   const [saving, setSaving] = useState(false);
@@ -91,7 +91,7 @@ function EditModal({ card, snapshot, onClose, onSaved, familyId, currency, local
 }
 
 export default function TDCSnapshotCard() {
-  const { familyId, currency, currencySymbol, familyConfig } = useFamily();
+  const { familyId, currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const [creditCards, setCreditCards] = useState([]);
   const [snapshots, setSnapshots] = useState({});
@@ -123,7 +123,7 @@ export default function TDCSnapshotCard() {
         }
       }
       setSnapshots(latestMap);
-    } catch (err) {
+    } catch (_err) {
       // Retry with exponential backoff on rate limit (max 3 retries)
       if (attempt < 3) {
         const delay = (attempt + 1) * 4000;

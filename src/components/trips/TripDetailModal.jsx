@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, MapPin, Plane, Wallet, Tag, TrendingDown, AlertTriangle, Pencil } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
@@ -349,7 +349,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
               <div>
                 <SectionTitle icon={Tag}>Por Rubro</SectionTitle>
                 <div className="space-y-2">
-                  {byCategory.map(({ name, value }, i) => {
+                  {byCategory.map(({ name, value }, _i) => {
                     const pct = totalMXN > 0 ? (value / totalMXN) * 100 : 0;
                     const isMissing = name === 'Sin rubro';
                     return (

@@ -145,7 +145,7 @@ export default function Layout() {
 
   // Persist collapsed state
   useEffect(() => {
-    try { localStorage.setItem('sidebar_collapsed', String(collapsed)); } catch {}
+    try { localStorage.setItem('sidebar_collapsed', String(collapsed)); } catch { /* ignore quota/security errors */ }
   }, [collapsed]);
 
   // Close mobile drawer on navigation

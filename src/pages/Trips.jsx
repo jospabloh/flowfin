@@ -37,11 +37,6 @@ export default function Trips() {
   const activeTrips = trips.filter(t => t.status === 'active');
   const closedTrips = trips.filter(t => t.status === 'closed');
 
-  const handleTripClick = async (trip) => {
-    const { default: TripDetailModal } = await import('@/components/trips/TripDetailModal');
-    setSelectedTrip(trip);
-  };
-
   const TripsGrid = ({ items }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {items.map(trip => (

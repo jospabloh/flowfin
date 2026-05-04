@@ -327,7 +327,7 @@ export default function Capture() {
       if (pct >= 100) toast({ title: `🚨 Superaste el presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 90) toast({ title: `🔴 Llevas el 90% del presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 75) toast({ title: `⚠️ Llevas el 75% del presupuesto de ${t.name}` });
-    } catch {}
+    } catch { /* non-fatal: budget check */ }
   };
 
   const doSave = (txData) => {

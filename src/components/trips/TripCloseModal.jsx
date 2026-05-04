@@ -50,7 +50,7 @@ async function downloadZIP(tripName, transactions, categories, paymentMethods) {
         const blob = await res.blob();
         const ext = blob.type.includes('png') ? 'png' : 'jpg';
         receipts.file(`${t.date}_${slugify(t.description)}.${ext}`, blob);
-      } catch {}
+      } catch { /* receipt fetch failed — skip */ }
     }
   }
   const content = await zip.generateAsync({ type: 'blob' });
@@ -61,7 +61,7 @@ async function downloadZIP(tripName, transactions, categories, paymentMethods) {
 }
 
 export default function TripCloseModal({ trip, transactions, categories, paymentMethods, onClose, onClosed }) {
-  const { familyId, currency: familyCurrency, familyConfig } = useFamily();
+  const { currency: familyCurrency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { toast } = useToast();
   const [screen, setScreen] = useState('summary'); // 'summary' | 'export'
@@ -253,7 +253,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
 
           <button
             disabled={exporting === 'csv'}
-            onClick={async () => {
+            onClick={() => {
               setExporting('csv');
               try { downloadCSV(buildCSV(transactions, categories, paymentMethods), `${slugify(trip.name)}_gastos.csv`); }
               finally { setExporting(null); }

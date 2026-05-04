@@ -2,7 +2,7 @@
  * Fetches exchange rate for a given currency pair.
  * Uses open.er-api.com (free, no key, supports MXN and 160+ currencies).
  */
-export async function getExchangeRate(date, from, to) {
+export async function getExchangeRate(_date, from, to) {
   if (from === to) return 1;
 
   try {

@@ -1,6 +1,6 @@
 const ALL  = { can_read: true, can_write: true, can_modify: true, can_delete: true, can_view: true };
 const READ = { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true };
-const NONE = { can_read: false, can_write: false, can_modify: false, can_delete: false, can_view: false };
+const _NONE = { can_read: false, can_write: false, can_modify: false, can_delete: false, can_view: false };
 
 export default {
   module: { key: 'module.MSI', label: 'MSI', order: 9 },
