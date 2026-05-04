@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 /**
  * sendLifecycleEmails — Daily scheduled function.
- * Delivers all pending EmailNotification records via Resend and retries failed ones.
+ * Delivers all pending EmailNotification records via Base44 SendEmail integration.
  * Run after checkAccountLifecycle and queueBillingReminders.
  *
  * Scheduler order (daily):
@@ -11,8 +11,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
  * 3. sendLifecycleEmails  ← this function
  */
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
-const FROM_EMAIL = Deno.env.get('EMAIL_FROM') ?? 'FlowFin <noreply@flowfin.app>';
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
 const MAX_RETRIES = 3;
 
@@ -100,12 +98,10 @@ function getEmailTemplate(email_type, ctx) {
   const licenseExpires = ctx.license_expires_at ? formatDate(ctx.license_expires_at) : '—';
   const scheduledDelete = formatDate(ctx.scheduled_delete_at);
   const billingPeriod = ctx.billing_period ? formatYYYYMM(ctx.billing_period) : '—';
-  const daysLeft = ctx.days_left ?? ctx.days_to_first ?? '?';
   const cta = `<div class="cta-wrap"><a href="${APP_URL}" class="cta">`;
   const ctaEnd = `</a></div>`;
 
   const templates = {
-    // ── Existing lifecycle templates ──────────────────────────────────────────
     trial_welcome: {
       subject: '¡Bienvenido a FlowFin! Tu prueba gratuita de 30 días comienza hoy',
       body: `<p>${userName}!</p>
@@ -234,7 +230,6 @@ ${cta}Reactivar mi cuenta →${ctaEnd}`,
 ${cta}Reactivar y salvar mis datos →${ctaEnd}`,
     },
 
-    // ── Mercado Pago reminder (general FYI) ────────────────────────────────────
     renewal_upcoming: {
       subject: 'Recordatorio: tu suscripción Mercado Pago se cobrará pronto',
       body: `<p>¡Hola!</p>
@@ -255,7 +250,6 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
 
-    // ── NEW: Trial expiry reminders ────────────────────────────────────────────
     trial_expiry_reminder_3d: {
       subject: 'Tu prueba de FlowFin termina en 3 días',
       body: `<p>¡Hola!</p>
@@ -285,7 +279,6 @@ ${cta}Activar mi plan →${ctaEnd}`,
 ${cta}Activar ahora →${ctaEnd}`,
     },
 
-    // ── NEW: Mercado Pago renewal reminders (3d, 2d, 1d before 1st) ───────────
     renewal_reminder_3d: {
       subject: 'Tu suscripción Mercado Pago se cobrará en 3 días',
       body: `<p>¡Hola!</p>
@@ -320,7 +313,6 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 ${cta}Ir a FlowFin →${ctaEnd}`,
     },
 
-    // ── NEW: License activation welcome ───────────────────────────────────────
     license_activated_welcome: {
       subject: '¡Bienvenido a FlowFin! Tu plan ya está activo',
       body: `<p>${userName}!</p>
@@ -333,7 +325,6 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 ${cta}Entrar a FlowFin →${ctaEnd}`,
     },
 
-    // ── NEW: Payment confirmed ─────────────────────────────────────────────────
     payment_confirmed: {
       subject: 'Pago confirmado — tu licencia FlowFin continúa activa',
       body: `<p>${userName}!</p>
@@ -351,37 +342,8 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
   return { subject: t.subject, html: wrap(t.body) };
 }
 
-// ── Resend delivery ────────────────────────────────────────────────────────────
-class PermanentEmailError extends Error {
-  constructor(message) { super(message); this.permanent = true; }
-}
-
-async function sendViaResend(to, subject, html) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    // 4xx errors are permanent (bad domain, invalid key, etc.) — no point retrying
-    if (res.status >= 400 && res.status < 500) {
-      throw new PermanentEmailError(`Resend ${res.status}: ${body}`);
-    }
-    throw new Error(`Resend ${res.status}: ${body}`);
-  }
-}
-
 // ── Main handler ───────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
-  if (!RESEND_API_KEY) {
-    console.error('[sendLifecycleEmails] RESEND_API_KEY not configured');
-    return Response.json({ error: 'Email service not configured — set RESEND_API_KEY' }, { status: 500 });
-  }
-
   try {
     const base44 = createClientFromRequest(req);
     const nowISO = new Date().toISOString();
@@ -406,7 +368,6 @@ Deno.serve(async (req) => {
           continue;
         }
       } else {
-        // Fallback legacy dedup: family+type (no period key for old records)
         const sentCheck = await base44.asServiceRole.entities.EmailNotification.filter({
           family_id: notification.family_id,
           email_type: notification.email_type,
@@ -422,7 +383,6 @@ Deno.serve(async (req) => {
       // Fetch family context + metadata for template rendering
       let ctx = { family_name: '' };
       try {
-        // Use metadata if available (richer context from confirmLicensePayment / queueBillingReminders)
         if (notification.metadata && typeof notification.metadata === 'object') {
           ctx = { ...notification.metadata };
         }
@@ -443,7 +403,7 @@ Deno.serve(async (req) => {
             days_to_first: ctx.days_to_first || null,
           };
         }
-      } catch { /* non-fatal: render with partial context */ }
+      } catch { /* non-fatal */ }
 
       const template = getEmailTemplate(notification.email_type, ctx);
       if (!template) {
@@ -452,7 +412,13 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendViaResend(notification.recipient_email, template.subject, template.html);
+        // Use Base44 built-in SendEmail integration
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: notification.recipient_email,
+          subject: template.subject,
+          body: template.html,
+          from_name: 'FlowFin',
+        });
         await base44.asServiceRole.entities.EmailNotification.update(notification.id, {
           status: 'sent',
           sent_at: nowISO,
@@ -462,9 +428,7 @@ Deno.serve(async (req) => {
         stats.sent++;
       } catch (err) {
         const message = getErrorMessage(err);
-        // Permanent errors (4xx): mark as failed with MAX retries so they won't be retried again
-        const isPermanent = err.permanent === true;
-        const newCount = isPermanent ? MAX_RETRIES : (notification.retry_count ?? 0) + 1;
+        const newCount = (notification.retry_count ?? 0) + 1;
         await base44.asServiceRole.entities.EmailNotification.update(notification.id, {
           status: 'failed',
           retry_count: newCount,
@@ -472,7 +436,7 @@ Deno.serve(async (req) => {
           error_message: message,
         });
         stats.failed++;
-        console.error(`[sendLifecycleEmails] ${isPermanent ? 'PERMANENT' : 'Temporary'} failure: ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, message);
+        console.error(`[sendLifecycleEmails] Failed ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, message);
       }
     }
 
