@@ -5,7 +5,7 @@ import {
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
-  PanelLeftClose, PanelLeftOpen, Plane
+  PanelLeftClose, PanelLeftOpen, Plane, Coins
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,6 +38,7 @@ const MORE_GROUPS = [
     items: [
       { to: '/Assistant', icon: Sparkles, label: 'Asistente IA', color: 'text-primary', bg: 'bg-primary/10' },
       { to: '/Budget', icon: PiggyBank, label: 'Presupuesto', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+      { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro', color: 'text-yellow-600', bg: 'bg-yellow-500/10' },
       { to: '/Trips', icon: Plane, label: 'Viajes', color: 'text-sky-600', bg: 'bg-sky-500/10' },
     ],
   },
@@ -85,6 +86,7 @@ const SIDEBAR_GROUPS = [
     items: [
       { to: '/Assistant', icon: Sparkles, label: 'Asistente IA' },
       { to: '/Budget', icon: PiggyBank, label: 'Presupuesto' },
+      { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro' },
       { to: '/Trips', icon: Plane, label: 'Viajes' },
     ],
   },
@@ -200,6 +202,7 @@ export default function Layout() {
     '/Reports':         canViewReports,
     '/Assistant':       canViewAssistant,
     '/Budget':          canViewBudget,
+    '/SavingsDashboard': true,
     '/Trips':           true,
     '/ScheduledPayments': canViewScheduled,
     '/Investments':     canViewInvestments,
