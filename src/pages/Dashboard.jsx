@@ -15,6 +15,7 @@ import DashboardUpcomingPayments from '@/components/dashboard/DashboardUpcomingP
 import { useCanView } from '@/lib/permissions/usePermission';
 import TDCSnapshotCard from '@/components/dashboard/TDCSnapshotCard';
 import DashboardActiveTrips from '@/components/dashboard/DashboardActiveTrips';
+import DashboardGoals from '@/components/dashboard/DashboardGoals';
 
 export default function Dashboard() {
   const {
@@ -28,6 +29,8 @@ export default function Dashboard() {
     currency, locale,
     setUserPref,
     budgetAlerts,
+    goals,
+    transactions,
   } = useDashboardData();
 
   const canViewSummary   = useCanView('dashboard.view.summary');
@@ -78,6 +81,7 @@ export default function Dashboard() {
 
       <TDCSnapshotCard />
       <DashboardActiveTrips />
+      <DashboardGoals goals={goals} transactions={transactions} currency={currency} locale={locale} />
 
       {canViewAnalytics && (
         <DashboardTopCategoriesChart

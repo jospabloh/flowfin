@@ -5,7 +5,7 @@ import {
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
-  PanelLeftClose, PanelLeftOpen, Plane, Coins
+  PanelLeftClose, PanelLeftOpen, Plane, Coins, Target
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +39,7 @@ const MORE_GROUPS = [
       { to: '/Assistant', icon: Sparkles, label: 'Asistente IA', color: 'text-primary', bg: 'bg-primary/10' },
       { to: '/Budget', icon: PiggyBank, label: 'Presupuesto', color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
       { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro', color: 'text-yellow-600', bg: 'bg-yellow-500/10' },
+      { to: '/Goals', icon: Target, label: 'Metas', color: 'text-rose-600', bg: 'bg-rose-500/10' },
       { to: '/Trips', icon: Plane, label: 'Viajes', color: 'text-sky-600', bg: 'bg-sky-500/10' },
     ],
   },
@@ -87,6 +88,7 @@ const SIDEBAR_GROUPS = [
       { to: '/Assistant', icon: Sparkles, label: 'Asistente IA' },
       { to: '/Budget', icon: PiggyBank, label: 'Presupuesto' },
       { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro' },
+      { to: '/Goals', icon: Target, label: 'Metas' },
       { to: '/Trips', icon: Plane, label: 'Viajes' },
     ],
   },
@@ -203,6 +205,7 @@ export default function Layout() {
     '/Assistant':       canViewAssistant,
     '/Budget':          canViewBudget,
     '/SavingsDashboard': true,
+    '/Goals':           true,
     '/Trips':           true,
     '/ScheduledPayments': canViewScheduled,
     '/Investments':     canViewInvestments,

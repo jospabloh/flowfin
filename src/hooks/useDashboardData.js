@@ -148,6 +148,14 @@ export function useDashboardData() {
 
   const recent = filtered.slice(0, 5);
 
+  // ── Goals ──
+  const { data: goals = [] } = useQuery({
+    queryKey: ['goals', familyId],
+    queryFn: () => base44.entities.Goal.filter({ family_id: familyId }),
+    enabled: !!familyId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // ── Budget alerts: compare current-month spending per category vs limits ──
   const { data: categoryBudgets = [] } = useQuery({
     queryKey: ['category_budgets', familyId],
@@ -193,5 +201,7 @@ export function useDashboardData() {
     setUserPref,
     PERIODS,
     budgetAlerts,
+    goals,
+    transactions,
   };
 }
