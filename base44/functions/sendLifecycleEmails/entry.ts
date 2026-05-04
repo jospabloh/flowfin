@@ -12,7 +12,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
  */
 
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 3; // v2 - uses Base44 SendEmail (no Resend)
 
 function getErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
