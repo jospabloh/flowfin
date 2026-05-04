@@ -26,7 +26,7 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
         </span>
         <div className="flex-1 h-px bg-border" />
         <span className="text-xs text-muted-foreground">
-          {formatCurrency(txns.filter(t => t.type === 'expense' && !categories.find(c => c.id === t.category_id)?.exclude_from_totals).reduce((s, t) => s + t.amount, 0), { locale, currency })}
+          {formatCurrency(txns.filter(t => t.type === 'expense' && !categories.find(c => c.id === t.category_id)?.exclude_from_totals).reduce((s, t) => s + t.amount, 0), { locale, currency, decimals: 2 })}
         </span>
       </div>
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
@@ -100,7 +100,7 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                     {t.required_type && <><span className="text-muted-foreground">Requerido</span><span className="text-foreground">{t.required_type}</span></>}
                     {t.has_invoice && <><span className="text-muted-foreground">Factura</span><span className="text-primary font-medium">Sí</span></>}
                     {t.notes && <><span className="text-muted-foreground">Notas</span><span className="text-foreground">{t.notes}</span></>}
-                    {t.credit_card_balance != null && <><span className="text-muted-foreground">Saldo pendiente TDC</span><span className="text-blue-600 dark:text-blue-400 font-semibold">{formatCurrency(t.credit_card_balance, { locale, currency })}</span></>}
+                    {t.credit_card_balance != null && <><span className="text-muted-foreground">Saldo pendiente TDC</span><span className="text-blue-600 dark:text-blue-400 font-semibold">{formatCurrency(t.credit_card_balance, { locale, currency, decimals: 2 })}</span></>}
                   </div>
                   <div className="flex gap-2 mt-1">
                     {canEdit && (

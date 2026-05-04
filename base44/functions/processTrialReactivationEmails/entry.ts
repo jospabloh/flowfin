@@ -24,8 +24,6 @@ const INACTIVITY_HOURS = 24;               // send if inactive >= 24h
 const MIN_HOURS_BETWEEN_EMAILS = 48;       // min gap between reactivation emails
 const MAX_EMAILS_PER_TRIAL = 3;            // max reactivation emails per trial
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
-const FROM_EMAIL = Deno.env.get('EMAIL_FROM') ?? 'FlowFin <noreply@flowfin.app>';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS  = 24 * HOUR_MS;
@@ -158,18 +156,14 @@ function getTemplate(locale, { user_name, days_left, app_url }) {
   };
 }
 
-// ── Send via Resend ───────────────────────────────────────────────────────────
-async function sendEmail(to, subject, html) {
-  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY_MISSING');
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+// ── Send via Base44 Core.SendEmail ────────────────────────────────────────────
+async function sendEmail(base44, to, subject, html) {
+  await base44.asServiceRole.integrations.Core.SendEmail({
+    to,
+    subject,
+    body: html,
+    from_name: 'FlowFin',
   });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend ${res.status}: ${body}`);
-  }
 }
 
 // ── Idempotency check via EmailNotification ───────────────────────────────────
@@ -293,7 +287,7 @@ Deno.serve(async (req) => {
 
         // Send email
         try {
-          await sendEmail(email, template.subject, template.html);
+          await sendEmail(base44, email, template.subject, template.html);
 
           // Mark sent in EmailNotification
           try {
@@ -332,10 +326,6 @@ Deno.serve(async (req) => {
             }
           } catch { /* non-fatal */ }
 
-          if (errMsg.includes('RESEND_API_KEY_MISSING')) {
-            console.warn('[processTrialReactivationEmails] email provider not configured — skipping remaining');
-            break;
-          }
           console.error(`[processTrialReactivationEmails] send failed for ${email}:`, errMsg);
         }
       }

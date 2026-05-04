@@ -969,7 +969,7 @@ export default function Capture() {
                         {d.description || cat?.name || '—'}
                       </span>
                       <span className={`font-bold ${d.type === 'expense' ? 'text-expense' : 'text-income'}`}>
-                        {d.type === 'expense' ? '-' : '+'}{formatCurrency(d.amount, { locale, currency })}
+                        {d.type === 'expense' ? '-' : '+'}{formatCurrency(d.amount, { locale, currency, decimals: 2 })}
                       </span>
                     </div>
                   );

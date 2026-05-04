@@ -12,7 +12,7 @@ export default function AmountDisplay({ amount, type = 'expense', size = 'md', s
   const formatted = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Math.abs(amount || 0));
 
