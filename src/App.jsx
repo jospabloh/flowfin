@@ -17,7 +17,7 @@ import { useCanView } from '@/lib/permissions/usePermission';
 // Lazy-loaded pages
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Capture = lazy(() => import('@/pages/Capture'));
-const Transactions = lazy(() => import('@/pages/Transactions.jsx'));
+const Transactions = lazy(() => import('@/pages/Transactions'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Investments = lazy(() => import('@/pages/Investments'));
 const MSIPage = lazy(() => import('@/pages/MSIPage'));
