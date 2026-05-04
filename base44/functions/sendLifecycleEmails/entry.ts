@@ -352,6 +352,10 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 }
 
 // ── Resend delivery ────────────────────────────────────────────────────────────
+class PermanentEmailError extends Error {
+  constructor(message) { super(message); this.permanent = true; }
+}
+
 async function sendViaResend(to, subject, html) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -363,6 +367,10 @@ async function sendViaResend(to, subject, html) {
   });
   if (!res.ok) {
     const body = await res.text();
+    // 4xx errors are permanent (bad domain, invalid key, etc.) — no point retrying
+    if (res.status >= 400 && res.status < 500) {
+      throw new PermanentEmailError(`Resend ${res.status}: ${body}`);
+    }
     throw new Error(`Resend ${res.status}: ${body}`);
   }
 }
@@ -454,7 +462,9 @@ Deno.serve(async (req) => {
         stats.sent++;
       } catch (err) {
         const message = getErrorMessage(err);
-        const newCount = (notification.retry_count ?? 0) + 1;
+        // Permanent errors (4xx): mark as failed with MAX retries so they won't be retried again
+        const isPermanent = err.permanent === true;
+        const newCount = isPermanent ? MAX_RETRIES : (notification.retry_count ?? 0) + 1;
         await base44.asServiceRole.entities.EmailNotification.update(notification.id, {
           status: 'failed',
           retry_count: newCount,
@@ -462,7 +472,7 @@ Deno.serve(async (req) => {
           error_message: message,
         });
         stats.failed++;
-        console.error(`[sendLifecycleEmails] Failed ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, message);
+        console.error(`[sendLifecycleEmails] ${isPermanent ? 'PERMANENT' : 'Temporary'} failure: ${notification.email_type} for family ${notification.family_id} (attempt ${newCount}):`, message);
       }
     }
 
