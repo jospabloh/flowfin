@@ -259,12 +259,12 @@ export default function LicenseAdmin() {
     activateMutation.mutate({
       family_id: selectedFamily.id,
       billing_status: form.billing_status,
-      license_plan: form.license_plan,
-      licensed_member_limit: form.licensed_member_limit,
+      license_plan: payForm.license_plan,
+      licensed_member_limit: PLAN_OPTIONS.find(p => p.value === payForm.license_plan)?.limit || 4,
       payment_reference: form.payment_reference || undefined,
       activation_notes: form.activation_notes || undefined,
       license_expires_at: form.license_expires_at || undefined,
-      auto_renewal: form.auto_renewal,
+      auto_renewal: payForm.auto_renewal,
     });
   };
 
@@ -560,7 +560,7 @@ export default function LicenseAdmin() {
               <div className="border border-border rounded-2xl p-4 space-y-4">
                 <h4 className="text-sm font-bold text-foreground">Ajuste general de licencia</h4>
                 <p className="text-[11px] text-muted-foreground -mt-2">
-                  Cambia el estado, plan o datos administrativos sin confirmar un pago específico.
+                  Cambia el estado o datos administrativos sin confirmar un pago específico.
                 </p>
 
                 {/* Billing status */}
@@ -578,53 +578,6 @@ export default function LicenseAdmin() {
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {/* Plan */}
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground mb-2 block">Plan de licencia</label>
-                  <div className="space-y-2">
-                    {PLAN_OPTIONS.map(p => (
-                      <button key={p.value}
-                        onClick={() => setForm(f => ({ ...f, license_plan: p.value, licensed_member_limit: p.limit }))}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all ${
-                          form.license_plan === p.value
-                            ? 'bg-primary/10 border-primary text-primary font-semibold'
-                            : 'bg-muted border-transparent text-foreground hover:bg-muted/70'
-                        }`}>
-                        <div className="text-left">
-                          <p className="font-semibold text-sm">{p.label}</p>
-                          <p className="text-[11px] text-muted-foreground">{p.desc}</p>
-                        </div>
-                        <span className={`text-xs font-bold ${form.license_plan === p.value ? 'text-primary' : 'text-muted-foreground'}`}>{p.price}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mercado Pago toggle */}
-                <div>
-                  <button
-                    onClick={() => setForm(f => ({ ...f, auto_renewal: !f.auto_renewal }))}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
-                      form.auto_renewal
-                        ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
-                        : 'bg-muted border-transparent'
-                    }`}
-                  >
-                    <div className="text-left">
-                      <p className={`text-sm font-semibold ${form.auto_renewal ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
-                        {form.auto_renewal ? 'Suscripción Mercado Pago activa ✓' : 'Sin suscripción Mercado Pago'}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        El cobro se gestiona en Mercado Pago. La renovación de acceso en FlowFin se confirma manualmente por ACACIA.
-                      </p>
-                    </div>
-                    {form.auto_renewal
-                      ? <ToggleRight className="w-6 h-6 text-emerald-600 flex-shrink-0" />
-                      : <ToggleLeft className="w-6 h-6 text-muted-foreground flex-shrink-0" />
-                    }
-                  </button>
                 </div>
 
                 {/* Payment reference */}
