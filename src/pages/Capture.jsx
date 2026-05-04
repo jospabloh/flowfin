@@ -327,7 +327,7 @@ export default function Capture() {
       if (pct >= 100) toast({ title: `🚨 Superaste el presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 90) toast({ title: `🔴 Llevas el 90% del presupuesto de ${t.name}`, variant: 'destructive' });
       else if (pct >= 75) toast({ title: `⚠️ Llevas el 75% del presupuesto de ${t.name}` });
-    } catch {}
+    } catch { /* non-fatal: budget check */ }
   };
 
   const doSave = (txData) => {
@@ -969,7 +969,7 @@ export default function Capture() {
                         {d.description || cat?.name || '—'}
                       </span>
                       <span className={`font-bold ${d.type === 'expense' ? 'text-expense' : 'text-income'}`}>
-                        {d.type === 'expense' ? '-' : '+'}{formatCurrency(d.amount, { locale, currency })}
+                        {d.type === 'expense' ? '-' : '+'}{formatCurrency(d.amount, { locale, currency, decimals: 2 })}
                       </span>
                     </div>
                   );
