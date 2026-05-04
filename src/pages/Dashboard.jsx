@@ -6,6 +6,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import DashboardFilters from '@/components/dashboard/DashboardFilters';
 import DashboardPendingBanners from '@/components/dashboard/DashboardPendingBanners';
+import DashboardBudgetAlerts from '@/components/dashboard/DashboardBudgetAlerts';
 import DashboardSummaryCards from '@/components/dashboard/DashboardSummaryCards';
 import DashboardTopCategoriesChart from '@/components/dashboard/DashboardTopCategoriesChart';
 import DashboardExpenseByPersonChart from '@/components/dashboard/DashboardExpenseByPersonChart';
@@ -26,6 +27,7 @@ export default function Dashboard() {
     categories, persons,
     currency, locale,
     setUserPref,
+    budgetAlerts,
   } = useDashboardData();
 
   const canViewSummary   = useCanView('dashboard.view.summary');
@@ -67,6 +69,8 @@ export default function Dashboard() {
           pendingRentals={pendingRentals}
         />
       )}
+
+      <DashboardBudgetAlerts alerts={budgetAlerts} currency={currency} locale={locale} />
 
       {canViewSummary && (
         <DashboardSummaryCards income={income} expense={expense} balance={balance} />

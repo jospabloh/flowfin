@@ -7,6 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import { PiggyBank, TrendingDown, RefreshCw, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useCanView } from '@/lib/permissions/usePermission';
+import CategoryBudgetConfig from '@/components/budget/CategoryBudgetConfig';
 
 const MONTHS_OPTIONS = [
   { value: 1, label: 'Último mes' },
@@ -190,6 +191,9 @@ export default function Budget() {
             </div>
           </>
         )}
+
+        {/* Budget limits configuration — always visible */}
+        <CategoryBudgetConfig />
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { useMemory } from '@/hooks/useMemory';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { isWithinInterval, parseISO } from 'date-fns';
+import { isWithinInterval, parseISO, startOfMonth } from 'date-fns';
 import { PERIODS, getRange, CURRENT_MONTH } from '@/lib/dashboardConstants';
 
 export function useDashboardData() {
@@ -148,6 +148,39 @@ export function useDashboardData() {
 
   const recent = filtered.slice(0, 5);
 
+  // ── Budget alerts: compare current-month spending per category vs limits ──
+  const { data: categoryBudgets = [] } = useQuery({
+    queryKey: ['category_budgets', familyId],
+    queryFn: () => base44.entities.CategoryBudget.filter({ family_id: familyId }),
+    enabled: !!familyId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const budgetAlerts = useMemo(() => {
+    if (!categoryBudgets.length) return [];
+    // Always use current month transactions for budget alerts
+    const monthStart = startOfMonth(new Date());
+    const monthEnd = new Date();
+    monthEnd.setHours(23, 59, 59, 999);
+    const monthTx = (Array.isArray(transactions) ? transactions : []).filter(t => {
+      if (!t.date || t.type !== 'expense') return false;
+      const d = parseISO(t.date);
+      return d >= monthStart && d <= monthEnd;
+    });
+
+    return categoryBudgets
+      .map(b => {
+        const spent = monthTx
+          .filter(t => t.category_id === b.category_id)
+          .reduce((s, t) => s + (t.amount || 0), 0);
+        const pct = b.amount > 0 ? (spent / b.amount) * 100 : 0;
+        const category = categories.find(c => c.id === b.category_id);
+        return { category, budget: b.amount, spent, pct };
+      })
+      .filter(a => a.pct >= 80)
+      .sort((a, b) => b.pct - a.pct);
+  }, [categoryBudgets, transactions, categories]);
+
   return {
     period, setPeriod,
     personFilter, setPersonFilter,
@@ -159,5 +192,6 @@ export function useDashboardData() {
     currency, locale,
     setUserPref,
     PERIODS,
+    budgetAlerts,
   };
 }
