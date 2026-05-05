@@ -282,6 +282,44 @@ Admin Familia:
 Seguridad: Cada familia ve únicamente sus propios datos. Ninguna familia puede ver los datos de otra.`
   },
   {
+    id: 'ahorro', icon: '💡', title: 'Oportunidades de Ahorro',
+    content: `Módulo de análisis que detecta automáticamente áreas donde puedes reducir gastos, basándose en los últimos 6 meses de movimientos.
+
+Acceso: Menú "Más" → Herramientas → "Oportunidades de ahorro".
+
+Secciones del análisis:
+
+Resumen de ahorro estimado:
+• Ahorro mensual estimado — suma del potencial de ahorro detectado en todas las áreas.
+• Ahorro anual estimado — proyección a 12 meses del ahorro mensual.
+
+Suscripciones sin registrar:
+El sistema detecta pagos recurrentes en tus movimientos (mismo concepto, montos consistentes, aparece en 2+ meses distintos) que aún no están registrados como Pagos Programados. Ejemplos típicos: Netflix, Spotify, gimnasio, plataformas de streaming, seguros.
+
+¿Qué significa "sin registrar"?
+No que no hayas pagado — sino que no tienes ese gasto capturado como Pago Programado en el módulo correspondiente. Registrarlo ahí te da seguimiento mensual automático y aviso si se te olvida.
+
+Para cada suscripción detectada se muestra:
+• Concepto/descripción
+• Cuántos meses aparece (ej: "4 meses")
+• Nivel de confianza: alta (4+ meses), media (3 meses), baja (2 meses)
+• Monto promedio mensual
+
+¿Cómo registrarla?
+Ve a Menú "Más" → Compromisos → "Pagos del Mes" y crea un nuevo Pago Programado con el nombre y monto detectado.
+
+Gastos no esenciales a revisar:
+Agrupa tus gastos clasificados como "Gusto" u "Otro" por categoría y calcula cuánto representan de tu gasto total. Sugiere una reducción del 30% como ahorro potencial.
+
+Para cada categoría se muestra:
+• Nombre e ícono de la categoría
+• Promedio mensual gastado
+• Barra de progreso mostrando el % del gasto total
+• Ahorro potencial estimado (30% del promedio mensual)
+
+Nota: El análisis es informativo. No modifica ni borra ningún registro. Para mejorar los resultados, asegúrate de clasificar tus movimientos con el tipo de gasto correcto (Necesario, Gusto, Urgente, etc.) al capturarlos.`
+  },
+  {
     id: 'presupuesto', icon: '🎯', title: 'Presupuesto Inteligente',
     content: `El módulo de Presupuesto analiza el historial de gastos de tu familia y genera automáticamente una sugerencia de presupuesto mensual por rubro.
 
@@ -344,7 +382,7 @@ En móvil (barra inferior):
 Los 4 accesos directos son: Inicio, Movimientos, + Registrar y Reportes.
 El botón "Más" abre un panel con todas las secciones organizadas en grupos:
 
-• Herramientas — Asistente IA y Presupuesto
+• Herramientas — Asistente IA, Presupuesto y Oportunidades de Ahorro
 • Compromisos — Pagos del Mes, Inversiones, MSI y Rentas
 • Configuración — Catálogos, Mi Familia, Mi Cuenta, Admin Familia, Permisos y Mi Licencia (estos últimos solo para administradores)
 • Información — Manual y Acerca de
@@ -595,6 +633,13 @@ const glossary = [
   { term: 'Router determinístico', def: 'Sistema interno del Asistente que responde consultas analíticas comunes (gasto del mes, top categorías, desglose por persona) directamente con datos reales sin llamar al LLM, haciendo las respuestas más rápidas y precisas.' },
   { term: 'Escaneo de tickets', def: 'Función del Asistente que permite fotografiar un recibo de compra. La IA extrae monto, comercio y categoría sugerida automáticamente. Límite: 50 escaneos por familia por día.' },
   { term: 'Uso de IA', def: 'Página de administración (solo admin de plataforma) que muestra el costo mensual acumulado de IA y el historial de escaneos de tickets con detalle de tokens y costo por escaneo.' },
+  { term: 'Oportunidades de Ahorro', def: 'Módulo que analiza los últimos 6 meses de movimientos y detecta suscripciones recurrentes no registradas y categorías de gasto no esencial con potencial de reducción.' },
+  { term: 'Suscripciones sin registrar', def: 'Pagos recurrentes detectados en el historial (mismo concepto, montos consistentes, varios meses) que aún no están capturados como Pagos Programados en la app.' },
+  { term: 'Gastos no esenciales', def: 'Egresos clasificados como "Gusto" u "Otro" agrupados por categoría. El módulo de Oportunidades de Ahorro sugiere reducirlos un 30% como ahorro potencial.' },
+  { term: 'Confianza de detección', def: 'Nivel de certeza con que el sistema identifica una suscripción recurrente: alta (4+ meses), media (3 meses), baja (2 meses).' },
+  { term: 'Viajes', def: 'Módulo para registrar y hacer seguimiento de viajes familiares con presupuesto, múltiples divisas, participantes y gastos asociados. Permite convertir montos a la moneda base y dividir gastos entre participantes.' },
+  { term: 'Saldo TDC', def: 'Snapshot del saldo de tarjetas de crédito registrado manualmente. Aparece en el Dashboard y avisa cuando el dato tiene más de 7 días sin actualizarse.' },
+  { term: 'Metas financieras', def: 'Objetivos de ahorro con monto meta, fecha límite e ícono personalizado. El progreso se calcula automáticamente según los ingresos de la categoría vinculada más el monto manual guardado.' },
 ];
 
 export default function UserManual() {
