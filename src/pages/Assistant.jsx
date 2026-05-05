@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
-import { Send, Mic, MicOff, Bot, Sparkles } from 'lucide-react';
+import { Send, Mic, MicOff, Bot, Sparkles, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
 import AssistantWelcome from '@/components/AssistantWelcome';
@@ -421,10 +421,19 @@ export default function Assistant() {
         <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
           <Sparkles className="w-5 h-5 text-primary-foreground" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="font-bold text-foreground text-sm">Asistente IA</h1>
           <p className="text-xs text-muted-foreground">Tu asistente financiero personal</p>
         </div>
+        <a
+          href={base44.agents.getWhatsAppConnectURL('finance_assistant')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] text-white text-xs font-semibold hover:bg-[#1ebe5d] transition-colors flex-shrink-0"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          WhatsApp
+        </a>
       </div>
 
       {/* Messages — scrollable area */}
