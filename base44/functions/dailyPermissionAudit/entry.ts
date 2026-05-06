@@ -3,6 +3,7 @@ import { ALL_PERMISSION_DEFAULTS, type PermEntry } from './permissionManifests.t
 
 const AUDIT_EMAIL = 'h.josepablo@gmail.com';
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
+const ADMIN_FULL = { can_read: true, can_write: true, can_modify: true, can_delete: true, can_view: true };
 
 function getErrorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -14,25 +15,26 @@ function fmtDate(d: Date): string {
 
 function buildEmailHtml(stats: {
   checked: number;
+  families_count: number;
   existing_admin: number;
   created_admin: number;
-  existing_member: number;
-  created_member: number;
-  families_count: number;
   created_keys: string[];
   errors: string[];
   runDate: string;
 }): string {
+  const allOk = stats.created_admin === 0 && stats.errors.length === 0;
   const statusBadge = stats.errors.length > 0
     ? '<span style="color:#dc2626;font-weight:700">⚠️ Con errores</span>'
-    : '<span style="color:#059669;font-weight:700">✅ Sin problemas</span>';
+    : allOk
+      ? '<span style="color:#059669;font-weight:700">✅ Todo en orden</span>'
+      : '<span style="color:#d97706;font-weight:700">🔧 Permisos creados</span>';
 
   const createdList = stats.created_keys.length === 0
-    ? '<p style="color:#6b7280;font-style:italic">Ningún permiso nuevo creado — todo estaba en orden.</p>'
-    : `<ul style="margin:0;padding-left:1.2em;font-size:13px;color:#374151">${
-        stats.created_keys.slice(0, 100).map(k => `<li><code>${k}</code></li>`).join('')
-      }${stats.created_keys.length > 100 ? `<li style="color:#6b7280">... y ${stats.created_keys.length - 100} más</li>` : ''}
-      </ul>`;
+    ? '<p style="color:#6b7280;font-style:italic">Ningún permiso nuevo — todo estaba en orden.</p>'
+    : `<ul style="margin:0;padding-left:1.2em;font-size:13px;color:#374151">
+        ${stats.created_keys.slice(0, 100).map(k => `<li><code>${k}</code></li>`).join('')}
+        ${stats.created_keys.length > 100 ? `<li style="color:#6b7280">... y ${stats.created_keys.length - 100} más</li>` : ''}
+       </ul>`;
 
   const errorBlock = stats.errors.length > 0
     ? `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:#991b1b">
@@ -61,17 +63,18 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   <p>Estado: ${statusBadge}</p>
   <div class="g">
     <div class="row"><span>Familias auditadas</span><span class="num">${stats.families_count}</span></div>
-    <div class="row"><span>Permisos declarados en manifests</span><span class="num">${stats.checked}</span></div>
-    <div class="row"><span>Admin: ya existentes</span><span class="num">${stats.existing_admin}</span></div>
-    <div class="row"><span>Admin: creados ahora</span><span class="num" style="color:${stats.created_admin > 0 ? '#d97706' : '#059669'}">${stats.created_admin}</span></div>
-    <div class="row"><span>Member: ya existentes</span><span class="num">${stats.existing_member}</span></div>
-    <div class="row" style="border-bottom:none"><span>Member: creados ahora</span><span class="num" style="color:${stats.created_member > 0 ? '#d97706' : '#059669'}">${stats.created_member}</span></div>
+    <div class="row"><span>Permission keys revisados</span><span class="num">${stats.checked}</span></div>
+    <div class="row"><span>Admin: ya existían</span><span class="num">${stats.existing_admin}</span></div>
+    <div class="row" style="border-bottom:none"><span>Admin: creados ahora (todos con acceso total)</span>
+      <span class="num" style="color:${stats.created_admin > 0 ? '#d97706' : '#059669'}">${stats.created_admin}</span>
+    </div>
   </div>
-  ${stats.created_keys.length > 0 ? `<p><strong>Permisos nuevos creados (por familia × rol):</strong></p>${createdList}` : createdList}
+  ${stats.created_keys.length > 0 ? '<p><strong>Permisos nuevos creados:</strong></p>' : ''}
+  ${createdList}
   ${errorBlock}
   <p style="margin-top:16px;font-size:13px;color:#6b7280">
-    Los permisos de rol <em>admin</em> y <em>member</em> faltantes se crearon automáticamente con los valores por defecto del manifest.
-    Puedes editarlos desde <a href="${APP_URL}" style="color:#059669">FlowFin → Admin Permisos</a>.
+    Los permisos nuevos del rol <em>admin</em> se asignaron con acceso total (read, write, modify, delete, view = true).
+    Puedes ajustarlos desde <a href="${APP_URL}" style="color:#059669">FlowFin → Admin Permisos</a>.
   </p>
 </div>
 <div class="f">FlowFin — <strong>ACACIA Consultoría</strong> &nbsp;·&nbsp; <a href="mailto:soporte@acaciaco.com.mx">soporte@acaciaco.com.mx</a></div>
@@ -89,74 +92,48 @@ Deno.serve(async (req) => {
       families_count: 0,
       existing_admin: 0,
       created_admin: 0,
-      existing_member: 0,
-      created_member: 0,
       created_keys: [] as string[],
       errors: [] as string[],
     };
 
-    // Load all families
     const families: Array<{ id: string }> = await base44.asServiceRole.entities.Family.list();
     if (!families?.length) {
       return Response.json({ message: 'No families found', stats });
     }
     stats.families_count = families.length;
 
-    // Fetch all existing RolePermission records for admin + member in one pass
-    const [existingAdmin, existingMember] = await Promise.all([
-      base44.asServiceRole.entities.RolePermission.filter({ role: 'admin' }),
-      base44.asServiceRole.entities.RolePermission.filter({ role: 'member' }),
-    ]);
-
-    // Build lookup sets: "familyId:permKey"
+    const existingAdmin = await base44.asServiceRole.entities.RolePermission.filter({ role: 'admin' });
     const adminSet = new Set<string>(
       (existingAdmin || []).map((p: { family_id: string; permission_key: string }) => `${p.family_id}:${p.permission_key}`)
     );
-    const memberSet = new Set<string>(
-      (existingMember || []).map((p: { family_id: string; permission_key: string }) => `${p.family_id}:${p.permission_key}`)
-    );
 
-    const toCreateAdmin: object[] = [];
-    const toCreateMember: object[] = [];
+    const toCreate: object[] = [];
 
     for (const family of families) {
       for (const entry of ALL_PERMISSION_DEFAULTS as PermEntry[]) {
-        const adminKey = `${family.id}:${entry.key}`;
-        if (adminSet.has(adminKey)) {
+        const key = `${family.id}:${entry.key}`;
+        if (adminSet.has(key)) {
           stats.existing_admin++;
         } else {
-          toCreateAdmin.push({ family_id: family.id, role: 'admin', permission_key: entry.key, ...entry.admin });
+          toCreate.push({ family_id: family.id, role: 'admin', permission_key: entry.key, ...ADMIN_FULL });
           stats.created_admin++;
-          stats.created_keys.push(`[admin] ${entry.key} (familia ${family.id.slice(-6)})`);
-        }
-
-        const memberKey = `${family.id}:${entry.key}`;
-        if (memberSet.has(memberKey)) {
-          stats.existing_member++;
-        } else {
-          toCreateMember.push({ family_id: family.id, role: 'member', permission_key: entry.key, ...entry.member });
-          stats.created_member++;
-          stats.created_keys.push(`[member] ${entry.key} (familia ${family.id.slice(-6)})`);
+          stats.created_keys.push(`${entry.key} (familia ...${family.id.slice(-6)})`);
         }
       }
     }
 
-    // Bulk create in batches of 50
-    const batchSize = 50;
-    const allToCreate = [...toCreateAdmin, ...toCreateMember];
-    for (let i = 0; i < allToCreate.length; i += batchSize) {
+    for (let i = 0; i < toCreate.length; i += 50) {
       try {
-        await base44.asServiceRole.entities.RolePermission.bulkCreate(allToCreate.slice(i, i + batchSize));
+        await base44.asServiceRole.entities.RolePermission.bulkCreate(toCreate.slice(i, i + 50));
       } catch (e) {
-        stats.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${getErrorMessage(e)}`);
+        stats.errors.push(`Batch ${Math.floor(i / 50) + 1}: ${getErrorMessage(e)}`);
       }
     }
 
-    // Send email report
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: AUDIT_EMAIL,
-        subject: `[FlowFin] Auditoría de permisos · ${stats.created_admin + stats.created_member > 0 ? `${stats.created_admin + stats.created_member} creados` : 'todo OK'} · ${runDate}`,
+        subject: `[FlowFin] Permisos · ${stats.created_admin > 0 ? `${stats.created_admin} creados` : 'todo OK'} · ${runDate}`,
         body: buildEmailHtml({ ...stats, runDate }),
         from_name: 'FlowFin Audit',
       });
@@ -164,7 +141,7 @@ Deno.serve(async (req) => {
       stats.errors.push(`Email: ${getErrorMessage(emailErr)}`);
     }
 
-    console.log(`[dailyPermissionAudit] Done. Families: ${stats.families_count}, created admin: ${stats.created_admin}, created member: ${stats.created_member}, errors: ${stats.errors.length}`);
+    console.log(`[dailyPermissionAudit] families:${stats.families_count} existing:${stats.existing_admin} created:${stats.created_admin} errors:${stats.errors.length}`);
     return Response.json({ success: true, ...stats });
   } catch (err) {
     const msg = getErrorMessage(err);
