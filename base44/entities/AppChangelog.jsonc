@@ -1,0 +1,35 @@
+{
+  "name": "AppChangelog",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Número de versión (ej. 2.17.0)"
+    },
+    "release_date": {
+      "type": "string",
+      "description": "Fecha de lanzamiento ISO (ej. 2026-05-06)"
+    },
+    "changes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Lista de cambios de esta versión"
+    },
+    "is_current": {
+      "type": "boolean",
+      "description": "true solo en la versión más reciente"
+    }
+  },
+  "required": ["version", "release_date", "changes"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "user_condition": { "role": "user" } }
+      ]
+    },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

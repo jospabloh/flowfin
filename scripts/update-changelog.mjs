@@ -56,8 +56,9 @@ function todayISO() {
 // Parse current version from About.jsx
 // ---------------------------------------------------------------------------
 async function getCurrentVersion(src) {
-  const m = src.match(/const\s+CURRENT_VERSION\s*=\s*['"]([^'"]+)['"]/);
-  if (!m) throw new Error('No se encontró CURRENT_VERSION en About.jsx');
+  // First entry of VERSION_HISTORY is the current version
+  const m = src.match(/version:\s*['"]([^'"]+)['"]/);
+  if (!m) throw new Error('No se encontró ninguna versión en VERSION_HISTORY en About.jsx');
   return m[1];
 }
 

@@ -41,3 +41,26 @@ export const USER_MANUAL_SECTIONS_COUNT = 24;
 // Update this date manually when you review / update UserManual content.
 // The daily audit will flag this as stale after 60 days without an update.
 export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
+
+// Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
+export const GIT_LOG_SNAPSHOT = `d7a8cfb feat: also create member permissions with default access (no delete)
+cccad2c fix: admin permissions always created with full access (all true)
+40cf24a feat: add AI-powered auto-changelog script (update-changelog.mjs)
+61b0959 feat: automate permission and docs snapshot sync on every build
+39a39fc feat: add dailyPermissionAudit and dailyDocumentationAudit scheduled functions
+00e7d4e File changes
+fa8037d File changes
+30a4184 Manual code change
+023373f File changes
+2759aeb File changes
+57118ae File changes
+e212418 File changes
+ec730b3 File changes
+0598a2e File changes
+83cfae8 File changes
+d730dbf File changes
+46c2cbb File changes
+fba24e8 fix: resolve 17 deno lint errors (no-unused-vars, no-empty, require-await)
+8021b88 fix: migrate trial reactivation emails to Core.SendEmail and standardize currency decimals in movements
+d1eb535 File changes
+40154b4 File changes`;

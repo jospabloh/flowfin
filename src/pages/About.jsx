@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import PageHeader from '@/components/PageHeader';
 import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'lucide-react';
-
-const CURRENT_VERSION = '2.16.0';
 
 const VERSION_HISTORY = [
   {
@@ -350,6 +350,20 @@ const VERSION_HISTORY = [
 
 export default function About() {
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  const { data: changelogEntries = [] } = useQuery({
+    queryKey: ['appChangelog'],
+    queryFn: () => base44.entities.AppChangelog.list('-release_date'),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Use entity data when available, fall back to hardcoded VERSION_HISTORY
+  const history = changelogEntries.length > 0
+    ? changelogEntries.map(e => ({ version: e.version, date: e.release_date, changes: e.changes ?? [] }))
+    : VERSION_HISTORY;
+
+  const currentVersion = history[0]?.version ?? '—';
+
   return (
     <div className="pb-8">
       <PageHeader title="Acerca de" subtitle="FlowFin" />
@@ -362,7 +376,7 @@ export default function About() {
           </div>
           <h2 className="text-2xl font-black text-foreground mb-1">FlowFin</h2>
           <p className="text-sm text-muted-foreground mb-3">Sistema integral de finanzas familiares</p>
-          <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión {CURRENT_VERSION}</span>
+          <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-semibold">Versión {currentVersion}</span>
         </div>
 
         {/* Description */}
@@ -460,11 +474,11 @@ export default function About() {
         {/* Current version changes */}
         <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground">Novedades v{CURRENT_VERSION}</h3>
+            <h3 className="text-sm font-bold text-foreground">Novedades v{currentVersion}</h3>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Actual</span>
           </div>
           <ul className="space-y-2">
-            {VERSION_HISTORY[0].changes.map((c, i) => (
+            {(history[0]?.changes ?? []).map((c, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <span className="text-primary mt-0.5 flex-shrink-0">✦</span>
                 {c}
@@ -484,7 +498,7 @@ export default function About() {
           </button>
           {historyOpen && (
             <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
-              {VERSION_HISTORY.slice(1).map(v => (
+              {history.slice(1).map(v => (
                 <div key={v.version}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs font-bold text-foreground">v{v.version}</span>
