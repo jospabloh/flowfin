@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X, ShieldCheck, AlertCircle, Link2 } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X, ShieldCheck, AlertCircle, Link2, DatabaseZap } from 'lucide-react';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
@@ -9,8 +9,23 @@ import { useToast } from '@/components/ui/use-toast';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 export default function FamilyAdmin() {
-  const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit } = useFamily();
+  const { family, familyId, isAdmin, isReadOnly, billingStatus, trialDaysLeft, licensedMemberLimit, currentUser } = useFamily();
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
+  const isPlatformAdmin = currentUser?.role === 'admin';
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const res = await base44.functions.invoke('backfillModulePermissions', {});
+      const d = res?.data;
+      toast({ title: 'Backfill completado', description: d?.message || `${d?.created ?? 0} permisos creados.` });
+    } catch (err) {
+      toast({ title: 'Error en backfill', description: err?.message, variant: 'destructive' });
+    } finally {
+      setBackfilling(false);
+    }
+  };
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
@@ -416,6 +431,27 @@ export default function FamilyAdmin() {
           })}
         </div>
       </div>
+      {/* Platform admin: backfill permissions */}
+      {isPlatformAdmin && (
+        <div className="mx-4 mt-6 p-4 bg-muted/50 border border-border rounded-2xl">
+          <p className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1.5">
+            <DatabaseZap className="w-3.5 h-3.5 text-primary" />
+            Backfill de permisos (solo platform admin)
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Agrega module.Trips y module.Goals a todas las familias que aún no los tengan.
+          </p>
+          <button
+            onClick={handleBackfill}
+            disabled={backfilling}
+            className="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-50"
+          >
+            {backfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <DatabaseZap className="w-4 h-4" />}
+            {backfilling ? 'Procesando...' : 'Ejecutar backfill'}
+          </button>
+        </div>
+      )}
+
       <UpgradePlansModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </div>
   );

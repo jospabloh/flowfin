@@ -89,6 +89,37 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Seed default member permissions
+    const MEMBER_MODULE_PERMISSIONS = [
+      'module.Dashboard',
+      'module.Transactions',
+      'module.Reports',
+      'module.Investments',
+      'module.MSI',
+      'module.Rentals',
+      'module.ScheduledPayments',
+      'module.Budget',
+      'module.Assistant',
+      'module.Catalogs',
+      'module.FamilySettings',
+      'module.Trips',
+      'module.Goals',
+    ];
+
+    const memberPermBase = {
+      family_id: family.id,
+      role: 'member',
+      can_view: true,
+      can_read: true,
+      can_write: false,
+      can_modify: false,
+      can_delete: false,
+    };
+
+    await base44.asServiceRole.entities.RolePermission.bulkCreate(
+      MEMBER_MODULE_PERMISSIONS.map(key => ({ ...memberPermBase, permission_key: key }))
+    );
+
     return Response.json({ success: true, family_id: family.id, join_code });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
