@@ -4,32 +4,59 @@
   "properties": {
     "version": {
       "type": "string",
-      "description": "Número de versión (ej. 2.17.0)"
+      "description": "Versi\u00f3n semver (ej. 1.0.1)"
     },
     "release_date": {
       "type": "string",
-      "description": "Fecha de lanzamiento ISO (ej. 2026-05-06)"
+      "format": "date",
+      "description": "Fecha de lanzamiento"
     },
     "changes": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Lista de cambios de esta versión"
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de cambios en esta versi\u00f3n"
     },
     "is_current": {
       "type": "boolean",
-      "description": "true solo en la versión más reciente"
+      "default": false,
+      "description": "Si es la versi\u00f3n activa actualmente"
     }
   },
-  "required": ["version", "release_date", "changes"],
+  "required": [
+    "version",
+    "release_date"
+  ],
   "rls": {
-    "create": { "user_condition": { "role": "admin" } },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "read": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "user_condition": { "role": "user" } }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
       ]
     },
-    "update": { "user_condition": { "role": "admin" } },
-    "delete": { "user_condition": { "role": "admin" } }
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
   }
 }

@@ -1,67 +1,51 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  CURRENT_VERSION_IN_CODE,
-  VERSION_HISTORY_SNAPSHOT,
-  USER_MANUAL_SECTIONS_COUNT,
-  USER_MANUAL_LAST_REVIEWED,
-  GIT_LOG_SNAPSHOT,
-} from './versionHistorySnapshot.ts';
 
-const AUDIT_EMAIL      = 'h.josepablo@gmail.com';
-const ANTHROPIC_MODEL  = 'claude-sonnet-4-6';
-const DAY_MS           = 24 * 60 * 60 * 1000;
+const AUDIT_EMAIL = 'h.josepablo@gmail.com';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const STALE_MANUAL_DAYS = 60;
 
-function getErrorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+// These are updated manually or by the changelog script each release
+const CURRENT_VERSION_IN_CODE = '1.0.0';
+const USER_MANUAL_SECTIONS_COUNT = 22; // approximate count of sections in UserManual page
+const USER_MANUAL_LAST_REVIEWED = '2026-05-07';
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function daysSince(isoDate: string | null | undefined): number | null {
+function daysSince(isoDate) {
   if (!isoDate) return null;
-  return Math.floor((Date.now() - new Date(isoDate).getTime()) / DAY_MS);
+  return Math.floor((Date.now() - new Date(isoDate).getTime()) / (24 * 60 * 60 * 1000));
 }
 
-function bumpVersion(version: string, type: 'patch' | 'minor' | 'major'): string {
+function bumpVersion(version, type) {
   const [major, minor, patch] = version.split('.').map(Number);
   if (type === 'major') return `${major + 1}.0.0`;
   if (type === 'minor') return `${major}.${minor + 1}.0`;
   return `${major}.${minor}.${patch + 1}`;
 }
 
-function todayISO(): string {
+function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ---------------------------------------------------------------------------
-// Call Anthropic API (via fetch) to generate changelog entry
-// ---------------------------------------------------------------------------
-async function generateChangelog(currentVersion: string, gitLog: string): Promise<{
-  bumpType: 'patch' | 'minor' | 'major';
-  changes: string[];
-}> {
+async function generateChangelog(currentVersion) {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY no configurada en variables de entorno');
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY no configurada');
 
   const prompt = `Eres el asistente de desarrollo de FlowFin, una app de finanzas familiares.
-Analiza los commits de git y genera una entrada de changelog para la nueva versión.
+Genera una entrada de changelog para la nueva versión basándote en el contexto general de la app.
 
 ## Versión actual: ${currentVersion}
-
-## Commits recientes (desde v${currentVersion}):
-${gitLog || '(sin commits detectados — genera 3 entradas genéricas de mantenimiento)'}
+## Fecha: ${todayISO()}
 
 ## Instrucciones:
-1. Determina el tipo de bump: "patch" para fixes/infraestructura, "minor" para features nuevas, "major" para cambios que rompen la app.
-2. Genera entre 3 y 8 entradas en español. Empieza cada una con el módulo (ej: "Dashboard:", "Fix:", "Asistente IA:").
-3. NO incluyas cambios puramente internos de scripts de build/automatización.
+1. Determina el tipo de bump: "patch" para mantenimiento, "minor" para features nuevas.
+2. Genera entre 3 y 5 entradas genéricas de mantenimiento en español.
+3. Empieza cada una con el módulo (ej: "Sistema:", "Fix:", "Asistente IA:").
 
-## Responde ÚNICAMENTE con JSON válido:
-{"bumpType":"patch"|"minor"|"major","changes":["Módulo: descripción 1","Módulo: descripción 2"]}`;
+## Responde ÚNICAMENTE con JSON válido (sin markdown):
+{"bumpType":"patch","changes":["Sistema: actualización de dependencias","Fix: mejoras de estabilidad"]}`;
 
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -72,7 +56,7 @@ ${gitLog || '(sin commits detectados — genera 3 entradas genéricas de manteni
     },
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
-      max_tokens: 1024,
+      max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     }),
   });
@@ -82,33 +66,19 @@ ${gitLog || '(sin commits detectados — genera 3 entradas genéricas de manteni
     throw new Error(`Anthropic API error ${resp.status}: ${txt.slice(0, 200)}`);
   }
 
-  const data = await resp.json() as { content: Array<{ type: string; text: string }> };
+  const data = await resp.json();
   const raw = data.content?.[0]?.type === 'text' ? data.content[0].text.trim() : '';
-
   const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) ?? raw.match(/(\{[\s\S]*\})/);
-  if (!jsonMatch) throw new Error(`Claude no devolvió JSON válido:\n${raw.slice(0, 300)}`);
+  if (!jsonMatch) throw new Error(`Claude no devolvió JSON válido: ${raw.slice(0, 200)}`);
 
-  const parsed = JSON.parse(jsonMatch[1].trim()) as { bumpType: string; changes: string[] };
+  const parsed = JSON.parse(jsonMatch[1].trim());
   if (!parsed.bumpType || !Array.isArray(parsed.changes)) {
-    throw new Error(`JSON incompleto de Claude: ${JSON.stringify(parsed)}`);
+    throw new Error(`JSON incompleto: ${JSON.stringify(parsed)}`);
   }
-  return parsed as { bumpType: 'patch' | 'minor' | 'major'; changes: string[] };
+  return parsed;
 }
 
-// ---------------------------------------------------------------------------
-// Email builder
-// ---------------------------------------------------------------------------
-function buildEmailHtml(opts: {
-  runDate: string;
-  action: 'updated' | 'ok' | 'error';
-  codeVersion: string;
-  newVersion?: string;
-  changes?: string[];
-  dbVersionBefore?: string | null;
-  daysSinceManualReview: number | null;
-  manualSectionsInCode: number;
-  errors: string[];
-}): string {
+function buildEmailHtml(opts) {
   const statusBadge = opts.errors.length > 0
     ? '<span style="color:#dc2626;font-weight:700">⚠️ Con errores</span>'
     : opts.action === 'updated'
@@ -125,8 +95,7 @@ function buildEmailHtml(opts: {
   const manualAge = opts.daysSinceManualReview !== null ? `${opts.daysSinceManualReview} días` : '—';
   const manualWarning = opts.daysSinceManualReview !== null && opts.daysSinceManualReview > STALE_MANUAL_DAYS
     ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:#92400e">
-        ⚠️ El manual de usuario no se ha revisado en ${opts.daysSinceManualReview} días.
-        Revisa si hay funcionalidades nuevas sin documentar en <code>src/pages/UserManual.jsx</code>.
+        ⚠️ El manual no se ha revisado en ${opts.daysSinceManualReview} días. Revisa si hay funcionalidades sin documentar.
        </div>`
     : '';
 
@@ -156,7 +125,7 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 <div class="b">
   <p>Estado: ${statusBadge}</p>
   <div class="g">
-    <div class="row"><span>Versión en código (snapshot)</span><span class="val">${opts.codeVersion}</span></div>
+    <div class="row"><span>Versión en código</span><span class="val">${opts.codeVersion}</span></div>
     ${opts.action === 'updated'
       ? `<div class="row"><span>Versión anterior en BD</span><span class="val">${opts.dbVersionBefore ?? '—'}</span></div>
          <div class="row" style="border-bottom:none"><span>Nueva versión registrada</span><span class="val" style="color:#d97706">${opts.newVersion}</span></div>`
@@ -165,7 +134,7 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   </div>
   ${changesBlock}
   <div class="g" style="margin-top:14px">
-    <div class="row"><span>Secciones en manual</span><span class="val">${opts.manualSectionsInCode}</span></div>
+    <div class="row"><span>Secciones en manual</span><span class="val">${opts.manualSectionsCount}</span></div>
     <div class="row" style="border-bottom:none"><span>Manual revisado hace</span><span class="val">${manualAge}</span></div>
   </div>
   ${manualWarning}
@@ -175,113 +144,102 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 </div></body></html>`;
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const now = new Date();
-    const runDate = now.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-    const errors: string[] = [];
+    const runDate = fmtDate(now);
+    const errors = [];
 
-    // Fetch latest AppChangelog record from entity
-    let latestChangelog: { id?: string; version?: string; is_current?: boolean } | null = null;
+    // Fetch latest AppChangelog from entity
+    let latestChangelog = null;
     try {
       const rows = await base44.asServiceRole.entities.AppChangelog.list('-release_date', 1);
       latestChangelog = rows?.[0] ?? null;
     } catch (e) {
-      errors.push(`AppChangelog query: ${getErrorMessage(e)}`);
+      errors.push(`AppChangelog query: ${e.message}`);
     }
 
-    const entityVersion  = latestChangelog?.version ?? null;
-    const isInSync       = entityVersion === CURRENT_VERSION_IN_CODE;
+    const entityVersion = latestChangelog?.version ?? null;
+    const isInSync = entityVersion === CURRENT_VERSION_IN_CODE;
 
-    let action: 'updated' | 'ok' | 'error' = 'ok';
-    let newVersion: string | undefined;
-    let changes: string[] | undefined;
+    let action = 'ok';
+    let newVersion;
+    let changes;
 
     if (!isInSync) {
-      // Code has a newer version than what's in the entity — auto-update
       try {
-        const result = await generateChangelog(CURRENT_VERSION_IN_CODE, GIT_LOG_SNAPSHOT);
+        const result = await generateChangelog(CURRENT_VERSION_IN_CODE);
         newVersion = bumpVersion(CURRENT_VERSION_IN_CODE, result.bumpType);
-        changes    = result.changes;
+        changes = result.changes;
 
         // Mark previous is_current=false
         try {
           const allCurrent = await base44.asServiceRole.entities.AppChangelog.filter({ is_current: true });
           for (const row of (allCurrent ?? [])) {
-            if (row.id) {
-              await base44.asServiceRole.entities.AppChangelog.update(row.id, { is_current: false });
-            }
+            if (row.id) await base44.asServiceRole.entities.AppChangelog.update(row.id, { is_current: false });
           }
         } catch (e) {
-          errors.push(`Mark old is_current=false: ${getErrorMessage(e)}`);
+          errors.push(`Mark old is_current: ${e.message}`);
         }
 
-        // Create new AppChangelog entry
         await base44.asServiceRole.entities.AppChangelog.create({
-          version:      newVersion,
+          version: newVersion,
           release_date: todayISO(),
-          changes:      changes,
-          is_current:   true,
+          changes,
+          is_current: true,
         });
 
-        // Update or create AppVersion record
+        // Update AppVersion
         try {
           const versions = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
-          const latest   = versions?.[0];
+          const latest = versions?.[0];
           if (latest?.id) {
             await base44.asServiceRole.entities.AppVersion.update(latest.id, { version: newVersion });
           } else {
             await base44.asServiceRole.entities.AppVersion.create({ version: newVersion });
           }
         } catch (e) {
-          errors.push(`AppVersion update: ${getErrorMessage(e)}`);
+          errors.push(`AppVersion update: ${e.message}`);
         }
 
         action = 'updated';
       } catch (e) {
-        errors.push(`Changelog generation: ${getErrorMessage(e)}`);
+        errors.push(`Changelog generation: ${e.message}`);
         action = 'error';
       }
     }
 
     const daysSinceManualReview = daysSince(USER_MANUAL_LAST_REVIEWED);
 
-    // Send email
     try {
       const subjectParts = action === 'updated'
         ? `nueva v${newVersion} creada`
-        : action === 'error'
-          ? 'error al actualizar'
-          : 'todo OK';
+        : action === 'error' ? 'error al actualizar' : 'todo OK';
       await base44.asServiceRole.integrations.Core.SendEmail({
-        to:        AUDIT_EMAIL,
-        subject:   `[FlowFin] Documentación · ${subjectParts} · ${runDate}`,
-        body:      buildEmailHtml({
+        to: AUDIT_EMAIL,
+        subject: `[FlowFin] Documentación · ${subjectParts} · ${runDate}`,
+        body: buildEmailHtml({
           runDate,
           action,
-          codeVersion:          CURRENT_VERSION_IN_CODE,
+          codeVersion: CURRENT_VERSION_IN_CODE,
           newVersion,
           changes,
-          dbVersionBefore:      entityVersion,
+          dbVersionBefore: entityVersion,
           daysSinceManualReview,
-          manualSectionsInCode: USER_MANUAL_SECTIONS_COUNT,
+          manualSectionsCount: USER_MANUAL_SECTIONS_COUNT,
           errors,
         }),
         from_name: 'FlowFin Audit',
       });
     } catch (emailErr) {
-      errors.push(`Email: ${getErrorMessage(emailErr)}`);
+      errors.push(`Email: ${emailErr.message}`);
     }
 
     console.log(`[dailyDocumentationAudit] codeVersion:${CURRENT_VERSION_IN_CODE} entityVersion:${entityVersion} inSync:${isInSync} action:${action} errors:${errors.length}`);
     return Response.json({ success: true, codeVersion: CURRENT_VERSION_IN_CODE, entityVersion, isInSync, action, newVersion, errors });
   } catch (err) {
-    const msg = getErrorMessage(err);
-    console.error(`[dailyDocumentationAudit] Fatal: ${msg}`);
-    return Response.json({ success: false, error: msg }, { status: 500 });
+    console.error(`[dailyDocumentationAudit] Fatal: ${err.message}`);
+    return Response.json({ success: false, error: err.message }, { status: 500 });
   }
 });

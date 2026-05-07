@@ -1,30 +1,33 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { ALL_PERMISSION_DEFAULTS, type PermEntry } from './permissionManifests.ts';
 
 const AUDIT_EMAIL = 'h.josepablo@gmail.com';
-const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
 const ADMIN_FULL  = { can_read: true, can_write: true, can_modify: true, can_delete: true,  can_view: true };
-const MEMBER_DEFAULT = { can_read: true, can_write: true, can_modify: true, can_delete: false, can_view: true };
+const MEMBER_BASE = { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true };
 
-function getErrorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+// All permission keys that every family should have for both admin and member
+const ALL_PERMISSION_KEYS = [
+  'module.Dashboard',
+  'module.Transactions',
+  'module.Reports',
+  'module.Investments',
+  'module.MSI',
+  'module.Rentals',
+  'module.ScheduledPayments',
+  'module.Budget',
+  'module.Assistant',
+  'module.Catalogs',
+  'module.FamilySettings',
+  'module.Trips',
+  'module.Goals',
+  'module.FamilyAdmin',
+  'module.PermissionAdmin',
+];
 
-function fmtDate(d: Date): string {
+function fmtDate(d) {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function buildEmailHtml(stats: {
-  checked: number;
-  families_count: number;
-  existing_admin: number;
-  created_admin: number;
-  existing_member: number;
-  created_member: number;
-  created_keys: string[];
-  errors: string[];
-  runDate: string;
-}): string {
+function buildEmailHtml(stats) {
   const allOk = (stats.created_admin + stats.created_member) === 0 && stats.errors.length === 0;
   const statusBadge = stats.errors.length > 0
     ? '<span style="color:#dc2626;font-weight:700">⚠️ Con errores</span>'
@@ -66,23 +69,15 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   <p>Estado: ${statusBadge}</p>
   <div class="g">
     <div class="row"><span>Familias auditadas</span><span class="num">${stats.families_count}</span></div>
-    <div class="row"><span>Permission keys revisados</span><span class="num">${stats.checked}</span></div>
+    <div class="row"><span>Permission keys por familia</span><span class="num">${ALL_PERMISSION_KEYS.length}</span></div>
     <div class="row"><span>Admin: ya existían</span><span class="num">${stats.existing_admin}</span></div>
-    <div class="row"><span>Admin: creados (acceso total)</span>
-      <span class="num" style="color:${stats.created_admin > 0 ? '#d97706' : '#059669'}">${stats.created_admin}</span>
-    </div>
+    <div class="row"><span>Admin: creados</span><span class="num" style="color:${stats.created_admin > 0 ? '#d97706' : '#059669'}">${stats.created_admin}</span></div>
     <div class="row"><span>Member: ya existían</span><span class="num">${stats.existing_member}</span></div>
-    <div class="row" style="border-bottom:none"><span>Member: creados (sin eliminar)</span>
-      <span class="num" style="color:${stats.created_member > 0 ? '#d97706' : '#059669'}">${stats.created_member}</span>
-    </div>
+    <div class="row" style="border-bottom:none"><span>Member: creados</span><span class="num" style="color:${stats.created_member > 0 ? '#d97706' : '#059669'}">${stats.created_member}</span></div>
   </div>
   ${stats.created_keys.length > 0 ? '<p><strong>Permisos nuevos creados:</strong></p>' : ''}
   ${createdList}
   ${errorBlock}
-  <p style="margin-top:16px;font-size:13px;color:#6b7280">
-    Admin: acceso total (read, write, modify, delete, view = true). Member: igual excepto delete = false.
-    Ajusta desde <a href="${APP_URL}" style="color:#059669">FlowFin → Admin Permisos</a>.
-  </p>
 </div>
 <div class="f">FlowFin — <strong>ACACIA Consultoría</strong> &nbsp;·&nbsp; <a href="mailto:soporte@acaciaco.com.mx">soporte@acaciaco.com.mx</a></div>
 </div></body></html>`;
@@ -95,17 +90,17 @@ Deno.serve(async (req) => {
     const runDate = fmtDate(now);
 
     const stats = {
-      checked: ALL_PERMISSION_DEFAULTS.length,
+      runDate,
       families_count: 0,
       existing_admin: 0,
       created_admin: 0,
       existing_member: 0,
       created_member: 0,
-      created_keys: [] as string[],
-      errors: [] as string[],
+      created_keys: [],
+      errors: [],
     };
 
-    const families: Array<{ id: string }> = await base44.asServiceRole.entities.Family.list();
+    const families = await base44.asServiceRole.entities.Family.list();
     if (!families?.length) {
       return Response.json({ message: 'No families found', stats });
     }
@@ -116,33 +111,27 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.RolePermission.filter({ role: 'member' }),
     ]);
 
-    const adminSet = new Set<string>(
-      (existingAdmin || []).map((p: { family_id: string; permission_key: string }) => `${p.family_id}:${p.permission_key}`)
-    );
-    const memberSet = new Set<string>(
-      (existingMember || []).map((p: { family_id: string; permission_key: string }) => `${p.family_id}:${p.permission_key}`)
-    );
+    const adminSet = new Set((existingAdmin || []).map(p => `${p.family_id}:${p.permission_key}`));
+    const memberSet = new Set((existingMember || []).map(p => `${p.family_id}:${p.permission_key}`));
 
-    const toCreate: object[] = [];
+    const toCreate = [];
 
     for (const family of families) {
-      for (const entry of ALL_PERMISSION_DEFAULTS as PermEntry[]) {
-        const fk = `${family.id}:${entry.key}`;
-
+      for (const key of ALL_PERMISSION_KEYS) {
+        const fk = `${family.id}:${key}`;
         if (adminSet.has(fk)) {
           stats.existing_admin++;
         } else {
-          toCreate.push({ family_id: family.id, role: 'admin', permission_key: entry.key, ...ADMIN_FULL });
+          toCreate.push({ family_id: family.id, role: 'admin', permission_key: key, ...ADMIN_FULL });
           stats.created_admin++;
-          stats.created_keys.push(`[admin] ${entry.key} (...${family.id.slice(-6)})`);
+          stats.created_keys.push(`[admin] ${key} (...${family.id.slice(-6)})`);
         }
-
         if (memberSet.has(fk)) {
           stats.existing_member++;
         } else {
-          toCreate.push({ family_id: family.id, role: 'member', permission_key: entry.key, ...MEMBER_DEFAULT });
+          toCreate.push({ family_id: family.id, role: 'member', permission_key: key, ...MEMBER_BASE });
           stats.created_member++;
-          stats.created_keys.push(`[member] ${entry.key} (...${family.id.slice(-6)})`);
+          stats.created_keys.push(`[member] ${key} (...${family.id.slice(-6)})`);
         }
       }
     }
@@ -151,7 +140,7 @@ Deno.serve(async (req) => {
       try {
         await base44.asServiceRole.entities.RolePermission.bulkCreate(toCreate.slice(i, i + 50));
       } catch (e) {
-        stats.errors.push(`Batch ${Math.floor(i / 50) + 1}: ${getErrorMessage(e)}`);
+        stats.errors.push(`Batch ${Math.floor(i / 50) + 1}: ${e.message}`);
       }
     }
 
@@ -161,18 +150,17 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: AUDIT_EMAIL,
         subject: `[FlowFin] Permisos · ${totalCreated > 0 ? `${totalCreated} creados` : 'todo OK'} · ${runDate}`,
-        body: buildEmailHtml({ ...stats, runDate }),
+        body: buildEmailHtml(stats),
         from_name: 'FlowFin Audit',
       });
     } catch (emailErr) {
-      stats.errors.push(`Email: ${getErrorMessage(emailErr)}`);
+      stats.errors.push(`Email: ${emailErr.message}`);
     }
 
     console.log(`[dailyPermissionAudit] families:${stats.families_count} admin_created:${stats.created_admin} member_created:${stats.created_member} errors:${stats.errors.length}`);
     return Response.json({ success: true, ...stats });
   } catch (err) {
-    const msg = getErrorMessage(err);
-    console.error(`[dailyPermissionAudit] Fatal: ${msg}`);
-    return Response.json({ success: false, error: msg }, { status: 500 });
+    console.error(`[dailyPermissionAudit] Fatal: ${err.message}`);
+    return Response.json({ success: false, error: err.message }, { status: 500 });
   }
 });
