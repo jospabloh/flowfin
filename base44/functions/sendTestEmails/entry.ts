@@ -1,8 +1,10 @@
-// sendTestEmails: sends one test email per automation type to validate content and delivery.
-// Invoke via GET/POST. Optional query param: ?to=email (default: h.josepablo@gmail.com)
+// sendTestEmails: sends test emails using Base44 Core.SendEmail
+// Tests all lifecycle email types to validate content and delivery
+// Query param: ?to=email (default: user's email)
+// All emails are sent via Base44's internal email system
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? '';
-const FROM_EMAIL = Deno.env.get('EMAIL_FROM') ?? 'FlowFin <noreply@flowfin.app>';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://app.flowfin.app';
 
 const ALL_EMAIL_TYPES = [
@@ -248,28 +250,24 @@ ${cta}Ir a FlowFin →</a>
   return { subject: `[PRUEBA] ${t.subject}`, html: wrap(t.body) };
 }
 
-async function sendViaResend(to: string, subject: string, html: string): Promise<void> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+async function sendViaBase44(base44: any, to: string, subject: string, html: string): Promise<void> {
+  await base44.asServiceRole.integrations.Core.SendEmail({
+    to,
+    subject,
+    body: html,
+    from_name: 'FlowFin',
   });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Resend ${res.status}: ${body}`);
-  }
 }
 
 Deno.serve(async (req) => {
-  if (!RESEND_API_KEY) {
-    return Response.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 });
+  const base44 = createClientFromRequest(req);
+  const user = await base44.auth.me();
+  if (!user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const url = new URL(req.url);
-  const to = url.searchParams.get('to') ?? 'h.jospablo@gmail.com';
+  const to = url.searchParams.get('to') ?? user.email;
 
   const ctx: Record<string, string> = {
     family_name: 'Familia Demo',
@@ -289,7 +287,7 @@ Deno.serve(async (req) => {
       continue;
     }
     try {
-      await sendViaResend(to, template.subject, template.html);
+      await sendViaBase44(base44, to, template.subject, template.html);
       results.push({ type: emailType, subject: template.subject, status: 'sent' });
       sent++;
     } catch (err: unknown) {
