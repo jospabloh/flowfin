@@ -218,7 +218,8 @@ export default function TransactionEditModal({ transaction, categories, subcateg
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Fecha</label>
             <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
-              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+              onClick={e => e.target.showPicker?.()}
+              className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
           </div>
 
           {/* Category + Subcategory */}
