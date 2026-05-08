@@ -12,6 +12,7 @@
  * Run manually via:      node scripts/sync-permission-snapshot.mjs
  */
 
+import process from 'node:process';
 import { readdir, writeFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
