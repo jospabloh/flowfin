@@ -3,8 +3,7 @@
  * Always pass locale and currency from FamilyContext — never hardcode es-MX / MXN.
  *
  * Decimal rules:
- *  - Lists / chips / summaries → decimals=0  → $1,200
- *  - Detail views / edit fields → decimals=2  → $1,200.00
+ *  - All monetary amounts       → decimals=2  → $1,200.00
  *  - Percentages                → formatPct() → 12.5%
  */
 
@@ -13,7 +12,7 @@
  * @param {number} amount
  * @param {{ locale?: string, currency?: string, decimals?: number }} opts
  */
-export function formatCurrency(amount, { locale = 'es-MX', currency = 'MXN', decimals = 0 } = {}) {
+export function formatCurrency(amount, { locale = 'es-MX', currency = 'MXN', decimals = 2 } = {}) {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,

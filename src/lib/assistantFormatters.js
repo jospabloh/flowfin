@@ -19,6 +19,7 @@ export function formatAmount(value, currency = 'MXN', locale = 'es-MX') {
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(value);
   } catch {

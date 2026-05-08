@@ -154,7 +154,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
               </div>
               <div className="bg-muted rounded-xl p-3 text-center">
                 <p className="text-lg font-black text-foreground">
-                  {formatCurrency(totalSpent, { locale, currency: familyCurrency, decimals: 0 })}
+                  {formatCurrency(totalSpent, { locale, currency: familyCurrency, decimals: 2 })}
                 </p>
                 <p className="text-xs text-muted-foreground">Total gastado</p>
               </div>
@@ -203,7 +203,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
                           {t.receipt_image && <span title="Tiene recibo" className="flex-shrink-0">📎</span>}
                         </div>
                         <span className={`font-bold flex-shrink-0 ml-2 ${t.type === 'expense' ? 'text-expense' : 'text-income'}`}>
-                          {t.type === 'expense' ? '-' : '+'}{formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 0 })}
+                          {t.type === 'expense' ? '-' : '+'}{formatCurrency(t.amount, { locale, currency: familyCurrency, decimals: 2 })}
                           {t.exchange_rate && t.original_currency !== familyCurrency
                             ? ` (TC:${t.exchange_rate})`
                             : ''}

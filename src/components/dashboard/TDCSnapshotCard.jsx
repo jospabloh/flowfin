@@ -168,7 +168,7 @@ export default function TDCSnapshotCard() {
                   {snap ? (
                     <>
                       <p className="text-xl font-black text-foreground mt-1">
-                        {formatCurrency(snap.balance, { locale, currency, decimals: 0 })}
+                        {formatCurrency(snap.balance, { locale, currency, decimals: 2 })}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         Actualizado {formatSnapshotDate(snap.snapshot_date)}

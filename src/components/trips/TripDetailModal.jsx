@@ -261,7 +261,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">Presupuesto</p>
                       <p className="font-bold text-muted-foreground text-base">
-                        {formatCurrency(trip.budget_amount, { locale, currency: budgetCur, decimals: 0 })}
+                        {formatCurrency(trip.budget_amount, { locale, currency: budgetCur, decimals: 2 })}
                       </p>
                     </div>
                   </div>
@@ -331,7 +331,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
-                            <span className="font-bold text-foreground">{formatCurrency(value, { locale, currency: familyCurrency, decimals: 0 })}</span>
+                            <span className="font-bold text-foreground">{formatCurrency(value, { locale, currency: familyCurrency, decimals: 2 })}</span>
                           </div>
                         </div>
                         <div className="w-full bg-background rounded-full h-1.5 overflow-hidden">
@@ -361,7 +361,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
-                            <span className="font-bold text-foreground">{formatCurrency(value, { locale, currency: familyCurrency, decimals: 0 })}</span>
+                            <span className="font-bold text-foreground">{formatCurrency(value, { locale, currency: familyCurrency, decimals: 2 })}</span>
                           </div>
                         </div>
                         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
@@ -389,7 +389,7 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                             {date !== 'Sin fecha' ? formatDate(date, { locale, style: 'medium' }) : 'Sin fecha'}
                           </p>
                           <p className="text-xs font-bold text-expense">
-                            -{formatCurrency(dayTotal, { locale, currency: familyCurrency, decimals: 0 })}
+                            -{formatCurrency(dayTotal, { locale, currency: familyCurrency, decimals: 2 })}
                           </p>
                         </div>
                         {/* Transactions */}
