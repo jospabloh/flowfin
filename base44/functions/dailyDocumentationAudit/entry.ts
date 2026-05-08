@@ -4,7 +4,7 @@ const AUDIT_EMAIL = 'h.josepablo@gmail.com';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const STALE_MANUAL_DAYS = 60;
 
-// These are updated manually or by the changelog script each release
+// These are updated manually or by the changelog script each release (v2)
 const CURRENT_VERSION_IN_CODE = '1.0.0';
 const USER_MANUAL_SECTIONS_COUNT = 22; // approximate count of sections in UserManual page
 const USER_MANUAL_LAST_REVIEWED = '2026-05-07';

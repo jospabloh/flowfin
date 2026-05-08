@@ -4,7 +4,7 @@ const AUDIT_EMAIL = 'h.josepablo@gmail.com';
 const ADMIN_FULL  = { can_read: true, can_write: true, can_modify: true, can_delete: true,  can_view: true };
 const MEMBER_BASE = { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true };
 
-// All permission keys that every family should have for both admin and member
+// All permission keys that every family should have for both admin and member (v2)
 const ALL_PERMISSION_KEYS = [
   'module.Dashboard',
   'module.Transactions',
