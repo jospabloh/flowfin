@@ -17,6 +17,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import process from 'node:process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -55,7 +56,7 @@ function todayISO() {
 // ---------------------------------------------------------------------------
 // Parse current version from About.jsx
 // ---------------------------------------------------------------------------
-async function getCurrentVersion(src) {
+function getCurrentVersion(src) {
   // First entry of VERSION_HISTORY is the current version
   const m = src.match(/version:\s*['"]([^'"]+)['"]/);
   if (!m) throw new Error('No se encontró ninguna versión en VERSION_HISTORY en About.jsx');
@@ -158,7 +159,7 @@ ${existingEntries}
 // ---------------------------------------------------------------------------
 // Update About.jsx in-place
 // ---------------------------------------------------------------------------
-async function updateAboutJsx(src, newVersion, changes) {
+function updateAboutJsx(src, newVersion, changes) {
   const today   = todayISO();
   const changesJs = changes.map(c => `      '${c.replace(/'/g, "\\'")}',`).join('\n');
 

@@ -12,6 +12,7 @@
  * Run manually via:      node scripts/sync-docs-snapshot.mjs
  */
 
+import process from 'node:process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -250,7 +250,7 @@ ${cta}Ir a FlowFin →</a>
   return { subject: `[PRUEBA] ${t.subject}`, html: wrap(t.body) };
 }
 
-async function sendViaBase44(base44: any, to: string, subject: string, html: string): Promise<void> {
+async function sendViaBase44(base44: { asServiceRole: { integrations: { Core: { SendEmail: (opts: { to: string; subject: string; body: string }) => Promise<unknown> } } } }, to: string, subject: string, html: string): Promise<void> {
   await base44.asServiceRole.integrations.Core.SendEmail({
     to,
     subject,
