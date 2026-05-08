@@ -160,7 +160,7 @@ export default function Layout() {
 
   // Persist group collapsed state
   useEffect(() => {
-    try { localStorage.setItem('sidebar_groups_collapsed', JSON.stringify(groupCollapsed)); } catch {}
+    try { localStorage.setItem('sidebar_groups_collapsed', JSON.stringify(groupCollapsed)); } catch { /* ignore quota/security errors */ }
   }, [groupCollapsed]);
 
   const toggleGroup = (label) => {
