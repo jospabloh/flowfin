@@ -22,13 +22,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Attach approved member counts for context
+    // Attach approved member counts and creator email for context
     const result = await Promise.all(families.map(async (f) => {
       const members = await base44.asServiceRole.entities.FamilyMembership.filter({
         family_id: f.id,
         status: 'approved',
       });
-      return { ...f, member_count: members.length };
+
+      let creator_email = null;
+      if (f.admin_user_id) {
+        try {
+          const creator = await base44.asServiceRole.entities.User.get(f.admin_user_id);
+          creator_email = creator?.email ?? null;
+        } catch {
+          // Fallback: try via the admin's approved membership record
+          const adminMembership = members.find(m => m.user_id === f.admin_user_id && m.role === 'admin');
+          creator_email = adminMembership?.user_email ?? null;
+        }
+      }
+
+      return { ...f, member_count: members.length, creator_email };
     }));
 
     return Response.json({ families: result });

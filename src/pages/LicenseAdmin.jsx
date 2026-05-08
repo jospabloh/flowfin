@@ -393,6 +393,15 @@ export default function LicenseAdmin() {
                       </span>
                     )}
                   </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground/80 mt-1">
+                    <span>ID: <span className="font-mono text-foreground/80 break-all">{f.id}</span></span>
+                    {f.creator_email && (
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        <span className="text-foreground/80">{f.creator_email}</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-x-4 text-[11px] text-muted-foreground/70 mt-1">
                     <span>Inicio trial: {fmt(f.trial_start_at)}</span>
                     <span>Fin trial: {fmt(f.trial_end_at)}</span>
@@ -424,14 +433,23 @@ export default function LicenseAdmin() {
             onClick={e => e.stopPropagation()}
           >
             <div className="p-5 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
-              <div>
-                <h3 className="font-bold text-foreground">{selectedFamily.name}</h3>
+              <div className="min-w-0 pr-2">
+                <h3 className="font-bold text-foreground truncate">{selectedFamily.name}</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   <span className="font-mono">{selectedFamily.join_code}</span>
                   {selectedFamily.license_expires_at && (
                     <> · Vence: <span className="font-medium text-foreground">{fmt(selectedFamily.license_expires_at)}</span></>
                   )}
                 </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  ID: <span className="font-mono text-foreground/80 break-all">{selectedFamily.id}</span>
+                </p>
+                {selectedFamily.creator_email && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    Creada por: <span className="text-foreground/90">{selectedFamily.creator_email}</span>
+                  </p>
+                )}
               </div>
               <button onClick={() => setSelectedFamily(null)} className="p-1.5 rounded-xl bg-muted">
                 <X className="w-4 h-4 text-muted-foreground" />
