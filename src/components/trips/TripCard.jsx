@@ -32,7 +32,7 @@ function BudgetBar({ spent, total, currency, locale, unconvertedCount = 0 }) {
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <p className="text-[11px] text-muted-foreground">
-        {formatCurrency(spent, { locale, currency, decimals: 0 })} / {formatCurrency(total, { locale, currency, decimals: 0 })} ({pct.toFixed(0)}%)
+        {formatCurrency(spent, { locale, currency, decimals: 2 })} / {formatCurrency(total, { locale, currency, decimals: 2 })} ({pct.toFixed(0)}%)
         {unconvertedCount > 0 && (
           <span className="ml-1 text-amber-500">· {unconvertedCount} sin tasa</span>
         )}
