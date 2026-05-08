@@ -3,7 +3,7 @@ import {
   Home, List, Plus, BarChart2, MoreHorizontal,
   TrendingUp, CreditCard, Building, BookOpen, Settings,
   HelpCircle, Info, X, Sparkles, Users,
-  ChevronLeft, CalendarCheck, PiggyBank,
+  ChevronLeft, ChevronDown, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
   PanelLeftClose, PanelLeftOpen, Plane, Coins, Target
 } from 'lucide-react';
@@ -145,12 +145,27 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar_collapsed') === 'true'; } catch { return false; }
   });
+  const [groupCollapsed, setGroupCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_groups_collapsed');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const pendingCount = usePendingCount();
 
   // Persist collapsed state
   useEffect(() => {
     try { localStorage.setItem('sidebar_collapsed', String(collapsed)); } catch { /* ignore quota/security errors */ }
   }, [collapsed]);
+
+  // Persist group collapsed state
+  useEffect(() => {
+    try { localStorage.setItem('sidebar_groups_collapsed', JSON.stringify(groupCollapsed)); } catch { /* ignore quota/security errors */ }
+  }, [groupCollapsed]);
+
+  const toggleGroup = (label) => {
+    setGroupCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   // Close mobile drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -280,73 +295,135 @@ export default function Layout() {
 
       {/* Nav groups */}
       <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar">
-        {SIDEBAR_GROUPS.map((group, gi) => (
-          <div key={gi} className={gi > 0 ? 'mt-1' : ''}>
-            {group.label && !collapsed && (
-              <p className="px-5 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                {group.label}
-              </p>
-            )}
-            {group.label && collapsed && !inDrawer && <div className="mx-3 mt-3 mb-1 border-t border-border" />}
-            <div className={`space-y-0.5 ${collapsed && !inDrawer ? 'px-2' : 'px-3'}`}>
-              {group.items.filter(item => canShowItem(item)).map(item => {
-                const Icon = item.icon;
-                const active = location.pathname === item.to;
-                const showBadge = item.to === '/Transactions' && pendingCount > 0;
-                return (
-                  <NavTooltip key={item.to} label={item.label} collapsed={collapsed && !inDrawer}>
-                    <button
-                      onClick={() => { handleNavClick(item.to); if (inDrawer) setMobileOpen(false); }}
-                      aria-label={item.label}
-                      aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 w-full touch-target
-                        ${collapsed && !inDrawer ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
-                        ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-                      <div className="relative flex-shrink-0">
-                        <Icon className="w-4 h-4" aria-hidden="true" />
-                        {showBadge && (
-                          <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
-                            {pendingCount > 9 ? '9+' : pendingCount}
-                          </span>
-                        )}
-                      </div>
-                      {(!collapsed || inDrawer) && item.label}
-                    </button>
-                  </NavTooltip>
-                );
-              })}
+        {SIDEBAR_GROUPS.map((group, gi) => {
+          const sidebarExpanded = !collapsed || inDrawer;
+          const isGroupCollapsed = group.label && sidebarExpanded && !!groupCollapsed[group.label];
+          const hasActiveItem = group.label && group.items.some(item => location.pathname === item.to);
+          return (
+            <div key={gi} className={gi > 0 ? 'mt-1' : ''}>
+              {group.label && sidebarExpanded && (
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="w-full flex items-center justify-between px-5 pt-3 pb-1 group/gh"
+                  aria-expanded={!isGroupCollapsed}
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 group-hover/gh:text-muted-foreground transition-colors">
+                    {group.label}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {isGroupCollapsed && hasActiveItem && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" aria-label="Sección activa" />
+                    )}
+                    <ChevronDown className={`w-3 h-3 text-muted-foreground/50 transition-transform duration-200 ${isGroupCollapsed ? '-rotate-90' : ''}`} aria-hidden="true" />
+                  </div>
+                </button>
+              )}
+              {group.label && !sidebarExpanded && <div className="mx-3 mt-3 mb-1 border-t border-border" />}
+              <AnimatePresence initial={false}>
+                {!isGroupCollapsed && (
+                  <motion.div
+                    key="items"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className={`space-y-0.5 ${!sidebarExpanded ? 'px-2' : 'px-3'}`}>
+                      {group.items.filter(item => canShowItem(item)).map(item => {
+                        const Icon = item.icon;
+                        const active = location.pathname === item.to;
+                        const showBadge = item.to === '/Transactions' && pendingCount > 0;
+                        return (
+                          <NavTooltip key={item.to} label={item.label} collapsed={!sidebarExpanded}>
+                            <button
+                              onClick={() => { handleNavClick(item.to); if (inDrawer) setMobileOpen(false); }}
+                              aria-label={item.label}
+                              aria-current={active ? 'page' : undefined}
+                              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 w-full touch-target
+                                ${!sidebarExpanded ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
+                                ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+                              <div className="relative flex-shrink-0">
+                                <Icon className="w-4 h-4" aria-hidden="true" />
+                                {showBadge && (
+                                  <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
+                                    {pendingCount > 9 ? '9+' : pendingCount}
+                                  </span>
+                                )}
+                              </div>
+                              {sidebarExpanded && item.label}
+                            </button>
+                          </NavTooltip>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* System Admin */}
-      {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
-        <div className={`border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1 ${collapsed && !inDrawer ? 'px-2' : 'px-3'}`}>
-          {(!collapsed || inDrawer) && (
-            <p className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600/80">Sistema</p>
-          )}
-          {collapsed && !inDrawer && <div className="mb-1" />}
-          {[
-            { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
-            { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
-          ].filter(x => x.visible).map(({ to, icon: Icon, label }) => (
-            <NavTooltip key={to} label={label} collapsed={collapsed && !inDrawer}>
+      {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (() => {
+        const sidebarExpanded = !collapsed || inDrawer;
+        const sistemaItems = [
+          { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
+          { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
+        ].filter(x => x.visible);
+        const isSistemaCollapsed = sidebarExpanded && !!groupCollapsed['Sistema'];
+        const hasSistemaActive = sistemaItems.some(x => location.pathname === x.to);
+        return (
+          <div className={`border-t border-amber-200/60 dark:border-amber-800/40 pt-2 pb-1 ${!sidebarExpanded ? 'px-2' : 'px-3'}`}>
+            {sidebarExpanded ? (
               <button
-                onClick={() => { handleNavClick(to); if (inDrawer) setMobileOpen(false); }}
-                className={`flex items-center gap-3 rounded-xl text-sm font-medium w-full transition-all touch-target
-                  ${collapsed && !inDrawer ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
-                  ${location.pathname === to
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                onClick={() => toggleGroup('Sistema')}
+                className="w-full flex items-center justify-between px-2 py-0.5 group/sh"
+                aria-expanded={!isSistemaCollapsed}
               >
-                <Icon className="w-4 h-4" />
-                {(!collapsed || inDrawer) && label}
+                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 group-hover/sh:text-amber-600 transition-colors">Sistema</p>
+                <div className="flex items-center gap-1.5">
+                  {isSistemaCollapsed && hasSistemaActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" aria-label="Sección activa" />
+                  )}
+                  <ChevronDown className={`w-3 h-3 text-amber-500/60 transition-transform duration-200 ${isSistemaCollapsed ? '-rotate-90' : ''}`} aria-hidden="true" />
+                </div>
               </button>
-            </NavTooltip>
-          ))}
-        </div>
-      )}
+            ) : (
+              <div className="mb-1" />
+            )}
+            <AnimatePresence initial={false}>
+              {!isSistemaCollapsed && (
+                <motion.div
+                  key="sistema-items"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  {sistemaItems.map(({ to, icon: Icon, label }) => (
+                    <NavTooltip key={to} label={label} collapsed={!sidebarExpanded}>
+                      <button
+                        onClick={() => { handleNavClick(to); if (inDrawer) setMobileOpen(false); }}
+                        className={`flex items-center gap-3 rounded-xl text-sm font-medium w-full transition-all touch-target
+                          ${!sidebarExpanded ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
+                          ${location.pathname === to
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {sidebarExpanded && label}
+                      </button>
+                    </NavTooltip>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })()}
 
       {/* Bottom actions */}
       <div className={`border-t border-border ${collapsed && !inDrawer ? 'p-2 space-y-2' : 'p-4 space-y-2'}`}>
