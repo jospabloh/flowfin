@@ -857,7 +857,8 @@ export default function Capture() {
       <div className={`grid gap-2 px-4 mt-3 ${type === 'expense' && canUseAdvanced ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            onClick={e => e.target.showPicker?.()}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
           {date !== today && (
             <span className="absolute -top-2 left-3 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
               {date < today.slice(0, 7) ? 'Mes anterior' : 'Fecha pasada'}
