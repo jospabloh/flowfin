@@ -18,21 +18,38 @@ function formatSnapshotDate(isoDate) {
 
 function EditModal({ card, snapshot, onClose, onSaved, familyId }) {
   const [balance, setBalance] = useState(snapshot ? String(snapshot.balance) : '');
+  const [amountDue, setAmountDue] = useState(snapshot?.amount_due != null ? String(snapshot.amount_due) : '');
+  const [cutDay, setCutDay] = useState(card?.cut_day != null ? String(card.cut_day) : '');
+  const [paymentDay, setPaymentDay] = useState(card?.payment_day != null ? String(card.payment_day) : '');
   const [notes, setNotes] = useState(snapshot?.notes || '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     const val = parseFloat(balance);
     if (isNaN(val)) return;
+    const parsedAmountDue = amountDue === '' ? null : parseFloat(amountDue);
+    if (amountDue !== '' && isNaN(parsedAmountDue)) return;
+    const parsedCutDay = cutDay === '' ? null : parseInt(cutDay, 10);
+    if (cutDay !== '' && (isNaN(parsedCutDay) || parsedCutDay < 1 || parsedCutDay > 31)) return;
+    const parsedPaymentDay = paymentDay === '' ? null : parseInt(paymentDay, 10);
+    if (paymentDay !== '' && (isNaN(parsedPaymentDay) || parsedPaymentDay < 1 || parsedPaymentDay > 31)) return;
+
     setSaving(true);
     try {
-      await base44.entities.CreditCardSnapshot.create({
-        family_id: familyId,
-        payment_method_id: card.id,
-        balance: val,
-        snapshot_date: todayISO(),
-        notes: notes || undefined,
-      });
+      await Promise.all([
+        base44.entities.CreditCardSnapshot.create({
+          family_id: familyId,
+          payment_method_id: card.id,
+          balance: val,
+          amount_due: parsedAmountDue,
+          snapshot_date: todayISO(),
+          notes: notes || undefined,
+        }),
+        base44.entities.PaymentMethod.update(card.id, {
+          cut_day: parsedCutDay,
+          payment_day: parsedPaymentDay,
+        }),
+      ]);
       onSaved();
     } finally {
       setSaving(false);
@@ -62,6 +79,50 @@ function EditModal({ card, snapshot, onClose, onSaved, familyId }) {
               inputMode="decimal"
               autoFocus
               className="flex-1 text-2xl font-bold bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Saldo por pagar (opcional)</label>
+          <div className="flex items-baseline gap-1 bg-muted rounded-xl px-4 py-3 border border-border focus-within:ring-2 focus-within:ring-primary/30">
+            <span className="text-lg font-light text-muted-foreground">$</span>
+            <input
+              type="number"
+              value={amountDue}
+              onChange={e => setAmountDue(e.target.value)}
+              placeholder="0.00"
+              inputMode="decimal"
+              className="flex-1 text-lg font-semibold bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Día de corte (1-31)</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              value={cutDay}
+              onChange={e => setCutDay(e.target.value)}
+              placeholder="Ej. 15"
+              className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Día de pago (1-31)</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              step="1"
+              value={paymentDay}
+              onChange={e => setPaymentDay(e.target.value)}
+              placeholder="Ej. 05"
+              className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
         </div>
@@ -167,9 +228,20 @@ export default function TDCSnapshotCard() {
                   )}
                   {snap ? (
                     <>
-                      <p className="text-xl font-black text-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground mt-1">Saldo total</p>
+                      <p className="text-xl font-black text-foreground">
                         {formatCurrency(snap.balance, { locale, currency, decimals: 2 })}
                       </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">Saldo por pagar</p>
+                      <p className="text-sm font-semibold text-foreground">
+                        {snap.amount_due != null
+                          ? formatCurrency(snap.amount_due, { locale, currency, decimals: 2 })
+                          : <span className="text-muted-foreground italic font-normal">Sin registrar</span>}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-2">
+                        <p className="text-[11px]"><span className="text-muted-foreground">Fecha de corte: </span><span className="text-foreground">{card.cut_day != null ? `Día ${card.cut_day}` : 'Sin registrar'}</span></p>
+                        <p className="text-[11px]"><span className="text-muted-foreground">Fecha de pago: </span><span className="text-foreground">{card.payment_day != null ? `Día ${card.payment_day}` : 'Sin registrar'}</span></p>
+                      </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         Actualizado {formatSnapshotDate(snap.snapshot_date)}
                         {isStale && (
