@@ -5,7 +5,7 @@ import {
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, ChevronDown, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
-  PanelLeftClose, PanelLeftOpen, Plane, Coins, Target
+  PanelLeftClose, PanelLeftOpen, Plane, Coins, Target, ScrollText
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,6 +61,7 @@ const MORE_GROUPS = [
       { to: '/FamilyAdmin', icon: Users, label: 'Admin', color: 'text-amber-500', bg: 'bg-amber-500/10', adminOnly: true },
       { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', color: 'text-violet-500', bg: 'bg-violet-500/10', adminOnly: true },
       { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', color: 'text-teal-600', bg: 'bg-teal-500/10', adminOnly: true },
+      { to: '/ReleaseNotes', icon: ScrollText, label: 'Release Notes', color: 'text-indigo-500', bg: 'bg-indigo-500/10', adminOnly: true },
     ],
   },
   {
@@ -110,6 +111,7 @@ const SIDEBAR_GROUPS = [
       { to: '/FamilyAdmin', icon: Users, label: 'Admin Familia', adminOnly: true },
       { to: '/PermissionAdmin', icon: KeyRound, label: 'Permisos', adminOnly: true },
       { to: '/LicenseAdmin', icon: BadgeCheck, label: 'Mi Licencia', adminOnly: true },
+      { to: '/ReleaseNotes', icon: ScrollText, label: 'Release Notes', adminOnly: true },
     ],
   },
   {
@@ -210,6 +212,7 @@ export default function Layout() {
   const canViewAIUsage         = useCanView('module.AIUsage');
   const canViewUserManual      = useCanView('module.UserManual');
   const canViewAbout           = useCanView('module.About');
+  const canViewReleaseNotes    = useCanView('module.ReleaseNotes');
 
   // Map route → can_view so we can filter nav items
   const moduleVisibility = useMemo(() => ({
@@ -235,10 +238,11 @@ export default function Layout() {
     '/AIUsage':         canViewAIUsage,
     '/UserManual':      canViewUserManual,
     '/About':           canViewAbout,
+    '/ReleaseNotes':    canViewReleaseNotes,
   }), [canViewDashboard, canViewTransactions, canViewReports, canViewAssistant, canViewBudget,
        canViewScheduled, canViewInvestments, canViewMSI, canViewRentals, canViewCatalogs,
        canViewFamilySettings, canViewAccountSettings, canViewFamilyAdmin, canViewPermAdmin,
-       canViewLicenseAdmin, canViewAIUsage, canViewUserManual, canViewAbout]);
+       canViewLicenseAdmin, canViewAIUsage, canViewUserManual, canViewAbout, canViewReleaseNotes]);
 
   function canShowItem(item) {
     // adminOnly items are shown if isAdmin OR the permission matrix allows it
