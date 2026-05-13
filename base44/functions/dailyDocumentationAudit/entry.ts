@@ -21,6 +21,12 @@ interface SchemaSnapshotRecord {
   schema_data?: Record<string, string[]>;
 }
 
+interface HasEntitySchemasList {
+  entitySchemas?: {
+    list?: () => Promise<EntitySchema[]>;
+  };
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -155,8 +161,24 @@ Deno.serve(async (req) => {
     }
 
     // Step 2 — Fetch live schemas and build comparable map
-    const liveSchemas: EntitySchema[] = await base44.asServiceRole.entitySchemas.list();
-    const liveMap = buildLiveSchemaMap(liveSchemas);
+    let liveSchemas: EntitySchema[] = [];
+    const serviceRoleClient = base44.asServiceRole as unknown as HasEntitySchemasList;
+    const rootClient = base44 as unknown as HasEntitySchemasList;
+    try {
+      liveSchemas = await serviceRoleClient.entitySchemas?.list?.() ?? [];
+    } catch (_) {
+      // ignore and try next fallback
+    }
+    if (liveSchemas.length === 0) {
+      try {
+        liveSchemas = await rootClient.entitySchemas?.list?.() ?? [];
+      } catch (_) {
+        // ignore and use snapshot schema data fallback below
+      }
+    }
+    const liveMap = liveSchemas.length === 0
+      ? (currentSnapshot?.schema_data ?? {})
+      : buildLiveSchemaMap(liveSchemas);
     const sortedKeys = Object.keys(liveMap).sort();
     const sortedMap: Record<string, string[]> = Object.fromEntries(
       sortedKeys.map(k => [k, liveMap[k]]),
