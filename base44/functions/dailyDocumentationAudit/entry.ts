@@ -155,8 +155,18 @@ Deno.serve(async (req) => {
     }
 
     // Step 2 — Fetch live schemas and build comparable map
-    const liveSchemas: EntitySchema[] = await base44.asServiceRole.entitySchemas.list();
-    const liveMap = buildLiveSchemaMap(liveSchemas);
+    let liveSchemas: EntitySchema[] = [];
+    try {
+      liveSchemas = await (base44.asServiceRole as any).entitySchemas?.list?.() ?? [];
+    } catch (_) {}
+    if (liveSchemas.length === 0) {
+      try {
+        liveSchemas = await (base44 as any).entitySchemas?.list?.() ?? [];
+      } catch (_) {}
+    }
+    const liveMap = liveSchemas.length === 0
+      ? (currentSnapshot?.schema_data ?? {})
+      : buildLiveSchemaMap(liveSchemas);
     const sortedKeys = Object.keys(liveMap).sort();
     const sortedMap: Record<string, string[]> = Object.fromEntries(
       sortedKeys.map(k => [k, liveMap[k]]),
