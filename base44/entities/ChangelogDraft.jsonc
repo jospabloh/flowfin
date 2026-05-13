@@ -1,0 +1,35 @@
+{
+  "name": "ChangelogDraft",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["fix", "feature", "security", "system", "breaking"],
+      "description": "Tipo de cambio"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripción del cambio escrita por el developer"
+    },
+    "is_published": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ya fue incluido en un AppChangelog publicado"
+    },
+    "published_at": {
+      "type": "string",
+      "description": "ISO datetime cuando fue publicado"
+    },
+    "published_in_version": {
+      "type": "string",
+      "description": "Versión en la que fue publicado (ej. 1.0.2)"
+    }
+  },
+  "required": ["description", "type"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

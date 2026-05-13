@@ -1,0 +1,40 @@
+{
+  "name": "SchemaSnapshot",
+  "type": "object",
+  "properties": {
+    "snapshot_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en que se tomó el snapshot"
+    },
+    "schema_hash": {
+      "type": "string",
+      "description": "Hash SHA del contenido serializado para comparación rápida"
+    },
+    "schema_data": {
+      "type": "object",
+      "description": "Schemas serializados completos al momento del snapshot",
+      "additionalProperties": true
+    },
+    "is_current": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si es el snapshot activo más reciente"
+    },
+    "entities_count": {
+      "type": "number",
+      "description": "Número de entidades en el snapshot"
+    },
+    "fields_count": {
+      "type": "number",
+      "description": "Número total de campos en el snapshot"
+    }
+  },
+  "required": ["snapshot_date", "schema_hash", "schema_data"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}
