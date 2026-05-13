@@ -2,6 +2,25 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const AUDIT_EMAIL = 'h.josepablo@gmail.com';
 
+interface EntitySchema {
+  entity_name: string;
+  entity_schema: { properties?: Record<string, unknown> };
+}
+
+interface ChangelogDraft {
+  id?: string;
+  type: string;
+  description: string;
+  is_published?: boolean;
+  published_at?: string;
+  published_in_version?: string;
+}
+
+interface SchemaSnapshotRecord {
+  id?: string;
+  schema_data?: Record<string, string[]>;
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -18,7 +37,7 @@ async function sha256first16(str: string): Promise<string> {
     .slice(0, 16);
 }
 
-function buildLiveSchemaMap(schemas: any[]): Record<string, string[]> {
+function buildLiveSchemaMap(schemas: EntitySchema[]): Record<string, string[]> {
   const map: Record<string, string[]> = {};
   for (const s of schemas) {
     const name: string = s.entity_name;
@@ -59,7 +78,7 @@ function computeSchemaDiff(
 function computeNewVersion(
   current: string,
   schemaDiff: string[],
-  drafts: any[],
+  drafts: ChangelogDraft[],
 ): string {
   const [major, minor, patch] = current.split('.').map(Number);
   const hasNewEntity = schemaDiff.some(d => d.includes('Nueva entidad'));
@@ -127,7 +146,7 @@ Deno.serve(async (req) => {
     const runDate = fmtDate(new Date());
 
     // Step 1 — Load current schema snapshot
-    let currentSnapshot: any = null;
+    let currentSnapshot: SchemaSnapshotRecord | null = null;
     try {
       const rows = await base44.asServiceRole.entities.SchemaSnapshot.filter({ is_current: true });
       currentSnapshot = rows?.[0] ?? null;
@@ -136,7 +155,7 @@ Deno.serve(async (req) => {
     }
 
     // Step 2 — Fetch live schemas and build comparable map
-    const liveSchemas: any[] = await base44.asServiceRole.entitySchemas.list();
+    const liveSchemas: EntitySchema[] = await base44.asServiceRole.entitySchemas.list();
     const liveMap = buildLiveSchemaMap(liveSchemas);
     const sortedKeys = Object.keys(liveMap).sort();
     const sortedMap: Record<string, string[]> = Object.fromEntries(
@@ -152,13 +171,13 @@ Deno.serve(async (req) => {
     const schemaDiff = computeSchemaDiff(sortedMap, snapshotMap);
 
     // Step 4 — Load unpublished ChangelogDrafts
-    let drafts: any[] = [];
+    let drafts: ChangelogDraft[] = [];
     try {
       drafts = await base44.asServiceRole.entities.ChangelogDraft.filter({ is_published: false }) ?? [];
     } catch (_) {
       // no drafts table yet — proceed with empty
     }
-    const draftStrings = drafts.map((d: any) => `${d.type}: ${d.description}`);
+    const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
     // Step 5 — Early exit if nothing changed
     if (schemaDiff.length === 0 && drafts.length === 0) {
