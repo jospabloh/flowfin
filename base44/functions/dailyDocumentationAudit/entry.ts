@@ -5,7 +5,7 @@ const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 const STALE_MANUAL_DAYS = 60;
 
 // These are updated manually or by the changelog script each release (v2)
-const CURRENT_VERSION_IN_CODE = '1.0.0';
+const CURRENT_VERSION_IN_CODE = '1.0.1';
 const USER_MANUAL_SECTIONS_COUNT = 22; // approximate count of sections in UserManual page
 const USER_MANUAL_LAST_REVIEWED = '2026-05-07';
 
@@ -23,6 +23,16 @@ function bumpVersion(version, type) {
   if (type === 'major') return `${major + 1}.0.0`;
   if (type === 'minor') return `${major}.${minor + 1}.0`;
   return `${major}.${minor}.${patch + 1}`;
+}
+
+function semverGt(a, b) {
+  const pa = (a ?? '0.0.0').split('.').map(Number);
+  const pb = (b ?? '0.0.0').split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] > pb[i]) return true;
+    if (pa[i] < pb[i]) return false;
+  }
+  return false;
 }
 
 function todayISO() {
@@ -161,7 +171,13 @@ Deno.serve(async (req) => {
     }
 
     const entityVersion = latestChangelog?.version ?? null;
-    const isInSync = entityVersion === CURRENT_VERSION_IN_CODE;
+
+    if (!semverGt(CURRENT_VERSION_IN_CODE, entityVersion ?? '0.0.0')) {
+      console.log(`[dailyDocumentationAudit] codeVersion:${CURRENT_VERSION_IN_CODE} dbVersion:${entityVersion} — equal, exiting silently`);
+      return Response.json({ success: true, codeVersion: CURRENT_VERSION_IN_CODE, dbVersion: entityVersion, action: 'noop' });
+    }
+
+    const isInSync = false;
 
     let action = 'ok';
     let newVersion;
