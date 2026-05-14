@@ -402,6 +402,7 @@ export default function About() {
   });
 
   const currentVersion = history[0]?.version ?? '—';
+  const latestChanges = history[0]?.changes ?? [];
 
   return (
     <div className="pb-8">
@@ -516,14 +517,18 @@ export default function About() {
             <h3 className="text-sm font-bold text-foreground">Novedades v{currentVersion}</h3>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">Actual</span>
           </div>
-          <ul className="space-y-2">
-            {(history[0]?.changes ?? []).map((c, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                <span className="text-primary mt-0.5 flex-shrink-0">✦</span>
-                {c}
-              </li>
-            ))}
-          </ul>
+          {latestChanges.length > 0 ? (
+            <ul className="space-y-2">
+              {latestChanges.map((c, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="text-primary mt-0.5 flex-shrink-0">✦</span>
+                  {c}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">Sin detalles de cambios para esta versión aún.</p>
+          )}
         </div>
 
         {/* Version history collapsible */}
@@ -543,14 +548,18 @@ export default function About() {
                     <span className="text-xs font-bold text-foreground">v{v.version}</span>
                     <span className="text-[10px] text-muted-foreground">{v.date}</span>
                   </div>
-                  <ul className="space-y-1.5">
-                    {v.changes.map((c, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <span className="text-muted-foreground/50 mt-0.5 flex-shrink-0">–</span>
-                        {c}
-                      </li>
-                    ))}
-                  </ul>
+                  {v.changes.length > 0 ? (
+                    <ul className="space-y-1.5">
+                      {v.changes.map((c, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <span className="text-muted-foreground/50 mt-0.5 flex-shrink-0">–</span>
+                          {c}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sin detalles de cambios para esta versión aún.</p>
+                  )}
                 </div>
               ))}
             </div>
