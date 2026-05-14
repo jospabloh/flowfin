@@ -49,7 +49,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
   const { can_delete: canDelete } = usePermission('scheduled.manage.delete');
 
   const handleDelete = async () => {
-    if (await confirmDelete(`¿Eliminar "${item.name}"?`)) onDelete(item.id);
+    if (await confirmDelete(`¿Eliminar "${item.name}"?`)) onDelete(item);
   };
 
   return (
