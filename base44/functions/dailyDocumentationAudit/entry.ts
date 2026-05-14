@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
     const appVersionRecord = appVersionRows?.[0] ?? null;
     const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
 
-    // Step 5 — Notify even if nothing changed
+    // Step 6 — Early notify path if nothing changed
     if (schemaDiff.length === 0 && drafts.length === 0) {
       console.log('[dailyDocumentationAudit] No changes detected — notifying audit email');
       try {
@@ -229,17 +229,32 @@ Deno.serve(async (req) => {
         });
       } catch (sendErr) {
         const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
-        console.error('[dailyDocumentationAudit] SendEmail failed', { stage: 'send_email', runDate, version: prevVersion, message });
+        console.error('[dailyDocumentationAudit] SendEmail failed', {
+          stage: 'send_email',
+          runDate,
+          version: prevVersion,
+          message,
+        });
+        try {
+          await base44.asServiceRole.entities.EmailNotification.create({
+            email_type: 'daily_documentation_audit',
+            recipient_email: AUDIT_EMAIL,
+            status: 'pending',
+            retry_count: 0,
+          });
+        } catch (_) {
+          // non-fatal: retry queue unavailable
+        }
         return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
       }
       return Response.json({ success: true, action: 'notified_no_changes', prevVersion, newVersion: prevVersion, schemaChangeCount: 0, draftCount: 0 });
     }
 
-    // Step 6 — Compute new version
+    // Step 7 — Compute new version
     failureStage = 'compute_new_version';
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
-    // Step 7 — Persist changes (in order)
+    // Step 8 — Persist changes (in order)
     failureStage = 'persist_changes';
 
     // 7.1 Update AppVersion
@@ -291,7 +306,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 8 — Send audit email
+    // Step 9 — Send audit email
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: AUDIT_EMAIL,
@@ -309,7 +324,22 @@ Deno.serve(async (req) => {
       });
     } catch (sendErr) {
       const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
-      console.error('[dailyDocumentationAudit] SendEmail failed', { stage: 'send_email', runDate, version: newVersion, message });
+      console.error('[dailyDocumentationAudit] SendEmail failed', {
+        stage: 'send_email',
+        runDate,
+        version: newVersion,
+        message,
+      });
+      try {
+        await base44.asServiceRole.entities.EmailNotification.create({
+          email_type: 'daily_documentation_audit',
+          recipient_email: AUDIT_EMAIL,
+          status: 'pending',
+          retry_count: 0,
+        });
+      } catch (_) {
+        // non-fatal: retry queue unavailable
+      }
       return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
     }
 
