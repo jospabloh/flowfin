@@ -8,6 +8,20 @@ import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { isWithinInterval, parseISO, startOfMonth } from 'date-fns';
 import { PERIODS, getRange, CURRENT_MONTH } from '@/lib/dashboardConstants';
 
+function parsePausedUntil(value) {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-31`; // month-level pause
+  return value;
+}
+
+function isTemporarilyPaused(item) {
+  if (!item?.paused_until) return false;
+  const parsed = parsePausedUntil(item.paused_until);
+  if (!parsed) return false;
+  const pauseEnd = new Date(`${parsed}T23:59:59`);
+  return !Number.isNaN(pauseEnd.getTime()) && new Date() <= pauseEnd;
+}
+
 export function useDashboardData() {
   const { getUserPref, setUserPref } = useMemory();
   const [period, setPeriod] = useState(() => getUserPref('dashboard_period', 'month'));
@@ -40,7 +54,7 @@ export function useDashboardData() {
     const monthRecords = scheduledRecords.filter(r => r.month === CURRENT_MONTH);
     const paidIds = new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id));
     const skippedIds = new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id));
-    return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id) && !skippedIds.has(p.id));
+    return scheduledPayments.filter(p => p.is_active !== false && !isTemporarilyPaused(p) && !paidIds.has(p.id) && !skippedIds.has(p.id));
   }, [scheduledPayments, scheduledRecords]);
 
   const pendingRentals = useMemo(() => {

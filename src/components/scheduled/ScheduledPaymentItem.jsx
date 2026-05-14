@@ -37,7 +37,7 @@ function statusBadge(record, item) {
   return { label: 'Pendiente', cls: 'text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full' };
 }
 
-export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, onMarkPaid, onUnmark, onEdit, onDelete }) {
+export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, onMarkPaid, onUnmark, onEdit, onDelete, onPauseOneMonth, onPauseUntil, onResume }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -93,9 +93,25 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
           )
         )}
         {(isAdmin || canEdit) && (
-          <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
-            <Pencil className="w-4 h-4" />
-          </button>
+          <>
+            <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
+              <Pencil className="w-4 h-4" />
+            </button>
+            {!isPaused ? (
+              <>
+                <button onClick={() => onPauseOneMonth(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
+                  Pausar 1 mes
+                </button>
+                <button onClick={() => onPauseUntil(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
+                  Pausar hasta…
+                </button>
+              </>
+            ) : (
+              <button onClick={() => onResume(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
+                Reanudar
+              </button>
+            )}
+          </>
         )}
         {(isAdmin || canDelete) && (
           <button onClick={handleDelete} aria-label="Eliminar compromiso"

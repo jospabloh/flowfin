@@ -17,6 +17,20 @@ import { usePermission } from '@/lib/permissions/usePermission';
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
 
+function parsePausedUntil(value) {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}$/.test(value)) return `${value}-31`; // month-level pause
+  return value;
+}
+
+function isTemporarilyPaused(item) {
+  if (!item?.paused_until) return false;
+  const parsed = parsePausedUntil(item.paused_until);
+  if (!parsed) return false;
+  const pauseEnd = new Date(`${parsed}T23:59:59`);
+  return !Number.isNaN(pauseEnd.getTime()) && TODAY <= pauseEnd;
+}
+
 export default function ScheduledPayments() {
   const { familyId, isAdmin, currentUser } = useFamily();
   const { categories, paymentMethods, persons } = useCatalog(familyId);
@@ -51,12 +65,64 @@ export default function ScheduledPayments() {
   const monthRecords = useMemo(() => records.filter(r => r.month === CURRENT_MONTH), [records]);
   const paidThisMonth = useMemo(() => new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id)), [monthRecords]);
   const skippedThisMonth = useMemo(() => new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id)), [monthRecords]);
-  const pending = payments.filter(p => p.is_active !== false && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
+  const pending = payments.filter(p => p.is_active !== false && !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
   const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
   const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
   const deleteMutation = useMutation({ mutationFn: (id) => base44.entities.ScheduledPayment.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
+
+  const addAuditEvent = (item, action, reason) => ([
+    ...(item.audit_events || []),
+    {
+      action,
+      at: new Date().toISOString(),
+      by: currentUser?.full_name || currentUser?.email || 'Usuario',
+      by_user_id: currentUser?.id,
+      reason: reason || undefined,
+    },
+  ]);
+
+  const handlePauseOneMonth = (item) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 1);
+    const pausedUntil = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    updateMutation.mutate({
+      id: item.id,
+      data: {
+        paused_until: pausedUntil,
+        pause_reason: 'Pausa 1 mes',
+        is_active: true,
+        audit_events: addAuditEvent(item, 'pause', `1 mes hasta ${pausedUntil}`),
+      },
+    });
+  };
+
+  const handlePauseUntil = (item) => {
+    const pausedUntil = window.prompt('Pausar hasta (YYYY-MM o YYYY-MM-DD):', item.paused_until || '');
+    if (!pausedUntil) return;
+    updateMutation.mutate({
+      id: item.id,
+      data: {
+        paused_until: pausedUntil.trim(),
+        pause_reason: 'Pausa temporal',
+        is_active: true,
+        audit_events: addAuditEvent(item, 'pause', `Hasta ${pausedUntil.trim()}`),
+      },
+    });
+  };
+
+  const handleResume = (item) => {
+    updateMutation.mutate({
+      id: item.id,
+      data: {
+        paused_until: undefined,
+        pause_reason: undefined,
+        is_active: true,
+        audit_events: addAuditEvent(item, 'resume'),
+      },
+    });
+  };
 
   const handleMarkPaid = async () => {
     if (!payingItem || isSavingPayment) return;
@@ -131,8 +197,12 @@ export default function ScheduledPayments() {
           return (
             <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
               isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
+              isPaused={isTemporarilyPaused(item)}
               onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
               onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+              onPauseOneMonth={handlePauseOneMonth}
+              onPauseUntil={handlePauseUntil}
+              onResume={handleResume}
               onDelete={(id) => deleteMutation.mutate(id)} />
           );
         })}

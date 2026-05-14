@@ -21,6 +21,8 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
   const [autopostDayTolerance, setAutopostDayTolerance] = useState(String(item?.autopost_day_tolerance ?? 0));
   const [autopostAmountTolerance, setAutopostAmountTolerance] = useState(String(item?.autopost_amount_tolerance ?? 0));
   const [matchHint, setMatchHint] = useState(item?.match_hint || '');
+  const [pausedUntil, setPausedUntil] = useState(item?.paused_until || '');
+  const [pauseReason, setPauseReason] = useState(item?.pause_reason || '');
 
   const isAuto = automationMode === 'auto';
   const isPaymentMethodRequiredMissing = isAuto && !paymentMethodId;
@@ -41,6 +43,8 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
       autopost_day_tolerance: Math.max(0, Math.min(3, parseInt(autopostDayTolerance) || 0)),
       autopost_amount_tolerance: Math.max(0, parseFloat(autopostAmountTolerance) || 0),
       match_hint: matchHint.trim() || undefined,
+      paused_until: pausedUntil.trim() || undefined,
+      pause_reason: pauseReason.trim() || undefined,
     });
   };
 
@@ -130,12 +134,24 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
               className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
           </div>
           {item && (
+            <>
             <button onClick={() => setIsActive(!isActive)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all w-full justify-between min-h-[44px] ${isActive ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground bg-muted'}`}>
               <span>{isActive ? 'Pago activo' : 'Pago inactivo'}</span>
               <div className={`w-8 h-4 rounded-full transition-colors ${isActive ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
                 <div className={`w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5 ${isActive ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
               </div>
             </button>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Pausa hasta (YYYY-MM o fecha)</p>
+              <input value={pausedUntil} onChange={e => setPausedUntil(e.target.value)} placeholder="2026-06 o 2026-06-15"
+                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Motivo de pausa</p>
+              <input value={pauseReason} onChange={e => setPauseReason(e.target.value)} placeholder="Vacaciones, flujo, etc."
+                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+            </>
           )}
           {isPaymentMethodRequiredMissing && (
             <p className="text-xs text-destructive">Selecciona forma de pago para automatización en modo auto.</p>
