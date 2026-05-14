@@ -50,6 +50,7 @@ export default function ScheduledPayments() {
   const [payPaymentMethodId, setPayPaymentMethodId] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
+  const [activeView, setActiveView] = useState('active');
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -65,12 +66,30 @@ export default function ScheduledPayments() {
   const monthRecords = useMemo(() => records.filter(r => r.month === CURRENT_MONTH), [records]);
   const paidThisMonth = useMemo(() => new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id)), [monthRecords]);
   const skippedThisMonth = useMemo(() => new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id)), [monthRecords]);
-  const pending = payments.filter(p => p.is_active !== false && !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
-  const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
+  const activePayments = useMemo(() => payments.filter(p => p.is_active !== false), [payments]);
+  const archivedPayments = useMemo(() => payments.filter(p => p.is_active === false), [payments]);
+  const pending = activePayments.filter(p => !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
+  const sorted = [...(activeView === 'archived' ? archivedPayments : activePayments)].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
   const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
-  const deleteMutation = useMutation({ mutationFn: (id) => base44.entities.ScheduledPayment.delete(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
+  const deleteMutation = useMutation({
+    mutationFn: async (item) => {
+      const [linkedRecords, linkedTransactions] = await Promise.all([
+        base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId, scheduled_payment_id: item.id }),
+        base44.entities.Transaction.filter({ family_id: familyId, scheduled_payment_id: item.id }),
+      ]);
+      if (linkedRecords.length > 0 || linkedTransactions.length > 0) {
+        return base44.entities.ScheduledPayment.update(item.id, {
+          is_active: false,
+          archived_at: new Date().toISOString(),
+          archived_by: currentUser?.full_name || currentUser?.email || 'Usuario',
+        });
+      }
+      return base44.entities.ScheduledPayment.delete(item.id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
+  });
 
   const addAuditEvent = (item, action, reason) => ([
     ...(item.audit_events || []),
@@ -184,11 +203,19 @@ export default function ScheduledPayments() {
         )} />
 
       <div className="px-4 space-y-3">
-        {payments.length === 0 && (
+        <div className="flex gap-2">
+          <button onClick={() => setActiveView('active')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'active' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            Activos ({activePayments.length})
+          </button>
+          <button onClick={() => setActiveView('archived')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'archived' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            Archivados ({archivedPayments.length})
+          </button>
+        </div>
+        {sorted.length === 0 && (
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
             <p className="text-3xl mb-2">📅</p>
-            <p className="text-sm font-semibold text-foreground">Sin pagos programados</p>
-            <p className="text-xs text-muted-foreground mt-1">{isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.'}</p>
+            <p className="text-sm font-semibold text-foreground">{activeView === 'archived' ? 'Sin pagos archivados' : 'Sin pagos programados'}</p>
+            <p className="text-xs text-muted-foreground mt-1">{activeView === 'archived' ? 'Los pagos archivados aparecerán aquí.' : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}</p>
           </div>
         )}
         {sorted.map(item => {
@@ -204,7 +231,7 @@ export default function ScheduledPayments() {
               onPauseOneMonth={handlePauseOneMonth}
               onPauseUntil={handlePauseUntil}
               onResume={handleResume}
-              onDelete={(id) => deleteMutation.mutate(id)} />
+              onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
           );
         })}
       </div>
