@@ -6,9 +6,21 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.17.0',
+    date: '2026-05-14',
+    label: 'Actual',
+    changes: [
+      'Manual actualizado: sección de Roles y Permisos ahora documenta explícitamente módulos, visuales y acciones con operaciones Ver/Crear/Modificar/Eliminar',
+      'Permisos por defecto documentados: admin inicia con acceso total (todos true) en todos los artefactos',
+      'Regla de seguridad documentada: todo módulo/visual/acción nuevo nace en false para Member hasta aprobación explícita de un admin',
+      'Cobertura de permisos sincronizada para reflejar el inventario actual de módulos y acciones existentes en la app',
+      'Corrección de consistencia de documentación entre Manual, changelog y snapshot de versión para auditorías automáticas'
+    ],
+  },
+  {
     version: '2.16.0',
     date: '2026-04-28',
-    label: 'Actual',
+    label: '',
     changes: [
       'Licencias: nuevo flujo de confirmación manual de pago — Pablo/ACACIA confirma el pago recibido en Mercado Pago desde el panel de Licencias con el botón "Confirmar pago recibido"',
       'Licencias: FlowFin ya NO renueva licencias automáticamente — la renovación de acceso es 100% manual por ACACIA tras verificar el pago en Mercado Pago',
