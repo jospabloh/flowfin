@@ -205,6 +205,7 @@ Deno.serve(async (req) => {
     const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
     failureStage = 'resolve_version';
+    // Step 5 — Resolve current app version
     const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
     const appVersionRecord = appVersionRows?.[0] ?? null;
     const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
@@ -247,15 +248,22 @@ Deno.serve(async (req) => {
         }
         return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
       }
-      return Response.json({ success: true, action: 'notified_no_changes', prevVersion, newVersion: prevVersion, schemaChangeCount: 0, draftCount: 0 });
+      return Response.json({
+        success: true,
+        action: 'notified_no_changes',
+        prevVersion,
+        newVersion: prevVersion,
+        schemaChangeCount: 0,
+        draftCount: 0,
+      });
     }
 
-    // Step 7 — Compute new version
     failureStage = 'compute_new_version';
+    // Step 7 — Compute new version
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
-    // Step 8 — Persist changes (in order)
     failureStage = 'persist_changes';
+    // Step 8 — Persist changes (in order)
 
     // 7.1 Update AppVersion
     if (appVersionRecord?.id) {
