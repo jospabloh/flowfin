@@ -369,10 +369,37 @@ export default function About() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Use entity data when available, fall back to hardcoded VERSION_HISTORY
-  const history = changelogEntries.length > 0
-    ? changelogEntries.map(e => ({ version: e.version, date: e.release_date, changes: e.changes ?? [] }))
-    : VERSION_HISTORY;
+  const canonicalHistoryByVersion = new Map(
+    VERSION_HISTORY.map(entry => [entry.version, { ...entry, changes: entry.changes ?? [] }])
+  );
+
+  changelogEntries
+    .map(entry => ({
+      version: entry.version,
+      date: entry.release_date,
+      changes: Array.isArray(entry.changes) ? entry.changes : [],
+    }))
+    .forEach(entry => {
+      const current = canonicalHistoryByVersion.get(entry.version) ?? {};
+      canonicalHistoryByVersion.set(entry.version, {
+        ...current,
+        ...entry,
+        changes: entry.changes,
+      });
+    });
+
+  const parseSemver = version => version.split('.').map(part => Number.parseInt(part, 10) || 0);
+
+  const history = Array.from(canonicalHistoryByVersion.values()).sort((a, b) => {
+    const [aMajor, aMinor, aPatch] = parseSemver(a.version);
+    const [bMajor, bMinor, bPatch] = parseSemver(b.version);
+
+    if (bMajor !== aMajor) return bMajor - aMajor;
+    if (bMinor !== aMinor) return bMinor - aMinor;
+    if (bPatch !== aPatch) return bPatch - aPatch;
+
+    return String(b.date ?? '').localeCompare(String(a.date ?? ''));
+  });
 
   const currentVersion = history[0]?.version ?? '—';
 
