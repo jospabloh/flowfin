@@ -574,7 +574,12 @@ Miembro regular:
 • Si intenta navegar directamente a páginas de admin, es redirigido al Dashboard.
 
 Admin Permisos (solo administradores):
-Accesible desde Más → Configuración → Permisos. Muestra una tabla de todos los artefactos de la app (páginas, secciones y acciones) con columnas Leer / Crear / Modificar / Eliminar. Los checkboxes permiten ajustar qué puede hacer cada rol sin afectar el comportamiento actual de los demás.`
+Accesible desde Más → Configuración → Permisos. Muestra todos los módulos, visuales y acciones de la app con columnas Ver / Crear / Modificar / Eliminar.
+
+Reglas por defecto:
+• Admin: acceso total por defecto en todos los permisos (todos en true).
+• Member: conserva su matriz actual de accesos.
+• Nuevo módulo, visual o acción: para Member se crea en false por defecto (sin acceso) hasta que un admin lo habilite explícitamente.`
   },
   {
     id: 'mifamilia', icon: '🏠', title: 'Mi Familia (configuración)',
