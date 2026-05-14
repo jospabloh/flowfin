@@ -102,6 +102,7 @@ function buildEmailHtml(opts: {
   changes: string[];
   schemaChangeCount: number;
   draftCount: number;
+  statusText: string;
 }): string {
   const changesList = opts.changes
     .map(c => `<li style="margin-bottom:4px">${c}</li>`)
@@ -129,7 +130,7 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   <p>${opts.runDate} · Ejecución automática nocturna</p>
 </div>
 <div class="b">
-  <p>Estado: <span style="color:#d97706;font-weight:700">🆕 Nueva versión publicada</span></p>
+  <p>Estado: <span style="color:#d97706;font-weight:700">${opts.statusText}</span></p>
   <div class="g">
     <div class="row"><span>Versión anterior</span><span class="val">${opts.prevVersion}</span></div>
     <div class="row"><span>Nueva versión</span><span class="val" style="color:#d97706">${opts.newVersion}</span></div>
@@ -147,10 +148,12 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 }
 
 Deno.serve(async (req) => {
+  let failureStage = 'unknown';
   try {
     const base44 = createClientFromRequest(req);
     const runDate = fmtDate(new Date());
 
+    failureStage = 'load_snapshot';
     // Step 1 — Load current schema snapshot
     let currentSnapshot: SchemaSnapshotRecord | null = null;
     try {
@@ -201,33 +204,43 @@ Deno.serve(async (req) => {
     }
     const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
+    failureStage = 'resolve_version';
     const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
     const appVersionRecord = appVersionRows?.[0] ?? null;
     const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
 
     // Step 5 — Notify even if nothing changed
     if (schemaDiff.length === 0 && drafts.length === 0) {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: AUDIT_EMAIL,
-        subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
-        body: buildEmailHtml({
-          runDate,
-          prevVersion,
-          newVersion: prevVersion,
-          changes: [],
-          schemaChangeCount: 0,
-          draftCount: 0,
-        }),
-        from_name: 'FlowFin Audit',
-      });
-      console.log('[dailyDocumentationAudit] No changes detected — notification sent');
-      return Response.json({ success: true, action: 'notified_no_changes', version: prevVersion });
+      console.log('[dailyDocumentationAudit] No changes detected — notifying audit email');
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: AUDIT_EMAIL,
+          subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
+          body: buildEmailHtml({
+            runDate,
+            prevVersion,
+            newVersion: prevVersion,
+            changes: [],
+            schemaChangeCount: 0,
+            draftCount: 0,
+            statusText: '✅ Sin cambios detectados',
+          }),
+          from_name: 'FlowFin Audit',
+        });
+      } catch (sendErr) {
+        const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
+        console.error('[dailyDocumentationAudit] SendEmail failed', { stage: 'send_email', runDate, version: prevVersion, message });
+        return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
+      }
+      return Response.json({ success: true, action: 'notified_no_changes', prevVersion, newVersion: prevVersion, schemaChangeCount: 0, draftCount: 0 });
     }
 
     // Step 6 — Compute new version
+    failureStage = 'compute_new_version';
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
     // Step 7 — Persist changes (in order)
+    failureStage = 'persist_changes';
 
     // 7.1 Update AppVersion
     if (appVersionRecord?.id) {
@@ -279,19 +292,26 @@ Deno.serve(async (req) => {
     }
 
     // Step 8 — Send audit email
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: AUDIT_EMAIL,
-      subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
-      body: buildEmailHtml({
-        runDate,
-        prevVersion,
-        newVersion,
-        changes: allChanges,
-        schemaChangeCount: schemaDiff.length,
-        draftCount: draftStrings.length,
-      }),
-      from_name: 'FlowFin Audit',
-    });
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: AUDIT_EMAIL,
+        subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
+        body: buildEmailHtml({
+          runDate,
+          prevVersion,
+          newVersion,
+          changes: allChanges,
+          schemaChangeCount: schemaDiff.length,
+          draftCount: draftStrings.length,
+          statusText: '🆕 Nueva versión publicada',
+        }),
+        from_name: 'FlowFin Audit',
+      });
+    } catch (sendErr) {
+      const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
+      console.error('[dailyDocumentationAudit] SendEmail failed', { stage: 'send_email', runDate, version: newVersion, message });
+      return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
+    }
 
     console.log(
       `[dailyDocumentationAudit] ${prevVersion} → ${newVersion} | schemaChanges:${schemaDiff.length} drafts:${drafts.length}`,
@@ -305,7 +325,8 @@ Deno.serve(async (req) => {
       changes: allChanges,
     });
   } catch (err) {
-    console.error(`[dailyDocumentationAudit] Fatal: ${err.message}`);
-    return Response.json({ success: false, error: err.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[dailyDocumentationAudit] Fatal error', { stage: failureStage, message });
+    return Response.json({ success: false, stage: failureStage, error: message }, { status: 500 });
   }
 });
