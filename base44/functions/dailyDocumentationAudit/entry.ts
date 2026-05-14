@@ -148,10 +148,12 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 }
 
 Deno.serve(async (req) => {
+  let failureStage = 'unknown';
   try {
     const base44 = createClientFromRequest(req);
     const runDate = fmtDate(new Date());
 
+    failureStage = 'load_snapshot';
     // Step 1 — Load current schema snapshot
     let currentSnapshot: SchemaSnapshotRecord | null = null;
     try {
@@ -161,6 +163,7 @@ Deno.serve(async (req) => {
       // no snapshot yet — treat as empty
     }
 
+    failureStage = 'load_live_schema';
     // Step 2 — Fetch live schemas and build comparable map
     let liveSchemas: EntitySchema[] = [];
     const serviceRoleClient = base44.asServiceRole as unknown as HasEntitySchemasList;
@@ -189,10 +192,12 @@ Deno.serve(async (req) => {
     const entityCount = sortedKeys.length;
     const fieldCount = Object.values(liveMap).reduce((sum, f) => sum + f.length, 0);
 
+    failureStage = 'compute_schema_diff';
     // Step 3 — Compute schema diff
     const snapshotMap: Record<string, string[]> = currentSnapshot?.schema_data ?? {};
     const schemaDiff = computeSchemaDiff(sortedMap, snapshotMap);
 
+    failureStage = 'load_drafts';
     // Step 4 — Load unpublished ChangelogDrafts
     let drafts: ChangelogDraft[] = [];
     try {
@@ -202,6 +207,7 @@ Deno.serve(async (req) => {
     }
     const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
+    failureStage = 'resolve_version';
     // Step 5 — Resolve current app version
     const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
     const appVersionRecord = appVersionRows?.[0] ?? null;
@@ -210,20 +216,41 @@ Deno.serve(async (req) => {
     // Step 6 — Early notify path if nothing changed
     if (schemaDiff.length === 0 && drafts.length === 0) {
       console.log('[dailyDocumentationAudit] No changes detected — notifying audit email');
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: AUDIT_EMAIL,
-        subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
-        body: buildEmailHtml({
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: AUDIT_EMAIL,
+          subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
+          body: buildEmailHtml({
+            runDate,
+            prevVersion,
+            newVersion: prevVersion,
+            changes: [],
+            schemaChangeCount: 0,
+            draftCount: 0,
+            statusText: '✅ Sin cambios detectados',
+          }),
+          from_name: 'FlowFin Audit',
+        });
+      } catch (sendErr) {
+        const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
+        console.error('[dailyDocumentationAudit] SendEmail failed', {
+          stage: 'send_email',
           runDate,
-          prevVersion,
-          newVersion: prevVersion,
-          changes: [],
-          schemaChangeCount: 0,
-          draftCount: 0,
-          statusText: '✅ Sin cambios detectados',
-        }),
-        from_name: 'FlowFin Audit',
-      });
+          version: prevVersion,
+          message,
+        });
+        try {
+          await base44.asServiceRole.entities.EmailNotification.create({
+            email_type: 'daily_documentation_audit',
+            recipient_email: AUDIT_EMAIL,
+            status: 'pending',
+            retry_count: 0,
+          });
+        } catch (_) {
+          // non-fatal: retry queue unavailable
+        }
+        return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
+      }
       return Response.json({
         success: true,
         action: 'notified_no_changes',
@@ -234,9 +261,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    failureStage = 'compute_new_version';
     // Step 7 — Compute new version
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
+    failureStage = 'persist_changes';
     // Step 8 — Persist changes (in order)
 
     // 7.1 Update AppVersion
@@ -289,20 +318,41 @@ Deno.serve(async (req) => {
     }
 
     // Step 9 — Send audit email
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: AUDIT_EMAIL,
-      subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
-      body: buildEmailHtml({
+    try {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: AUDIT_EMAIL,
+        subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
+        body: buildEmailHtml({
+          runDate,
+          prevVersion,
+          newVersion,
+          changes: allChanges,
+          schemaChangeCount: schemaDiff.length,
+          draftCount: draftStrings.length,
+          statusText: '🆕 Nueva versión publicada',
+        }),
+        from_name: 'FlowFin Audit',
+      });
+    } catch (sendErr) {
+      const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
+      console.error('[dailyDocumentationAudit] SendEmail failed', {
+        stage: 'send_email',
         runDate,
-        prevVersion,
-        newVersion,
-        changes: allChanges,
-        schemaChangeCount: schemaDiff.length,
-        draftCount: draftStrings.length,
-        statusText: '🆕 Nueva versión publicada',
-      }),
-      from_name: 'FlowFin Audit',
-    });
+        version: newVersion,
+        message,
+      });
+      try {
+        await base44.asServiceRole.entities.EmailNotification.create({
+          email_type: 'daily_documentation_audit',
+          recipient_email: AUDIT_EMAIL,
+          status: 'pending',
+          retry_count: 0,
+        });
+      } catch (_) {
+        // non-fatal: retry queue unavailable
+      }
+      return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
+    }
 
     console.log(
       `[dailyDocumentationAudit] ${prevVersion} → ${newVersion} | schemaChanges:${schemaDiff.length} drafts:${drafts.length}`,
@@ -316,7 +366,8 @@ Deno.serve(async (req) => {
       changes: allChanges,
     });
   } catch (err) {
-    console.error(`[dailyDocumentationAudit] Fatal: ${err.message}`);
-    return Response.json({ success: false, error: err.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[dailyDocumentationAudit] Fatal error', { stage: failureStage, message });
+    return Response.json({ success: false, stage: failureStage, error: message }, { status: 500 });
   }
 });
