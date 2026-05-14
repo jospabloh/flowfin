@@ -15,6 +15,56 @@ function getWeekNumber(dateStr) {
   }
 }
 
+const DEFAULT_MATCHING_TOLERANCE_DAYS = 2;
+const DEFAULT_MATCHING_TOLERANCE_AMOUNT = 0.01;
+
+function daysBetweenISO(a, b) {
+  const aDate = new Date(`${a}T12:00:00`);
+  const bDate = new Date(`${b}T12:00:00`);
+  if (Number.isNaN(aDate.getTime()) || Number.isNaN(bDate.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.abs((aDate.getTime() - bDate.getTime()) / 86400000);
+}
+
+export function matchesScheduledPaymentTransactionRule(transaction, rule) {
+  if (!transaction || !rule) return false;
+  if (!rule.family_id || transaction.family_id !== rule.family_id) return false;
+  if (!rule.scheduled_payment_id || transaction.scheduled_payment_id !== rule.scheduled_payment_id) return false;
+
+  const dateDelta = daysBetweenISO(transaction.date, rule.date);
+  if (dateDelta > rule.tolerance_days) return false;
+
+  const amountDelta = Math.abs((parseFloat(transaction.amount) || 0) - (parseFloat(rule.amount) || 0));
+  if (amountDelta > rule.tolerance_amount) return false;
+
+  return true;
+}
+
+export async function findMatchingScheduledPaymentTransaction({
+  family_id,
+  scheduled_payment_record_id,
+  scheduled_payment_id,
+  date,
+  amount,
+  tolerance_days = DEFAULT_MATCHING_TOLERANCE_DAYS,
+  tolerance_amount = DEFAULT_MATCHING_TOLERANCE_AMOUNT,
+}) {
+  if (scheduled_payment_record_id) {
+    const linked = await base44.entities.Transaction.filter({ scheduled_payment_record_id });
+    if (linked?.[0]) return linked[0];
+  }
+
+  if (!family_id || !scheduled_payment_id || !date) return null;
+  const candidates = await base44.entities.Transaction.filter({ family_id, scheduled_payment_id });
+  return (candidates || []).find((tx) => matchesScheduledPaymentTransactionRule(tx, {
+    family_id,
+    scheduled_payment_id,
+    date,
+    amount,
+    tolerance_days,
+    tolerance_amount,
+  })) || null;
+}
+
 /**
  * Saves the primary record AND a matching Transaction entry so it appears in Movimientos.
  * Usage:
@@ -42,8 +92,30 @@ export function useRegisterPaymentWithTransaction() {
     // 1. Always save the primary record first
     const primaryResult = await primarySaveFn();
 
+    const scheduledPaymentRecordId = txFields.scheduled_payment_record_id || (primaryResult?.id && !txFields.rental_payment_id ? primaryResult.id : undefined);
+    const matchingTx = await findMatchingScheduledPaymentTransaction({
+      family_id: familyId,
+      scheduled_payment_record_id: scheduledPaymentRecordId,
+      scheduled_payment_id: txFields.scheduled_payment_id || primaryResult?.scheduled_payment_id,
+      date,
+      amount,
+      tolerance_days: txFields.matching_tolerance_days,
+      tolerance_amount: txFields.matching_tolerance_amount,
+    });
+
+    if (matchingTx && primaryResult?.id) {
+      const updates = {
+        scheduled_payment_record_id: scheduledPaymentRecordId,
+      };
+      if (matchingTx.status !== 'reconciled') updates.status = 'reconciled';
+      await base44.entities.Transaction.update(matchingTx.id, updates);
+      if (primaryResult?.scheduled_payment_id) {
+        await base44.entities.ScheduledPaymentRecord.update(primaryResult.id, { linked_transaction_id: matchingTx.id, status: 'reconciled' });
+      }
+    }
+
     // 2. Create a Transaction only if required fields are present
-    if (category_id && person_id) {
+    if (!matchingTx && category_id && person_id) {
       const week = getWeekNumber(date);
       const txResult = await base44.entities.Transaction.create({
         family_id: familyId,
@@ -56,8 +128,9 @@ export function useRegisterPaymentWithTransaction() {
         person_id,
         required_type: type === 'income' ? 'Otro' : 'Necesario',
         week,
-        scheduled_payment_record_id: txFields.scheduled_payment_record_id || (primaryResult?.id && !txFields.rental_payment_id ? primaryResult.id : undefined),
+        scheduled_payment_record_id: scheduledPaymentRecordId,
         rental_payment_id: txFields.rental_payment_id || undefined,
+        scheduled_payment_id: txFields.scheduled_payment_id || primaryResult?.scheduled_payment_id,
       });
 
       if (primaryResult?.id && txResult?.id && primaryResult?.scheduled_payment_id) {
