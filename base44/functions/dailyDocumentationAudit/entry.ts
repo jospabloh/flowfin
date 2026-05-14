@@ -201,16 +201,30 @@ Deno.serve(async (req) => {
     }
     const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
-    // Step 5 — Early exit if nothing changed
-    if (schemaDiff.length === 0 && drafts.length === 0) {
-      console.log('[dailyDocumentationAudit] No changes detected — exiting silently');
-      return Response.json({ success: true, action: 'noop' });
-    }
-
-    // Step 6 — Compute new version
     const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
     const appVersionRecord = appVersionRows?.[0] ?? null;
     const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
+
+    // Step 5 — Notify even if nothing changed
+    if (schemaDiff.length === 0 && drafts.length === 0) {
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: AUDIT_EMAIL,
+        subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
+        body: buildEmailHtml({
+          runDate,
+          prevVersion,
+          newVersion: prevVersion,
+          changes: [],
+          schemaChangeCount: 0,
+          draftCount: 0,
+        }),
+        from_name: 'FlowFin Audit',
+      });
+      console.log('[dailyDocumentationAudit] No changes detected — notification sent');
+      return Response.json({ success: true, action: 'notified_no_changes', version: prevVersion });
+    }
+
+    // Step 6 — Compute new version
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
     // Step 7 — Persist changes (in order)
