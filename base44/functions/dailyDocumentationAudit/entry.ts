@@ -102,6 +102,7 @@ function buildEmailHtml(opts: {
   changes: string[];
   schemaChangeCount: number;
   draftCount: number;
+  statusText: string;
 }): string {
   const changesList = opts.changes
     .map(c => `<li style="margin-bottom:4px">${c}</li>`)
@@ -129,7 +130,7 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   <p>${opts.runDate} · Ejecución automática nocturna</p>
 </div>
 <div class="b">
-  <p>Estado: <span style="color:#d97706;font-weight:700">🆕 Nueva versión publicada</span></p>
+  <p>Estado: <span style="color:#d97706;font-weight:700">${opts.statusText}</span></p>
   <div class="g">
     <div class="row"><span>Versión anterior</span><span class="val">${opts.prevVersion}</span></div>
     <div class="row"><span>Nueva versión</span><span class="val" style="color:#d97706">${opts.newVersion}</span></div>
@@ -201,19 +202,42 @@ Deno.serve(async (req) => {
     }
     const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
-    // Step 5 — Early exit if nothing changed
-    if (schemaDiff.length === 0 && drafts.length === 0) {
-      console.log('[dailyDocumentationAudit] No changes detected — exiting silently');
-      return Response.json({ success: true, action: 'noop' });
-    }
-
-    // Step 6 — Compute new version
+    // Step 5 — Resolve current app version
     const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
     const appVersionRecord = appVersionRows?.[0] ?? null;
     const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
+
+    // Step 6 — Early notify path if nothing changed
+    if (schemaDiff.length === 0 && drafts.length === 0) {
+      console.log('[dailyDocumentationAudit] No changes detected — notifying audit email');
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: AUDIT_EMAIL,
+        subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
+        body: buildEmailHtml({
+          runDate,
+          prevVersion,
+          newVersion: prevVersion,
+          changes: [],
+          schemaChangeCount: 0,
+          draftCount: 0,
+          statusText: '✅ Sin cambios detectados',
+        }),
+        from_name: 'FlowFin Audit',
+      });
+      return Response.json({
+        success: true,
+        action: 'notified_no_changes',
+        prevVersion,
+        newVersion: prevVersion,
+        schemaChangeCount: 0,
+        draftCount: 0,
+      });
+    }
+
+    // Step 7 — Compute new version
     const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
 
-    // Step 7 — Persist changes (in order)
+    // Step 8 — Persist changes (in order)
 
     // 7.1 Update AppVersion
     if (appVersionRecord?.id) {
@@ -264,7 +288,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 8 — Send audit email
+    // Step 9 — Send audit email
     await base44.asServiceRole.integrations.Core.SendEmail({
       to: AUDIT_EMAIL,
       subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
@@ -275,6 +299,7 @@ Deno.serve(async (req) => {
         changes: allChanges,
         schemaChangeCount: schemaDiff.length,
         draftCount: draftStrings.length,
+        statusText: '🆕 Nueva versión publicada',
       }),
       from_name: 'FlowFin Audit',
     });
