@@ -136,6 +136,7 @@ export default function ScheduledPayments() {
       await registerPayment(() => base44.entities.ScheduledPaymentRecord.create(recordData), {
         amount, date: payDate, description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
         category_id: payingItem.category_id || undefined, payment_method_id: payPaymentMethodId || payingItem.payment_method_id || undefined, person_id: primaryPersonId,
+        scheduled_payment_id: payingItem.id,
       });
       queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
