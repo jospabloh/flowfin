@@ -45,7 +45,7 @@ export function useRegisterPaymentWithTransaction() {
     // 2. Create a Transaction only if required fields are present
     if (category_id && person_id) {
       const week = getWeekNumber(date);
-      await base44.entities.Transaction.create({
+      const txResult = await base44.entities.Transaction.create({
         family_id: familyId,
         date,
         type,
@@ -59,6 +59,10 @@ export function useRegisterPaymentWithTransaction() {
         scheduled_payment_record_id: txFields.scheduled_payment_record_id || (primaryResult?.id && !txFields.rental_payment_id ? primaryResult.id : undefined),
         rental_payment_id: txFields.rental_payment_id || undefined,
       });
+
+      if (primaryResult?.id && txResult?.id && primaryResult?.scheduled_payment_id) {
+        await base44.entities.ScheduledPaymentRecord.update(primaryResult.id, { linked_transaction_id: txResult.id });
+      }
     }
 
     // 3. Refresh relevant queries so Dashboard/Movimientos update
