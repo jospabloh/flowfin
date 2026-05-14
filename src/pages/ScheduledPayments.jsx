@@ -99,7 +99,7 @@ export default function ScheduledPayments() {
   };
 
   const handlePauseUntil = (item) => {
-    const pausedUntil = window.prompt('Pausar hasta (YYYY-MM o YYYY-MM-DD):', item.paused_until || '');
+    const pausedUntil = globalThis.prompt('Pausar hasta (YYYY-MM o YYYY-MM-DD):', item.paused_until || '');
     if (!pausedUntil) return;
     updateMutation.mutate({
       id: item.id,
