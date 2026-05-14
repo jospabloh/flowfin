@@ -35,6 +35,34 @@
       "description": "Emoji representativo",
       "default": "\ud83d\udcb0"
     },
+    "automation_mode": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "auto"
+      ],
+      "default": "manual",
+      "description": "Modo de automatización"
+    },
+    "autopost_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si el pago debe registrarse automáticamente"
+    },
+    "autopost_day_tolerance": {
+      "type": "number",
+      "default": 0,
+      "description": "Tolerancia de días para registrar automáticamente"
+    },
+    "autopost_amount_tolerance": {
+      "type": "number",
+      "default": 0,
+      "description": "Tolerancia de monto para conciliación"
+    },
+    "match_hint": {
+      "type": "string",
+      "description": "Pista de conciliación (comercio o descriptor)"
+    },
     "is_active": {
       "type": "boolean",
       "default": true

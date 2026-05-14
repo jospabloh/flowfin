@@ -16,10 +16,32 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
   const [paymentMethodId, setPaymentMethodId] = useState(item?.payment_method_id || '');
   const [icon, setIcon] = useState(item?.icon || '💰');
   const [isActive, setIsActive] = useState(item?.is_active !== false);
+  const [automationMode, setAutomationMode] = useState(item?.automation_mode || 'manual');
+  const [autopostEnabled, setAutopostEnabled] = useState(item?.autopost_enabled === true);
+  const [autopostDayTolerance, setAutopostDayTolerance] = useState(String(item?.autopost_day_tolerance ?? 0));
+  const [autopostAmountTolerance, setAutopostAmountTolerance] = useState(String(item?.autopost_amount_tolerance ?? 0));
+  const [matchHint, setMatchHint] = useState(item?.match_hint || '');
+
+  const isAuto = automationMode === 'auto';
+  const isPaymentMethodRequiredMissing = isAuto && !paymentMethodId;
 
   const handleSubmit = () => {
-    if (!name.trim() || !dueDay) return;
-    onSave({ name: name.trim(), description: description.trim(), amount: parseFloat(amount) || 0, due_day: parseInt(dueDay), category_id: categoryId || undefined, payment_method_id: paymentMethodId || undefined, icon, is_active: isActive });
+    if (!name.trim() || !dueDay || isPaymentMethodRequiredMissing) return;
+    onSave({
+      name: name.trim(),
+      description: description.trim(),
+      amount: parseFloat(amount) || 0,
+      due_day: parseInt(dueDay),
+      category_id: categoryId || undefined,
+      payment_method_id: paymentMethodId || undefined,
+      icon,
+      is_active: isActive,
+      automation_mode: automationMode,
+      autopost_enabled: autopostEnabled,
+      autopost_day_tolerance: Math.max(0, Math.min(3, parseInt(autopostDayTolerance) || 0)),
+      autopost_amount_tolerance: Math.max(0, parseFloat(autopostAmountTolerance) || 0),
+      match_hint: matchHint.trim() || undefined,
+    });
   };
 
   return (
@@ -71,8 +93,38 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
               options={[{ value: '', label: 'Sin categoría' }, ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))]}
               className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
           </div>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Automatización</p>
+            <NativeSelect value={automationMode} onChange={e => setAutomationMode(e.target.value)}
+              options={[{ value: 'manual', label: 'Manual' }, { value: 'auto', label: 'Domiciliado automático' }]}
+              className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
+            <button type="button" onClick={() => setAutopostEnabled(v => !v)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all w-full justify-between min-h-[44px] ${autopostEnabled ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground bg-muted'}`}>
+              <span>{autopostEnabled ? 'Domiciliado automático activo' : 'Domiciliado automático inactivo'}</span>
+              <div className={`w-8 h-4 rounded-full transition-colors ${autopostEnabled ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                <div className={`w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5 ${autopostEnabled ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Tolerancia fecha (0-3 días)</p>
+                <input type="number" value={autopostDayTolerance} min="0" max="3" onChange={e => setAutopostDayTolerance(e.target.value)}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Tolerancia monto</p>
+                <input type="number" value={autopostAmountTolerance} min="0" step="0.01" onChange={e => setAutopostAmountTolerance(e.target.value)}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Clave de conciliación (merchant/match hint)</p>
+              <input value={matchHint} onChange={e => setMatchHint(e.target.value)} placeholder="Ej: TELMEX"
+                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Forma de pago habitual</p>
+            <p className="text-xs text-muted-foreground mb-1">Forma de pago habitual{isAuto ? ' *' : ''}</p>
             <NativeSelect value={paymentMethodId} onChange={e => setPaymentMethodId(e.target.value)} placeholder="Sin especificar"
               options={[{ value: '', label: 'Sin especificar' }, ...paymentMethods.map(m => ({ value: m.id, label: m.name }))]}
               className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
@@ -85,7 +137,10 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
               </div>
             </button>
           )}
-          <button onClick={handleSubmit} disabled={!name.trim() || !dueDay}
+          {isPaymentMethodRequiredMissing && (
+            <p className="text-xs text-destructive">Selecciona forma de pago para automatización en modo auto.</p>
+          )}
+          <button onClick={handleSubmit} disabled={!name.trim() || !dueDay || isPaymentMethodRequiredMissing}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm shadow-sm disabled:opacity-50 active:opacity-80 transition-opacity mt-2 min-h-[52px]">
             {item ? 'Guardar cambios' : 'Crear pago programado'}
           </button>
