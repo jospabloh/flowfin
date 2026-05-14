@@ -24,11 +24,25 @@ const dotMap = {
   green: 'bg-green-500', amber: 'bg-amber-400', red: 'bg-red-500', gray: 'bg-muted-foreground/30',
 };
 
+function getRecordStatus(record) {
+  if (!record) return 'pending';
+  return record.status || 'reconciled';
+}
+
+function statusBadge(record, item) {
+  const status = getRecordStatus(record);
+  if (status === 'reconciled') return { label: 'Conciliado', cls: 'text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full' };
+  if (status === 'posted') return { label: 'Auto', cls: 'text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full' };
+  if (status === 'skipped' || item.is_active === false) return { label: 'Pausado', cls: 'text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full' };
+  return { label: 'Pendiente', cls: 'text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full' };
+}
+
 export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, onMarkPaid, onUnmark, onEdit, onDelete }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
+  const badge = statusBadge(record, item);
 
   const { can_write: canMark }    = usePermission('scheduled.mark.action');
   const { can_modify: canEdit }   = usePermission('scheduled.manage.edit');
@@ -47,10 +61,9 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
           <div className="flex items-center gap-2 flex-wrap">
             <p className={`text-sm font-bold ${item.is_active === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.name}</p>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotMap[color]}`} />
-            {isPaid && <span className="text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">✓ Pagado</span>}
+            <span className={badge.cls}>{badge.label}</span>
             {!isPaid && item.is_active !== false && color === 'red' && <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Vencido</span>}
             {!isPaid && item.is_active !== false && color === 'amber' && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Vence pronto</span>}
-            {item.is_active === false && <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Inactivo</span>}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-xs text-muted-foreground">Día {item.due_day} de cada mes</p>

@@ -48,8 +48,10 @@ export default function ScheduledPayments() {
     enabled: !!familyId,
   });
 
-  const paidThisMonth = useMemo(() => new Set(records.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id)), [records]);
-  const pending = payments.filter(p => p.is_active !== false && !paidThisMonth.has(p.id));
+  const monthRecords = useMemo(() => records.filter(r => r.month === CURRENT_MONTH), [records]);
+  const paidThisMonth = useMemo(() => new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id)), [monthRecords]);
+  const skippedThisMonth = useMemo(() => new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id)), [monthRecords]);
+  const pending = payments.filter(p => p.is_active !== false && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
   const sorted = [...payments].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
 
   const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
@@ -63,7 +65,7 @@ export default function ScheduledPayments() {
     let primaryPersonId = payPersonId || payingItem.person_id || undefined;
     if (!primaryPersonId && persons.length > 0) primaryPersonId = persons[0].id;
     const selectedPerson = persons.find(p => p.id === primaryPersonId);
-    const recordData = { scheduled_payment_id: payingItem.id, family_id: familyId, month: CURRENT_MONTH, paid_date: payDate, amount_paid: amount, notes: payNotes, paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario' };
+    const recordData = { scheduled_payment_id: payingItem.id, family_id: familyId, month: CURRENT_MONTH, paid_date: payDate, amount_paid: amount, notes: payNotes, paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario', status: 'reconciled', origin: 'manual' };
     try {
       await registerPayment(() => base44.entities.ScheduledPaymentRecord.create(recordData), {
         amount, date: payDate, description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
@@ -125,7 +127,7 @@ export default function ScheduledPayments() {
         {sorted.map(item => {
           const isPaid = paidThisMonth.has(item.id);
           const cat = categories.find(c => c.id === item.category_id);
-          const record = records.find(r => r.month === CURRENT_MONTH && r.scheduled_payment_id === item.id);
+          const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
           return (
             <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
               isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}

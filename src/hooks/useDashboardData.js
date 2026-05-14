@@ -37,8 +37,10 @@ export function useDashboardData() {
   const { data: scheduledRecords = [] } = useQuery({ queryKey: ['scheduledPaymentRecords', familyId], queryFn: () => base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId }), ...SECONDARY });
 
   const pendingScheduled = useMemo(() => {
-    const paidIds = new Set(scheduledRecords.filter(r => r.month === CURRENT_MONTH).map(r => r.scheduled_payment_id));
-    return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id));
+    const monthRecords = scheduledRecords.filter(r => r.month === CURRENT_MONTH);
+    const paidIds = new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id));
+    const skippedIds = new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id));
+    return scheduledPayments.filter(p => p.is_active !== false && !paidIds.has(p.id) && !skippedIds.has(p.id));
   }, [scheduledPayments, scheduledRecords]);
 
   const pendingRentals = useMemo(() => {
