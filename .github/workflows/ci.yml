@@ -8,5 +8,5 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno linter
+      - run: deno lint
       - run: deno test
