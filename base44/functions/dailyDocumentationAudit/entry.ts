@@ -46,7 +46,7 @@ function buildEmailHtml(opts: {
   const hasWarning = opts.checks.some(c => c.status === '⚠️');
   const hasFix     = opts.checks.some(c => c.status === '🔧');
 
-  const overallBadge = opts.checks.some(c => c.status === '⚠️')
+  const overallBadge = hasWarning
     ? '<span style="color:#dc2626;font-weight:700">⚠️ Atención requerida</span>'
     : hasFix
       ? '<span style="color:#d97706;font-weight:700">🔧 Correcciones aplicadas</span>'
