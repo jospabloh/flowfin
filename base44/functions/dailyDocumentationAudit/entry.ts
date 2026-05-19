@@ -1,31 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import {
+  CURRENT_VERSION_IN_CODE,
+  GIT_LOG_SNAPSHOT,
+  USER_MANUAL_LAST_REVIEWED,
+  USER_MANUAL_SECTIONS_COUNT,
+} from './versionHistorySnapshot.ts';
 
-const AUDIT_EMAIL = 'h.josepablo@gmail.com';
+const AUDIT_EMAIL       = 'h.josepablo@gmail.com';
+const MANUAL_STALE_DAYS = 60;
 
-interface EntitySchema {
-  entity_name: string;
-  entity_schema: { properties?: Record<string, unknown> };
-}
-
-interface ChangelogDraft {
-  id?: string;
-  type: string;
-  description: string;
-  is_published?: boolean;
-  published_at?: string;
-  published_in_version?: string;
-}
-
-interface SchemaSnapshotRecord {
-  id?: string;
-  schema_data?: Record<string, string[]>;
-}
-
-interface HasEntitySchemasList {
-  entitySchemas?: {
-    list?: () => Promise<EntitySchema[]>;
-  };
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -35,78 +19,51 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-async function sha256first16(str: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-    .slice(0, 16);
+function daysSince(isoDate: string): number {
+  return Math.floor((Date.now() - new Date(isoDate).getTime()) / 86_400_000);
 }
 
-function buildLiveSchemaMap(schemas: EntitySchema[]): Record<string, string[]> {
-  const map: Record<string, string[]> = {};
-  for (const s of schemas) {
-    const name: string = s.entity_name;
-    const fields = Object.keys(s.entity_schema?.properties ?? {}).sort();
-    map[name] = fields;
-  }
-  return map;
+// Parse "hash message" lines from GIT_LOG_SNAPSHOT into readable descriptions
+function parseGitLog(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 8)
+    .map(l => l.replace(/^[0-9a-f]{7,}\s+/, '').trim())
+    .filter(Boolean);
 }
 
-function computeSchemaDiff(
-  liveMap: Record<string, string[]>,
-  snapshotMap: Record<string, string[]>,
-): string[] {
-  const diff: string[] = [];
-  const liveNames = new Set(Object.keys(liveMap));
-  const snapNames = new Set(Object.keys(snapshotMap));
+// ── Email builder ─────────────────────────────────────────────────────────────
 
-  for (const name of liveNames) {
-    if (!snapNames.has(name)) {
-      diff.push(`Nueva entidad: ${name} (${liveMap[name].length} campos)`);
-    } else {
-      const liveFields = new Set(liveMap[name]);
-      const snapFields = new Set(snapshotMap[name] ?? []);
-      for (const f of liveFields) {
-        if (!snapFields.has(f)) diff.push(`Campo añadido a ${name}: ${f}`);
-      }
-      for (const f of snapFields) {
-        if (!liveFields.has(f)) diff.push(`Campo eliminado de ${name}: ${f}`);
-      }
-    }
-  }
-  for (const name of snapNames) {
-    if (!liveNames.has(name)) diff.push(`Entidad eliminada: ${name}`);
-  }
-  return diff;
-}
-
-function computeNewVersion(
-  current: string,
-  schemaDiff: string[],
-  drafts: ChangelogDraft[],
-): string {
-  const [major, minor, patch] = current.split('.').map(Number);
-  const hasNewEntity = schemaDiff.some(d => d.includes('Nueva entidad'));
-  const hasFeatureOrBreaking = drafts.some(
-    d => d.type === 'feature' || d.type === 'breaking',
-  );
-  if (hasNewEntity || hasFeatureOrBreaking) return `${major}.${minor + 1}.0`;
-  return `${major}.${minor}.${patch + 1}`;
-}
+type CheckResult = { label: string; status: '✅' | '🔧' | '⚠️'; detail: string };
 
 function buildEmailHtml(opts: {
   runDate: string;
-  prevVersion: string;
-  newVersion: string;
-  changes: string[];
-  schemaChangeCount: number;
-  draftCount: number;
-  statusText: string;
+  codeVersion: string;
+  checks: CheckResult[];
+  manualActions: string[];
 }): string {
-  const changesList = opts.changes
-    .map(c => `<li style="margin-bottom:4px">${c}</li>`)
-    .join('');
+  const hasWarning = opts.checks.some(c => c.status === '⚠️');
+  const hasFix     = opts.checks.some(c => c.status === '🔧');
+
+  const overallBadge = hasWarning
+    ? '<span style="color:#dc2626;font-weight:700">⚠️ Atención requerida</span>'
+    : hasFix
+      ? '<span style="color:#d97706;font-weight:700">🔧 Correcciones aplicadas</span>'
+      : '<span style="color:#059669;font-weight:700">✅ Todo sincronizado</span>';
+
+  const checksHtml = opts.checks.map(c => `
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:13px">
+      <span style="font-size:16px;line-height:1">${c.status}</span>
+      <div><strong>${c.label}</strong>${c.detail ? `<br><span style="color:#6b7280">${c.detail}</span>` : ''}</div>
+    </div>`).join('');
+
+  const manualHtml = opts.manualActions.length > 0
+    ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:#92400e">
+        <strong>Acciones manuales pendientes:</strong>
+        <ul style="margin:6px 0 0;padding-left:1.2em">${opts.manualActions.map(a => `<li>${a}</li>`).join('')}</ul>
+       </div>`
+    : '';
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>
 body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16px}
@@ -116,231 +73,203 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 .h p{margin:4px 0 0;color:#a7f3d0;font-size:12px}
 .b{padding:24px 32px;color:#374151;line-height:1.7;font-size:15px}
 .b p{margin:0 0 12px}
-.g{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:#166534}
-.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:14px}
-.row:last-child{border-bottom:none}
-.val{font-weight:700;color:#1f2937}
-.changes{margin:14px 0;font-size:13px}
-.changes ul{margin:6px 0 0;padding-left:1.4em;color:#374151}
 .f{padding:16px 32px;background:#f8fafc;font-size:12px;color:#94a3b8;border-top:1px solid #e2e8f0}
 .f a{color:#059669}
 </style></head><body><div class="w">
 <div class="h">
   <h1>📚 FlowFin — Auditoría de Documentación</h1>
-  <p>${opts.runDate} · Ejecución automática nocturna</p>
+  <p>${opts.runDate} · v${opts.codeVersion} · Ejecución automática nocturna</p>
 </div>
 <div class="b">
-  <p>Estado: <span style="color:#d97706;font-weight:700">${opts.statusText}</span></p>
-  <div class="g">
-    <div class="row"><span>Versión anterior</span><span class="val">${opts.prevVersion}</span></div>
-    <div class="row"><span>Nueva versión</span><span class="val" style="color:#d97706">${opts.newVersion}</span></div>
-    <div class="row"><span>Cambios de esquema</span><span class="val">${opts.schemaChangeCount}</span></div>
-    <div class="row"><span>Entradas manuales (drafts)</span><span class="val">${opts.draftCount}</span></div>
-  </div>
-  ${opts.changes.length > 0 ? `
-  <div class="changes">
-    <strong>Cambios registrados (v${opts.newVersion}):</strong>
-    <ul>${changesList}</ul>
-  </div>` : ''}
+  <p>Estado general: ${overallBadge}</p>
+  <div style="margin:14px 0">${checksHtml}</div>
+  ${manualHtml}
 </div>
 <div class="f">FlowFin — <strong>ACACIA Consultoría</strong> &nbsp;·&nbsp; <a href="mailto:soporte@acaciaco.com.mx">soporte@acaciaco.com.mx</a></div>
 </div></body></html>`;
 }
 
+// ── Main handler ──────────────────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
-  let failureStage = 'unknown';
+  let failureStage = 'init';
   try {
-    const base44 = createClientFromRequest(req);
-    const runDate = fmtDate(new Date());
+    const base44    = createClientFromRequest(req);
+    const runDate   = fmtDate(new Date());
+    const checks: CheckResult[]  = [];
+    const manualActions: string[] = [];
 
-    failureStage = 'load_snapshot';
-    // Step 1 — Load current schema snapshot
-    let currentSnapshot: SchemaSnapshotRecord | null = null;
-    try {
-      const rows = await base44.asServiceRole.entities.SchemaSnapshot.filter({ is_current: true });
-      currentSnapshot = rows?.[0] ?? null;
-    } catch (_) {
-      // no snapshot yet — treat as empty
-    }
+    // ── Check 1: DB version in sync with code ──────────────────────────────
+    failureStage = 'version_sync';
+    const appVersionRows  = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
+    const appVersionRecord = appVersionRows?.[0] ?? null;
+    const dbVersion: string = appVersionRecord?.version ?? '';
 
-    failureStage = 'load_live_schema';
-    // Step 2 — Fetch live schemas and build comparable map
-    let liveSchemas: EntitySchema[] = [];
-    const serviceRoleClient = base44.asServiceRole as unknown as HasEntitySchemasList;
-    const rootClient = base44 as unknown as HasEntitySchemasList;
-    try {
-      liveSchemas = await serviceRoleClient.entitySchemas?.list?.() ?? [];
-    } catch (_) {
-      // ignore and try next fallback
-    }
-    if (liveSchemas.length === 0) {
-      try {
-        liveSchemas = await rootClient.entitySchemas?.list?.() ?? [];
-      } catch (_) {
-        // ignore and use snapshot schema data fallback below
+    if (!dbVersion) {
+      await base44.asServiceRole.entities.AppVersion.create({ version: CURRENT_VERSION_IN_CODE });
+      checks.push({
+        label: 'Versión en base de datos',
+        status: '🔧',
+        detail: `No había registro — creado con v${CURRENT_VERSION_IN_CODE} (código)`,
+      });
+    } else if (dbVersion !== CURRENT_VERSION_IN_CODE) {
+      if (appVersionRecord?.id) {
+        await base44.asServiceRole.entities.AppVersion.update(appVersionRecord.id, { version: CURRENT_VERSION_IN_CODE });
       }
+      checks.push({
+        label: 'Versión en base de datos',
+        status: '🔧',
+        detail: `DB tenía v${dbVersion}, corregido a v${CURRENT_VERSION_IN_CODE} (fuente: código)`,
+      });
+    } else {
+      checks.push({
+        label: 'Versión en base de datos',
+        status: '✅',
+        detail: `v${CURRENT_VERSION_IN_CODE} — código y DB coinciden`,
+      });
     }
-    const liveMap = liveSchemas.length === 0
-      ? (currentSnapshot?.schema_data ?? {})
-      : buildLiveSchemaMap(liveSchemas);
-    const sortedKeys = Object.keys(liveMap).sort();
-    const sortedMap: Record<string, string[]> = Object.fromEntries(
-      sortedKeys.map(k => [k, liveMap[k]]),
-    );
-    const liveJson = JSON.stringify(sortedMap);
-    const liveHash = await sha256first16(liveJson);
-    const entityCount = sortedKeys.length;
-    const fieldCount = Object.values(liveMap).reduce((sum, f) => sum + f.length, 0);
 
-    failureStage = 'compute_schema_diff';
-    // Step 3 — Compute schema diff
-    const snapshotMap: Record<string, string[]> = currentSnapshot?.schema_data ?? {};
-    const schemaDiff = computeSchemaDiff(sortedMap, snapshotMap);
+    // ── Check 2: Changelog coverage for current version ────────────────────
+    failureStage = 'changelog_coverage';
+    const commitLines = parseGitLog(GIT_LOG_SNAPSHOT);
+    const existingChangelogs = await base44.asServiceRole.entities.AppChangelog.filter({
+      version: CURRENT_VERSION_IN_CODE,
+    }) ?? [];
+    const currentChangelog = existingChangelogs[0] ?? null;
+    const changelogHasEntries = Array.isArray(currentChangelog?.changes) && currentChangelog.changes.length > 0;
 
-    failureStage = 'load_drafts';
-    // Step 4 — Load unpublished ChangelogDrafts
-    let drafts: ChangelogDraft[] = [];
+    // Track the live DB state of the changelog as Check 2 repairs it, so Check 3 merges
+    // drafts against the real post-repair content rather than the stale pre-fetch snapshot.
+    let liveChangelogId: string | null = currentChangelog?.id ?? null;
+    let liveChanges: string[] = Array.isArray(currentChangelog?.changes) ? [...currentChangelog.changes] : [];
+
+    if (!currentChangelog) {
+      if (commitLines.length > 0) {
+        // Changelog missing entirely — create it from git log so it's documented
+        const created = await base44.asServiceRole.entities.AppChangelog.create({
+          version: CURRENT_VERSION_IN_CODE,
+          release_date: todayISO(),
+          changes: commitLines,
+          is_current: true,
+        });
+        liveChangelogId = created?.id ?? null;
+        liveChanges = [...commitLines];
+        checks.push({
+          label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
+          status: '🔧',
+          detail: `No existía entrada — creada con ${commitLines.length} commits del git log`,
+        });
+      } else {
+        checks.push({
+          label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
+          status: '⚠️',
+          detail: 'No hay changelog ni commits en el snapshot — actualiza About.jsx y ejecuta npm run build',
+        });
+        manualActions.push(`Agregar entradas al changelog de v${CURRENT_VERSION_IN_CODE} en About.jsx`);
+      }
+    } else if (!changelogHasEntries && commitLines.length > 0) {
+      // Changelog exists but is empty — populate from git log
+      await base44.asServiceRole.entities.AppChangelog.update(currentChangelog.id, {
+        changes: commitLines,
+      });
+      liveChanges = [...commitLines];
+      checks.push({
+        label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
+        status: '🔧',
+        detail: `Entrada existía pero vacía — poblada con ${commitLines.length} commits del git log`,
+      });
+    } else {
+      checks.push({
+        label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
+        status: '✅',
+        detail: `${(currentChangelog?.changes ?? []).length} entradas documentadas`,
+      });
+    }
+
+    // ── Check 3: Unpublished ChangelogDraft records ────────────────────────
+    failureStage = 'changelog_drafts';
+    let drafts: Array<{ id?: string; type: string; description: string }> = [];
     try {
       drafts = await base44.asServiceRole.entities.ChangelogDraft.filter({ is_published: false }) ?? [];
     } catch (_) {
-      // no drafts table yet — proceed with empty
+      // table may not exist yet
     }
-    const draftStrings = drafts.map((d) => `${d.type}: ${d.description}`);
 
-    failureStage = 'resolve_version';
-    // Step 5 — Resolve current app version
-    const appVersionRows = await base44.asServiceRole.entities.AppVersion.list('-created_date', 1);
-    const appVersionRecord = appVersionRows?.[0] ?? null;
-    const prevVersion: string = appVersionRecord?.version ?? '1.0.0';
+    if (drafts.length > 0) {
+      // Merge drafts into liveChanges (which reflects any repairs made by Check 2 this same run)
+      const draftStrings = drafts.map(d => `${d.type}: ${d.description}`);
+      const mergedChanges = [...new Set([...liveChanges, ...draftStrings])];
 
-    // Step 6 — Early notify path if nothing changed
-    if (schemaDiff.length === 0 && drafts.length === 0) {
-      console.log('[dailyDocumentationAudit] No changes detected — notifying audit email');
-      try {
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: AUDIT_EMAIL,
-          subject: `[FlowFin] Documentación · sin cambios · ${runDate}`,
-          body: buildEmailHtml({
-            runDate,
-            prevVersion,
-            newVersion: prevVersion,
-            changes: [],
-            schemaChangeCount: 0,
-            draftCount: 0,
-            statusText: '✅ Sin cambios detectados',
-          }),
-          from_name: 'FlowFin Audit',
+      if (liveChangelogId) {
+        await base44.asServiceRole.entities.AppChangelog.update(liveChangelogId, {
+          changes: mergedChanges,
         });
-      } catch (sendErr) {
-        const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
-        console.error('[dailyDocumentationAudit] SendEmail failed', {
-          stage: 'send_email',
-          runDate,
-          version: prevVersion,
-          message,
-        });
-        try {
-          await base44.asServiceRole.entities.EmailNotification.create({
-            email_type: 'daily_documentation_audit',
-            recipient_email: AUDIT_EMAIL,
-            status: 'pending',
-            retry_count: 0,
-          });
-        } catch (_) {
-          // non-fatal: retry queue unavailable
-        }
-        return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
       }
-      return Response.json({
-        success: true,
-        action: 'notified_no_changes',
-        prevVersion,
-        newVersion: prevVersion,
-        schemaChangeCount: 0,
-        draftCount: 0,
+
+      const publishedAt = new Date().toISOString();
+      for (const draft of drafts) {
+        if (draft.id) {
+          await base44.asServiceRole.entities.ChangelogDraft.update(draft.id, {
+            is_published: true,
+            published_at: publishedAt,
+            published_in_version: CURRENT_VERSION_IN_CODE,
+          });
+        }
+      }
+
+      checks.push({
+        label: 'Drafts de changelog pendientes',
+        status: '🔧',
+        detail: `${drafts.length} draft(s) publicados en v${CURRENT_VERSION_IN_CODE}`,
+      });
+    } else {
+      checks.push({
+        label: 'Drafts de changelog pendientes',
+        status: '✅',
+        detail: 'Sin drafts sin publicar',
       });
     }
 
-    failureStage = 'compute_new_version';
-    // Step 7 — Compute new version
-    const newVersion = computeNewVersion(prevVersion, schemaDiff, drafts);
-
-    failureStage = 'persist_changes';
-    // Step 8 — Persist changes (in order)
-
-    // 7.1 Update AppVersion
-    if (appVersionRecord?.id) {
-      await base44.asServiceRole.entities.AppVersion.update(appVersionRecord.id, { version: newVersion });
+    // ── Check 4: User manual staleness ────────────────────────────────────
+    failureStage = 'manual_staleness';
+    const staleDays = daysSince(USER_MANUAL_LAST_REVIEWED);
+    if (staleDays > MANUAL_STALE_DAYS) {
+      checks.push({
+        label: 'Manual de usuario',
+        status: '⚠️',
+        detail: `Última revisión hace ${staleDays} días (${USER_MANUAL_LAST_REVIEWED}) — límite: ${MANUAL_STALE_DAYS} días`,
+      });
+      manualActions.push(
+        `Revisar UserManual.jsx (sin actualizar hace ${staleDays} días) y actualizar USER_MANUAL_LAST_REVIEWED en versionHistorySnapshot.ts`,
+      );
     } else {
-      await base44.asServiceRole.entities.AppVersion.create({ version: newVersion });
+      checks.push({
+        label: 'Manual de usuario',
+        status: '✅',
+        detail: `Revisado hace ${staleDays} días (${USER_MANUAL_LAST_REVIEWED}) · ${USER_MANUAL_SECTIONS_COUNT} secciones`,
+      });
     }
 
-    // 7.2 Mark all AppChangelog records is_current = false
-    const currentChangelogs = await base44.asServiceRole.entities.AppChangelog.filter({ is_current: true }) ?? [];
-    for (const row of currentChangelogs) {
-      if (row.id) await base44.asServiceRole.entities.AppChangelog.update(row.id, { is_current: false });
-    }
+    // ── Send audit email ───────────────────────────────────────────────────
+    failureStage = 'send_email';
+    const hasWarning  = checks.some(c => c.status === '⚠️');
+    const hasAnyFix   = checks.some(c => c.status === '🔧');
+    const statusLabel = hasWarning
+      ? 'atención requerida'
+      : hasAnyFix
+        ? 'correcciones aplicadas'
+        : 'todo sincronizado';
 
-    // 7.3 Create new AppChangelog
-    const allChanges = [...schemaDiff, ...draftStrings];
-    await base44.asServiceRole.entities.AppChangelog.create({
-      version: newVersion,
-      release_date: todayISO(),
-      changes: allChanges,
-      is_current: true,
-    });
-
-    // 7.4 Mark old SchemaSnapshot is_current = false
-    if (currentSnapshot?.id) {
-      await base44.asServiceRole.entities.SchemaSnapshot.update(currentSnapshot.id, { is_current: false });
-    }
-
-    // 7.5 Create new SchemaSnapshot
-    await base44.asServiceRole.entities.SchemaSnapshot.create({
-      snapshot_date: todayISO(),
-      schema_hash: liveHash,
-      schema_data: sortedMap,
-      entities_count: entityCount,
-      fields_count: fieldCount,
-      is_current: true,
-    });
-
-    // 7.6 Mark all ChangelogDrafts published
-    const publishedAt = new Date().toISOString();
-    for (const draft of drafts) {
-      if (draft.id) {
-        await base44.asServiceRole.entities.ChangelogDraft.update(draft.id, {
-          is_published: true,
-          published_at: publishedAt,
-          published_in_version: newVersion,
-        });
-      }
-    }
-
-    // Step 9 — Send audit email
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to: AUDIT_EMAIL,
-        subject: `[FlowFin] Documentación · v${newVersion} publicada · ${runDate}`,
-        body: buildEmailHtml({
-          runDate,
-          prevVersion,
-          newVersion,
-          changes: allChanges,
-          schemaChangeCount: schemaDiff.length,
-          draftCount: draftStrings.length,
-          statusText: '🆕 Nueva versión publicada',
-        }),
+        subject: `[FlowFin] Documentación · v${CURRENT_VERSION_IN_CODE} · ${statusLabel} · ${runDate}`,
+        body: buildEmailHtml({ runDate, codeVersion: CURRENT_VERSION_IN_CODE, checks, manualActions }),
         from_name: 'FlowFin Audit',
       });
     } catch (sendErr) {
-      const message = sendErr instanceof Error ? sendErr.message : String(sendErr);
-      console.error('[dailyDocumentationAudit] SendEmail failed', {
-        stage: 'send_email',
-        runDate,
-        version: newVersion,
-        message,
-      });
+      const message = (sendErr instanceof Error) ? sendErr.message : String(sendErr);
+      console.error('[dailyDocumentationAudit] SendEmail failed', { message });
       try {
         await base44.asServiceRole.entities.EmailNotification.create({
           email_type: 'daily_documentation_audit',
@@ -348,25 +277,23 @@ Deno.serve(async (req) => {
           status: 'pending',
           retry_count: 0,
         });
-      } catch (_) {
-        // non-fatal: retry queue unavailable
-      }
+      } catch (_) { /* non-fatal */ }
       return Response.json({ success: false, stage: 'send_email', error: message }, { status: 500 });
     }
 
     console.log(
-      `[dailyDocumentationAudit] ${prevVersion} → ${newVersion} | schemaChanges:${schemaDiff.length} drafts:${drafts.length}`,
+      `[dailyDocumentationAudit] v${CURRENT_VERSION_IN_CODE} | checks:${checks.length} fixes:${checks.filter(c => c.status === '🔧').length} warnings:${checks.filter(c => c.status === '⚠️').length}`,
     );
+
     return Response.json({
       success: true,
-      prevVersion,
-      newVersion,
-      schemaChangeCount: schemaDiff.length,
-      draftCount: drafts.length,
-      changes: allChanges,
+      codeVersion: CURRENT_VERSION_IN_CODE,
+      checks: checks.map(c => ({ label: c.label, status: c.status })),
+      manualActions,
     });
+
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = (err instanceof Error) ? err.message : String(err);
     console.error('[dailyDocumentationAudit] Fatal error', { stage: failureStage, message });
     return Response.json({ success: false, stage: failureStage, error: message }, { status: 500 });
   }

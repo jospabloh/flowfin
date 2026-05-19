@@ -1,0 +1,11 @@
+{
+  "lint": {
+    "include": ["base44/functions/"],
+    "rules": {
+      "exclude": ["no-import-prefix"]
+    }
+  },
+  "test": {
+    "include": ["base44/functions/"]
+  }
+}

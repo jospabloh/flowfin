@@ -1,11 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { ALL_PERMISSION_DEFAULTS } from './permissionManifests.ts';
 
 const AUDIT_EMAIL = 'h.josepablo@gmail.com';
-const ADMIN_FULL  = { can_read: true, can_write: true, can_modify: true, can_delete: true,  can_view: true };
-const MEMBER_BASE = { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true };
 
-// All permission keys that every family should have for both admin and member (v2)
-const ALL_PERMISSION_KEYS = [
+// Module-level coarse keys not in the granular manifest — kept as a safety net
+const MODULE_KEYS = [
   'module.Dashboard',
   'module.Transactions',
   'module.Reports',
@@ -23,11 +22,37 @@ const ALL_PERMISSION_KEYS = [
   'module.PermissionAdmin',
 ];
 
-function fmtDate(d) {
+const ADMIN_FULL  = { can_read: true,  can_write: true,  can_modify: true,  can_delete: true,  can_view: true  };
+const MEMBER_BASE = { can_read: true,  can_write: false, can_modify: false, can_delete: false, can_view: true  };
+
+// Build the authoritative map from the manifest (granular defaults per key)
+const MANIFEST_MAP = new Map(ALL_PERMISSION_DEFAULTS.map(e => [e.key, e]));
+
+// Full key+defaults list: all granular manifest entries, then any module keys not already covered
+const granularKeys = ALL_PERMISSION_DEFAULTS.map(e => e.key);
+const moduleOnlyKeys = MODULE_KEYS.filter(k => !MANIFEST_MAP.has(k));
+
+function defaultsForKey(key: string): { adminPerms: Record<string, boolean>; memberPerms: Record<string, boolean> } {
+  const entry = MANIFEST_MAP.get(key);
+  if (entry) return { adminPerms: entry.admin as Record<string, boolean>, memberPerms: entry.member as Record<string, boolean> };
+  return { adminPerms: ADMIN_FULL, memberPerms: MEMBER_BASE };
+}
+
+function fmtDate(d: Date): string {
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function buildEmailHtml(stats) {
+function buildEmailHtml(stats: {
+  runDate: string;
+  families_count: number;
+  total_keys: number;
+  existing_admin: number;
+  created_admin: number;
+  existing_member: number;
+  created_member: number;
+  created_keys: string[];
+  errors: string[];
+}): string {
   const allOk = (stats.created_admin + stats.created_member) === 0 && stats.errors.length === 0;
   const statusBadge = stats.errors.length > 0
     ? '<span style="color:#dc2626;font-weight:700">⚠️ Con errores</span>'
@@ -69,7 +94,7 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
   <p>Estado: ${statusBadge}</p>
   <div class="g">
     <div class="row"><span>Familias auditadas</span><span class="num">${stats.families_count}</span></div>
-    <div class="row"><span>Permission keys por familia</span><span class="num">${ALL_PERMISSION_KEYS.length}</span></div>
+    <div class="row"><span>Permission keys verificadas (granular)</span><span class="num">${stats.total_keys}</span></div>
     <div class="row"><span>Admin: ya existían</span><span class="num">${stats.existing_admin}</span></div>
     <div class="row"><span>Admin: creados</span><span class="num" style="color:${stats.created_admin > 0 ? '#d97706' : '#059669'}">${stats.created_admin}</span></div>
     <div class="row"><span>Member: ya existían</span><span class="num">${stats.existing_member}</span></div>
@@ -86,18 +111,20 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const now = new Date();
-    const runDate = fmtDate(now);
+    const runDate = fmtDate(new Date());
+
+    const allKeys = [...granularKeys, ...moduleOnlyKeys];
 
     const stats = {
       runDate,
       families_count: 0,
+      total_keys: allKeys.length,
       existing_admin: 0,
       created_admin: 0,
       existing_member: 0,
       created_member: 0,
-      created_keys: [],
-      errors: [],
+      created_keys: [] as string[],
+      errors: [] as string[],
     };
 
     const families = await base44.asServiceRole.entities.Family.list();
@@ -111,25 +138,28 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.RolePermission.filter({ role: 'member' }),
     ]);
 
-    const adminSet = new Set((existingAdmin || []).map(p => `${p.family_id}:${p.permission_key}`));
+    const adminSet  = new Set((existingAdmin  || []).map(p => `${p.family_id}:${p.permission_key}`));
     const memberSet = new Set((existingMember || []).map(p => `${p.family_id}:${p.permission_key}`));
 
-    const toCreate = [];
+    const toCreate: Record<string, unknown>[] = [];
 
     for (const family of families) {
-      for (const key of ALL_PERMISSION_KEYS) {
+      for (const key of allKeys) {
         const fk = `${family.id}:${key}`;
+        const { adminPerms, memberPerms } = defaultsForKey(key);
+
         if (adminSet.has(fk)) {
           stats.existing_admin++;
         } else {
-          toCreate.push({ family_id: family.id, role: 'admin', permission_key: key, ...ADMIN_FULL });
+          toCreate.push({ family_id: family.id, role: 'admin', permission_key: key, ...adminPerms });
           stats.created_admin++;
           stats.created_keys.push(`[admin] ${key} (...${family.id.slice(-6)})`);
         }
+
         if (memberSet.has(fk)) {
           stats.existing_member++;
         } else {
-          toCreate.push({ family_id: family.id, role: 'member', permission_key: key, ...MEMBER_BASE });
+          toCreate.push({ family_id: family.id, role: 'member', permission_key: key, ...memberPerms });
           stats.created_member++;
           stats.created_keys.push(`[member] ${key} (...${family.id.slice(-6)})`);
         }
@@ -140,7 +170,7 @@ Deno.serve(async (req) => {
       try {
         await base44.asServiceRole.entities.RolePermission.bulkCreate(toCreate.slice(i, i + 50));
       } catch (e) {
-        stats.errors.push(`Batch ${Math.floor(i / 50) + 1}: ${e.message}`);
+        stats.errors.push(`Batch ${Math.floor(i / 50) + 1}: ${(e as Error).message}`);
       }
     }
 
@@ -154,13 +184,13 @@ Deno.serve(async (req) => {
         from_name: 'FlowFin Audit',
       });
     } catch (emailErr) {
-      stats.errors.push(`Email: ${emailErr.message}`);
+      stats.errors.push(`Email: ${(emailErr as Error).message}`);
     }
 
-    console.log(`[dailyPermissionAudit] families:${stats.families_count} admin_created:${stats.created_admin} member_created:${stats.created_member} errors:${stats.errors.length}`);
+    console.log(`[dailyPermissionAudit] families:${stats.families_count} keys_per_family:${allKeys.length} admin_created:${stats.created_admin} member_created:${stats.created_member} errors:${stats.errors.length}`);
     return Response.json({ success: true, ...stats });
   } catch (err) {
-    console.error(`[dailyPermissionAudit] Fatal: ${err.message}`);
-    return Response.json({ success: false, error: err.message }, { status: 500 });
+    console.error(`[dailyPermissionAudit] Fatal: ${(err as Error).message}`);
+    return Response.json({ success: false, error: (err as Error).message }, { status: 500 });
   }
 });
