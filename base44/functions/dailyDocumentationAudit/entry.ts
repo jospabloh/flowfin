@@ -139,15 +139,22 @@ Deno.serve(async (req) => {
     const currentChangelog = existingChangelogs[0] ?? null;
     const changelogHasEntries = Array.isArray(currentChangelog?.changes) && currentChangelog.changes.length > 0;
 
+    // Track the live DB state of the changelog as Check 2 repairs it, so Check 3 merges
+    // drafts against the real post-repair content rather than the stale pre-fetch snapshot.
+    let liveChangelogId: string | null = currentChangelog?.id ?? null;
+    let liveChanges: string[] = Array.isArray(currentChangelog?.changes) ? [...currentChangelog.changes] : [];
+
     if (!currentChangelog) {
       if (commitLines.length > 0) {
         // Changelog missing entirely — create it from git log so it's documented
-        await base44.asServiceRole.entities.AppChangelog.create({
+        const created = await base44.asServiceRole.entities.AppChangelog.create({
           version: CURRENT_VERSION_IN_CODE,
           release_date: todayISO(),
           changes: commitLines,
           is_current: true,
         });
+        liveChangelogId = created?.id ?? null;
+        liveChanges = [...commitLines];
         checks.push({
           label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
           status: '🔧',
@@ -166,6 +173,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.AppChangelog.update(currentChangelog.id, {
         changes: commitLines,
       });
+      liveChanges = [...commitLines];
       checks.push({
         label: `Changelog v${CURRENT_VERSION_IN_CODE}`,
         status: '🔧',
@@ -189,13 +197,12 @@ Deno.serve(async (req) => {
     }
 
     if (drafts.length > 0) {
-      // Publish pending drafts into the current changelog
+      // Merge drafts into liveChanges (which reflects any repairs made by Check 2 this same run)
       const draftStrings = drafts.map(d => `${d.type}: ${d.description}`);
-      const existingChanges: string[] = currentChangelog?.changes ?? [];
-      const mergedChanges = [...new Set([...existingChanges, ...draftStrings])];
+      const mergedChanges = [...new Set([...liveChanges, ...draftStrings])];
 
-      if (currentChangelog?.id) {
-        await base44.asServiceRole.entities.AppChangelog.update(currentChangelog.id, {
+      if (liveChangelogId) {
+        await base44.asServiceRole.entities.AppChangelog.update(liveChangelogId, {
           changes: mergedChanges,
         });
       }
