@@ -41,6 +41,7 @@ const Goals = lazy(() => import('@/pages/Goals'));
 const ReleaseNotes = lazy(() => import('@/pages/ReleaseNotes'));
 const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
 const LandingPage = lazy(() => import('@/pages/Landing'));
+const WaitlistAdmin = lazy(() => import('@/pages/WaitlistAdmin'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -173,6 +174,7 @@ const AuthenticatedApp = () => {
               <Route path="/AccountSettings" element={<Suspense fallback={<LoadingFallback />}><AccountSettings /></Suspense>} />
               <Route path="/FamilyAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.FamilyAdmin" element={<FamilyAdmin />} /></Suspense>} />
               <Route path="/LicenseAdmin" element={<Suspense fallback={<LoadingFallback />}><LicenseAdmin /></Suspense>} />
+              <Route path="/WaitlistAdmin" element={<Suspense fallback={<LoadingFallback />}><WaitlistAdmin /></Suspense>} />
               <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />
