@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { identify as analyticsIdentify } from '@/lib/analytics';
 
 function syncUserPrefsToLS(user) {
   try {
@@ -133,6 +134,18 @@ export function FamilyProvider({ children }) {
       }
     }
   }, [familyConfig?.id]);
+
+  // Identify the user in analytics once we have stable ids. Traits stay
+  // coarse: no email / name forwarded to the analytics provider.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    analyticsIdentify(currentUser.id, {
+      family_id: familyId || null,
+      role: membership?.role || null,
+      billing_status: family?.billing_status || null,
+      license_plan: family?.license_plan || null,
+    });
+  }, [currentUser?.id, familyId, membership?.role, family?.billing_status, family?.license_plan]);
 
   // isLoading: true while user loads OR while membership query is pending/running
   const isLoading = loadingUser || (!!currentUser && membership === undefined) || (!!familyId && family === undefined);
