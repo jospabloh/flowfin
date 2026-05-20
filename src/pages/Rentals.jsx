@@ -13,6 +13,8 @@ import RentalPaymentSheet from '@/components/rentals/RentalPaymentSheet';
 import RentalPropertyFormSheet from '@/components/rentals/RentalPropertyFormSheet';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import { usePermission } from '@/lib/permissions/usePermission';
+import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import PaywallPrompt from '@/components/billing/PaywallPrompt';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 const THIS_MONTH = new Date().toISOString().slice(0, 7);
@@ -24,6 +26,7 @@ export default function Rentals() {
   const { toast } = useToast();
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { can_write: canCreate }       = usePermission('rental.property.create');
+  const gate = useFeatureGate('page.Rentals');
 
   const [showPropForm, setShowPropForm] = useState(false);
   const [editingProp, setEditingProp] = useState(null);
@@ -134,6 +137,23 @@ export default function Rentals() {
     } finally {
       setUnmarkingId(null);
     }
+  }
+
+  if (gate.status === 'loading') {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (gate.status === 'denied') {
+    return (
+      <div className="pb-24">
+        <PageHeader title="Rentas" subtitle="Cobro de propiedades" />
+        <PaywallPrompt feature="page.Rentals" requiredPlan={gate.requiredPlan} />
+      </div>
+    );
   }
 
   return (

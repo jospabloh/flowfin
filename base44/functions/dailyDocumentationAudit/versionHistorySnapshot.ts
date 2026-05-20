@@ -44,7 +44,8 @@ export const USER_MANUAL_SECTIONS_COUNT = 24;
 export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `0d9520c feat(onboarding): seed default Person on family creation (Issue 1)
+export const GIT_LOG_SNAPSHOT = `364fef6 feat(capture): Quick Capture sheet behind feature flag (Issue 2)
+0d9520c feat(onboarding): seed default Person on family creation (Issue 1)
 39e2254 chore(baseline): add pre-sprint snapshot and rollback procedure
 1adb778 fix(ci): unblock deno lint with no-import-prefix exclusion + use hasWarning
 a973be0 fix(doc-audit): remove unused allOk variable
@@ -71,5 +72,4 @@ ee81792 Send audit email on no-change documentation runs
 e3002d9 Add scheduled payment transaction dedup matching
 9749c6f Replace window.prompt with globalThis.prompt for deno lint
 484558e Add pause/resume support for scheduled payments
-3106e55 Add explicit scheduled payment record statuses in UI flows
-cf77968 Add scheduled payment autopost fields, form controls, and daily auto-post job`;
+3106e55 Add explicit scheduled payment record statuses in UI flows`;
