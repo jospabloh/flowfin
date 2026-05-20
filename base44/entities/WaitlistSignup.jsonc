@@ -1,0 +1,44 @@
+{
+  "name": "WaitlistSignup",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email del usuario que se unió a la waitlist. Lower-case + trim. Unique soft via filter."
+    },
+    "source": {
+      "type": "string",
+      "description": "Origen del lead: tiktok | reddit | x | whatsapp | snapshot | organic | other"
+    },
+    "referrer_code": {
+      "type": "string",
+      "description": "Código de referido (ref param de la URL al hacer signup)"
+    },
+    "referrals_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de signups con su referrer_code igual al code de este registro"
+    },
+    "self_code": {
+      "type": "string",
+      "description": "Código único generado server-side para este lead, para que comparta y reciba referidos"
+    },
+    "invited_at": {
+      "type": "string",
+      "description": "ISO datetime cuando se le invitó al soft-launch (vacío = pendiente)"
+    },
+    "joined_app_user_id": {
+      "type": "string",
+      "description": "User.id si convirtió la waitlist en cuenta real"
+    },
+    "utm_campaign": { "type": "string", "description": "UTM opcional" },
+    "utm_medium": { "type": "string", "description": "UTM opcional" }
+  },
+  "required": ["email"],
+  "rls": {
+    "create": { "user_condition": { "role": "admin" } },
+    "read": { "user_condition": { "role": "admin" } },
+    "update": { "user_condition": { "role": "admin" } },
+    "delete": { "user_condition": { "role": "admin" } }
+  }
+}

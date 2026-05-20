@@ -40,6 +40,7 @@ const SavingsDashboard = lazy(() => import('@/pages/SavingsDashboard'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const ReleaseNotes = lazy(() => import('@/pages/ReleaseNotes'));
 const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
+const LandingPage = lazy(() => import('@/pages/Landing'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -115,14 +116,18 @@ const AuthenticatedApp = () => {
   const location = useLocation();
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Public snapshot route bypasses auth + family gating entirely so a
-  // visitor without an account can land on /s/:slug straight from a share
-  // link. Keep this branch BEFORE any auth-state checks.
-  if (location.pathname.startsWith('/s/')) {
+  // Public routes bypass auth + family gating entirely so visitors without
+  // an account can land on share links and the waitlist page. Keep this
+  // branch BEFORE any auth-state checks.
+  const isPublicSnapshot = location.pathname.startsWith('/s/');
+  const isPublicLanding = location.pathname.toLowerCase().startsWith('/landing');
+  if (isPublicSnapshot || isPublicLanding) {
     return (
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/s/:slug" element={<PublicSnapshotPage />} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/Landing" element={<LandingPage />} />
         </Routes>
       </Suspense>
     );
