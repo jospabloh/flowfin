@@ -33,6 +33,28 @@ Deno.serve(async (req) => {
       licensed_member_limit: 4,
     });
 
+    // Create default Person for the admin so QuickCapture has a valid person_id
+    // without forcing the user through extra setup. Non-fatal: if it fails,
+    // the family is still usable and backfillDefaultPerson will fix it later.
+    let defaultPersonId: string | undefined;
+    try {
+      const personName = (user.full_name || user.email || 'Yo').trim();
+      const initial = personName.charAt(0).toUpperCase() || 'Y';
+      const person = await base44.asServiceRole.entities.Person.create({
+        family_id: family.id,
+        name: personName,
+        avatar_initial: initial,
+        color: '#059669',
+      });
+      defaultPersonId = person.id;
+      await base44.asServiceRole.entities.Family.update(family.id, {
+        default_person_id: person.id,
+      });
+    } catch (personErr: unknown) {
+      const personErrorMessage = personErr instanceof Error ? personErr.message : String(personErr);
+      console.warn('[createFamily] Failed to create default Person:', personErrorMessage);
+    }
+
     // Queue welcome email (non-fatal — family creation succeeds even if this fails)
     try {
       await base44.asServiceRole.entities.EmailNotification.create({
@@ -47,7 +69,7 @@ Deno.serve(async (req) => {
       console.warn('[createFamily] Failed to queue welcome email:', emailErrorMessage);
     }
 
-    // Create admin membership
+    // Create admin membership (linked to the default Person if available)
     await base44.asServiceRole.entities.FamilyMembership.create({
       family_id: family.id,
       user_id: user.id,
@@ -55,6 +77,7 @@ Deno.serve(async (req) => {
       user_name: user.full_name,
       role: 'admin',
       status: 'approved',
+      ...(defaultPersonId ? { person_id: defaultPersonId } : {}),
     });
 
     // Update user's family_id in their profile and promote to admin
