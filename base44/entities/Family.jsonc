@@ -108,6 +108,10 @@
     "last_payment_notes": {
       "type": "string",
       "description": "Notas internas ACACIA del \u00faltimo pago confirmado"
+    },
+    "default_person_id": {
+      "type": "string",
+      "description": "ID del Person creado por defecto para el admin al crear la familia. Permite a QuickCapture inferir person_id sin forzar setup adicional. Las familias creadas antes de 2026-05-20 pueden no tenerlo; usar backfillDefaultPerson o el fallback del frontend."
     }
   },
   "required": [
