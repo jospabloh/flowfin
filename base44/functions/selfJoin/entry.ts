@@ -6,11 +6,18 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { join_code, user_email, user_name } = await req.json();
+    const { join_code, user_email, user_name, ref } = await req.json();
 
     if (!join_code || !user_email) {
       return Response.json({ error: 'Missing parameters' }, { status: 400 });
     }
+
+    // Sanitize referrer: must be a non-empty string distinct from the joiner.
+    // Stored as-is for analytics; downstream reward logic does its own
+    // existence checks before granting referral credit.
+    const invitedByUserId = typeof ref === 'string' && ref.trim() && ref.trim() !== user.id
+      ? ref.trim()
+      : undefined;
 
     // Only allow the authenticated user to join with their own email
     if (user.email.toLowerCase() !== user_email.trim().toLowerCase()) {
@@ -56,6 +63,7 @@ Deno.serve(async (req) => {
       user_name: user_name || user_email,
       role: 'member',
       status: 'pending',
+      ...(invitedByUserId ? { invited_by_user_id: invitedByUserId } : {}),
     });
 
     return Response.json({ success: true, pending: true });

@@ -59,6 +59,10 @@
       "type": "number",
       "default": 0,
       "description": "N\u00famero de emails de reactivaci\u00f3n de trial enviados durante el per\u00edodo de prueba actual"
+    },
+    "invited_by_user_id": {
+      "type": "string",
+      "description": "ID del usuario que envi\u00f3 el deep-link de invitaci\u00f3n que origin\u00f3 esta membres\u00eda. Vac\u00edo para admins (creadores de la familia) o miembros que se unieron sin link de referido."
     }
   },
   "required": [
