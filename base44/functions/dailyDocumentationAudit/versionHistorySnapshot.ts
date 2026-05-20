@@ -44,7 +44,8 @@ export const USER_MANUAL_SECTIONS_COUNT = 24;
 export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `44de4b1 feat(growth): public landing + waitlist signups with referrals (Sprint 4 — Issues 4.1-4.2)
+export const GIT_LOG_SNAPSHOT = `1d2377d feat(growth): waitlist admin panel + invite cohort backend (Sprint 4 — Issue 4.4)
+44de4b1 feat(growth): public landing + waitlist signups with referrals (Sprint 4 — Issues 4.1-4.2)
 1571b6a feat(viral): static OG tags + dynamic snapshot meta (Sprint 3 — Issue 3.4 partial)
 4dd21c0 feat(viral): trip + monthly report share triggers (Sprint 3 — Issue 3.3 cont.)
 4602e41 feat(viral): PublicSnapshot entity + /s/:slug page + Goal share trigger (Sprint 3 — Issues 3.1-3.3)
@@ -67,5 +68,4 @@ bc49c4a fix(audit): align both audit jobs with their actual directives
 3121f83 Create .dockerignore
 4f556ad Add Dockerfile for Deno application setup
 5ee745e Create ci.yml
-44cd900 Handle empty changelog states in About version sections
-a097b39 Merge canonical and backend changelog history by version`;
+44cd900 Handle empty changelog states in About version sections`;
