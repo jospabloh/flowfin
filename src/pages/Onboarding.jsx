@@ -4,14 +4,29 @@ import { useFamily } from '@/lib/FamilyContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Key, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { defaultCategories, defaultSubcategoriesByCategory, defaultPaymentMethods } from '@/lib/seedData';
+import InviteShareCard from '@/components/family/InviteShareCard';
+
+function readUrlParams() {
+  try {
+    const params = new URLSearchParams(globalThis.location?.search || '');
+    return {
+      code: (params.get('code') || '').trim().toUpperCase(),
+      ref: (params.get('ref') || '').trim(),
+    };
+  } catch {
+    return { code: '', ref: '' };
+  }
+}
 
 export default function Onboarding() {
   const familyCtx = useFamily();
   const currentUser = familyCtx?.currentUser;
   const refetchMembership = familyCtx?.refetchMembership;
-  const [mode, setMode] = useState(null); // 'create' | 'join'
+  const urlParams = readUrlParams();
+  const [mode, setMode] = useState(urlParams.code ? 'join' : null); // 'create' | 'join' | 'invite'
   const [familyName, setFamilyName] = useState('');
-  const [joinCode, setJoinCode] = useState('');
+  const [joinCode, setJoinCode] = useState(urlParams.code || '');
+  const [referrerId] = useState(urlParams.ref || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pendingApproval, setPendingApproval] = useState(false);
@@ -65,7 +80,14 @@ export default function Onboarding() {
       return;
     }
 
-    // Reload so FamilyContext picks up the new membership cleanly
+    // Refresh context so the InviteShareCard can read the new join_code,
+    // then move to the invite step instead of reloading immediately.
+    await refetchMembership();
+    setLoading(false);
+    setMode('invite');
+  };
+
+  const finishOnboarding = () => {
     globalThis.location.reload();
   };
 
@@ -79,6 +101,7 @@ export default function Onboarding() {
         join_code: joinCode.trim().toUpperCase(),
         user_email: currentUser.email,
         user_name: currentUser.full_name,
+        ...(referrerId ? { ref: referrerId } : {}),
       });
 
       if (res.data?.already_member) {
@@ -165,6 +188,29 @@ export default function Onboarding() {
                 {loading ? 'Creando...' : 'Crear familia'}
               </button>
               <button onClick={() => setMode(null)} className="w-full py-2 text-sm text-muted-foreground">← Volver</button>
+            </motion.div>
+          ) : mode === 'invite' ? (
+            <motion.div key="invite" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+              className="space-y-4">
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <h2 className="text-lg font-bold text-foreground">¡Tu familia está lista!</h2>
+                <p className="text-xs text-muted-foreground max-w-[16rem]">
+                  Antes de empezar, invita al menos a una persona con quien compartes gastos. Vas a ver el bucle completo desde el primer día.
+                </p>
+              </div>
+              <InviteShareCard
+                title="Comparte el código"
+                subtitle="Pega el link en WhatsApp y olvídate del trámite."
+                onSkip={finishOnboarding}
+                skipLabel="Lo invito después"
+              />
+              <button onClick={finishOnboarding}
+                className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 flex items-center justify-center gap-2">
+                Entrar a la app
+              </button>
             </motion.div>
           ) : (
             <motion.div key="join" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
