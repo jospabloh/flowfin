@@ -13,6 +13,8 @@ import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormMo
 import InvestmentFormSheet from '@/components/investments/InvestmentFormSheet';
 import Spinner from '@/components/Spinner';
 import { usePermission } from '@/lib/permissions/usePermission';
+import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import PaywallPrompt from '@/components/billing/PaywallPrompt';
 import { useCatalog } from '@/hooks/useCatalog';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
@@ -22,6 +24,7 @@ export default function Investments() {
   const queryClient = useQueryClient();
   const { familyId } = useFamily();
   const { toast } = useToast();
+  const gate = useFeatureGate('page.Investments');
   // registerPayment hook kept for other payment types; investments use direct creation below
 
   const { can_write: canCreate }        = usePermission('investment.crud.create');
@@ -118,6 +121,23 @@ export default function Investments() {
     setTimeout(() => setShowPayFormSuccess(false), 3000);
     setPayForm({ amount: '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' });
   };
+
+  if (gate.status === 'loading') {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (gate.status === 'denied') {
+    return (
+      <div className="pb-4">
+        <PageHeader title="Inversiones" subtitle="Mensualidades y rendimientos" />
+        <PaywallPrompt feature="page.Investments" requiredPlan={gate.requiredPlan} />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-4">

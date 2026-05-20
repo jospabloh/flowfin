@@ -17,6 +17,8 @@ import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 import { usePermission } from '@/lib/permissions/usePermission';
+import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import PaywallPrompt from '@/components/billing/PaywallPrompt';
 
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
@@ -32,6 +34,7 @@ export default function MSIPage() {
   const { familyId, currency, familyConfig } = useFamily();
   const { can_write: canCreate }     = usePermission('msi.crud.create');
   const { can_write: canPay }        = usePermission('msi.payments.record');
+  const gate = useFeatureGate('page.MSI');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -153,6 +156,23 @@ export default function MSIPage() {
     );
     queryClient.invalidateQueries({ queryKey: ['msiPayments'] });
   };
+
+  if (gate.status === 'loading') {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (gate.status === 'denied') {
+    return (
+      <div className="pb-4">
+        <PageHeader title="Meses sin intereses" subtitle="MSI activos y avance de pagos" />
+        <PaywallPrompt feature="page.MSI" requiredPlan={gate.requiredPlan} />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-4">

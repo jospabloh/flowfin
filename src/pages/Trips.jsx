@@ -7,10 +7,13 @@ import PageHeader from '@/components/PageHeader';
 import TripCard from '@/components/trips/TripCard';
 import TripFormModal from '@/components/trips/TripFormModal';
 import Spinner from '@/components/Spinner';
+import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import PaywallPrompt from '@/components/billing/PaywallPrompt';
 
 export default function Trips() {
   const { familyId } = useFamily();
   const { persons } = useCatalog(familyId);
+  const gate = useFeatureGate('page.Trips');
   const [trips, setTrips] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +35,27 @@ export default function Trips() {
     }
   };
 
-  useEffect(() => { load(); }, [familyId]);
+  useEffect(() => {
+    if (gate.status !== 'allowed') return;
+    load();
+  }, [familyId, gate.status]);
+
+  if (gate.status === 'loading') {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (gate.status === 'denied') {
+    return (
+      <div className="pb-8">
+        <PageHeader title="Viajes" subtitle="Viajes y gastos por destino" />
+        <PaywallPrompt feature="page.Trips" requiredPlan={gate.requiredPlan} />
+      </div>
+    );
+  }
 
   const activeTrips = trips.filter(t => t.status === 'active');
   const closedTrips = trips.filter(t => t.status === 'closed');

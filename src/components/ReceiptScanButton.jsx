@@ -8,11 +8,13 @@
  */
 
 import { useRef, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { ImagePlus, Loader2, Lock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { compressReceiptImage } from '@/lib/receiptCompression';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
+import { useReceiptScanQuota } from '@/hooks/useReceiptScanQuota';
+import UpgradePlansModal from '@/components/UpgradePlansModal';
 
 // ---------------------------------------------------------------------------
 // Bilingual strings (mirrors AssistantWelcome TEMPLATES shape)
@@ -54,10 +56,12 @@ const ReceiptScanButton = forwardRef(function ReceiptScanButton(
 ) {
   const fileRef = useRef(null);
   const [scanning, setScanning] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { toast } = useToast();
   const { familyId, membership } = useFamily();
   const personId = membership?.person_id || '';
   const strings = getStrings(locale);
+  const { exceeded: quotaExceeded } = useReceiptScanQuota();
 
   const processFile = useCallback(async (file) => {
     if (!file) return;
@@ -125,6 +129,10 @@ const ReceiptScanButton = forwardRef(function ReceiptScanButton(
 
   const handleButtonClick = () => {
     if (scanning || disabled) return;
+    if (quotaExceeded) {
+      setShowUpgrade(true);
+      return;
+    }
     fileRef.current?.click();
   };
 
@@ -139,12 +147,16 @@ const ReceiptScanButton = forwardRef(function ReceiptScanButton(
         className={`p-3 rounded-xl transition-all ${
           scanning
             ? 'bg-primary/10 text-primary'
-            : 'bg-muted text-muted-foreground hover:text-foreground'
+            : quotaExceeded
+              ? 'bg-primary/10 text-primary'
+              : 'bg-muted text-muted-foreground hover:text-foreground'
         } disabled:opacity-60`}
       >
         {scanning
           ? <Loader2 className="w-5 h-5 animate-spin" />
-          : <ImagePlus className="w-5 h-5" />}
+          : quotaExceeded
+            ? <Lock className="w-5 h-5" />
+            : <ImagePlus className="w-5 h-5" />}
       </button>
 
       {/* Hidden file input — same pattern as Capture.jsx:460 */}
@@ -155,6 +167,8 @@ const ReceiptScanButton = forwardRef(function ReceiptScanButton(
         className="hidden"
         onChange={handleFileChange}
       />
+
+      <UpgradePlansModal open={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </>
   );
 });
