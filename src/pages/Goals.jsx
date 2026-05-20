@@ -5,6 +5,7 @@ import { useFamily } from '@/lib/FamilyContext';
 import PageHeader from '@/components/PageHeader';
 import GoalCard from '@/components/goals/GoalCard';
 import GoalFormModal from '@/components/goals/GoalFormModal';
+import GoalShareCard from '@/components/goals/GoalShareCard';
 import { PlusCircle, Target } from 'lucide-react';
 
 export default function Goals() {
@@ -105,17 +106,26 @@ export default function Goals() {
               ✓ {completed.length} meta{completed.length > 1 ? 's' : ''} alcanzada{completed.length > 1 ? 's' : ''}
             </p>
           )}
-          {goals.map(g => (
-            <GoalCard
-              key={g.id}
-              goal={g}
-              savedAmount={getSaved(g)}
-              currency={currency}
-              locale={locale}
-              onEdit={() => handleEdit(g)}
-              onDelete={() => deleteMutation.mutate(g.id)}
-            />
-          ))}
+          {goals.map(g => {
+            const saved = getSaved(g);
+            const total = (g.manual_saved || 0) + saved;
+            const isComplete = g.is_active !== false && g.target_amount > 0 && total >= g.target_amount;
+            return (
+              <div key={g.id} className="space-y-2">
+                {isComplete && (
+                  <GoalShareCard goal={g} savedAmount={saved} currency={currency} />
+                )}
+                <GoalCard
+                  goal={g}
+                  savedAmount={saved}
+                  currency={currency}
+                  locale={locale}
+                  onEdit={() => handleEdit(g)}
+                  onDelete={() => deleteMutation.mutate(g.id)}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 

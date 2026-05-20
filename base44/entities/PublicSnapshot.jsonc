@@ -1,0 +1,71 @@
+{
+  "name": "PublicSnapshot",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia que originó el snapshot. Usado para RLS sobre el dueño y para atribución de viralidad."
+    },
+    "created_by_user_id": {
+      "type": "string",
+      "description": "ID del usuario que creó el snapshot. Disponible para tracking de referidos."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["goal_achieved", "trip_summary", "monthly_report", "budget_kept"],
+      "description": "Plantilla a renderizar en /s/:slug."
+    },
+    "slug": {
+      "type": "string",
+      "description": "Identificador público opaco de 8-12 caracteres alfanuméricos. Construido server-side y único por familia."
+    },
+    "payload_json": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Datos congelados y anonimizados al momento de creación. No referencia entidades vivas. Contiene los strings/números que el template necesita."
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si está en false, getPublicSnapshot devuelve 404. Permite ocultar sin borrar."
+    },
+    "views": {
+      "type": "number",
+      "default": 0,
+      "description": "Incrementado por getPublicSnapshot. Best-effort, eventual consistency."
+    },
+    "expires_at": {
+      "type": "string",
+      "description": "ISO datetime tras el cual getPublicSnapshot retorna 404. Default 90 días, seteado por createPublicSnapshot."
+    }
+  },
+  "required": ["family_id", "type", "slug", "payload_json"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.family_id": "{{user.data.family_id}}" },
+        { "data.family_id": "{{user.data.data.family_id}}" }
+      ]
+    },
+    "update": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.created_by_user_id": "{{user.id}}" }
+      ]
+    },
+    "delete": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "data.created_by_user_id": "{{user.id}}" }
+      ]
+    }
+  }
+}
