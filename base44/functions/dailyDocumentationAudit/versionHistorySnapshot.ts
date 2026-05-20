@@ -44,7 +44,8 @@ export const USER_MANUAL_SECTIONS_COUNT = 24;
 export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `830ed27 feat(viral): invite share card + referrer tracking (Issue 4)
+export const GIT_LOG_SNAPSHOT = `2fe752b feat(analytics): PostHog wiring + Sprint 1 funnel events (Issue 5)
+830ed27 feat(viral): invite share card + referrer tracking (Issue 4)
 1506c04 feat(billing): plan-based feature gating + receipt scan quotas (Issue 3)
 364fef6 feat(capture): Quick Capture sheet behind feature flag (Issue 2)
 0d9520c feat(onboarding): seed default Person on family creation (Issue 1)
@@ -70,5 +71,4 @@ b5676e7 fix(dailyDocumentationAudit): resolve conflict markers and unify email s
 083584c fix(dailyDocumentationAudit): send no-change daily notification email
 1ef90f0 Improve dailyDocumentationAudit email send failure handling
 ee81792 Send audit email on no-change documentation runs
-2789d46 Implement soft-archive flow for scheduled payments delete
-e3002d9 Add scheduled payment transaction dedup matching`;
+2789d46 Implement soft-archive flow for scheduled payments delete`;

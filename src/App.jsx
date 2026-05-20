@@ -2,7 +2,7 @@ import { Suspense, lazy, useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -39,6 +39,7 @@ const Trips = lazy(() => import('@/pages/Trips'));
 const SavingsDashboard = lazy(() => import('@/pages/SavingsDashboard'));
 const Goals = lazy(() => import('@/pages/Goals'));
 const ReleaseNotes = lazy(() => import('@/pages/ReleaseNotes'));
+const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -111,7 +112,21 @@ const FamilyGate = ({ children }) => {
 };
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+
+  // Public snapshot route bypasses auth + family gating entirely so a
+  // visitor without an account can land on /s/:slug straight from a share
+  // link. Keep this branch BEFORE any auth-state checks.
+  if (location.pathname.startsWith('/s/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/s/:slug" element={<PublicSnapshotPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
