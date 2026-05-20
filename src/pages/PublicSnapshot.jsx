@@ -11,26 +11,57 @@ const COPY = {
     cta: 'Crea la tuya en FlowFin',
     icon: Target,
     color: 'from-emerald-500/40 via-emerald-500/10 to-transparent',
+    docTitle: 'Logró su meta en FlowFin',
+    docDescription: 'Una persona acaba de cerrar una meta financiera en FlowFin. Tú puedes empezar la tuya en minutos.',
   },
   trip_summary: {
     title: '✈️ Viaje cerrado, cuentas claras',
     cta: 'Organiza tu próximo viaje',
     icon: Plane,
     color: 'from-sky-500/40 via-sky-500/10 to-transparent',
+    docTitle: 'Resumen de viaje en FlowFin',
+    docDescription: 'Cerró un viaje completo en FlowFin: split entre participantes, monedas y presupuesto al día.',
   },
   monthly_report: {
     title: '📊 Un mes mejor llevado',
     cta: 'Lleva tu mes así',
     icon: BarChart3,
     color: 'from-violet-500/40 via-violet-500/10 to-transparent',
+    docTitle: 'Mi mes en FlowFin',
+    docDescription: 'Así llevamos el mes en casa: ingresos, gastos y categorías top, anonimizadas.',
   },
   budget_kept: {
     title: '💚 Presupuesto cumplido',
     cta: 'Cumple el tuyo',
     icon: Sparkles,
     color: 'from-amber-500/40 via-amber-500/10 to-transparent',
+    docTitle: 'Presupuesto cumplido en FlowFin',
+    docDescription: 'Otro mes dentro del presupuesto. Empieza el tuyo en FlowFin.',
   },
 };
+
+/**
+ * Updates document.title + the dynamic og:* / twitter:* meta tags so the
+ * snapshot is recognizable in browser tabs and in the share-cards rendered
+ * by crawlers that execute JavaScript (Discord, Slack, Twitterbot in a
+ * partial sense). WhatsApp / Facebook crawlers do NOT execute JS and rely
+ * on the static OG tags in index.html — that's the deliberate trade-off
+ * we accept until a server-rendered preview is shipped.
+ */
+function applyDocumentMeta({ docTitle, docDescription }) {
+  if (typeof document === 'undefined') return;
+  if (docTitle) document.title = `${docTitle} · FlowFin`;
+  const set = (selector, attr, value) => {
+    if (!value) return;
+    const el = document.head.querySelector(selector);
+    if (el) el.setAttribute(attr, value);
+  };
+  set('meta[name="description"]', 'content', docDescription);
+  set('meta[property="og:title"]', 'content', `${docTitle} · FlowFin`);
+  set('meta[property="og:description"]', 'content', docDescription);
+  set('meta[name="twitter:title"]', 'content', `${docTitle} · FlowFin`);
+  set('meta[name="twitter:description"]', 'content', docDescription);
+}
 
 const APP_LANDING = (typeof globalThis !== 'undefined' && globalThis.location?.origin) || 'https://app.flowfin.com';
 
@@ -67,6 +98,11 @@ export default function PublicSnapshotPage() {
         }
         setSnap(data.snapshot);
         setStatus('ready');
+        const copy = COPY[data.snapshot.type] || COPY.goal_achieved;
+        applyDocumentMeta({
+          docTitle: copy.docTitle || 'Snapshot FlowFin',
+          docDescription: copy.docDescription || 'Resumen compartido desde FlowFin.',
+        });
         track('snapshot_viewed', {
           type: data.snapshot.type,
           slug,
