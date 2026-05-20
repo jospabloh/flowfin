@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, Lock, ArrowRight } from 'lucide-react';
 import UpgradePlansModal from '@/components/UpgradePlansModal';
+import { track } from '@/lib/analytics';
 
 const PLAN_LABEL = {
   home: 'Home',
@@ -50,12 +51,21 @@ export default function PaywallPrompt({ feature, requiredPlan, compact = false, 
   const resolvedBody = body || preset.body || 'Activa una licencia para desbloquearla.';
   const planName = PLAN_LABEL[requiredPlan] || PLAN_LABEL.home;
 
+  useEffect(() => {
+    track('paywall_viewed', { feature, required_plan: requiredPlan, variant: compact ? 'compact' : 'full' });
+  }, [feature, requiredPlan, compact]);
+
+  const openUpgrade = () => {
+    track('paywall_clicked', { feature, required_plan: requiredPlan, variant: compact ? 'compact' : 'full' });
+    setOpen(true);
+  };
+
   if (compact) {
     return (
       <>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openUpgrade}
           className="flex items-center gap-2 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/15 px-3 py-1.5 rounded-full transition-colors"
         >
           <Lock className="w-3 h-3" aria-hidden="true" />
@@ -79,7 +89,7 @@ export default function PaywallPrompt({ feature, requiredPlan, compact = false, 
         <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{resolvedBody}</p>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={openUpgrade}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:bg-primary/90 transition-colors"
         >
           Ver planes

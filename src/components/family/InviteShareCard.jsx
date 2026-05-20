@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useFamily } from '@/lib/FamilyContext';
 import { Copy, Share2, Check, MessageCircle, Users } from 'lucide-react';
+import { track } from '@/lib/analytics';
 
 function buildJoinUrl(joinCode, refUserId) {
   if (!joinCode) return '';
@@ -43,6 +44,7 @@ export default function InviteShareCard({
     try {
       await navigator.clipboard?.writeText(shareMessage);
       setCopied(true);
+      track('invite_copied', { variant });
       setTimeout(() => setCopied(false), 1800);
     } catch {
       // ignore — fallback button below still works
@@ -57,6 +59,7 @@ export default function InviteShareCard({
           text: shareMessage,
           url: joinUrl,
         });
+        track('invite_shared', { variant, method: 'native_share' });
         setShared(true);
         setTimeout(() => setShared(false), 1800);
         return;
@@ -64,6 +67,7 @@ export default function InviteShareCard({
         // user cancelled or share unavailable — fall through to WhatsApp
       }
     }
+    track('invite_shared', { variant, method: 'whatsapp_fallback' });
     const waUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
     globalThis.open?.(waUrl, '_blank', 'noopener');
   };

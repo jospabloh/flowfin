@@ -8,6 +8,7 @@ import { useCreateTransaction } from '@/hooks/useCreateTransaction';
 import { matchCategory, parseVoiceText, getWeekNumber } from '@/lib/categoryMatcher';
 import { todayISO } from '@/lib/formatters';
 import { useUsageStats } from '@/lib/useUsageStats';
+import { track } from '@/lib/analytics';
 import confetti from 'canvas-confetti';
 
 const LAST_PAYMENT_KEY = 'ff_quickcapture_last_payment';
@@ -68,6 +69,7 @@ export default function QuickCaptureSheet({ open, onClose, onAdvancedMode }) {
     setChipPickerFor(null);
     setSuccess(false);
     setSaving(false);
+    track('quick_capture_open');
     const t = setTimeout(() => amountRef.current?.focus(), 80);
     return () => clearTimeout(t);
   }, [open]);
@@ -180,6 +182,14 @@ export default function QuickCaptureSheet({ open, onClose, onAdvancedMode }) {
 
     createTransaction.mutate(payload, {
       onSuccess: () => {
+        track('quick_capture_save', {
+          type,
+          had_description: Boolean(description.trim()),
+          overrode_category: Boolean(categoryIdOverride),
+          overrode_person: Boolean(personIdOverride),
+          overrode_payment: Boolean(paymentMethodIdOverride),
+          used_voice: false,
+        });
         writeLocal(LAST_PAYMENT_KEY, paymentMethodId);
         recordCapture({
           description,

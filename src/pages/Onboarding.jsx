@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Key, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { defaultCategories, defaultSubcategoriesByCategory, defaultPaymentMethods } from '@/lib/seedData';
 import InviteShareCard from '@/components/family/InviteShareCard';
+import { track } from '@/lib/analytics';
 
 function readUrlParams() {
   try {
@@ -80,6 +81,8 @@ export default function Onboarding() {
       return;
     }
 
+    track('family_created', { family_id: res.data?.family_id || null });
+
     // Refresh context so the InviteShareCard can read the new join_code,
     // then move to the invite step instead of reloading immediately.
     await refetchMembership();
@@ -105,13 +108,16 @@ export default function Onboarding() {
       });
 
       if (res.data?.already_member) {
+        track('invite_join_completed', { had_referrer: Boolean(referrerId), outcome: 'already_member' });
         refetchMembership();
         return;
       }
 
       if (res.data?.success || res.data?.pending) {
+        track('invite_join_completed', { had_referrer: Boolean(referrerId), outcome: 'pending' });
         setPendingApproval(true);
       } else {
+        track('invite_join_failed', { had_referrer: Boolean(referrerId), reason: res.data?.error || 'unknown' });
         setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
       }
     } catch {
