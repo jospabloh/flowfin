@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, MapPin, Plane, Wallet, Tag, TrendingDown, AlertTriangle, Pencil } from 'lucide-react';
+import { X, Calendar, MapPin, Plane, Wallet, Tag, TrendingDown, AlertTriangle, Pencil, Share2, Loader2, Check } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { computeTripSpent } from '@/lib/tripBudget';
+import { createSnapshot, shareSnapshot } from '@/lib/publicSnapshots';
+import { track } from '@/lib/analytics';
 
 const COLORS = ['#059669', '#D4AF37', '#0284C7', '#7C3AED', '#DC2626', '#D97706', '#0891B2', '#BE185D'];
 
@@ -56,6 +58,8 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
   const [loading, setLoading] = useState(true);
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [CloseModal, setCloseModal] = useState(null);
+  const [sharingSnapshot, setSharingSnapshot] = useState(false);
+  const [snapshotShared, setSnapshotShared] = useState(false);
   // Audit edit state
   const [editingTx, setEditingTx] = useState(null);
   const [EditModal, setEditModal] = useState(null);
@@ -156,6 +160,41 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
     setShowCloseModal(true);
   };
 
+  const handleShareSnapshot = async () => {
+    if (sharingSnapshot) return;
+    setSharingSnapshot(true);
+    try {
+      const start = new Date(trip.start_date + 'T12:00:00').getTime();
+      const end = new Date(trip.end_date + 'T12:00:00').getTime();
+      const days = isFinite(start) && isFinite(end) ? Math.max(1, Math.round((end - start) / 86400000) + 1) : null;
+      const { slug } = await createSnapshot({
+        type: 'trip_summary',
+        payload: {
+          trip_name: (trip.name || '').trim().slice(0, 60),
+          destinations: (trip.destination_countries || []).slice(0, 5),
+          ...(days ? { days } : {}),
+          participants: (trip.participant_person_ids || []).length || undefined,
+          total_spent: Math.round(spentInBudgetCur || 0),
+          currency: budgetCur || familyCurrency || 'MXN',
+          budget_amount: trip.budget_amount ? Math.round(trip.budget_amount) : undefined,
+        },
+        ttl_days: 90,
+      });
+      await shareSnapshot({
+        slug,
+        type: 'trip_summary',
+        title: 'Resumen de viaje en FlowFin',
+        message: `Acabamos de cerrar "${trip.name || 'el viaje'}" en FlowFin.`,
+      });
+      setSnapshotShared(true);
+      setTimeout(() => setSnapshotShared(false), 2000);
+    } catch (err) {
+      track('snapshot_create_failed', { type: 'trip_summary', reason: err?.message || 'unknown' });
+    } finally {
+      setSharingSnapshot(false);
+    }
+  };
+
   const isCreator = currentUser?.id === trip.created_by_user_id;
   const daysRemaining = (() => {
     const today = new Date(); today.setHours(12, 0, 0, 0);
@@ -219,6 +258,21 @@ export default function TripDetailModal({ trip, transactions: propTransactions, 
                   <button onClick={handleCloseTrip}
                     className="px-3 py-1.5 rounded-xl bg-muted text-muted-foreground text-xs font-semibold hover:text-foreground transition-colors border border-border">
                     Cerrar Viaje
+                  </button>
+                )}
+                {trip.status === 'closed' && (
+                  <button
+                    type="button"
+                    onClick={handleShareSnapshot}
+                    disabled={sharingSnapshot}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 text-white text-xs font-semibold shadow-sm hover:bg-sky-700 disabled:opacity-60 transition-colors"
+                  >
+                    {sharingSnapshot
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : snapshotShared
+                        ? <Check className="w-3.5 h-3.5" />
+                        : <Share2 className="w-3.5 h-3.5" />}
+                    {snapshotShared ? 'Listo' : sharingSnapshot ? 'Generando…' : 'Compartir resumen'}
                   </button>
                 )}
                 <button onClick={onClose} className="p-1.5 rounded-xl bg-muted text-muted-foreground hover:text-foreground transition-colors">

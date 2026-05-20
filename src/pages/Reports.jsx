@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Share2, Download } from 'lucide-react';
+import { Share2, Download, Sparkles, Loader2, Check } from 'lucide-react';
 import { useMemory } from '@/hooks/useMemory';
 import PageHeader from '@/components/PageHeader';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -16,6 +16,8 @@ import ReportChart from '@/components/reports/ReportChart';
 import ReportBreakdown from '@/components/reports/ReportBreakdown';
 import ReportDetailSheet from '@/components/reports/ReportDetailSheet';
 import { usePermission, useCanView } from '@/lib/permissions/usePermission';
+import { createSnapshot, shareSnapshot } from '@/lib/publicSnapshots';
+import { track } from '@/lib/analytics';
 
 const PRESETS = {
   expense: [
@@ -83,6 +85,8 @@ export default function Reports() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterPerson, setFilterPerson] = useState('');
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [snapshotBusy, setSnapshotBusy] = useState(false);
+  const [snapshotShared, setSnapshotShared] = useState(false);
 
   const { data: transactions = [] } = useQuery({
     queryKey: ['transactions_reports', familyId],
@@ -162,6 +166,54 @@ export default function Reports() {
       if (canShareFiles) { await navigator.share({ title: 'Reporte FlowFin', files: [new File([blob], 'reporte.pdf', { type: 'application/pdf' })] }); }
       else { pdf.save('reporte_flowfin.pdf'); }
     } finally { setSharing(false); }
+  };
+
+  const shareAsPublicCard = async () => {
+    if (snapshotBusy) return;
+    setSnapshotBusy(true);
+    try {
+      const monthLabel = format(parseISO(dateTo), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase());
+      const incomeTotal = filtered
+        .filter(t => t.type === 'income')
+        .reduce((s, t) => s + (t.amount || 0), 0);
+      const expenseTotal = filtered
+        .filter(t => t.type === 'expense')
+        .reduce((s, t) => s + (t.amount || 0), 0);
+      const byCategory = new Map();
+      filtered.filter(t => t.type === 'expense').forEach(t => {
+        const cat = categories.find(c => c.id === t.category_id);
+        const label = cat ? `${cat.icon || ''} ${cat.name}`.trim() : 'Sin categoría';
+        byCategory.set(label, (byCategory.get(label) || 0) + (t.amount || 0));
+      });
+      const topCategories = Array.from(byCategory.entries())
+        .map(([label, amount]) => ({ label, amount: Math.round(amount) }))
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 4);
+
+      const { slug } = await createSnapshot({
+        type: 'monthly_report',
+        payload: {
+          month_label: monthLabel,
+          total_income: Math.round(incomeTotal),
+          total_expense: Math.round(expenseTotal),
+          currency: currency || 'MXN',
+          top_categories: topCategories,
+        },
+        ttl_days: 60,
+      });
+      await shareSnapshot({
+        slug,
+        type: 'monthly_report',
+        title: 'Mi mes en FlowFin',
+        message: `Así llevamos ${monthLabel} en casa.`,
+      });
+      setSnapshotShared(true);
+      setTimeout(() => setSnapshotShared(false), 2000);
+    } catch (err) {
+      track('snapshot_create_failed', { type: 'monthly_report', reason: err?.message || 'unknown' });
+    } finally {
+      setSnapshotBusy(false);
+    }
   };
 
   const shareAsPNG = async () => {
@@ -271,6 +323,25 @@ export default function Reports() {
           </button>
         )}
       </div>
+
+      {canShare && filtered.length > 0 && (
+        <div className="px-4 mt-3">
+          <button
+            type="button"
+            onClick={shareAsPublicCard}
+            disabled={snapshotBusy}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-primary/30 bg-primary/5 text-primary text-sm font-semibold disabled:opacity-50 hover:bg-primary/10 transition-colors"
+          >
+            {snapshotBusy
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : snapshotShared
+                ? <Check className="w-4 h-4" />
+                : <Sparkles className="w-4 h-4" />}
+            {snapshotShared ? 'Compartido' : snapshotBusy ? 'Generando…' : 'Compartir como tarjeta pública'}
+          </button>
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5">Anonimiza nombres y comparte solo los totales del rango actual.</p>
+        </div>
+      )}
 
       {canViewDetail && (
         <ReportDetailSheet selectedDetail={selectedDetail} detailLabel={detailLabel} detailTransactions={detailTransactions}
