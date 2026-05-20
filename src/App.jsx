@@ -11,6 +11,7 @@ import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
 import LoadingFallback from '@/components/LoadingFallback';
 import TutorialController from '@/components/tutorial/TutorialController';
+import DowngradeNotice from '@/components/billing/DowngradeNotice';
 import { useCanView } from '@/lib/permissions/usePermission';
 
 
@@ -157,6 +158,7 @@ const AuthenticatedApp = () => {
       <FamilyGate>
         <Suspense fallback={<LoadingFallback />}>
           <TutorialController />
+          <DowngradeNotice />
 
           <Routes>
             <Route path="/" element={<Navigate to="/Dashboard" replace />} />
