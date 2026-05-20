@@ -44,7 +44,8 @@ export const USER_MANUAL_SECTIONS_COUNT = 24;
 export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `4602e41 feat(viral): PublicSnapshot entity + /s/:slug page + Goal share trigger (Sprint 3 — Issues 3.1-3.3)
+export const GIT_LOG_SNAPSHOT = `4dd21c0 feat(viral): trip + monthly report share triggers (Sprint 3 — Issue 3.3 cont.)
+4602e41 feat(viral): PublicSnapshot entity + /s/:slug page + Goal share trigger (Sprint 3 — Issues 3.1-3.3)
 f31b246 Update base44 packages
 2fe752b feat(analytics): PostHog wiring + Sprint 1 funnel events (Issue 5)
 830ed27 feat(viral): invite share card + referrer tracking (Issue 4)
@@ -70,5 +71,4 @@ a097b39 Merge canonical and backend changelog history by version
 82a5db0 chore(dailyDocumentationAudit): resolve remaining conflict regions with main-side style
 4d1404d fix(dailyDocumentationAudit): resolve conflict choice with retry notification fallback
 b5676e7 fix(dailyDocumentationAudit): resolve conflict markers and unify email status handling
-083584c fix(dailyDocumentationAudit): send no-change daily notification email
-1ef90f0 Improve dailyDocumentationAudit email send failure handling`;
+083584c fix(dailyDocumentationAudit): send no-change daily notification email`;
