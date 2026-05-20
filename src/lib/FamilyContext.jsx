@@ -35,6 +35,7 @@ const FamilyContext = createContext({
   trialEndAt: null,
   licenseActivatedAt: null,
   licenseExpiresAt: null,
+  defaultPersonId: null,
 });
 
 export function FamilyProvider({ children }) {
@@ -153,6 +154,11 @@ export function FamilyProvider({ children }) {
   const currency = familyConfig?.currency || family?.currency || 'MXN';
   const currencySymbol = familyConfig?.currency_symbol || family?.currency_symbol || '$';
 
+  // Best-effort default Person for QuickCapture inference. Order matches the
+  // Sprint 1 plan: explicit link on the membership → family-level default →
+  // null (consumers fall back to first Person from useCatalog).
+  const defaultPersonId = membership?.person_id || family?.default_person_id || null;
+
   // refetchMembership now also invalidates family
   const refetchAll = async () => {
     await refetchMembership();
@@ -182,6 +188,7 @@ export function FamilyProvider({ children }) {
       trialEndAt,
       licenseActivatedAt,
       licenseExpiresAt,
+      defaultPersonId,
     }}>
       {children}
     </FamilyContext.Provider>

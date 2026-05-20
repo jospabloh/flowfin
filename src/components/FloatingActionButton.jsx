@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useMotionValue, useDragControls } from 'framer-motion';
 import { Sparkles, Plus, MessageCircle } from 'lucide-react';
+import QuickCaptureSheet from '@/components/QuickCaptureSheet';
 
 const BTN = 52;
 const EDGE = 12;
+
+// Quick Capture is feature-flagged so prod can roll out safely. Set
+// VITE_QUICK_CAPTURE_ENABLED=true in the build env to enable; otherwise the
+// FAB falls back to navigating to /Capture as before.
+const QUICK_CAPTURE_ENABLED = import.meta.env.VITE_QUICK_CAPTURE_ENABLED === 'true';
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
@@ -60,6 +66,7 @@ function getSecondaryInfo(fabX, fabY) {
 
 export default function FloatingActionButton({ isAssistantPage, handleNavClick }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const containerRef = useRef(null);
   const dragControls = useDragControls();
@@ -127,6 +134,15 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
     setIsExpanded(false);
   };
 
+  const handleAddPress = () => {
+    setIsExpanded(false);
+    if (QUICK_CAPTURE_ENABLED) {
+      setQuickCaptureOpen(true);
+    } else {
+      handleNavClick('/Capture');
+    }
+  };
+
   if (isAssistantPage || !pos) return null;
 
   const b = getBounds();
@@ -136,6 +152,11 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
 
   return (
     <>
+      <QuickCaptureSheet
+        open={quickCaptureOpen}
+        onClose={() => setQuickCaptureOpen(false)}
+        onAdvancedMode={() => handleNavClick('/Capture')}
+      />
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -201,7 +222,7 @@ export default function FloatingActionButton({ isAssistantPage, handleNavClick }
                 className={`absolute top-0 left-0 flex ${colDir} items-center gap-1.5 pointer-events-auto`}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleNavAndClose('/Capture'); }}
+                  onClick={(e) => { e.stopPropagation(); handleAddPress(); }}
                   className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/40 active:scale-95 transition-transform hover:scale-110 ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
                   aria-label="Agregar movimiento"
                 >

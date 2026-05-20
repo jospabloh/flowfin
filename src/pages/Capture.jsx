@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
+import { useCreateTransaction } from '@/hooks/useCreateTransaction';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users } from 'lucide-react';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import { computeTripSpent } from '@/lib/tripBudget';
@@ -38,16 +39,8 @@ export default function Capture() {
 
   const today = todayISO();
 
-  const createTransactionMutation = useMutation({
-    mutationFn: (data) => base44.entities.Transaction.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
-      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
-    },
-    onError: (err) => {
-      toast({ title: 'Error al guardar', description: err?.message || 'No se pudo guardar el movimiento', variant: 'destructive' });
-      setSaving(false);
-    },
+  const createTransactionMutation = useCreateTransaction({
+    onError: () => setSaving(false),
   });
 
   const [type, setType] = useState('expense');
