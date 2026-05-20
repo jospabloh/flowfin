@@ -1,0 +1,553 @@
+{
+  "snapshot_metadata": {
+    "snapshot_date": "2026-05-20",
+    "app_id": "69b97ea9c9a713486b5a01fd",
+    "app_name": "FlowFin",
+    "git_commit": "dd5346c",
+    "git_branch": "claude/zero-friction-product-Ekjja",
+    "baseline_branch": "baseline/pre-zero-friction-2026-05-20",
+    "baseline_commit": "dd5346c08b12aaae6b03de7dd6c2522951ab4a39",
+    "purpose": "Pre-sprint snapshot of Base44 entity schemas before zero-friction product changes (Quick Capture, viral invite, paywall stubs). Used for full rollback if needed.",
+    "captured_via": "mcp__43fcdc52-073b-4e2c-bbcb-ff12e3e22a81__list_entity_schemas",
+    "total_entities": 29
+  },
+  "schemas": [
+    {
+      "entity_name": "Transaction",
+      "entity_schema": {
+        "name": "Transaction",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string", "description": "ID de la familia propietaria" },
+          "date": { "type": "string", "format": "date", "description": "Fecha de la transacción" },
+          "type": { "type": "string", "enum": ["expense", "income"], "default": "expense", "description": "Tipo: egreso o ingreso" },
+          "amount": { "type": "number", "description": "Monto de la transacción" },
+          "description": { "type": "string", "description": "Descripción o concepto" },
+          "category_id": { "type": "string", "description": "ID de categoría (Rubro)" },
+          "subcategory_id": { "type": "string", "description": "ID de subcategoría (SubRubro)" },
+          "person_id": { "type": "string", "description": "ID de la persona" },
+          "payment_method_id": { "type": "string", "description": "ID del método de pago" },
+          "required_type": { "type": "string", "enum": ["Necesario", "Gusto", "Urgente", "Inversión", "Otro"], "default": "Necesario" },
+          "has_invoice": { "type": "boolean", "default": false },
+          "transferred_to": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "notes": { "type": "string" },
+          "week": { "type": "number" },
+          "receipt_image": { "type": "string", "description": "URL de imagen del ticket/recibo" },
+          "msi_payment_id": { "type": "string" },
+          "investment_payment_id": { "type": "string" },
+          "scheduled_payment_record_id": { "type": "string" },
+          "rental_payment_id": { "type": "string" },
+          "trip_id": { "type": "string", "description": "ID of the trip this expense belongs to" },
+          "original_currency": { "type": "string", "description": "Currency in which expense was recorded (e.g. USD, EUR)" },
+          "original_amount": { "type": "number", "description": "Amount in original currency before conversion" },
+          "exchange_rate": { "type": "number", "description": "Exchange rate applied at moment of registration" },
+          "is_split": { "type": "boolean", "default": false, "description": "Whether this expense was split between trip participants" },
+          "split_with_person_ids": { "type": "array", "items": { "type": "string" }, "description": "Person IDs this expense was split with" }
+        },
+        "required": ["date", "type", "amount", "family_id", "category_id", "person_id"]
+      }
+    },
+    {
+      "entity_name": "Category",
+      "entity_schema": {
+        "name": "Category",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "icon": { "type": "string" },
+          "color": { "type": "string", "default": "#059669" },
+          "type": { "type": "string", "enum": ["expense", "income", "both"], "default": "both" },
+          "exclude_from_totals": { "type": "boolean", "default": false }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "entity_name": "Subcategory",
+      "entity_schema": {
+        "name": "Subcategory",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "category_id": { "type": "string" },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "usage_count": { "type": "number", "default": 0 }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "entity_name": "PaymentMethod",
+      "entity_schema": {
+        "name": "PaymentMethod",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "enum": ["debit", "credit", "cash", "transfer"], "default": "cash" },
+          "bank": { "type": "string" },
+          "identifier": { "type": "string" },
+          "cut_day": { "type": "integer", "minimum": 1, "maximum": 31 },
+          "payment_day": { "type": "integer", "minimum": 1, "maximum": 31 }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "entity_name": "Person",
+      "entity_schema": {
+        "name": "Person",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "color": { "type": "string", "default": "#059669" },
+          "avatar_initial": { "type": "string" }
+        },
+        "required": ["name"]
+      }
+    },
+    {
+      "entity_name": "Investment",
+      "entity_schema": {
+        "name": "Investment",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" },
+          "total_amount": { "type": "number" },
+          "total_payments": { "type": "number" },
+          "payment_amount": { "type": "number" },
+          "start_date": { "type": "string", "format": "date" },
+          "payment_day": { "type": "number" },
+          "notes": { "type": "string" },
+          "is_active": { "type": "boolean", "default": true }
+        },
+        "required": ["name", "total_amount", "total_payments"]
+      }
+    },
+    {
+      "entity_name": "InvestmentPayment",
+      "entity_schema": {
+        "name": "InvestmentPayment",
+        "type": "object",
+        "properties": {
+          "investment_id": { "type": "string" },
+          "payment_number": { "type": "number" },
+          "amount": { "type": "number" },
+          "date": { "type": "string", "format": "date" },
+          "notes": { "type": "string" }
+        },
+        "required": ["investment_id", "payment_number", "amount", "date"]
+      }
+    },
+    {
+      "entity_name": "MSI",
+      "entity_schema": {
+        "name": "MSI",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "store": { "type": "string" },
+          "concept": { "type": "string" },
+          "total_amount": { "type": "number" },
+          "monthly_amount": { "type": "number" },
+          "total_months": { "type": "number" },
+          "start_date": { "type": "string", "format": "date" },
+          "billing_day": { "type": "number" },
+          "notes": { "type": "string" },
+          "is_active": { "type": "boolean", "default": true }
+        },
+        "required": ["store", "total_amount", "monthly_amount", "total_months", "start_date"]
+      }
+    },
+    {
+      "entity_name": "MSIPayment",
+      "entity_schema": {
+        "name": "MSIPayment",
+        "type": "object",
+        "properties": {
+          "msi_id": { "type": "string" },
+          "month_number": { "type": "number" },
+          "amount": { "type": "number" },
+          "paid_date": { "type": "string", "format": "date" },
+          "notes": { "type": "string" }
+        },
+        "required": ["msi_id", "month_number", "amount", "paid_date"]
+      }
+    },
+    {
+      "entity_name": "RentalProperty",
+      "entity_schema": {
+        "name": "RentalProperty",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "address": { "type": "string" },
+          "tenant_name": { "type": "string" },
+          "base_rent": { "type": "number" },
+          "payment_day": { "type": "number" },
+          "concepts": { "type": "array", "items": { "type": "object" } },
+          "notes": { "type": "string" },
+          "is_active": { "type": "boolean", "default": true }
+        },
+        "required": ["name", "base_rent"]
+      }
+    },
+    {
+      "entity_name": "RentalPayment",
+      "entity_schema": {
+        "name": "RentalPayment",
+        "type": "object",
+        "properties": {
+          "property_id": { "type": "string" },
+          "family_id": { "type": "string" },
+          "month": { "type": "string" },
+          "amount": { "type": "number" },
+          "paid_by": { "type": "string" },
+          "deposit_account": { "type": "string" },
+          "date_paid": { "type": "string", "format": "date" },
+          "is_paid": { "type": "boolean", "default": false },
+          "notes": { "type": "string" },
+          "payment_method_id": { "type": "string" }
+        },
+        "required": ["property_id", "month", "amount"]
+      }
+    },
+    {
+      "entity_name": "FamilyConfig",
+      "entity_schema": {
+        "name": "FamilyConfig",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "family_name": { "type": "string", "default": "Mi Familia" },
+          "locale": { "type": "string", "default": "es-MX" },
+          "currency": { "type": "string", "default": "MXN" },
+          "currency_symbol": { "type": "string", "default": "$" },
+          "required_types": { "type": "array", "items": { "type": "string" } },
+          "transfer_destinations": { "type": "array", "items": { "type": "string" } },
+          "week_start": { "type": "string", "enum": ["monday", "sunday"], "default": "monday" },
+          "primary_person_id": { "type": "string" },
+          "smart_rules": { "type": "object", "additionalProperties": true }
+        },
+        "required": []
+      }
+    },
+    {
+      "entity_name": "Family",
+      "entity_schema": {
+        "name": "Family",
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "join_code": { "type": "string" },
+          "admin_user_id": { "type": "string" },
+          "is_active": { "type": "boolean", "default": true },
+          "currency": { "type": "string", "default": "MXN" },
+          "currency_symbol": { "type": "string", "default": "$" },
+          "trial_start_at": { "type": "string" },
+          "trial_end_at": { "type": "string" },
+          "billing_status": { "type": "string", "enum": ["trial", "active", "view_only", "suspended"], "default": "trial" },
+          "license_plan": { "type": "string", "enum": ["home", "family_plus", "circle"], "default": "home" },
+          "licensed_member_limit": { "type": "number", "default": 4 },
+          "license_activated_at": { "type": "string" },
+          "license_expires_at": { "type": "string" },
+          "payment_reference": { "type": "string" },
+          "activation_notes": { "type": "string" },
+          "activated_by_admin": { "type": "string" },
+          "support_contacted_at": { "type": "string" },
+          "auto_renewal": { "type": "boolean", "default": false },
+          "last_payment_confirmed_at": { "type": "string" },
+          "last_payment_confirmed_by": { "type": "string" },
+          "last_payment_period": { "type": "string" },
+          "last_payment_reference": { "type": "string" },
+          "last_payment_notes": { "type": "string" }
+        },
+        "required": ["name", "join_code", "admin_user_id"]
+      }
+    },
+    {
+      "entity_name": "FamilyMembership",
+      "entity_schema": {
+        "name": "FamilyMembership",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "user_email": { "type": "string" },
+          "user_name": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "member"], "default": "member" },
+          "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "default": "pending" },
+          "tutorial_state": { "type": "object", "additionalProperties": true, "default": {} },
+          "person_id": { "type": "string" },
+          "last_active_at": { "type": "string" },
+          "last_trial_reactivation_email_at": { "type": "string" },
+          "trial_reactivation_email_count": { "type": "number", "default": 0 }
+        },
+        "required": ["family_id", "user_id", "user_email"]
+      }
+    },
+    {
+      "entity_name": "ScheduledPayment",
+      "entity_schema": {
+        "name": "ScheduledPayment",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "amount": { "type": "number" },
+          "due_day": { "type": "number" },
+          "category_id": { "type": "string" },
+          "payment_method_id": { "type": "string" },
+          "icon": { "type": "string", "default": "💰" },
+          "is_active": { "type": "boolean", "default": true }
+        },
+        "required": ["family_id", "name", "due_day"]
+      }
+    },
+    {
+      "entity_name": "ScheduledPaymentRecord",
+      "entity_schema": {
+        "name": "ScheduledPaymentRecord",
+        "type": "object",
+        "properties": {
+          "scheduled_payment_id": { "type": "string" },
+          "family_id": { "type": "string" },
+          "month": { "type": "string" },
+          "paid_date": { "type": "string", "format": "date" },
+          "amount_paid": { "type": "number" },
+          "notes": { "type": "string" },
+          "paid_by": { "type": "string" }
+        },
+        "required": ["scheduled_payment_id", "family_id", "month"]
+      }
+    },
+    {
+      "entity_name": "AppVersion",
+      "entity_schema": {
+        "name": "AppVersion",
+        "type": "object",
+        "properties": { "version": { "type": "string" } },
+        "required": ["version"]
+      }
+    },
+    {
+      "entity_name": "Session",
+      "entity_schema": {
+        "name": "Session",
+        "type": "object",
+        "properties": {
+          "user_id": { "type": "string" },
+          "device_id": { "type": "string" },
+          "device_name": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "passive", "revoked"], "default": "active" },
+          "last_seen": { "type": "string" }
+        },
+        "required": ["user_id", "device_id"]
+      }
+    },
+    {
+      "entity_name": "AssistantUsage",
+      "entity_schema": {
+        "name": "AssistantUsage",
+        "type": "object",
+        "indexes": [["family_id", "created_at"]],
+        "properties": {
+          "family_id": { "type": "string" },
+          "operation": { "type": "string", "enum": ["receipt_scan", "chat_reply"], "default": "receipt_scan" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "person_id": { "type": "string" },
+          "model": { "type": "string" },
+          "tokens_in": { "type": "number" },
+          "tokens_out": { "type": "number" },
+          "cache_read": { "type": "number", "default": 0 },
+          "cost_usd": { "type": "number" },
+          "latency_ms": { "type": "number" }
+        },
+        "required": ["family_id", "operation", "created_at"]
+      }
+    },
+    {
+      "entity_name": "RolePermission",
+      "entity_schema": {
+        "name": "RolePermission",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "role": { "type": "string" },
+          "permission_key": { "type": "string" },
+          "can_read": { "type": "boolean", "default": true },
+          "can_write": { "type": "boolean", "default": true },
+          "can_modify": { "type": "boolean", "default": true },
+          "can_delete": { "type": "boolean", "default": true },
+          "can_view": { "type": "boolean", "default": true }
+        },
+        "required": ["role", "permission_key"]
+      }
+    },
+    {
+      "entity_name": "EmailNotification",
+      "entity_schema": {
+        "name": "EmailNotification",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "email_type": { "type": "string" },
+          "recipient_email": { "type": "string" },
+          "status": { "type": "string", "enum": ["pending", "sent", "failed"], "default": "pending" },
+          "retry_count": { "type": "number", "default": 0 },
+          "sent_at": { "type": "string" },
+          "last_attempt_at": { "type": "string" },
+          "error_message": { "type": "string" },
+          "notification_key": { "type": "string" },
+          "billing_period": { "type": "string" },
+          "scheduled_for": { "type": "string" },
+          "metadata": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["family_id", "email_type", "recipient_email", "status"]
+      }
+    },
+    {
+      "entity_name": "Trip",
+      "entity_schema": {
+        "name": "Trip",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "start_date": { "type": "string", "format": "date" },
+          "end_date": { "type": "string", "format": "date" },
+          "status": { "type": "string", "enum": ["active", "closed"], "default": "active" },
+          "destination_countries": { "type": "array", "items": { "type": "string" } },
+          "currencies": { "type": "array", "items": { "type": "string" } },
+          "budget_amount": { "type": "number" },
+          "budget_currency": { "type": "string" },
+          "participant_person_ids": { "type": "array", "items": { "type": "string" } },
+          "created_by_user_id": { "type": "string" },
+          "closed_at": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "required": ["family_id", "name", "start_date", "end_date"]
+      }
+    },
+    {
+      "entity_name": "CreditCardSnapshot",
+      "entity_schema": {
+        "name": "CreditCardSnapshot",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "payment_method_id": { "type": "string" },
+          "balance": { "type": "number" },
+          "amount_due": { "type": "number" },
+          "snapshot_date": { "type": "string", "format": "date" },
+          "notes": { "type": "string" }
+        },
+        "required": ["family_id", "payment_method_id", "balance", "snapshot_date"]
+      }
+    },
+    {
+      "entity_name": "CategoryBudget",
+      "entity_schema": {
+        "name": "CategoryBudget",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "category_id": { "type": "string" },
+          "amount": { "type": "number" },
+          "period": { "type": "string" }
+        },
+        "required": ["family_id", "category_id", "amount"]
+      }
+    },
+    {
+      "entity_name": "Goal",
+      "entity_schema": {
+        "name": "Goal",
+        "type": "object",
+        "properties": {
+          "family_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "target_amount": { "type": "number" },
+          "deadline": { "type": "string", "format": "date" },
+          "icon": { "type": "string", "default": "🎯" },
+          "color": { "type": "string", "default": "#059669" },
+          "category_id": { "type": "string" },
+          "is_active": { "type": "boolean", "default": true },
+          "manual_saved": { "type": "number", "default": 0 }
+        },
+        "required": ["family_id", "name", "target_amount"]
+      }
+    },
+    {
+      "entity_name": "AppChangelog",
+      "entity_schema": {
+        "name": "AppChangelog",
+        "type": "object",
+        "properties": {
+          "version": { "type": "string" },
+          "release_date": { "type": "string", "format": "date" },
+          "changes": { "type": "array", "items": { "type": "string" } },
+          "is_current": { "type": "boolean", "default": false }
+        },
+        "required": ["version", "release_date"]
+      }
+    },
+    {
+      "entity_name": "SchemaSnapshot",
+      "entity_schema": {
+        "name": "SchemaSnapshot",
+        "type": "object",
+        "properties": {
+          "snapshot_date": { "type": "string", "format": "date" },
+          "schema_hash": { "type": "string" },
+          "schema_data": { "type": "object", "additionalProperties": true },
+          "is_current": { "type": "boolean", "default": true },
+          "entities_count": { "type": "number" },
+          "fields_count": { "type": "number" }
+        },
+        "required": ["snapshot_date", "schema_hash", "schema_data"]
+      }
+    },
+    {
+      "entity_name": "ChangelogDraft",
+      "entity_schema": {
+        "name": "ChangelogDraft",
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["fix", "feature", "security", "system", "breaking"] },
+          "is_published": { "type": "boolean", "default": false },
+          "published_at": { "type": "string" },
+          "published_in_version": { "type": "string" }
+        },
+        "required": ["description", "type"]
+      }
+    },
+    {
+      "entity_name": "User",
+      "entity_schema": {
+        "name": "User",
+        "type": "object",
+        "properties": {
+          "role": { "type": "string", "enum": ["admin", "user"] },
+          "preferences": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["role"]
+      }
+    }
+  ],
+  "notes": [
+    "RLS rules omitted from this file for brevity but PRESERVED automatically by Base44 when fields are updated via update_entity_schema (per MCP docs).",
+    "If schema rollback is needed: do NOT call update_entity_schema with this file directly — RLS would need to be re-added. Instead, manually re-fetch full schemas via list_entity_schemas as the source of truth, then call update_entity_schema only on entities that diverged.",
+    "Full schemas including RLS were verified in MCP response on 2026-05-20 and stored in the source-controlled JSONC files under base44/entities/ — those remain the authoritative reference."
+  ]
+}
