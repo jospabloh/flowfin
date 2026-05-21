@@ -107,11 +107,23 @@ function isCurrentMonth(range, today = new Date()) {
 }
 
 function findPersonMatch(n, knownPersonNames = []) {
+  // 1. Full-name substring (most specific): "José Pablo Hernández"
   for (const person of knownPersonNames) {
     if (!person?.name) continue;
     const normName = normalize(person.name);
     if (normName.length > 2 && n.includes(normName)) {
       return person.id;
+    }
+  }
+  // 2. Individual name tokens with word-boundary matching, so a compound name
+  //    like "José Pablo" is found when the user just says "Pablo". Tokens shorter
+  //    than 3 chars are ignored to avoid false positives.
+  const words = new Set(n.split(/[^a-z0-9]+/).filter(Boolean));
+  for (const person of knownPersonNames) {
+    if (!person?.name) continue;
+    const tokens = normalize(person.name).split(/\s+/).filter((t) => t.length >= 3);
+    for (const t of tokens) {
+      if (words.has(t)) return person.id;
     }
   }
   return undefined;
@@ -122,7 +134,7 @@ function findPersonMatch(n, knownPersonNames = []) {
 /**
  * Detects the intent from a user message.
  * @param {string} text
- * @param {{ today?: Date, knownPersonNames?: Array<{id:string,name:string}>, upcomingCommitments?: any[] }} ctx
+ * @param {{ today?: Date, knownPersonNames?: Array<{id:string,name:string}>, upcomingCommitments?: any[], authPersonId?: string }} ctx
  * @returns {{ intent: string, confidence: number, params: object } | null}
  */
 export function detectIntent(text, ctx = {}) {
@@ -260,31 +272,34 @@ export function detectIntent(text, ctx = {}) {
     const parsed = parseVoiceText(text, {
       knownPersonNames: knownPersonNames.map((p) => p.name),
     });
-    if (!parsed.amount) return null; // fall to LLM if no amount
+    // Only treat as a registration when there's an amount AND enough confidence.
+    // Otherwise fall THROUGH to query detection below (e.g. "¿cuánto gasté?"),
+    // instead of returning null and forcing the LLM fallback.
+    if (parsed.amount) {
+      const txType = isIncomeKeyword ? 'income' : 'expense';
+      let personId = parsed.personHint
+        ? knownPersonNames.find((p) => normalize(p.name) === normalize(parsed.personHint))?.id
+        : undefined;
+      if (!personId) {
+        personId = ctx.authPersonId;
+      }
 
-    const txType = isIncomeKeyword ? 'income' : 'expense';
-    let personId = parsed.personHint
-      ? knownPersonNames.find((p) => normalize(p.name) === normalize(parsed.personHint))?.id
-      : undefined;
-    if (!personId) {
-      personId = ctx.authPersonId;
+      const confidence = parsed.amount && parsed.description ? 0.8 : 0.65;
+      if (confidence >= 0.75) {
+        return {
+          intent: txType === 'income' ? 'register_income' : 'register_expense',
+          confidence,
+          params: {
+            amount: parsed.amount,
+            description: parsed.description,
+            date: parsed.date || toYMD(today),
+            type: txType,
+            ...(personId ? { personId } : {}),
+            ...(parsed.methodHint ? { methodHint: parsed.methodHint } : {}),
+          },
+        };
+      }
     }
-
-    const confidence = parsed.amount && parsed.description ? 0.8 : 0.65;
-    if (confidence < 0.75) return null; // fall to LLM
-
-    return {
-      intent: txType === 'income' ? 'register_income' : 'register_expense',
-      confidence,
-      params: {
-        amount: parsed.amount,
-        description: parsed.description,
-        date: parsed.date || toYMD(today),
-        type: txType,
-        ...(personId ? { personId } : {}),
-        ...(parsed.methodHint ? { methodHint: parsed.methodHint } : {}),
-      },
-    };
   }
 
   // ── spend_period ───────────────────────────────────────────────────────────
@@ -317,23 +332,51 @@ export function detectIntent(text, ctx = {}) {
     /total\s*(expenses?|spending|income)\s*(for|this)?\s*(month|week|year|today)?/.test(n) ||
     /what\s*(did\s*i|have\s*i)\s*spend/.test(n);
 
-  if (spendES || spendEN) {
+  // Money-related noun present (gasto/gastó/gastos/gasté/gastado, ingreso(s), balance…)
+  const hasMoneyNoun =
+    /\bgast(o|os|[oó]|e|[eé]|ado|amos|aron)\b/.test(n) ||
+    /\bingres(o|os|e|[eé]|amos|aron)\b/.test(n) ||
+    /\b(balance|saldo|spending|expenses?|income)\b/.test(n);
+  // Spend intent triggered by an explicit target (a named person or the family),
+  // even without a period word: "gastos de Pablo", "ingresos de la familia".
+  const targetPersonId = findPersonMatch(n, knownPersonNames);
+  const mentionsFamily = /\b(familia|todos|todas|all|everyone|en\s*total|toda\s*la\s*casa|hogar)\b/.test(n);
+  const spendByTarget = hasMoneyNoun && (targetPersonId !== undefined || mentionsFamily);
+
+  if (spendES || spendEN || spendByTarget) {
+    // Type: both gasto+ingreso (or balance/saldo) → 'all'; only ingreso → 'income'.
+    const hasIncomeWord = /\bingres|income\b/.test(n) || /\bingres/.test(n);
+    const hasExpenseWord = /\bgast/.test(n) || /\b(spend|spent|expenses?)\b/.test(n);
     let type = 'expense';
-    if (/ingres|income/.test(n)) type = 'income';
-    if (/balance|saldo/.test(n)) type = 'all';
+    if (/\b(balance|saldo)\b/.test(n)) type = 'all';
+    else if (hasIncomeWord && hasExpenseWord) type = 'all';
+    else if (hasIncomeWord) type = 'income';
 
-    // 1. Explicit named person: "¿cuánto gastó Silvia?"
-    let personId = findPersonMatch(n, knownPersonNames);
+    // 1. Explicit named person: "¿cuánto gastó José Pablo?"
+    let personId = targetPersonId;
 
-    // 2. Family/all keyword → no personId (return full family totals)
-    const isFamilyQuery = /\b(familia|todos|all|everyone)\b/.test(n);
+    // 2. Family / total keyword → whole-family totals (no personId).
+    const isFamilyQuery = mentionsFamily;
 
-    // 3. Default: always scope to the logged-in user, matching dashboard behavior
+    // 3. Explicit first-person → the logged-in user.
+    const isSelfQuery =
+      /\b(mis|mi|mio|mia|yo|propio|propia|personal|gaste|gastado|gastando|ingrese|cobre|llevo|tengo\s*gastado)\b/.test(n) ||
+      /\b(my|i\s*spent|i\s*spend|i\s*earned|mine)\b/.test(n);
+
+    // 4. Disambiguate when no explicit target.
+    const knownCount = Array.isArray(knownPersonNames) ? knownPersonNames.length : 0;
+    let needsScope = false;
     if (!personId && !isFamilyQuery) {
-      personId = ctx.authPersonId;
+      if (isSelfQuery) {
+        if (ctx.authPersonId) personId = ctx.authPersonId;
+      } else if (knownCount > 1) {
+        // Truly ambiguous ("¿cuánto se gastó este mes?") with a multi-person
+        // family → ask the user whether they mean themselves or the family.
+        needsScope = true;
+      }
+      // single-person family & ambiguous → leave undefined (family == that person)
     }
 
-    // Confidence is higher if there's a clear period keyword
     const hasPeriod =
       /semana|mes|a[nñ]o|d[ií]a|week|month|year|day|today|hoy|ayer|yesterday/.test(n);
     const confidence = hasPeriod ? 0.85 : 0.75;
@@ -341,7 +384,12 @@ export function detectIntent(text, ctx = {}) {
     return {
       intent: 'spend_period',
       confidence,
-      params: { range, type, ...(personId ? { personId } : {}) },
+      params: {
+        range,
+        type,
+        ...(personId ? { personId } : {}),
+        ...(needsScope ? { needsScope: true } : {}),
+      },
     };
   }
 

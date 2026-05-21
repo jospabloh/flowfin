@@ -26,6 +26,19 @@ function truncatedNote(locale) {
     : '\n\n⚠️ El rango excede la capacidad de una consulta; considera un periodo más corto.';
 }
 
+// Resolves a human label for whose figures these are: a person's name when a
+// personId is given (looked up in ctx), otherwise "the family".
+function subjectLabel(personId, ctx, locale) {
+  const en = isEn(locale);
+  if (!personId) return en ? 'the family' : 'la familia';
+  const pools = [ctx?.knownPersonNames, ctx?.members, ctx?.persons].filter(Array.isArray);
+  for (const pool of pools) {
+    const found = pool.find((p) => p && (p.id === personId || p.person_id === personId));
+    if (found?.name) return found.name;
+  }
+  return en ? 'this person' : 'esta persona';
+}
+
 function periodLabel(range, locale) {
   const start = new Date(range.start + 'T12:00:00');
   const end = new Date(range.end + 'T12:00:00');
@@ -78,15 +91,17 @@ export async function respondToIntent(intent, params, ctx, locale) {
       }
 
       const period = periodLabel(range, locale);
+      const subject = subjectLabel(personId, ctx, locale);
       const balanceSign = balance < 0 ? '⚠️' : '📊';
 
       let lines;
       if (type === 'income') {
         lines = en
-          ? `💰 Income (${period}): **${fmt(income, ctx, locale)}**`
-          : `💰 Ingreso (${period}): **${fmt(income, ctx, locale)}**`;
+          ? `💰 Income — ${subject} (${period}): **${fmt(income, ctx, locale)}**`
+          : `💰 Ingreso — ${subject} (${period}): **${fmt(income, ctx, locale)}**`;
       } else if (type === 'all') {
         lines = [
+          en ? `📋 ${subject} (${period})` : `📋 ${subject} (${period})`,
           en ? `💳 Expense: **${fmt(expense, ctx, locale)}**` : `💳 Gasto: **${fmt(expense, ctx, locale)}**`,
           en ? `💰 Income: **${fmt(income, ctx, locale)}**`   : `💰 Ingreso: **${fmt(income, ctx, locale)}**`,
           `${balanceSign} Balance: **${fmt(balance, ctx, locale)}**`,
@@ -94,8 +109,8 @@ export async function respondToIntent(intent, params, ctx, locale) {
       } else {
         // expense (default)
         lines = en
-          ? `💳 Expense (${period}): **${fmt(expense, ctx, locale)}**`
-          : `💳 Gasto (${period}): **${fmt(expense, ctx, locale)}**`;
+          ? `💳 Expense — ${subject} (${period}): **${fmt(expense, ctx, locale)}**`
+          : `💳 Gasto — ${subject} (${period}): **${fmt(expense, ctx, locale)}**`;
       }
 
       return lines + (truncated ? truncatedNote(locale) : '');

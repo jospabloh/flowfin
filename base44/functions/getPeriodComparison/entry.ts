@@ -1,10 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { resolveAccess, resolvePersonFilter, errorResponse } from '../_txAggregateHelper.ts';
 
-async function fetchTotals(entities, familyId, start, end, type) {
+async function fetchTotals(entities, familyId, start, end, type, personId) {
   const filter = { family_id: familyId };
   if (start) filter.date = { ...filter.date, $gte: start };
   if (end) filter.date = { ...filter.date, $lte: end };
   if (type && type !== 'all') filter.type = type;
+  if (personId) filter.person_id = personId;
 
   let all = [], skip = 0, truncated = false;
   while (true) {
@@ -27,17 +29,23 @@ async function fetchTotals(entities, familyId, start, end, type) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { familyId, currentStart, currentEnd, previousStart, previousEnd, type = 'expense' } = body;
-    if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
+    const { currentStart, currentEnd, previousStart, previousEnd, type = 'expense' } = body;
+
+    let access;
+    try {
+      access = await resolveAccess(base44, body.familyId);
+    } catch (err) {
+      return errorResponse(err);
+    }
+    const familyId = access.familyId;
+    const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
 
     const entities = base44.asServiceRole.entities;
     const [current, previous] = await Promise.all([
-      fetchTotals(entities, familyId, currentStart, currentEnd, type),
-      fetchTotals(entities, familyId, previousStart, previousEnd, type),
+      fetchTotals(entities, familyId, currentStart, currentEnd, type, personId),
+      fetchTotals(entities, familyId, previousStart, previousEnd, type, personId),
     ]);
 
     const currAmt = current.total.expense;

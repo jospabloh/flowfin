@@ -69,6 +69,114 @@ export async function assertFamilyMember(
   return { user, membership: memberships[0] };
 }
 
+// ─── Access resolution (auth-tolerant: web session, in-app agent, WhatsApp) ─────
+
+export interface ResolvedAccess {
+  // deno-lint-ignore no-explicit-any
+  user: any | null;
+  familyId: string;
+  selfPersonId: string | null;
+  // deno-lint-ignore no-explicit-any
+  membership: any | null;
+}
+
+// Resolves the caller's family and own person without hard-failing on a missing
+// browser session. Works for three call contexts:
+//   1. Frontend SDK call — auth.me() resolves; familyId is validated against the
+//      user's approved memberships.
+//   2. Agent tool call (in-app chat or WhatsApp) — auth.me() resolves to the
+//      linked user; familyId may be omitted and is then taken from membership.
+//   3. Direct HTTP / service role — no user; familyId is required and trusted.
+// When an authenticated user is present they MUST be an approved member of the
+// resolved family, so a hallucinated or cross-family familyId is rejected (403).
+export async function resolveAccess(
+  // deno-lint-ignore no-explicit-any
+  base44: any,
+  requestedFamilyId?: string,
+): Promise<ResolvedAccess> {
+  // deno-lint-ignore no-explicit-any
+  let user: any = null;
+  try {
+    user = await base44.auth.me();
+  } catch {
+    user = null;
+  }
+
+  if (user) {
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+      user_id: user.id,
+      status: 'approved',
+    });
+    if (!memberships.length) {
+      memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+        user_email: user.email,
+        status: 'approved',
+      });
+    }
+    if (!memberships.length) {
+      const err = new Error('forbidden');
+      (err as unknown as Record<string, number>).httpStatus = 403;
+      throw err;
+    }
+
+    let membership = memberships[0];
+    if (requestedFamilyId) {
+      const match = memberships.find(
+        // deno-lint-ignore no-explicit-any
+        (m: any) => m.family_id === requestedFamilyId,
+      );
+      if (!match) {
+        const err = new Error('forbidden');
+        (err as unknown as Record<string, number>).httpStatus = 403;
+        throw err;
+      }
+      membership = match;
+    }
+
+    return {
+      user,
+      familyId: membership.family_id,
+      selfPersonId: membership.person_id ?? null,
+      membership,
+    };
+  }
+
+  // No authenticated user: only reachable via direct HTTP / service role.
+  if (!requestedFamilyId) {
+    const err = new Error('familyId required');
+    (err as unknown as Record<string, number>).httpStatus = 400;
+    throw err;
+  }
+  return { user: null, familyId: requestedFamilyId, selfPersonId: null, membership: null };
+}
+
+// Resolves the effective person filter from an explicit personId and/or a scope
+// hint. Returns undefined to mean "whole family" (no person filter).
+//   - personId (a real id)        → that person
+//   - personId === 'self' or
+//     scope === 'self'/'me'/'mine' → the caller's own person
+//   - scope 'family'/'all'/none   → undefined (whole family)
+export function resolvePersonFilter(
+  access: ResolvedAccess,
+  opts: { personId?: string; scope?: string },
+): string | undefined {
+  const personId = opts.personId?.trim();
+  const scope = opts.scope?.trim().toLowerCase();
+  if (personId && personId !== 'self') return personId;
+  if (personId === 'self' || scope === 'self' || scope === 'me' || scope === 'mine') {
+    return access.selfPersonId ?? undefined;
+  }
+  return undefined;
+}
+
+// Maps a thrown error (optionally carrying httpStatus) to a JSON Response.
+// deno-lint-ignore no-explicit-any
+export function errorResponse(err: any): Response {
+  const status = (err && err.httpStatus) || 500;
+  const message = status === 500 ? 'internal' : err?.message || 'error';
+  return Response.json({ error: message }, { status });
+}
+
 // ─── Fetch all transactions with pagination ────────────────────────────────────
 
 const PAGE_SIZE = 2000;
