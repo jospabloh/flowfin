@@ -5,7 +5,8 @@ import {
   HelpCircle, Info, X, Sparkles, Users,
   ChevronLeft, ChevronDown, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
-  PanelLeftClose, PanelLeftOpen, Plane, Coins, Target, ScrollText
+  PanelLeftClose, PanelLeftOpen, Plane, Coins, Target, ScrollText,
+  MessageCircle
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +42,7 @@ const MORE_GROUPS = [
       { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro', color: 'text-yellow-600', bg: 'bg-yellow-500/10' },
       { to: '/Goals', icon: Target, label: 'Metas', color: 'text-rose-600', bg: 'bg-rose-500/10' },
       { to: '/Trips', icon: Plane, label: 'Viajes', color: 'text-sky-600', bg: 'bg-sky-500/10' },
+      { to: '/Messages', icon: MessageCircle, label: 'Mensajes', color: 'text-blue-600', bg: 'bg-blue-500/10' },
     ],
   },
   {
@@ -91,6 +93,7 @@ const SIDEBAR_GROUPS = [
       { to: '/SavingsDashboard', icon: Coins, label: 'Ahorro' },
       { to: '/Goals', icon: Target, label: 'Metas' },
       { to: '/Trips', icon: Plane, label: 'Viajes' },
+      { to: '/Messages', icon: MessageCircle, label: 'Mensajes' },
     ],
   },
   {
@@ -225,6 +228,7 @@ export default function Layout() {
     '/SavingsDashboard': true,
     '/Goals':           true,
     '/Trips':           true,
+    '/Messages':        true,
     '/ScheduledPayments': canViewScheduled,
     '/Investments':     canViewInvestments,
     '/MSI':             canViewMSI,
