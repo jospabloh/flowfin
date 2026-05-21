@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { assertFamilyMember, errorResponse } from '../_txAggregateHelper.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -9,6 +10,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const familyId = body.familyId;
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
+
+    try {
+      await assertFamilyMember(base44, familyId);
+    } catch (e) {
+      return errorResponse(e);
+    }
 
     // Fetch last 6 months of expense transactions
     const sixMonthsAgo = new Date();

@@ -1,10 +1,19 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { assertFamilyMember } from '../_txAggregateHelper.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const { familyId } = await req.json();
     if (!familyId) return Response.json({ chips: [] });
+
+    // Reject access to a family the caller isn't a member of (returns empty,
+    // keeping the chips UI graceful instead of erroring).
+    try {
+      await assertFamilyMember(base44, familyId);
+    } catch {
+      return Response.json({ chips: [] });
+    }
 
     // Use service role (RLS enforced by entities)
     const entities = base44.asServiceRole.entities;

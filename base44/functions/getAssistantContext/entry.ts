@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { assertFamilyMember, errorResponse } from '../_txAggregateHelper.ts';
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
@@ -56,11 +57,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'familyId required' }, { status: 400 });
     }
 
-    let user = null;
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Reject access to a family the caller isn't an approved member of.
     try {
-      user = await base44.auth.me();
-    } catch {
-      // proceed with service role
+      await assertFamilyMember(base44, familyId);
+    } catch (e) {
+      return errorResponse(e);
     }
 
     const entities = base44.asServiceRole.entities;
