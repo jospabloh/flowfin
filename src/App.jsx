@@ -13,6 +13,7 @@ import LoadingFallback from '@/components/LoadingFallback';
 import TutorialController from '@/components/tutorial/TutorialController';
 import DowngradeNotice from '@/components/billing/DowngradeNotice';
 import { useCanView } from '@/lib/permissions/usePermission';
+import MessagePopup from '@/components/messages/MessagePopup';
 
 
 // Lazy-loaded pages
@@ -43,6 +44,7 @@ const ReleaseNotes = lazy(() => import('@/pages/ReleaseNotes'));
 const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
 const LandingPage = lazy(() => import('@/pages/Landing'));
 const WaitlistAdmin = lazy(() => import('@/pages/WaitlistAdmin'));
+const Messages = lazy(() => import('@/pages/Messages'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -159,6 +161,7 @@ const AuthenticatedApp = () => {
         <Suspense fallback={<LoadingFallback />}>
           <TutorialController />
           <DowngradeNotice />
+          <MessagePopup />
 
           <Routes>
             <Route path="/" element={<Navigate to="/Dashboard" replace />} />
@@ -180,6 +183,7 @@ const AuthenticatedApp = () => {
               <Route path="/UserManual" element={<Suspense fallback={<LoadingFallback />}><UserManual /></Suspense>} />
               <Route path="/About" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
               <Route path="/ScheduledPayments" element={<Suspense fallback={<LoadingFallback />}><ScheduledPayments /></Suspense>} />
+              <Route path="/Messages" element={<Suspense fallback={<LoadingFallback />}><Messages /></Suspense>} />
               <Route path="/Budget" element={<Suspense fallback={<LoadingFallback />}><Budget /></Suspense>} />
               <Route path="/Trips" element={<Suspense fallback={<LoadingFallback />}><Trips /></Suspense>} />
               <Route path="/SavingsDashboard" element={<Suspense fallback={<LoadingFallback />}><SavingsDashboard /></Suspense>} />

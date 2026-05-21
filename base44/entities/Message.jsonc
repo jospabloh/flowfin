@@ -1,0 +1,147 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia"
+    },
+    "sender_user_id": {
+      "type": "string",
+      "description": "ID del usuario remitente"
+    },
+    "sender_user_email": {
+      "type": "string",
+      "description": "Email del usuario remitente"
+    },
+    "sender_user_name": {
+      "type": "string",
+      "description": "Nombre del usuario remitente"
+    },
+    "recipient_user_id": {
+      "type": "string",
+      "description": "ID del usuario destinatario"
+    },
+    "recipient_user_email": {
+      "type": "string",
+      "description": "Email del usuario destinatario"
+    },
+    "recipient_user_name": {
+      "type": "string",
+      "description": "Nombre del usuario destinatario"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del mensaje"
+    },
+    "body": {
+      "type": "string",
+      "description": "Cuerpo del mensaje"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "payment",
+        "income",
+        "movement"
+      ],
+      "default": "general",
+      "description": "Categoría del mensaje"
+    },
+    "sent_at": {
+      "type": "string",
+      "description": "ISO datetime de envío"
+    },
+    "read_at": {
+      "type": "string",
+      "description": "ISO datetime de lectura"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sent",
+        "read"
+      ],
+      "default": "sent",
+      "description": "Estado del mensaje"
+    }
+  },
+  "required": [
+    "family_id",
+    "sender_user_id",
+    "sender_user_email",
+    "recipient_user_id",
+    "recipient_user_email",
+    "body",
+    "sent_at"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        },
+        {
+          "data.recipient_user_id": "{{user.id}}"
+        },
+        {
+          "data.sender_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        },
+        {
+          "data.recipient_user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}
