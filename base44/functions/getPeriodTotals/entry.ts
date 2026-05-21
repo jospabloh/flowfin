@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { resolveAccess, resolvePersonFilter, errorResponse } from '../_txAggregateHelper.ts';
 
 async function fetchAllTransactions(entities, { familyId, start, end, type, personId, categoryId, paymentMethodId }) {
   const PAGE = 200;
@@ -26,12 +27,18 @@ async function fetchAllTransactions(entities, { familyId, start, end, type, pers
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { familyId, start, end, type = 'all', personId, categoryId, paymentMethodId } = body;
-    if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
+    const { start, end, type = 'all', categoryId, paymentMethodId } = body;
+
+    let access;
+    try {
+      access = await resolveAccess(base44, body.familyId);
+    } catch (err) {
+      return errorResponse(err);
+    }
+    const familyId = access.familyId;
+    const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
 
     const entities = base44.asServiceRole.entities;
     const [{ transactions, truncated }, categoriesArr] = await Promise.all([

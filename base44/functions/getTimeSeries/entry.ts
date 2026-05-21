@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { resolveAccess, resolvePersonFilter, errorResponse } from '../_txAggregateHelper.ts';
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
@@ -71,13 +72,19 @@ function generateBuckets(start, end, granularity) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { familyId, start, end, granularity = 'day', type = 'expense', personId } = body;
+    const { start, end, granularity = 'day', type = 'expense' } = body;
 
-    if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
+    let access;
+    try {
+      access = await resolveAccess(base44, body.familyId);
+    } catch (err) {
+      return errorResponse(err);
+    }
+    const familyId = access.familyId;
+    const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
+
     if (!start || !end || new Date(start) > new Date(end)) {
       return Response.json({ error: 'invalid date range' }, { status: 400 });
     }

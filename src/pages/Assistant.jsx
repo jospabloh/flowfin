@@ -24,6 +24,9 @@ export default function Assistant() {
   const serverIdsRef = useRef(new Set());
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  // When a spend query is ambiguous (self vs. family) we ask before answering.
+  // Holds { range, type } of the pending query until the user picks a scope.
+  const [pendingScope, setPendingScope] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [ctx, setCtx] = useState(null);
   const bottomRef = useRef(null);
@@ -268,6 +271,24 @@ export default function Assistant() {
       };
 
       const match = detectIntent(msg, routerCtx);
+
+      // Ambiguous scope (self vs. family): ask before answering instead of guessing.
+      if (match && match.intent === 'spend_period' && match.params.needsScope) {
+        const isEn = activeLocale.startsWith('en');
+        const question = isEn
+          ? 'Do you want just your own total or the whole family?'
+          : '¿Quieres ver solo lo tuyo o el total de toda la familia?';
+        const botMsgId = `local-bot-${now}`;
+        setMessages(prev => [
+          ...prev.filter(m => m.id !== localUserMsgId),
+          { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now },
+          { id: botMsgId, role: 'assistant', content: question, source: 'local', ts: now + 1 },
+        ]);
+        setPendingScope({ range: match.params.range, type: match.params.type });
+        setSending(false);
+        return;
+      }
+
       if (match) {
         const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
         if (reply) {
@@ -297,6 +318,43 @@ export default function Assistant() {
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
   }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
+
+  // ── resolveScopeAndRespond ──────────────────────────────────────────────────
+  // Completes a pending ambiguous spend query once the user picks self / family.
+  const resolveScopeAndRespond = useCallback(async (scope) => {
+    if (!pendingScope || sending) return;
+    const { range, type } = pendingScope;
+    setPendingScope(null);
+    const isEn = activeLocale.startsWith('en');
+    const choiceText = scope === 'self'
+      ? (isEn ? 'Just mine' : 'Solo lo mío')
+      : (isEn ? 'The whole family' : 'Toda la familia');
+
+    const now = Date.now();
+    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: choiceText, source: 'local', ts: now }]);
+    setSending(true);
+
+    const ctxForRouter = ctx || ctxPayloadRef.current;
+    const routerCtx = {
+      ...(ctxForRouter || {}),
+      family: ctxForRouter?.family || { id: familyId },
+      knownPersonNames: Array.isArray(persons) ? persons.filter(Boolean) : [],
+      authPersonId: personId,
+    };
+    const resolvedPersonId = scope === 'self' ? (personId || undefined) : undefined;
+
+    const reply = await respondToIntent(
+      'spend_period',
+      { range, type, ...(resolvedPersonId ? { personId: resolvedPersonId } : {}) },
+      routerCtx,
+      activeLocale,
+    );
+    const fallback = isEn
+      ? 'Something went wrong. Want to try again?'
+      : 'Ups, algo salió mal. ¿Puedes intentarlo de nuevo?';
+    setMessages(prev => [...prev, { id: `local-bot-${now}`, role: 'assistant', content: reply || fallback, source: 'local', ts: now + 1 }]);
+    setSending(false);
+  }, [pendingScope, sending, ctx, familyId, personId, persons, activeLocale]);
 
   const handleConfirmTransaction = async () => {
     if (!conversation || sending) return;
@@ -492,6 +550,20 @@ export default function Assistant() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Scope chips — ask self vs. family for ambiguous spend queries */}
+      {pendingScope && !sending && (
+        <div className="flex-shrink-0 px-4 pb-2 pt-2 border-t border-border bg-background flex flex-wrap gap-2">
+          <button onClick={() => resolveScopeAndRespond('self')}
+            className="flex-1 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors">
+            {activeLocale.startsWith('en') ? '👤 Just mine' : '👤 Solo lo mío'}
+          </button>
+          <button onClick={() => resolveScopeAndRespond('family')}
+            className="flex-1 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors">
+            {activeLocale.startsWith('en') ? '👨‍👩‍👧 Whole family' : '👨‍👩‍👧 Toda la familia'}
+          </button>
+        </div>
+      )}
 
       {/* Action chips — shown above input bar, never hidden by sending state */}
       {(isLastMsgConfirmation || (canViewChips && personQuestionChips && !sending)) && (

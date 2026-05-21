@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import {
-  assertFamilyMember,
+  resolveAccess,
+  resolvePersonFilter,
+  errorResponse,
   fetchAllTransactions,
   quantile,
 } from '../_txAggregateHelper.ts';
@@ -8,27 +10,25 @@ import {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { familyId, categoryId, start, end, type = 'expense' } = body;
+    const { categoryId, start, end, type = 'expense' } = body;
 
-    if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
+    let access;
+    try {
+      access = await resolveAccess(base44, body.familyId);
+    } catch (err) {
+      return errorResponse(err);
+    }
+    const familyId = access.familyId;
+    const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
 
     if (!start || !end || new Date(start) > new Date(end)) {
       return Response.json({ error: 'invalid date range' }, { status: 400 });
     }
 
-    // Auth check before any data query
-    try {
-      await assertFamilyMember(base44, familyId);
-    } catch {
-      return Response.json({ error: 'forbidden' }, { status: 403 });
-    }
-
     const { transactions, truncated } = await fetchAllTransactions(base44, {
-      familyId, start, end, categoryId, type,
+      familyId, start, end, categoryId, type, personId,
     });
 
     const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
