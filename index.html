@@ -33,9 +33,9 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      // Frame-buster: prevent clickjacking if service worker is not yet active
+      // Frame-buster: redirect top frame if we are embedded (best-effort, never clears DOM)
       if (window.self !== window.top) {
-        try { window.top.location = window.self.location; } catch (_) { document.body.innerHTML = ''; }
+        try { window.top.location = window.self.location; } catch (_) { /* cross-origin iframe — leave DOM intact */ }
       }
       // Register security service worker
       if ('serviceWorker' in navigator) {
