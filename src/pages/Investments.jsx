@@ -87,7 +87,7 @@ export default function Investments() {
   const handlePayment = async () => {
     if (!payForm.amount || !selected) return;
     const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
-    const payData = { investment_id: selected.id, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
+    const payData = { investment_id: selected.id, family_id: selected.family_id || familyId, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
     const savedPayment = await base44.entities.InvestmentPayment.create(payData);
     if (payForm.category_id && payForm.person_id) {
       const week = (() => {

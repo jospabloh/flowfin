@@ -139,6 +139,7 @@ export default function MSIPage() {
     const today = new Date().toISOString().slice(0, 10);
     const payData = {
       msi_id: msi.id,
+      family_id: msi.family_id,
       month_number: next.number,
       amount: msi.monthly_amount,
       paid_date: today,
