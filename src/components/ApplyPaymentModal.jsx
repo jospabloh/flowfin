@@ -15,13 +15,13 @@ export default function ApplyPaymentModal({ transaction, familyId, onClose, onSu
 
   const { data: msiPayments = [] } = useQuery({
     queryKey: ['msiPayments', familyId],
-    queryFn: () => base44.entities.MSIPayment.filter({ msi_id: { $exists: true } }, '-paid_date', 100),
+    queryFn: () => base44.entities.MSIPayment.filter({ family_id: familyId }, '-paid_date', 100),
     enabled: paymentType === 'msi',
   });
 
   const { data: investmentPayments = [] } = useQuery({
     queryKey: ['investmentPayments', familyId],
-    queryFn: () => base44.entities.InvestmentPayment.filter({ investment_id: { $exists: true } }, '-date', 100),
+    queryFn: () => base44.entities.InvestmentPayment.filter({ family_id: familyId }, '-date', 100),
     enabled: paymentType === 'investment',
   });
 
