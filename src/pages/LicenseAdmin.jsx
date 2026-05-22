@@ -23,7 +23,7 @@ const STATUS_CONFIG = {
   suspended: { label: 'Suspendido',    color: 'text-red-600 bg-red-50 dark:bg-red-950/30',             icon: AlertCircle },
 };
 
-const TEST_EMAIL = 'h.jospablo@gmail.com';
+// sendTestEmails always sends to the authenticated admin's own email (server-side)
 
 // Current billing period helper: YYYY-MM
 function currentPeriod() {
@@ -219,7 +219,7 @@ export default function LicenseAdmin() {
       const r = result?.data ?? result;
       toast({
         title: '✅ Correos de prueba enviados',
-        description: `${r?.sent ?? '?'} enviados, ${r?.failed ?? 0} fallidos → ${TEST_EMAIL}`,
+        description: `${r?.sent ?? '?'} enviados, ${r?.failed ?? 0} fallidos → tu correo`,
         duration: 6000,
       });
     } catch (err) {
@@ -300,7 +300,7 @@ export default function LicenseAdmin() {
             <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div>
               <p className="text-xs font-semibold text-foreground">Correos de prueba</p>
-              <p className="text-[11px] text-muted-foreground">Envía las plantillas de automatización a {TEST_EMAIL}</p>
+              <p className="text-[11px] text-muted-foreground">Envía las plantillas de automatización a tu correo</p>
             </div>
           </div>
           <button
