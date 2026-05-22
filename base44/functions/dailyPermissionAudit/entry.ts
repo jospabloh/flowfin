@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { ALL_PERMISSION_DEFAULTS } from './permissionManifests.ts';
+import { guardInternal } from '../_internalGuard.ts';
 
 const AUDIT_EMAIL = 'h.josepablo@gmail.com';
 
@@ -111,6 +112,8 @@ body{font-family:-apple-system,sans-serif;background:#f1f5f9;margin:0;padding:16
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const runDate = fmtDate(new Date());
 
     const allKeys = [...granularKeys, ...moduleOnlyKeys];

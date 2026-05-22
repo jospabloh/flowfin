@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 
 /**
  * processMonthlyRenewal — REFACTORED (no longer auto-extends licenses)
@@ -38,6 +39,8 @@ function getUpcomingBillingPeriod() {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const nowISO = new Date().toISOString();
     const stats = { upcoming_queued: 0, errors: [] };
 

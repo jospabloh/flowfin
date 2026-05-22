@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 
 /**
  * queueBillingReminders — Daily scheduled function.
@@ -77,6 +78,8 @@ async function queueEmailWithKey(base44, { family_id, email_type, recipient_emai
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const nowISO = new Date().toISOString();
     const stats = {
       trial_reminders_queued: 0,
