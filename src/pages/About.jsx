@@ -507,7 +507,7 @@ export default function About() {
             Todos los derechos reservados.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            Licencia registrada a: <span className="text-foreground font-medium">h.josepablo@gmail.com</span>
+            Licencia registrada a: <span className="text-foreground font-medium">ACACIA Consultoría en Informática y Cómputo</span>
           </p>
         </div>
 

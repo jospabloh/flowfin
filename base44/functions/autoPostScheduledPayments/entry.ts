@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -6,8 +7,8 @@ const currentMonth = () => new Date().toISOString().slice(0, 7);
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
 
     const month = currentMonth();
     const today = new Date();
