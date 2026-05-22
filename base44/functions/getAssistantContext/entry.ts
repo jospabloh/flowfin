@@ -317,6 +317,23 @@ Deno.serve(async (req) => {
 
     const smartRules = (familyConfigArr || [])[0]?.smart_rules ?? null;
 
+    // ── Historial de conversaciones recientes (últimas 3 sesiones archivadas) ──
+    let conversationHistory = [];
+    try {
+      const recentSessions = await base44.asServiceRole.entities.ConversationSession.filter(
+        { user_id: user.id },
+        '-session_date',
+        3
+      );
+      conversationHistory = recentSessions.map(s => {
+        const excerpt = s.summary || `${s.message_count || 0} mensajes`;
+        const ch = s.channel === 'whatsapp' ? 'WhatsApp' : 'app';
+        return `${s.session_date} [${ch}]: ${excerpt}`;
+      });
+    } catch {
+      // Si ConversationSession no existe aún o hay error, seguimos sin historial
+    }
+
     return Response.json({
       user: user ? { id: user.id, email: user.email, name: user.full_name || user.email } : { id: null, email: null, name: 'Usuario' },
       person: personOut,
@@ -358,6 +375,7 @@ Deno.serve(async (req) => {
         scheduledPayments: (scheduledArr || []).map(sp => ({ name: sp.name, amount: sp.amount, due_day: sp.due_day })),
       },
       smartRules,
+      conversationHistory,
       truncated,
       generated_at: new Date().toISOString(),
     });

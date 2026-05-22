@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
-import { Send, Mic, MicOff, Bot, Sparkles, MessageCircle } from 'lucide-react';
+import { Send, Mic, MicOff, Bot, Sparkles, MessageCircle, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MessageBubble from '@/components/MessageBubble';
 import AssistantWelcome from '@/components/AssistantWelcome';
+import AssistantHistory from '@/components/AssistantHistory';
 import ReceiptScanButton from '@/components/ReceiptScanButton';
 import { detectIntent } from '@/lib/assistantIntents';
 import { respondToIntent } from '@/lib/assistantResponders';
@@ -29,12 +30,15 @@ export default function Assistant() {
   const [pendingScope, setPendingScope] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [ctx, setCtx] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const inputBarRef = useRef(null);
   const recognitionRef = useRef(null);
   const containerRef = useRef(null);
   const scanButtonRef = useRef(null);
+  const archivingRef = useRef(false);
+  const messagesRef = useRef([]);
 
   // Active locale: familyConfig > browser > fallback es-MX
   const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
@@ -61,16 +65,35 @@ export default function Assistant() {
     return s;
   }
 
-  // Create a fresh conversation on mount — no messages sent here.
+  // Create or resume conversation on mount, with same-day localStorage persistence.
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
+    const storageKey = `ff_conv:${currentUser.id}`;
+    const todayISO = new Date().toISOString().slice(0, 10);
+
+    let stored = null;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      stored = raw ? JSON.parse(raw) : null;
+    } catch { /* ignore */ }
+
+    if (stored?.date === todayISO && stored?.conversationId) {
+      // Resume today's conversation — subscription will load messages from server
+      setConversation({ id: stored.conversationId });
+      return;
+    }
+
+    // New day or first load: create a fresh conversation
     const sessionDate = new Date().toLocaleDateString(activeLocale);
     base44.agents.createConversation({
       agent_name: 'finance_assistant',
       metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
     }).then(c => {
       setConversation(c);
-      // Load any existing messages (e.g. page refresh)
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: todayISO }));
+      } catch { /* ignore */ }
+      // Load any existing messages (e.g. page refresh within same session)
       const existing = (c.messages || []).filter(m => (m.content || '').trim());
       if (existing.length > 0) {
         const msgs = existing
@@ -85,7 +108,7 @@ export default function Assistant() {
         setMessages(msgs);
       }
     });
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   // Subscribe to conversation updates from server
   useEffect(() => {
@@ -192,9 +215,76 @@ export default function Assistant() {
     refreshContext();
   }, [familyId, refreshContext]);
 
+  // Archive a past conversation session to ConversationSession entity
+  const archiveConversation = useCallback(async (storedEntry, finalMessages) => {
+    if (archivingRef.current || !currentUser?.id || !familyId) return;
+    if (!storedEntry?.conversationId || !storedEntry?.date) return;
+    archivingRef.current = true;
+    try {
+      const HIDDEN_PREFIXES = ['[LOCALE:', '[SYSTEM_CONTEXT:', '[HISTORIAL:'];
+      const visibleMsgs = (finalMessages || []).filter(m =>
+        m?.role && m?.content && !HIDDEN_PREFIXES.some(p => m.content.startsWith(p))
+      );
+      if (visibleMsgs.length === 0) return;
+      const userMsgs = visibleMsgs.filter(m => m.role === 'user').slice(0, 3);
+      const summary = userMsgs.map(m => m.content.slice(0, 60)).join(' · ');
+      await base44.entities.ConversationSession.create({
+        user_id: currentUser.id,
+        family_id: familyId,
+        conversation_id: storedEntry.conversationId,
+        channel: 'web',
+        session_date: storedEntry.date,
+        messages: visibleMsgs,
+        summary,
+        message_count: visibleMsgs.length,
+        archived_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('[Assistant] Error archivando sesión:', e);
+    } finally {
+      archivingRef.current = false;
+    }
+  }, [currentUser?.id, familyId]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Keep messagesRef in sync for use inside event listeners without stale closures
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Check for day change on window focus — archive old session and start fresh
+  useEffect(() => {
+    if (!currentUser?.id || !conversation?.id) return;
+    const storageKey = `ff_conv:${currentUser.id}`;
+
+    const checkDayChange = async () => {
+      const todayISO = new Date().toISOString().slice(0, 10);
+      let stored = null;
+      try { stored = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { /* ignore */ }
+      if (!stored || stored.date === todayISO) return;
+
+      // Day has changed: archive and reset
+      await archiveConversation(stored, messagesRef.current);
+      localStorage.removeItem(storageKey);
+      setMessages([]);
+      serverIdsRef.current = new Set();
+      headerInjectedRef.current = false;
+
+      const sessionDate = new Date().toLocaleDateString(activeLocale);
+      const c = await base44.agents.createConversation({
+        agent_name: 'finance_assistant',
+        metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
+      });
+      setConversation(c);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: todayISO }));
+      } catch { /* ignore */ }
+    };
+
+    window.addEventListener('focus', checkDayChange);
+    return () => window.removeEventListener('focus', checkDayChange);
+  }, [currentUser?.id, conversation?.id, archiveConversation, activeLocale, familyId]);
 
   // Keep input bar visible on iOS and other devices
   useEffect(() => {
@@ -483,6 +573,13 @@ export default function Assistant() {
           <h1 className="font-bold text-foreground text-sm">Asistente IA</h1>
           <p className="text-xs text-muted-foreground">Tu asistente financiero personal</p>
         </div>
+        <button
+          onClick={() => setShowHistory(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium flex-shrink-0"
+        >
+          <History className="w-3.5 h-3.5" />
+          Historia
+        </button>
         <a
           href={base44.agents.getWhatsAppConnectURL('finance_assistant')}
           target="_blank"
@@ -591,6 +688,21 @@ export default function Assistant() {
           ))}
         </div>
       )}
+
+      {/* Historia panel — slides in from the right */}
+      <AnimatePresence>
+        {showHistory && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="fixed inset-0 z-40"
+          >
+            <AssistantHistory onClose={() => setShowHistory(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Input — in-flow at bottom. On mobile, bottom padding accounts for fixed nav bar (~64px) + safe area */}
       <div
