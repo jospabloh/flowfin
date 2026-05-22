@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Security hardening (HTTP headers in public/_headers are authoritative; this is a belt-and-suspenders fallback) -->
+    <!-- Security hardening -->
+    <!-- X-Frame-Options as meta (browser fallback; authoritative via security-sw.js service worker) -->
     <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+    <!-- CSP: block mixed content and restrict framing -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data: blob:; connect-src 'self' https:; font-src 'self' https: data:;" />
     <link rel="manifest" href="/manifest.json" />
     <title>FlowFin — Finanzas familiares simples</title>
     <meta name="description" content="Captura gastos, viajes y metas en segundos. Mantén las cuentas claras con tu familia. Privado por diseño." />
@@ -29,5 +32,15 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Frame-buster: prevent clickjacking if service worker is not yet active
+      if (window.self !== window.top) {
+        try { window.top.location = window.self.location; } catch (_) { document.body.innerHTML = ''; }
+      }
+      // Register security service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/security-sw.js', { scope: '/' }).catch(() => {});
+      }
+    </script>
   </body>
 </html>
