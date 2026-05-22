@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 import {
   CURRENT_VERSION_IN_CODE,
   GIT_LOG_SNAPSHOT,
@@ -6,7 +7,7 @@ import {
   USER_MANUAL_SECTIONS_COUNT,
 } from './versionHistorySnapshot.ts';
 
-const AUDIT_EMAIL       = 'h.josepablo@gmail.com';
+const AUDIT_EMAIL       = Deno.env.get('AUDIT_EMAIL') ?? 'h.josepablo@gmail.com';
 const MANUAL_STALE_DAYS = 60;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -95,6 +96,8 @@ Deno.serve(async (req) => {
   let failureStage = 'init';
   try {
     const base44    = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const runDate   = fmtDate(new Date());
     const checks: CheckResult[]  = [];
     const manualActions: string[] = [];

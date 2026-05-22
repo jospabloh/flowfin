@@ -265,9 +265,13 @@ Deno.serve(async (req) => {
   if (!user) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (user.role !== 'admin') {
+    return Response.json({ error: 'Forbidden: admin only' }, { status: 403 });
+  }
 
-  const url = new URL(req.url);
-  const to = url.searchParams.get('to') ?? user.email;
+  // Always send to the authenticated admin's own email — no ?to= override
+  // to prevent abuse (sending bulk test emails to arbitrary addresses).
+  const to = user.email;
 
   const ctx: Record<string, string> = {
     family_name: 'Familia Demo',
