@@ -5,6 +5,10 @@
     "investment_id": {
       "type": "string"
     },
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria (denormalizado desde el Investment padre para RLS y filtrado por familia)"
+    },
     "payment_number": {
       "type": "number"
     },

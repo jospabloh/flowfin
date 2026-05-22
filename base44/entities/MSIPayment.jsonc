@@ -5,6 +5,10 @@
     "msi_id": {
       "type": "string"
     },
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria (denormalizado desde el MSI padre para RLS y filtrado por familia)"
+    },
     "month_number": {
       "type": "number"
     },
