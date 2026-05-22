@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Security hardening (HTTP headers in public/_headers are authoritative; this is a belt-and-suspenders fallback) -->
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
     <link rel="manifest" href="/manifest.json" />
     <title>FlowFin — Finanzas familiares simples</title>
     <meta name="description" content="Captura gastos, viajes y metas en segundos. Mantén las cuentas claras con tu familia. Privado por diseño." />
