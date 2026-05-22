@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 
 // sendLifecycleEmails v3 — Base44 Core.SendEmail (no Resend)
 // Daily scheduled: runs after checkAccountLifecycle and queueBillingReminders.
@@ -303,6 +304,8 @@ ${cta}Ir a FlowFin →${ctaEnd}`,
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const nowISO = new Date().toISOString();
     const stats = { sent: 0, failed: 0, skipped: 0, retried: 0 };
 

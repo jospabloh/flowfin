@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { guardInternal } from '../_internalGuard.ts';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -10,6 +11,8 @@ function getErrorMessage(error: unknown): string {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     console.log('[checkTrialExpiration] Delegating to checkAccountLifecycle');
     const result = await base44.functions.invoke('checkAccountLifecycle', {});
     return Response.json({

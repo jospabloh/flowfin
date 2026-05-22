@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { guardInternal } from '../_internalGuard.ts';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -13,6 +14,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const now = new Date();
     const nowISO = now.toISOString();
 

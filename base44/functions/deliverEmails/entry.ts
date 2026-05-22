@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { guardInternal } from '../_internalGuard.ts';
 
 // deliverEmails — usa Base44 Core.SendEmail (NO Resend)
 // Envía todos los EmailNotification con status=pending
@@ -96,6 +97,8 @@ function buildEmail(type, ctx) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const denied = await guardInternal(base44, req);
+    if (denied) return denied;
     const now = new Date().toISOString();
     const results = [];
 
