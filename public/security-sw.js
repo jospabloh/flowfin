@@ -14,10 +14,15 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener('fetch', (event) => {
-  // Only intercept same-origin navigation requests (page loads)
+  const url = event.request.url;
+  // Only intercept same-origin navigation requests to the SPA shell.
+  // Skip API routes and auth flows — those need their redirects untouched.
   if (
     event.request.mode !== 'navigate' ||
-    !event.request.url.startsWith(self.location.origin)
+    !url.startsWith(self.location.origin) ||
+    url.includes('/api/') ||
+    url.includes('/auth/') ||
+    url.includes('/oauth')
   ) return;
 
   event.respondWith(
