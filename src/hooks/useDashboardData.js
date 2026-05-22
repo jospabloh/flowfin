@@ -42,9 +42,9 @@ export function useDashboardData() {
   // Secondary queries — stale for 5 min to reduce API hammering
   const SECONDARY = { staleTime: 5 * 60 * 1000, enabled: !!familyId };
   const { data: investments = [] } = useQuery({ queryKey: ['investments', familyId], queryFn: () => base44.entities.Investment.filter({ family_id: familyId }), ...SECONDARY });
-  const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments', familyId], queryFn: () => base44.entities.InvestmentPayment.filter({ investment_id: { $exists: true } }, '-date', 200), ...SECONDARY });
+  const { data: investmentPayments = [] } = useQuery({ queryKey: ['investmentPayments', familyId], queryFn: () => base44.entities.InvestmentPayment.filter({ family_id: familyId }, '-date', 200), ...SECONDARY });
   const { data: msiList = [] } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }), ...SECONDARY });
-  const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments', familyId], queryFn: () => base44.entities.MSIPayment.filter({ msi_id: { $exists: true } }, '-paid_date', 200), ...SECONDARY });
+  const { data: msiPayments = [] } = useQuery({ queryKey: ['msiPayments', familyId], queryFn: () => base44.entities.MSIPayment.filter({ family_id: familyId }, '-paid_date', 200), ...SECONDARY });
   const { data: rentalProperties = [] } = useQuery({ queryKey: ['rentalProperties', familyId], queryFn: () => base44.entities.RentalProperty.filter({ family_id: familyId }), ...SECONDARY });
   const { data: rentalPayments = [] } = useQuery({ queryKey: ['rentalPayments', familyId], queryFn: () => base44.entities.RentalPayment.filter({ property_id: { $exists: true } }, '-month', 100), ...SECONDARY });
   const { data: scheduledPayments = [] } = useQuery({ queryKey: ['scheduledPayments', familyId], queryFn: () => base44.entities.ScheduledPayment.filter({ family_id: familyId }), ...SECONDARY });
