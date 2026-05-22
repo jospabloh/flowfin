@@ -4,11 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Security hardening -->
-    <!-- X-Frame-Options as meta (browser fallback; authoritative via security-sw.js service worker) -->
-    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
-    <!-- CSP: block mixed content and restrict framing -->
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' https: data: blob:; connect-src 'self' https:; font-src 'self' https: data:;" />
+    <!-- Security headers (X-Frame-Options, Permissions-Policy) set server-side via Base44 advanced security settings -->
     <link rel="manifest" href="/manifest.json" />
     <title>FlowFin — Finanzas familiares simples</title>
     <meta name="description" content="Captura gastos, viajes y metas en segundos. Mantén las cuentas claras con tu familia. Privado por diseño." />
@@ -32,15 +28,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // Frame-buster: redirect top frame if we are embedded (best-effort, never clears DOM)
-      if (window.self !== window.top) {
-        try { window.top.location = window.self.location; } catch (_) { /* cross-origin iframe — leave DOM intact */ }
-      }
-      // Register security service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/security-sw.js', { scope: '/' }).catch(() => {});
-      }
-    </script>
   </body>
 </html>
