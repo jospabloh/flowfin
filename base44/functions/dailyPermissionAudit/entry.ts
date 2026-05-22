@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { ALL_PERMISSION_DEFAULTS } from './permissionManifests.ts';
 import { guardInternal } from '../_internalGuard.ts';
 
-const AUDIT_EMAIL = Deno.env.get('AUDIT_EMAIL') ?? 'h.josepablo@gmail.com';
+const AUDIT_EMAIL = Deno.env.get('AUDIT_EMAIL') ?? '';
 
 // Module-level coarse keys not in the granular manifest — kept as a safety net
 const MODULE_KEYS = [
@@ -179,15 +179,19 @@ Deno.serve(async (req) => {
 
     const totalCreated = stats.created_admin + stats.created_member;
 
-    try {
-      await base44.asServiceRole.integrations.Core.SendEmail({
-        to: AUDIT_EMAIL,
-        subject: `[FlowFin] Permisos · ${totalCreated > 0 ? `${totalCreated} creados` : 'todo OK'} · ${runDate}`,
-        body: buildEmailHtml(stats),
-        from_name: 'FlowFin Audit',
-      });
-    } catch (emailErr) {
-      stats.errors.push(`Email: ${(emailErr as Error).message}`);
+    if (AUDIT_EMAIL) {
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({
+          to: AUDIT_EMAIL,
+          subject: `[FlowFin] Permisos · ${totalCreated > 0 ? `${totalCreated} creados` : 'todo OK'} · ${runDate}`,
+          body: buildEmailHtml(stats),
+          from_name: 'FlowFin Audit',
+        });
+      } catch (emailErr) {
+        stats.errors.push(`Email: ${(emailErr as Error).message}`);
+      }
+    } else {
+      console.warn('[dailyPermissionAudit] AUDIT_EMAIL env var not set — skipping email');
     }
 
     console.log(`[dailyPermissionAudit] families:${stats.families_count} keys_per_family:${allKeys.length} admin_created:${stats.created_admin} member_created:${stats.created_member} errors:${stats.errors.length}`);

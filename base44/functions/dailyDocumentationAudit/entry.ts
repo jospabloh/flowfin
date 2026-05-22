@@ -7,7 +7,7 @@ import {
   USER_MANUAL_SECTIONS_COUNT,
 } from './versionHistorySnapshot.ts';
 
-const AUDIT_EMAIL       = Deno.env.get('AUDIT_EMAIL') ?? 'h.josepablo@gmail.com';
+const AUDIT_EMAIL       = Deno.env.get('AUDIT_EMAIL') ?? '';
 const MANUAL_STALE_DAYS = 60;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -262,6 +262,11 @@ Deno.serve(async (req) => {
       : hasAnyFix
         ? 'correcciones aplicadas'
         : 'todo sincronizado';
+
+    if (!AUDIT_EMAIL) {
+      console.warn('[dailyDocumentationAudit] AUDIT_EMAIL env var not set — skipping email');
+      return Response.json({ success: true, skipped_email: true, codeVersion: CURRENT_VERSION_IN_CODE, checks: checks.map(c => ({ label: c.label, status: c.status })), manualActions });
+    }
 
     try {
       await base44.asServiceRole.integrations.Core.SendEmail({
