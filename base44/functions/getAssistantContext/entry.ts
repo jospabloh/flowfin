@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
     let conversationHistory = [];
     try {
       const recentSessions = await base44.asServiceRole.entities.ConversationSession.filter(
-        { user_id: user.id },
+        { family_id: familyId, user_id: user.id },
         '-session_date',
         3
       );

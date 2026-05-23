@@ -67,8 +67,8 @@ export default function Assistant() {
 
   // Create or resume conversation on mount, with same-day localStorage persistence.
   useEffect(() => {
-    if (!currentUser?.id) return;
-    const storageKey = `ff_conv:${currentUser.id}`;
+    if (!currentUser?.id || !familyId) return;
+    const storageKey = `ff_conv:${familyId}:${currentUser.id}`;
     const todayISO = new Date().toISOString().slice(0, 10);
 
     let stored = null;
@@ -108,7 +108,7 @@ export default function Assistant() {
         setMessages(msgs);
       }
     });
-  }, [currentUser?.id]);
+  }, [currentUser?.id, familyId]);
 
   // Subscribe to conversation updates from server
   useEffect(() => {
@@ -238,6 +238,7 @@ export default function Assistant() {
         summary,
         message_count: visibleMsgs.length,
         archived_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       });
     } catch (e) {
       console.error('[Assistant] Error archivando sesión:', e);
@@ -255,8 +256,8 @@ export default function Assistant() {
 
   // Check for day change on window focus — archive old session and start fresh
   useEffect(() => {
-    if (!currentUser?.id || !conversation?.id) return;
-    const storageKey = `ff_conv:${currentUser.id}`;
+    if (!currentUser?.id || !familyId || !conversation?.id) return;
+    const storageKey = `ff_conv:${familyId}:${currentUser.id}`;
 
     const checkDayChange = async () => {
       const todayISO = new Date().toISOString().slice(0, 10);

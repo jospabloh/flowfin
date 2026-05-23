@@ -1,0 +1,121 @@
+{
+  "name": "ConversationSession",
+  "type": "object",
+  "properties": {
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia propietaria"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del usuario que inició la sesión"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "ID de la conversación en el agente"
+    },
+    "channel": {
+      "type": "string",
+      "enum": ["web", "whatsapp"],
+      "default": "web",
+      "description": "Canal de comunicación de la sesión"
+    },
+    "session_date": {
+      "type": "string",
+      "description": "Fecha de la sesión (YYYY-MM-DD)"
+    },
+    "messages": {
+      "type": "array",
+      "description": "Mensajes de la conversación archivados"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Resumen breve de la sesión"
+    },
+    "message_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Número total de mensajes en la sesión"
+    },
+    "archived_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de cuando se archivó la sesión (ISO 8601)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de expiración del registro (ISO 8601)"
+    }
+  },
+  "required": [
+    "family_id",
+    "user_id",
+    "conversation_id",
+    "session_date"
+  ],
+  "indexes": [
+    ["family_id", "session_date"],
+    ["user_id", "session_date"],
+    ["expires_at"]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
+    }
+  }
+}
