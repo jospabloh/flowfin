@@ -9,6 +9,38 @@
     {
       "function_name": "getPeriodTotals",
       "description": ""
+    },
+    {
+      "function_name": "getBreakdownByPerson",
+      "description": ""
+    },
+    {
+      "function_name": "getBreakdownByCategory",
+      "description": ""
+    },
+    {
+      "function_name": "getBreakdownByMerchant",
+      "description": ""
+    },
+    {
+      "function_name": "getAverages",
+      "description": ""
+    },
+    {
+      "function_name": "getTopTransactions",
+      "description": ""
+    },
+    {
+      "function_name": "getPeriodComparison",
+      "description": ""
+    },
+    {
+      "function_name": "agentGetCatalogs",
+      "description": ""
+    },
+    {
+      "function_name": "agentCreateTransaction",
+      "description": ""
     }
   ],
   "whatsapp_greeting": "\u00a1Hola! \ud83d\udc4b Soy tu asistente financiero de FlowFin. Puedo ayudarte a registrar gastos, consultar tus finanzas, analizar tendencias y guiarte en c\u00f3mo usar la app. \u00bfEn qu\u00e9 te ayudo hoy?",
