@@ -130,6 +130,10 @@
       "allowed_operations": [
         "read"
       ]
+    },
+    {
+      "function_name": "getWhatsAppContext",
+      "description": "Obtiene el contexto del usuario en WhatsApp: nombre, familia, family_id, person_id, totales del mes actual (income, expenses, balance) y pr\u00f3ximos pagos en los siguientes 7 d\u00edas. NO requiere argumentos. Llama a esta funci\u00f3n PRIMERO cuando est\u00e9s en canal WhatsApp y no tengas informaci\u00f3n del usuario (FAMILY_ID, PERSON_ID o PERSON_NAME). Si retorna error 'not_linked', responde al usuario: 'Tu sesi\u00f3n de WhatsApp no est\u00e1 vinculada. Abre FlowFin y toca el bot\u00f3n de WhatsApp para reconectarte.'"
     }
   ],
   "whatsapp_greeting": "\u00a1Hola! \ud83d\udc4b Soy tu asistente financiero de FlowFin. Puedo ayudarte a registrar gastos, consultar tus finanzas, analizar tendencias y guiarte en c\u00f3mo usar la app. \u00bfEn qu\u00e9 te ayudo hoy?",
