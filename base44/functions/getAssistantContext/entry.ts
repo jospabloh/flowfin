@@ -46,17 +46,21 @@ async function fetchTransactions(entities, familyId, start, end) {
   let all = [];
   let skip = 0;
   let truncated = false;
-  while (true) {
-    const page = await entities.Transaction.filter(
-      { family_id: familyId, date: { $gte: start, $lte: end } },
-      '-date',
-      PAGE,
-      skip
-    );
-    all = all.concat(page || []);
-    if (!page || page.length < PAGE) break;
-    skip += PAGE;
-    if (all.length >= 2000) { truncated = true; break; }
+  try {
+    while (true) {
+      const page = await entities.Transaction.filter(
+        { family_id: familyId, date: { $gte: start, $lte: end } },
+        '-date',
+        PAGE,
+        skip
+      );
+      all = all.concat(page || []);
+      if (!page || page.length < PAGE) break;
+      skip += PAGE;
+      if (all.length >= 2000) { truncated = true; break; }
+    }
+  } catch (e) {
+    console.error('[fetchTransactions] ERROR:', e?.message, 'familyId:', familyId, 'range:', start, '-', end);
   }
   return { transactions: all, truncated };
 }
@@ -102,7 +106,7 @@ Deno.serve(async (req) => {
 
     // Parallel fetches
     const [
-      familyArr,
+      familyRecord,
       membershipsArr,
       personsArr,
       categoriesArr,
@@ -115,7 +119,7 @@ Deno.serve(async (req) => {
       investmentsArr,
       rentalPropertiesArr,
     ] = await Promise.all([
-      entities.Family.filter({ id: familyId }),
+      entities.Family.get(familyId).catch(() => null),
       entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
       entities.Person.filter({ family_id: familyId }),
       entities.Category.filter({ family_id: familyId }),
@@ -133,8 +137,10 @@ Deno.serve(async (req) => {
     const { transactions: prevTxs } = prevTxResult;
     const { transactions: twoMonthsTxs } = twoMonthsTxResult;
 
+    console.log('[getAssistantContext] txs:', txs.length, 'prevTxs:', prevTxs.length, 'family:', familyRecord?.name);
+
     // Family
-    const fam = (familyArr || [])[0] ?? {};
+    const fam = familyRecord ?? {};
     const familyOut = {
       id: fam.id,
       name: fam.name,
