@@ -1,34 +1,53 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-async function resolveAccess(base44) {
-  const user = await base44.auth.me();
-  if (!user) {
-    const err = new Error('Unauthorized');
-    err.httpStatus = 401;
-    throw err;
-  }
+async function resolveAccess(base44, bodyFamilyId) {
   const entities = base44.asServiceRole.entities;
-  let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-  if (!memberships || memberships.length === 0) {
-    memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+
+  // Try user session first (app web)
+  let user = null;
+  try { user = await base44.auth.me(); } catch { user = null; }
+
+  if (user) {
+    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships || memberships.length === 0) {
+      memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    }
+    const membership = (memberships || [])[0] ?? null;
+    if (!membership) {
+      const err = new Error('No approved family membership found');
+      err.httpStatus = 401;
+      err.code = 'not_linked';
+      throw err;
+    }
+    return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
   }
-  const membership = (memberships || [])[0] ?? null;
-  if (!membership) {
-    const err = new Error('No approved family membership found');
-    err.httpStatus = 401;
-    err.code = 'not_linked';
-    throw err;
+
+  // Fallback: agent calling from WhatsApp passes familyId explicitly
+  if (bodyFamilyId) {
+    const families = await entities.Family.filter({ id: bodyFamilyId });
+    if (!families || families.length === 0) {
+      const err = new Error('Family not found');
+      err.httpStatus = 403;
+      throw err;
+    }
+    return { user: null, familyId: bodyFamilyId, selfPersonId: null, membership: null };
   }
-  return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
+
+  const err = new Error('not_linked');
+  err.httpStatus = 401;
+  err.code = 'not_linked';
+  throw err;
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    const body = await req.json();
+
     let access;
     try {
-      access = await resolveAccess(base44);
+      access = await resolveAccess(base44, body.family_id);
     } catch (e) {
       if (e.httpStatus === 401 || e.code === 'not_linked') {
         return Response.json(
@@ -40,8 +59,6 @@ Deno.serve(async (req) => {
     }
 
     const { familyId } = access;
-
-    const body = await req.json();
     const { amount, type, date, description, category_id, subcategory_id, person_id, payment_method_id } = body;
 
     // ── Validation ─────────────────────────────────────────────────────────
@@ -73,8 +90,10 @@ Deno.serve(async (req) => {
     const checks = [];
 
     checks.push((async () => {
-      const rows = await entities.Category.filter({ id: category_id, family_id: familyId });
-      if (!rows || rows.length === 0) {
+      try {
+        const cat = await entities.Category.get(category_id);
+        if (!cat || cat.family_id !== familyId) throw new Error('forbidden');
+      } catch {
         const err = new Error('category_id does not belong to this family or does not exist');
         err.httpStatus = 403;
         throw err;
@@ -82,8 +101,10 @@ Deno.serve(async (req) => {
     })());
 
     checks.push((async () => {
-      const rows = await entities.Person.filter({ id: person_id, family_id: familyId });
-      if (!rows || rows.length === 0) {
+      try {
+        const person = await entities.Person.get(person_id);
+        if (!person || person.family_id !== familyId) throw new Error('forbidden');
+      } catch {
         const err = new Error('person_id does not belong to this family or does not exist');
         err.httpStatus = 403;
         throw err;
@@ -92,8 +113,10 @@ Deno.serve(async (req) => {
 
     if (subcategory_id) {
       checks.push((async () => {
-        const rows = await entities.Subcategory.filter({ id: subcategory_id, family_id: familyId });
-        if (!rows || rows.length === 0) {
+        try {
+          const sub = await entities.Subcategory.get(subcategory_id);
+          if (!sub || sub.family_id !== familyId) throw new Error('forbidden');
+        } catch {
           const err = new Error('subcategory_id does not belong to this family or does not exist');
           err.httpStatus = 403;
           throw err;
@@ -103,8 +126,10 @@ Deno.serve(async (req) => {
 
     if (payment_method_id) {
       checks.push((async () => {
-        const rows = await entities.PaymentMethod.filter({ id: payment_method_id, family_id: familyId });
-        if (!rows || rows.length === 0) {
+        try {
+          const pm = await entities.PaymentMethod.get(payment_method_id);
+          if (!pm || pm.family_id !== familyId) throw new Error('forbidden');
+        } catch {
           const err = new Error('payment_method_id does not belong to this family or does not exist');
           err.httpStatus = 403;
           throw err;
