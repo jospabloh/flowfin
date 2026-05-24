@@ -183,7 +183,6 @@ export default function Assistant() {
   // Stored in a ref for lazy injection. description/person_name stripped from
   // recentTransactions so the LLM cannot treat history as pending actions.
   const ctxPayloadRef = useRef(null);
-  const ctxLoadedRef = useRef(false);
 
   // Reusable context fetcher — called at mount and silently after write intents.
   const refreshContext = useCallback(async () => {
@@ -210,10 +209,10 @@ export default function Assistant() {
   }, [familyId, personId, activeLocale]);
 
   useEffect(() => {
-    if (!familyId || ctxLoadedRef.current) return;
-    ctxLoadedRef.current = true;
+    if (!familyId) return;
     refreshContext();
-  }, [familyId, refreshContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [familyId]);
 
   // Archive a past conversation session to ConversationSession entity
   const archiveConversation = useCallback(async (storedEntry, finalMessages) => {

@@ -41,21 +41,22 @@ function sumByType(txs) {
   return { expense, income, balance: income - expense };
 }
 
-async function fetchTransactions(entities, familyId, start, end) {
+async function fetchTransactions(userEntities, familyId, start, end) {
   const PAGE = 200;
   let all = [];
   let skip = 0;
   let truncated = false;
   try {
     while (true) {
-      const page = await entities.Transaction.filter(
+      const page = await userEntities.Transaction.filter(
         { family_id: familyId, date: { $gte: start, $lte: end } },
         '-date',
         PAGE,
         skip
       );
-      all = all.concat(page || []);
-      if (!page || page.length < PAGE) break;
+      if (!page || page.length === 0) break;
+      all = all.concat(page);
+      if (page.length < PAGE) break;
       skip += PAGE;
       if (all.length >= 2000) { truncated = true; break; }
     }
