@@ -1,5 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { resolveAccess } from '../_txAggregateHelper.ts';
+
+async function resolveAccess(base44) {
+  const user = await base44.auth.me();
+  if (!user) {
+    const err = new Error('Unauthorized');
+    err.httpStatus = 401;
+    throw err;
+  }
+  const entities = base44.asServiceRole.entities;
+  let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+  if (!memberships || memberships.length === 0) {
+    memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+  }
+  const membership = (memberships || [])[0] ?? null;
+  if (!membership) {
+    const err = new Error('No approved family membership found');
+    err.httpStatus = 401;
+    err.code = 'not_linked';
+    throw err;
+  }
+  return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -7,15 +28,11 @@ Deno.serve(async (req) => {
 
     let access;
     try {
-      access = await resolveAccess(base44, undefined);
-    } catch (e: any) {
+      access = await resolveAccess(base44);
+    } catch (e) {
       if (e.httpStatus === 401 || e.code === 'not_linked') {
         return Response.json(
-          {
-            error: 'not_linked',
-            message:
-              'Tu sesión de WhatsApp no está vinculada. Abre FlowFin y toca el botón de WhatsApp para reconectarte.',
-          },
+          { error: 'not_linked', message: 'Tu sesión de WhatsApp no está vinculada. Abre FlowFin y toca el botón de WhatsApp para reconectarte.' },
           { status: 401 },
         );
       }
@@ -25,20 +42,10 @@ Deno.serve(async (req) => {
     const { familyId } = access;
 
     const body = await req.json();
-    const {
-      amount,
-      type,
-      date,
-      description,
-      category_id,
-      subcategory_id,
-      person_id,
-      payment_method_id,
-    } = body;
+    const { amount, type, date, description, category_id, subcategory_id, person_id, payment_method_id } = body;
 
-    // ── Validation ────────────────────────────────────────────────────────────
-
-    const missing: string[] = [];
+    // ── Validation ─────────────────────────────────────────────────────────
+    const missing = [];
     if (amount === undefined || amount === null) missing.push('amount');
     if (!type) missing.push('type');
     if (!date) missing.push('date');
@@ -46,44 +53,29 @@ Deno.serve(async (req) => {
     if (!person_id) missing.push('person_id');
 
     if (missing.length > 0) {
-      return Response.json(
-        { error: 'missing_required_fields', fields: missing },
-        { status: 400 },
-      );
+      return Response.json({ error: 'missing_required_fields', fields: missing }, { status: 400 });
     }
 
     if (typeof amount !== 'number' || !isFinite(amount) || amount <= 0) {
-      return Response.json(
-        { error: 'invalid_amount', message: 'amount must be a finite number greater than 0' },
-        { status: 400 },
-      );
+      return Response.json({ error: 'invalid_amount', message: 'amount must be a finite number greater than 0' }, { status: 400 });
     }
 
     if (type !== 'expense' && type !== 'income') {
-      return Response.json(
-        { error: 'invalid_type', message: "type must be 'expense' or 'income'" },
-        { status: 400 },
-      );
+      return Response.json({ error: 'invalid_type', message: "type must be 'expense' or 'income'" }, { status: 400 });
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return Response.json(
-        { error: 'invalid_date', message: 'date must be in YYYY-MM-DD format' },
-        { status: 400 },
-      );
+      return Response.json({ error: 'invalid_date', message: 'date must be in YYYY-MM-DD format' }, { status: 400 });
     }
 
-    // ── Cross-tenant guard ────────────────────────────────────────────────────
-    // For every provided id, verify the record exists and belongs to this family.
-
+    // ── Cross-tenant guard ─────────────────────────────────────────────────
     const entities = base44.asServiceRole.entities;
-
-    const checks: Array<Promise<void>> = [];
+    const checks = [];
 
     checks.push((async () => {
       const rows = await entities.Category.filter({ id: category_id, family_id: familyId });
       if (!rows || rows.length === 0) {
-        const err: any = new Error('category_id does not belong to this family or does not exist');
+        const err = new Error('category_id does not belong to this family or does not exist');
         err.httpStatus = 403;
         throw err;
       }
@@ -92,7 +84,7 @@ Deno.serve(async (req) => {
     checks.push((async () => {
       const rows = await entities.Person.filter({ id: person_id, family_id: familyId });
       if (!rows || rows.length === 0) {
-        const err: any = new Error('person_id does not belong to this family or does not exist');
+        const err = new Error('person_id does not belong to this family or does not exist');
         err.httpStatus = 403;
         throw err;
       }
@@ -102,7 +94,7 @@ Deno.serve(async (req) => {
       checks.push((async () => {
         const rows = await entities.Subcategory.filter({ id: subcategory_id, family_id: familyId });
         if (!rows || rows.length === 0) {
-          const err: any = new Error('subcategory_id does not belong to this family or does not exist');
+          const err = new Error('subcategory_id does not belong to this family or does not exist');
           err.httpStatus = 403;
           throw err;
         }
@@ -113,7 +105,7 @@ Deno.serve(async (req) => {
       checks.push((async () => {
         const rows = await entities.PaymentMethod.filter({ id: payment_method_id, family_id: familyId });
         if (!rows || rows.length === 0) {
-          const err: any = new Error('payment_method_id does not belong to this family or does not exist');
+          const err = new Error('payment_method_id does not belong to this family or does not exist');
           err.httpStatus = 403;
           throw err;
         }
@@ -122,14 +114,12 @@ Deno.serve(async (req) => {
 
     try {
       await Promise.all(checks);
-    } catch (e: any) {
+    } catch (e) {
       return Response.json({ error: e.message || 'forbidden' }, { status: e.httpStatus || 403 });
     }
 
-    // ── Create transaction ────────────────────────────────────────────────────
-    // family_id is always taken from the server-resolved access, never from the body.
-
-    const txData: Record<string, unknown> = {
+    // ── Create transaction ─────────────────────────────────────────────────
+    const txData = {
       family_id: familyId,
       amount,
       type,
@@ -145,7 +135,7 @@ Deno.serve(async (req) => {
     const created = await entities.Transaction.create(txData);
 
     return Response.json({ ok: true, id: created.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error('agentCreateTransaction error:', error);
     return Response.json({ error: error.message || 'internal' }, { status: error.httpStatus || 500 });
   }

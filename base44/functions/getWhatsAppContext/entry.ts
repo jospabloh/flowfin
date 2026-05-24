@@ -1,8 +1,29 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { resolveAccess } from '../_txAggregateHelper.ts';
 
-function toISODate(d: Date): string {
+function toISODate(d) {
   return d.toISOString().slice(0, 10);
+}
+
+async function resolveAccess(base44) {
+  const user = await base44.auth.me();
+  if (!user) {
+    const err = new Error('Unauthorized');
+    err.httpStatus = 401;
+    throw err;
+  }
+  const entities = base44.asServiceRole.entities;
+  let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+  if (!memberships || memberships.length === 0) {
+    memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+  }
+  const membership = (memberships || [])[0] ?? null;
+  if (!membership) {
+    const err = new Error('No approved family membership found');
+    err.httpStatus = 401;
+    err.code = 'not_linked';
+    throw err;
+  }
+  return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
 }
 
 Deno.serve(async (req) => {
@@ -11,15 +32,11 @@ Deno.serve(async (req) => {
 
     let access;
     try {
-      access = await resolveAccess(base44, undefined);
-    } catch (e: any) {
+      access = await resolveAccess(base44);
+    } catch (e) {
       if (e.httpStatus === 401 || e.code === 'not_linked') {
         return Response.json(
-          {
-            error: 'not_linked',
-            message:
-              'Tu sesión de WhatsApp no está vinculada. Abre FlowFin y toca el botón de WhatsApp para reconectarte.',
-          },
+          { error: 'not_linked', message: 'Tu sesión de WhatsApp no está vinculada. Abre FlowFin y toca el botón de WhatsApp para reconectarte.' },
           { status: 401 },
         );
       }
@@ -34,54 +51,18 @@ Deno.serve(async (req) => {
     const monthStart = toISODate(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)));
     const next7 = toISODate(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000));
 
-    // [DEBUG-TX] temporary diagnostic — remove after root cause found
-    console.log('[DEBUG-TX] getWhatsAppContext — resolved familyId:', familyId, 'selfPersonId:', selfPersonId ?? null);
+    console.log('[getWhatsAppContext] familyId:', familyId, 'selfPersonId:', selfPersonId ?? null);
+
     const txFilter = { family_id: familyId, date: { $gte: monthStart, $lte: todayISO } };
-    console.log('[DEBUG-TX] getWhatsAppContext — Transaction filter:', JSON.stringify(txFilter));
-    console.log('[DEBUG-TX] getWhatsAppContext — monthStart:', monthStart, 'todayISO:', todayISO);
 
-    // [DEBUG-TX] control query 1: family only, no date/type
-    try {
-      const ctrl1 = await entities.Transaction.filter({ family_id: familyId });
-      console.log('[DEBUG-TX] control1 (family only, no date/type) count:', (ctrl1 || []).length);
-    } catch (e: any) {
-      console.log('[DEBUG-TX] control1 error:', e?.message ?? String(e));
-    }
-
-    // [DEBUG-TX] control query 2: family + type=expense, no date
-    try {
-      const ctrl2 = await entities.Transaction.filter({ family_id: familyId, type: 'expense' });
-      console.log('[DEBUG-TX] control2 (family + type=expense, no date) count:', (ctrl2 || []).length);
-    } catch (e: any) {
-      console.log('[DEBUG-TX] control2 error:', e?.message ?? String(e));
-    }
-
-    // [DEBUG-TX] control query 3: alternate suffix date syntax
-    try {
-      const ctrl3Filter = { family_id: familyId, date_gte: monthStart, date_lte: todayISO };
-      const ctrl3 = await entities.Transaction.filter(ctrl3Filter);
-      console.log('[DEBUG-TX] control3 (suffix date_gte/date_lte) filter:', JSON.stringify(ctrl3Filter), 'count:', (ctrl3 || []).length);
-    } catch (e: any) {
-      console.log('[DEBUG-TX] control3 error:', e?.message ?? String(e));
-    }
-
-    // Parallel minimal fetches
     const [familyArr, personArr, txArr, scheduledArr] = await Promise.all([
       entities.Family.filter({ id: familyId }),
       selfPersonId ? entities.Person.filter({ id: selfPersonId, family_id: familyId }) : Promise.resolve([]),
       (async () => {
         try {
-          const result = await entities.Transaction.filter(
-            txFilter,
-            '-date',
-            200,
-            0,
-          );
-          // [DEBUG-TX] log real query result
-          console.log('[DEBUG-TX] real Transaction query (date range) returned:', (result || []).length, 'rows');
-          return result;
-        } catch (e: any) {
-          console.log('[DEBUG-TX] real Transaction query error:', e?.message ?? String(e));
+          return await entities.Transaction.filter(txFilter, '-date', 200, 0);
+        } catch (e) {
+          console.log('[getWhatsAppContext] Transaction query error:', e?.message ?? String(e));
           return [];
         }
       })(),
@@ -97,7 +78,6 @@ Deno.serve(async (req) => {
     const fam = (familyArr || [])[0] ?? {};
     const person = (personArr || [])[0] ?? null;
 
-    // Current month totals
     let income = 0;
     let expenses = 0;
     for (const tx of (txArr || [])) {
@@ -106,21 +86,15 @@ Deno.serve(async (req) => {
       else if (tx.type === 'expense') expenses += tx.amount;
     }
 
-    // [DEBUG-TX] temporary diagnostic — remove after root cause found
-    console.log('[DEBUG-TX] getWhatsAppContext — current_month totals — income:', income, 'expenses:', expenses, 'txArr count:', (txArr || []).length);
+    console.log('[getWhatsAppContext] totals — income:', income, 'expenses:', expenses, 'txCount:', (txArr || []).length);
 
-    // Upcoming payments (next 7 days)
     const currentMonth = todayISO.slice(0, 7);
     const upcomingPayments = [];
     for (const sp of (scheduledArr || [])) {
       if (!sp.is_active || !sp.due_day) continue;
       const dueDate = `${currentMonth}-${String(sp.due_day).padStart(2, '0')}`;
       if (dueDate < todayISO || dueDate > next7) continue;
-      upcomingPayments.push({
-        name: sp.name || sp.description || '—',
-        amount: sp.amount || 0,
-        due_date: dueDate,
-      });
+      upcomingPayments.push({ name: sp.name || sp.description || '—', amount: sp.amount || 0, due_date: dueDate });
     }
     upcomingPayments.sort((a, b) => (a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0));
 
@@ -138,7 +112,7 @@ Deno.serve(async (req) => {
       },
       upcoming_payments: upcomingPayments,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('getWhatsAppContext error:', error);
     return Response.json({ error: error.message || 'internal' }, { status: error.httpStatus || 500 });
   }
