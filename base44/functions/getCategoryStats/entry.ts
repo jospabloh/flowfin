@@ -1,11 +1,74 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import {
-  resolveAccess,
-  resolvePersonFilter,
-  errorResponse,
-  fetchAllTransactions,
-  quantile,
-} from '../_txAggregateHelper.ts';
+
+async function resolveAccess(base44, requestedFamilyId) {
+  let user = null;
+  try { user = await base44.auth.me(); } catch { user = null; }
+  if (user) {
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    if (!memberships.length) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+    let membership = memberships[0];
+    if (!requestedFamilyId && memberships.length > 1) {
+      const activeId = user.data?.family_id ?? user.data?.data?.family_id;
+      membership = memberships.find(m => m.family_id === activeId) ?? [...memberships].sort((a, b) => (b.last_active_at ?? '').localeCompare(a.last_active_at ?? ''))[0];
+    }
+    if (requestedFamilyId) {
+      const match = memberships.find(m => m.family_id === requestedFamilyId);
+      if (!match) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+      membership = match;
+    }
+    return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
+  }
+  if (!requestedFamilyId) { const err = new Error('whatsapp_session_expired'); err.httpStatus = 401; err.code = 'not_linked'; throw err; }
+  return { user: null, familyId: requestedFamilyId, selfPersonId: null, membership: null };
+}
+
+function resolvePersonFilter(access, opts) {
+  const personId = opts.personId?.trim();
+  const scope = opts.scope?.trim().toLowerCase();
+  if (personId && personId !== 'self') return personId;
+  if (personId === 'self' || scope === 'self' || scope === 'me' || scope === 'mine') return access.selfPersonId ?? undefined;
+  return undefined;
+}
+
+function errorResponse(err) {
+  const status = (err && err.httpStatus) || 500;
+  const message = status === 500 ? 'internal' : err?.message || 'error';
+  return Response.json({ error: message }, { status });
+}
+
+async function fetchAllTransactions(base44, filters) {
+  const PAGE_SIZE = 2000;
+  const HARD_CAP = 50000;
+  const queryFilter = { family_id: filters.familyId };
+  if (filters.type && filters.type !== 'all') queryFilter.type = filters.type;
+  if (filters.personId) queryFilter.person_id = filters.personId;
+  if (filters.categoryId) queryFilter.category_id = filters.categoryId;
+  if (filters.subcategoryId) queryFilter.subcategory_id = filters.subcategoryId;
+  if (filters.paymentMethodId) queryFilter.payment_method_id = filters.paymentMethodId;
+  if (filters.start) queryFilter.date_gte = filters.start;
+  if (filters.end) queryFilter.date_lte = filters.end;
+  const all = [];
+  let offset = 0;
+  let truncated = false;
+  while (true) {
+    const page = await base44.asServiceRole.entities.Transaction.filter(queryFilter, 'date', PAGE_SIZE, offset);
+    all.push(...page);
+    if (all.length >= HARD_CAP) { truncated = true; break; }
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return { transactions: all.slice(0, HARD_CAP), truncated };
+}
+
+function quantile(sorted, q) {
+  if (sorted.length === 0) return 0;
+  const pos = q * (sorted.length - 1);
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
 
 Deno.serve(async (req) => {
   try {

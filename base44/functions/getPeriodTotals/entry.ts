@@ -1,5 +1,41 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { resolveAccess, resolvePersonFilter, errorResponse } from '../_txAggregateHelper.ts';
+
+async function resolveAccess(base44, requestedFamilyId) {
+  let user = null;
+  try { user = await base44.auth.me(); } catch { user = null; }
+  if (user) {
+    let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    if (!memberships.length) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+    let membership = memberships[0];
+    if (!requestedFamilyId && memberships.length > 1) {
+      const activeId = user.data?.family_id ?? user.data?.data?.family_id;
+      membership = memberships.find(m => m.family_id === activeId) ?? [...memberships].sort((a, b) => (b.last_active_at ?? '').localeCompare(a.last_active_at ?? ''))[0];
+    }
+    if (requestedFamilyId) {
+      const match = memberships.find(m => m.family_id === requestedFamilyId);
+      if (!match) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+      membership = match;
+    }
+    return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
+  }
+  if (!requestedFamilyId) { const err = new Error('whatsapp_session_expired'); err.httpStatus = 401; err.code = 'not_linked'; throw err; }
+  return { user: null, familyId: requestedFamilyId, selfPersonId: null, membership: null };
+}
+
+function resolvePersonFilter(access, opts) {
+  const personId = opts.personId?.trim();
+  const scope = opts.scope?.trim().toLowerCase();
+  if (personId && personId !== 'self') return personId;
+  if (personId === 'self' || scope === 'self' || scope === 'me' || scope === 'mine') return access.selfPersonId ?? undefined;
+  return undefined;
+}
+
+function errorResponse(err) {
+  const status = (err && err.httpStatus) || 500;
+  const message = status === 500 ? 'internal' : err?.message || 'error';
+  return Response.json({ error: message }, { status });
+}
 
 async function fetchAllTransactions(entities, { familyId, start, end, type, personId, categoryId, paymentMethodId }) {
   const PAGE = 200;
@@ -14,39 +50,6 @@ async function fetchAllTransactions(entities, { familyId, start, end, type, pers
   if (categoryId) filter.category_id = categoryId;
   if (paymentMethodId) filter.payment_method_id = paymentMethodId;
 
-  // [DEBUG-TX] temporary diagnostic — remove after root cause found
-  console.log('[DEBUG-TX] fetchAllTransactions called — familyId:', familyId, 'personId:', personId ?? null);
-  console.log('[DEBUG-TX] filter passed to Transaction.filter:', JSON.stringify(filter));
-
-  // [DEBUG-TX] control query 1: no date, no type filter
-  try {
-    const ctrl1 = await entities.Transaction.filter({ family_id: familyId });
-    console.log('[DEBUG-TX] control1 (family only, no date/type) count:', (ctrl1 || []).length);
-  } catch (e) {
-    console.log('[DEBUG-TX] control1 error:', e?.message ?? String(e));
-  }
-
-  // [DEBUG-TX] control query 2: family_id + type=expense, no date filter
-  try {
-    const ctrl2 = await entities.Transaction.filter({ family_id: familyId, type: 'expense' });
-    console.log('[DEBUG-TX] control2 (family + type=expense, no date) count:', (ctrl2 || []).length);
-  } catch (e) {
-    console.log('[DEBUG-TX] control2 error:', e?.message ?? String(e));
-  }
-
-  // [DEBUG-TX] control query 3: alternate suffix syntax for date range
-  if (start || end) {
-    try {
-      const ctrl3Filter: Record<string, unknown> = { family_id: familyId };
-      if (start) ctrl3Filter.date_gte = start;
-      if (end) ctrl3Filter.date_lte = end;
-      const ctrl3 = await entities.Transaction.filter(ctrl3Filter);
-      console.log('[DEBUG-TX] control3 (suffix date_gte/date_lte) filter:', JSON.stringify(ctrl3Filter), 'count:', (ctrl3 || []).length);
-    } catch (e) {
-      console.log('[DEBUG-TX] control3 error:', e?.message ?? String(e));
-    }
-  }
-
   while (true) {
     const page = await entities.Transaction.filter(filter, '-date', PAGE, skip);
     all = all.concat(page || []);
@@ -54,10 +57,6 @@ async function fetchAllTransactions(entities, { familyId, start, end, type, pers
     skip += PAGE;
     if (all.length >= 2000) { truncated = true; break; }
   }
-
-  // [DEBUG-TX] log real query result count
-  console.log('[DEBUG-TX] real query total transactions returned:', all.length, 'truncated:', truncated);
-
   return { transactions: all, truncated };
 }
 
@@ -95,10 +94,6 @@ Deno.serve(async (req) => {
       else if (tx.type === 'income') income += tx.amount;
     }
     const balance = income - expense;
-
-    // [DEBUG-TX] temporary diagnostic — remove after root cause found
-    console.log('[DEBUG-TX] getPeriodTotals resolved familyId:', familyId, 'personId:', personId ?? null);
-    console.log('[DEBUG-TX] getPeriodTotals final totals — expense:', expense, 'income:', income, 'balance:', balance, 'txCount:', transactions.length);
 
     return Response.json({
       period: { start: start ?? null, end: end ?? null },
