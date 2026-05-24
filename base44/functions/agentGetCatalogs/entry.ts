@@ -24,8 +24,14 @@ async function resolveAccess(base44, bodyFamilyId) {
 
   // Fallback: agent calling from WhatsApp passes familyId explicitly
   if (bodyFamilyId) {
-    const families = await entities.Family.filter({ id: bodyFamilyId });
-    if (!families || families.length === 0) {
+    try {
+      const family = await entities.Family.get(bodyFamilyId);
+      if (!family) {
+        const err = new Error('Family not found');
+        err.httpStatus = 403;
+        throw err;
+      }
+    } catch (e) {
       const err = new Error('Family not found');
       err.httpStatus = 403;
       throw err;

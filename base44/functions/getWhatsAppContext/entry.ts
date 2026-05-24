@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
     const txFilter = { family_id: familyId, date: { $gte: monthStart, $lte: todayISO } };
 
     const [familyArr, personArr, txArr, scheduledArr] = await Promise.all([
-      entities.Family.filter({ id: familyId }),
-      selfPersonId ? entities.Person.filter({ id: selfPersonId, family_id: familyId }) : Promise.resolve([]),
+      entities.Family.get(familyId).then(f => f ? [f] : []).catch(() => []),
+      selfPersonId ? entities.Person.get(selfPersonId).then(p => p ? [p] : []).catch(() => []) : Promise.resolve([]),
       (async () => {
         try {
           return await entities.Transaction.filter(txFilter, '-date', 200, 0);
