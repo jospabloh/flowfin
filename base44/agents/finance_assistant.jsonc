@@ -45,7 +45,9 @@
   ],
   "whatsapp_greeting": "\u00a1Hola! \ud83d\udc4b Soy tu asistente financiero de FlowFin. Puedo ayudarte a registrar gastos, consultar tus finanzas, analizar tendencias y guiarte en c\u00f3mo usar la app. \u00bfEn qu\u00e9 te ayudo hoy?",
   "app_user_connector_configs": [],
-  "selected_skill_names": [],
+  "selected_skill_names": [
+    "guia-navegacion-flowfin"
+  ],
   "selected_workspace_skill_ids": [],
   "model": "automatic",
   "telegram_greeting": "",
