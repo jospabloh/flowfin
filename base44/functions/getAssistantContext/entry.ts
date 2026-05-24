@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
     }
 
     const entities = base44.asServiceRole.entities;
+    // Use user-scoped entities for transactions (RLS requires user session)
+    const userEntities = base44.entities;
 
     const today = new Date();
     const todayISO = toISODate(today);
@@ -122,11 +124,11 @@ Deno.serve(async (req) => {
     ] = await Promise.all([
       entities.Family.get(familyId).catch(() => null),
       entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
-      entities.Person.filter({ family_id: familyId }),
-      entities.Category.filter({ family_id: familyId }),
-      fetchTransactions(entities, familyId, monthStart, todayISO),
-      fetchTransactions(entities, familyId, prevMonthStart, prevMonthEnd),
-      fetchTransactions(entities, familyId, twoMonthsStart, twoMonthsEnd),
+      userEntities.Person.filter({ family_id: familyId }).catch(() => entities.Person.filter({ family_id: familyId })),
+      userEntities.Category.filter({ family_id: familyId }).catch(() => entities.Category.filter({ family_id: familyId })),
+      fetchTransactions(userEntities, familyId, monthStart, todayISO),
+      fetchTransactions(userEntities, familyId, prevMonthStart, prevMonthEnd),
+      fetchTransactions(userEntities, familyId, twoMonthsStart, twoMonthsEnd),
       (async () => { try { return await entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
       (async () => { try { return await entities.FamilyConfig.filter({ family_id: familyId }); } catch { return []; } })(),
       (async () => { try { return await entities.MSI.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
