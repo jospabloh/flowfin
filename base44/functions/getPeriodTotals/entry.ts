@@ -14,6 +14,39 @@ async function fetchAllTransactions(entities, { familyId, start, end, type, pers
   if (categoryId) filter.category_id = categoryId;
   if (paymentMethodId) filter.payment_method_id = paymentMethodId;
 
+  // [DEBUG-TX] temporary diagnostic — remove after root cause found
+  console.log('[DEBUG-TX] fetchAllTransactions called — familyId:', familyId, 'personId:', personId ?? null);
+  console.log('[DEBUG-TX] filter passed to Transaction.filter:', JSON.stringify(filter));
+
+  // [DEBUG-TX] control query 1: no date, no type filter
+  try {
+    const ctrl1 = await entities.Transaction.filter({ family_id: familyId });
+    console.log('[DEBUG-TX] control1 (family only, no date/type) count:', (ctrl1 || []).length);
+  } catch (e) {
+    console.log('[DEBUG-TX] control1 error:', e?.message ?? String(e));
+  }
+
+  // [DEBUG-TX] control query 2: family_id + type=expense, no date filter
+  try {
+    const ctrl2 = await entities.Transaction.filter({ family_id: familyId, type: 'expense' });
+    console.log('[DEBUG-TX] control2 (family + type=expense, no date) count:', (ctrl2 || []).length);
+  } catch (e) {
+    console.log('[DEBUG-TX] control2 error:', e?.message ?? String(e));
+  }
+
+  // [DEBUG-TX] control query 3: alternate suffix syntax for date range
+  if (start || end) {
+    try {
+      const ctrl3Filter: Record<string, unknown> = { family_id: familyId };
+      if (start) ctrl3Filter.date_gte = start;
+      if (end) ctrl3Filter.date_lte = end;
+      const ctrl3 = await entities.Transaction.filter(ctrl3Filter);
+      console.log('[DEBUG-TX] control3 (suffix date_gte/date_lte) filter:', JSON.stringify(ctrl3Filter), 'count:', (ctrl3 || []).length);
+    } catch (e) {
+      console.log('[DEBUG-TX] control3 error:', e?.message ?? String(e));
+    }
+  }
+
   while (true) {
     const page = await entities.Transaction.filter(filter, '-date', PAGE, skip);
     all = all.concat(page || []);
@@ -21,6 +54,10 @@ async function fetchAllTransactions(entities, { familyId, start, end, type, pers
     skip += PAGE;
     if (all.length >= 2000) { truncated = true; break; }
   }
+
+  // [DEBUG-TX] log real query result count
+  console.log('[DEBUG-TX] real query total transactions returned:', all.length, 'truncated:', truncated);
+
   return { transactions: all, truncated };
 }
 
@@ -58,6 +95,10 @@ Deno.serve(async (req) => {
       else if (tx.type === 'income') income += tx.amount;
     }
     const balance = income - expense;
+
+    // [DEBUG-TX] temporary diagnostic — remove after root cause found
+    console.log('[DEBUG-TX] getPeriodTotals resolved familyId:', familyId, 'personId:', personId ?? null);
+    console.log('[DEBUG-TX] getPeriodTotals final totals — expense:', expense, 'income:', income, 'balance:', balance, 'txCount:', transactions.length);
 
     return Response.json({
       period: { start: start ?? null, end: end ?? null },

@@ -34,19 +34,54 @@ Deno.serve(async (req) => {
     const monthStart = toISODate(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)));
     const next7 = toISODate(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000));
 
+    // [DEBUG-TX] temporary diagnostic — remove after root cause found
+    console.log('[DEBUG-TX] getWhatsAppContext — resolved familyId:', familyId, 'selfPersonId:', selfPersonId ?? null);
+    const txFilter = { family_id: familyId, date: { $gte: monthStart, $lte: todayISO } };
+    console.log('[DEBUG-TX] getWhatsAppContext — Transaction filter:', JSON.stringify(txFilter));
+    console.log('[DEBUG-TX] getWhatsAppContext — monthStart:', monthStart, 'todayISO:', todayISO);
+
+    // [DEBUG-TX] control query 1: family only, no date/type
+    try {
+      const ctrl1 = await entities.Transaction.filter({ family_id: familyId });
+      console.log('[DEBUG-TX] control1 (family only, no date/type) count:', (ctrl1 || []).length);
+    } catch (e: any) {
+      console.log('[DEBUG-TX] control1 error:', e?.message ?? String(e));
+    }
+
+    // [DEBUG-TX] control query 2: family + type=expense, no date
+    try {
+      const ctrl2 = await entities.Transaction.filter({ family_id: familyId, type: 'expense' });
+      console.log('[DEBUG-TX] control2 (family + type=expense, no date) count:', (ctrl2 || []).length);
+    } catch (e: any) {
+      console.log('[DEBUG-TX] control2 error:', e?.message ?? String(e));
+    }
+
+    // [DEBUG-TX] control query 3: alternate suffix date syntax
+    try {
+      const ctrl3Filter = { family_id: familyId, date_gte: monthStart, date_lte: todayISO };
+      const ctrl3 = await entities.Transaction.filter(ctrl3Filter);
+      console.log('[DEBUG-TX] control3 (suffix date_gte/date_lte) filter:', JSON.stringify(ctrl3Filter), 'count:', (ctrl3 || []).length);
+    } catch (e: any) {
+      console.log('[DEBUG-TX] control3 error:', e?.message ?? String(e));
+    }
+
     // Parallel minimal fetches
     const [familyArr, personArr, txArr, scheduledArr] = await Promise.all([
       entities.Family.filter({ id: familyId }),
       selfPersonId ? entities.Person.filter({ id: selfPersonId, family_id: familyId }) : Promise.resolve([]),
       (async () => {
         try {
-          return await entities.Transaction.filter(
-            { family_id: familyId, date: { $gte: monthStart, $lte: todayISO } },
+          const result = await entities.Transaction.filter(
+            txFilter,
             '-date',
             200,
             0,
           );
-        } catch {
+          // [DEBUG-TX] log real query result
+          console.log('[DEBUG-TX] real Transaction query (date range) returned:', (result || []).length, 'rows');
+          return result;
+        } catch (e: any) {
+          console.log('[DEBUG-TX] real Transaction query error:', e?.message ?? String(e));
           return [];
         }
       })(),
@@ -70,6 +105,9 @@ Deno.serve(async (req) => {
       if (tx.type === 'income') income += tx.amount;
       else if (tx.type === 'expense') expenses += tx.amount;
     }
+
+    // [DEBUG-TX] temporary diagnostic — remove after root cause found
+    console.log('[DEBUG-TX] getWhatsAppContext — current_month totals — income:', income, 'expenses:', expenses, 'txArr count:', (txArr || []).length);
 
     // Upcoming payments (next 7 days)
     const currentMonth = todayISO.slice(0, 7);
