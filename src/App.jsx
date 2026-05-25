@@ -45,6 +45,7 @@ const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
 const LandingPage = lazy(() => import('@/pages/Landing'));
 const WaitlistAdmin = lazy(() => import('@/pages/WaitlistAdmin'));
 const Messages = lazy(() => import('@/pages/Messages'));
+const WhatsAppSetup = lazy(() => import('@/pages/WhatsAppSetup'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -191,6 +192,7 @@ const AuthenticatedApp = () => {
               <Route path="/AIUsage" element={<Suspense fallback={<LoadingFallback />}><AIUsage /></Suspense>} />
               <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.PermissionAdmin" element={<PermissionAdmin />} /></Suspense>} />
               <Route path="/ReleaseNotes" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.ReleaseNotes" element={<ReleaseNotes />} /></Suspense>} />
+              <Route path="/WhatsAppSetup" element={<Suspense fallback={<LoadingFallback />}><WhatsAppSetup /></Suspense>} />
             </Route>
             <Route path="*" element={<PageNotFound />} />
           </Routes>
