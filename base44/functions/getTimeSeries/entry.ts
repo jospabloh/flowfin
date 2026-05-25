@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -39,27 +40,6 @@ function errorResponse(err) {
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
-}
-
-async function fetchAllTransactions(base44, { familyId, start, end, type, personId }) {
-  const PAGE = 200;
-  let all = [];
-  let skip = 0;
-  let truncated = false;
-  const filter = { family_id: familyId };
-  if (start) filter.date = { ...filter.date, $gte: start };
-  if (end) filter.date = { ...filter.date, $lte: end };
-  if (type && type !== 'all') filter.type = type;
-  if (personId) filter.person_id = personId;
-
-  while (true) {
-    const page = await base44.asServiceRole.entities.Transaction.filter(filter, '-date', PAGE, skip);
-    all = all.concat(page || []);
-    if (!page || page.length < PAGE) break;
-    skip += PAGE;
-    if (all.length >= 2000) { truncated = true; break; }
-  }
-  return { transactions: all, truncated };
 }
 
 function getWeekBucket(dateStr) {
@@ -130,7 +110,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'invalid granularity' }, { status: 400 });
     }
 
-    const { transactions, truncated } = await fetchAllTransactions(base44, { familyId, start, end, type, personId });
+    const transactions = await fetchFamilyTransactions(base44, { familyId, start, end, type, personId });
+    const truncated = transactions.length >= 50000;
     const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
 
     const bucketMap = {};

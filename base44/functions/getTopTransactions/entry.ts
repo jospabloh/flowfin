@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -55,14 +56,8 @@ Deno.serve(async (req) => {
 
     const entities = base44.asServiceRole.entities;
 
-    const filter = { family_id: familyId };
-    if (start) filter.date = { ...filter.date, $gte: start };
-    if (end) filter.date = { ...filter.date, $lte: end };
-    if (type && type !== 'all') filter.type = type;
-    if (personId) filter.person_id = personId;
-
     const [txArr, categoriesArr, personsArr] = await Promise.all([
-      entities.Transaction.filter(filter, '-amount', 200),
+      fetchFamilyTransactions(base44, { familyId, start, end, type, personId }),
       entities.Category.filter({ family_id: familyId }),
       entities.Person.filter({ family_id: familyId }),
     ]);

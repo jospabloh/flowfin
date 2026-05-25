@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -29,25 +30,6 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-async function fetchAllTransactions(entities, { familyId, start, end }) {
-  const PAGE = 200;
-  let all = [];
-  let skip = 0;
-  let truncated = false;
-  const filter = { family_id: familyId };
-  if (start) filter.date = { ...filter.date, $gte: start };
-  if (end) filter.date = { ...filter.date, $lte: end };
-
-  while (true) {
-    const page = await entities.Transaction.filter(filter, '-date', PAGE, skip);
-    all = all.concat(page || []);
-    if (!page || page.length < PAGE) break;
-    skip += PAGE;
-    if (all.length >= 2000) { truncated = true; break; }
-  }
-  return { transactions: all, truncated };
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -64,8 +46,8 @@ Deno.serve(async (req) => {
     const familyId = access.familyId;
 
     const entities = base44.asServiceRole.entities;
-    const [{ transactions, truncated }, personsArr] = await Promise.all([
-      fetchAllTransactions(entities, { familyId, start, end }),
+    const [transactions, personsArr] = await Promise.all([
+      fetchFamilyTransactions(base44, { familyId, start, end }),
       entities.Person.filter({ family_id: familyId }),
     ]);
 
@@ -92,7 +74,7 @@ Deno.serve(async (req) => {
       }))
       .sort((a, b) => b.expense - a.expense);
 
-    return Response.json({ period: { start: start ?? null, end: end ?? null }, groups, truncated });
+    return Response.json({ period: { start: start ?? null, end: end ?? null }, groups, truncated: transactions.length >= 50000 });
   } catch (error) {
     console.error('getBreakdownByPerson error:', error);
     return Response.json({ error: error.message || 'internal' }, { status: 500 });
