@@ -49,14 +49,20 @@ async function fetchTransactions(userEntities, familyId, start, end) {
   try {
     while (true) {
       const page = await userEntities.Transaction.filter(
-        { family_id: familyId, date: { $gte: start, $lte: end } },
+        { family_id: familyId },
         '-date',
         PAGE,
         skip
       );
       if (!page || page.length === 0) break;
-      all = all.concat(page);
-      if (page.length < PAGE) break;
+      let doneEarly = false;
+      for (const tx of page) {
+        if (!tx.date) continue;
+        // Since sorted by -date, once we go below start we can stop entirely
+        if (tx.date < start) { doneEarly = true; break; }
+        if (tx.date <= end) all.push(tx);
+      }
+      if (doneEarly || page.length < PAGE) break;
       skip += PAGE;
       if (all.length >= 2000) { truncated = true; break; }
     }
@@ -122,7 +128,7 @@ Deno.serve(async (req) => {
       investmentsArr,
       rentalPropertiesArr,
     ] = await Promise.all([
-      entities.Family.get(familyId).catch(() => null),
+      entities.Family.filter({ id: familyId }).then(r => r?.[0] ?? null).catch(() => null),
       entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
       userEntities.Person.filter({ family_id: familyId }).catch(() => entities.Person.filter({ family_id: familyId })),
       userEntities.Category.filter({ family_id: familyId }).catch(() => entities.Category.filter({ family_id: familyId })),
