@@ -84,6 +84,8 @@ export default function Assistant() {
     }
 
     // New day or first load: create a fresh conversation
+    headerInjectedRef.current = false;
+    headerInjectedRef._ctxInjected = false;
     const sessionDate = new Date().toLocaleDateString(activeLocale);
     base44.agents.createConversation({
       agent_name: 'finance_assistant',
@@ -183,6 +185,7 @@ export default function Assistant() {
   // Stored in a ref for lazy injection. description/person_name stripped from
   // recentTransactions so the LLM cannot treat history as pending actions.
   const ctxPayloadRef = useRef(null);
+  const [ctxLoaded, setCtxLoaded] = useState(false);
 
   // Reusable context fetcher — called at mount and silently after write intents.
   const refreshContext = useCallback(async () => {
@@ -203,13 +206,16 @@ export default function Assistant() {
             ({ id, date, amount, type, category_name })
         ),
       };
+      setCtxLoaded(true);
     } catch (err) {
       console.warn('getAssistantContext failed, proceeding without rich context', err);
+      setCtxLoaded(true); // allow sending even if context fails
     }
   }, [familyId, personId, activeLocale]);
 
   useEffect(() => {
     if (!familyId) return;
+    setCtxLoaded(false);
     refreshContext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
@@ -270,6 +276,7 @@ export default function Assistant() {
       setMessages([]);
       serverIdsRef.current = new Set();
       headerInjectedRef.current = false;
+      headerInjectedRef._ctxInjected = false;
 
       const sessionDate = new Date().toLocaleDateString(activeLocale);
       const c = await base44.agents.createConversation({
@@ -306,14 +313,26 @@ export default function Assistant() {
 
   // ── wrapWithHeader ──────────────────────────────────────────────────────────
   // Prepends identity + context block to the first message sent to the LLM.
-  // All subsequent calls pass the message through unchanged.
+  // Always re-injects context if it wasn't available the first time.
   const wrapWithHeader = useCallback((msg) => {
-    if (headerInjectedRef.current) return msg;
-    headerInjectedRef.current = true;
     const header = identityHeaderRef.current;
+    if (headerInjectedRef.current) {
+      // If context wasn't available when header was first injected, inject it now
+      if (!ctxPayloadRef.current) return msg;
+      // Context now available but wasn't injected yet — inject once more
+      const needsCtxInject = !headerInjectedRef._ctxInjected && ctxPayloadRef.current;
+      if (needsCtxInject) {
+        headerInjectedRef._ctxInjected = true;
+        const ctxBlock = `\n<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify(ctxPayloadRef.current)}<<<SYSTEM_METADATA_END>>>`;
+        return `${ctxBlock}\n\n${msg}`;
+      }
+      return msg;
+    }
+    headerInjectedRef.current = true;
     const ctxBlock = ctxPayloadRef.current
       ? `\n<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify(ctxPayloadRef.current)}<<<SYSTEM_METADATA_END>>>`
       : '';
+    if (ctxPayloadRef.current) headerInjectedRef._ctxInjected = true;
     return `${header}${ctxBlock}\n\n${msg}`;
   }, []);
 
@@ -332,7 +351,7 @@ export default function Assistant() {
   // ── sendMessage ─────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const msg = (text ?? input).trim();
-    if (!msg || sending || !conversation) return;
+    if (!msg || sending || !conversation || !ctxLoaded) return;
     setInput('');
     // Reset textarea height
     if (inputRef.current) {
@@ -407,7 +426,7 @@ export default function Assistant() {
     // 2) LLM fallback — user message already in display, now send to LLM
     await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
     setSending(false);
-  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
+  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext, ctxLoaded, familyId, personId]);
 
   // ── resolveScopeAndRespond ──────────────────────────────────────────────────
   // Completes a pending ambiguous spend query once the user picks self / family.
@@ -757,9 +776,9 @@ export default function Assistant() {
             locale={activeLocale}
           />
           {canSend && (
-            <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
+            <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending || !ctxLoaded}
               className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
-              <Send className="w-5 h-5" />
+              {!ctxLoaded ? <div className="w-5 h-5 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           )}
         </div>
