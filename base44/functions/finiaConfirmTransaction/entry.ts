@@ -50,21 +50,28 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'invalid_date' }, { status: 400 });
     }
 
-    // Validate all referenced entities belong to this family (user-scoped to respect RLS)
-    const [catCheck, personCheck] = await Promise.all([
-      userEntities.Category.filter({ id: category_id, family_id: familyId }),
-      userEntities.Person.filter({ id: person_id, family_id: familyId }),
+    // Validate all referenced entities belong to this family
+    // Use asServiceRole to fetch by family and then find by id in-memory (filter() doesn't support id lookup)
+    const [allCats, allPersons] = await Promise.all([
+      srEntities.Category.filter({ family_id: familyId }),
+      srEntities.Person.filter({ family_id: familyId }),
     ]);
-    if (!catCheck?.length) return Response.json({ error: 'La categoría no pertenece a tu familia.' }, { status: 400 });
-    if (!personCheck?.length) return Response.json({ error: 'La persona no pertenece a tu familia.' }, { status: 400 });
+
+    const catCheck = (allCats || []).find(c => c.id === category_id);
+    const personCheck = (allPersons || []).find(p => p.id === person_id);
+
+    if (!catCheck) return Response.json({ error: 'La categoría no pertenece a tu familia.' }, { status: 400 });
+    if (!personCheck) return Response.json({ error: 'La persona no pertenece a tu familia.' }, { status: 400 });
 
     if (subcategory_id) {
-      const subCheck = await userEntities.Subcategory.filter({ id: subcategory_id, family_id: familyId });
-      if (!subCheck?.length) return Response.json({ error: 'La subcategoría no pertenece a tu familia.' }, { status: 400 });
+      const allSubs = await srEntities.Subcategory.filter({ family_id: familyId });
+      const subCheck = (allSubs || []).find(s => s.id === subcategory_id);
+      if (!subCheck) return Response.json({ error: 'La subcategoría no pertenece a tu familia.' }, { status: 400 });
     }
     if (payment_method_id) {
-      const pmCheck = await userEntities.PaymentMethod.filter({ id: payment_method_id, family_id: familyId });
-      if (!pmCheck?.length) return Response.json({ error: 'El método de pago no pertenece a tu familia.' }, { status: 400 });
+      const allPMs = await srEntities.PaymentMethod.filter({ family_id: familyId });
+      const pmCheck = (allPMs || []).find(m => m.id === payment_method_id);
+      if (!pmCheck) return Response.json({ error: 'El método de pago no pertenece a tu familia.' }, { status: 400 });
     }
 
     const txData = {
@@ -94,7 +101,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error('finiaConfirmTransaction error:', error);
-    return Response.json({ error: 'internal' }, { status: 500 });
+    console.error('finiaConfirmTransaction error:', error?.message ?? error);
+    return Response.json({ error: 'internal', detail: error?.message }, { status: 500 });
   }
 });
