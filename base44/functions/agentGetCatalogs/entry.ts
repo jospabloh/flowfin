@@ -31,7 +31,7 @@ async function resolveAccess(base44, bodyFamilyId) {
         err.httpStatus = 403;
         throw err;
       }
-    } catch (e) {
+    } catch {
       const err = new Error('Family not found');
       err.httpStatus = 403;
       throw err;
