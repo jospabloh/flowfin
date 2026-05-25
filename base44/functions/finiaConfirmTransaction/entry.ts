@@ -50,28 +50,53 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'invalid_date' }, { status: 400 });
     }
 
+    // Normalize for fuzzy matching
+    const norm = (s) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const fuzzyFind = (list, id, nameFallback) => {
+      // 1. Exact ID match
+      let m = list.find(x => x.id === id);
+      if (m) return m;
+      // 2. Fuzzy name match (if name hint provided)
+      if (!nameFallback) return null;
+      const n = norm(nameFallback);
+      m = list.find(x => norm(x.name) === n);
+      if (m) return m;
+      m = list.find(x => norm(x.name).includes(n) || n.includes(norm(x.name)));
+      if (m) return m;
+      const words = n.split(/\s+/).filter(w => w.length > 2);
+      return list.find(x => words.some(w => norm(x.name).includes(w))) ?? null;
+    };
+
     // Validate all referenced entities belong to this family
-    // Use asServiceRole to fetch by family and then find by id in-memory (filter() doesn't support id lookup)
     const [allCats, allPersons] = await Promise.all([
       srEntities.Category.filter({ family_id: familyId }),
       srEntities.Person.filter({ family_id: familyId }),
     ]);
 
-    const catCheck = (allCats || []).find(c => c.id === category_id);
-    const personCheck = (allPersons || []).find(p => p.id === person_id);
+    const catCheck = fuzzyFind(allCats || [], category_id, body.category_name);
+    const personCheck = fuzzyFind(allPersons || [], person_id, body.person_name);
 
-    if (!catCheck) return Response.json({ error: 'La categoría no pertenece a tu familia.' }, { status: 400 });
-    if (!personCheck) return Response.json({ error: 'La persona no pertenece a tu familia.' }, { status: 400 });
+    if (!catCheck) return Response.json({ error: 'La categoría no pertenece a tu familia.', detail: `category_id: ${category_id}` }, { status: 400 });
+    if (!personCheck) return Response.json({ error: 'La persona no pertenece a tu familia.', detail: `person_id: ${person_id}` }, { status: 400 });
 
+    // Use resolved IDs (fuzzy match may have corrected them)
+    const resolvedCategoryId = catCheck.id;
+    let resolvedPersonId = personCheck.id;
+
+    let resolvedSubcategoryId = subcategory_id ?? null;
     if (subcategory_id) {
       const allSubs = await srEntities.Subcategory.filter({ family_id: familyId });
-      const subCheck = (allSubs || []).find(s => s.id === subcategory_id);
-      if (!subCheck) return Response.json({ error: 'La subcategoría no pertenece a tu familia.' }, { status: 400 });
+      const subCheck = fuzzyFind(allSubs || [], subcategory_id, body.subcategory_name);
+      if (!subCheck) resolvedSubcategoryId = null; // silently drop invalid subcategory
+      else resolvedSubcategoryId = subCheck.id;
     }
+
+    let resolvedPaymentMethodId = payment_method_id ?? null;
     if (payment_method_id) {
       const allPMs = await srEntities.PaymentMethod.filter({ family_id: familyId });
-      const pmCheck = (allPMs || []).find(m => m.id === payment_method_id);
-      if (!pmCheck) return Response.json({ error: 'El método de pago no pertenece a tu familia.' }, { status: 400 });
+      const pmCheck = fuzzyFind(allPMs || [], payment_method_id, body.payment_method_name);
+      if (!pmCheck) resolvedPaymentMethodId = null; // silently drop invalid PM
+      else resolvedPaymentMethodId = pmCheck.id;
     }
 
     const txData = {
@@ -79,12 +104,12 @@ Deno.serve(async (req) => {
       amount,
       type,
       date,
-      category_id,
-      person_id,
+      category_id: resolvedCategoryId,
+      person_id: resolvedPersonId,
     };
     if (description) txData.description = String(description).slice(0, 200);
-    if (subcategory_id) txData.subcategory_id = subcategory_id;
-    if (payment_method_id) txData.payment_method_id = payment_method_id;
+    if (resolvedSubcategoryId) txData.subcategory_id = resolvedSubcategoryId;
+    if (resolvedPaymentMethodId) txData.payment_method_id = resolvedPaymentMethodId;
 
     const created = await userEntities.Transaction.create(txData);
 
@@ -96,8 +121,8 @@ Deno.serve(async (req) => {
         type,
         date,
         description: txData.description ?? null,
-        category_name: catCheck[0]?.name ?? null,
-        person_name: personCheck[0]?.name ?? null,
+        category_name: catCheck.name ?? null,
+        person_name: personCheck.name ?? null,
       },
     });
   } catch (error) {
