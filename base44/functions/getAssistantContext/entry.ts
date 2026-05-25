@@ -41,8 +41,14 @@ function sumByType(txs) {
   return { expense, income, balance: income - expense };
 }
 
+// Fetches transactions for a bounded period efficiently.
+// Strategy: request pages sorted -date (newest first), skip rows that fall AFTER
+// `end`, collect rows inside [start, end], stop as soon as a row falls BEFORE
+// `start` (early-exit). This means we never scan beyond the target window
+// regardless of how much historical data the family has accumulated.
 async function fetchTransactions(userEntities, familyId, start, end) {
   const PAGE = 200;
+  const MAX = 500; // hard cap per period to stay fast
   let all = [];
   let skip = 0;
   let truncated = false;
@@ -58,13 +64,13 @@ async function fetchTransactions(userEntities, familyId, start, end) {
       let doneEarly = false;
       for (const tx of page) {
         if (!tx.date) continue;
-        // Since sorted by -date, once we go below start we can stop entirely
-        if (tx.date < start) { doneEarly = true; break; }
-        if (tx.date <= end) all.push(tx);
+        if (tx.date > end) continue;          // still in the future relative to period end, skip
+        if (tx.date < start) { doneEarly = true; break; } // passed start — nothing older matters
+        all.push(tx);
+        if (all.length >= MAX) { truncated = true; doneEarly = true; break; }
       }
       if (doneEarly || page.length < PAGE) break;
       skip += PAGE;
-      if (all.length >= 2000) { truncated = true; break; }
     }
   } catch (e) {
     console.error('[fetchTransactions] ERROR:', e?.message, 'familyId:', familyId, 'range:', start, '-', end);
@@ -128,7 +134,11 @@ Deno.serve(async (req) => {
       investmentsArr,
       rentalPropertiesArr,
     ] = await Promise.all([
-      entities.Family.filter({ id: familyId }).then(r => r?.[0] ?? null).catch(() => null),
+      entities.Family.get(familyId).catch(() =>
+        entities.Family.filter({ admin_user_id: { $exists: true } }, '-created_date', 1, 0)
+          .then(r => r?.find(f => f.id === familyId) ?? null)
+          .catch(() => null)
+      ),
       entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
       userEntities.Person.filter({ family_id: familyId }).catch(() => entities.Person.filter({ family_id: familyId })),
       userEntities.Category.filter({ family_id: familyId }).catch(() => entities.Category.filter({ family_id: familyId })),
