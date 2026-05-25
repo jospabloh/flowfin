@@ -121,10 +121,10 @@ export async function resolveAccess(
 
     let membership = memberships[0];
     if (!requestedFamilyId && memberships.length > 1) {
-      const activeId = (user as any).data?.family_id ?? (user as any).data?.data?.family_id;
+      const activeId = user.data?.family_id ?? user.data?.data?.family_id;
       membership =
-        memberships.find((m: any) => m.family_id === activeId) ??
-        [...memberships].sort((a: any, b: any) =>
+        memberships.find((m) => m.family_id === activeId) ??
+        [...memberships].sort((a, b) =>
           (b.last_active_at ?? '').localeCompare(a.last_active_at ?? '')
         )[0];
     }
@@ -152,9 +152,9 @@ export async function resolveAccess(
   // No authenticated user: only reachable via direct HTTP / service role.
   if (!requestedFamilyId) {
     // No auth and no familyId → WhatsApp session expired or not linked
-    const err: any = new Error('whatsapp_session_expired');
-    err.httpStatus = 401;
-    err.code = 'not_linked';
+    const err = new Error('whatsapp_session_expired');
+    (err as unknown as Record<string, unknown>).httpStatus = 401;
+    (err as unknown as Record<string, unknown>).code = 'not_linked';
     throw err;
   }
   return { user: null, familyId: requestedFamilyId, selfPersonId: null, membership: null };
