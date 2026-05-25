@@ -306,6 +306,26 @@ export function scopeFilter(
   return { ...filter, family_id: access.familyId };
 }
 
+// Throws unless the referenced record exists and belongs to the caller's family.
+export async function assertRefInFamily(
+  // deno-lint-ignore no-explicit-any
+  base44: any,
+  access: AgentAccess,
+  entityName: string,
+  id: string,
+  label = entityName,
+): Promise<void> {
+  try {
+    const rec = await base44.asServiceRole.entities[entityName].get(id);
+    if (!rec || rec.family_id !== access.familyId) {
+      throw new AgentError("forbidden_ref", `${label} no pertenece a tu familia.`, 403);
+    }
+  } catch (e) {
+    if (e instanceof AgentError) throw e;
+    throw new AgentError("forbidden_ref", `${label} no existe o no pertenece a tu familia.`, 403);
+  }
+}
+
 // Strips immutable + cross-tenant fields from an LLM-provided data object.
 export function sanitizeWriteData(
   data: Record<string, unknown>,
