@@ -10,10 +10,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const entities = base44.asServiceRole.entities;
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
 
-    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-    if (!memberships.length) memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
 
     const activeId = user.data?.family_id ?? user.data?.data?.family_id;
@@ -27,12 +28,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'text is required' }, { status: 400 });
     }
 
-    // Load catalogs server-side
+    // Load catalogs server-side (user-scoped to respect RLS)
     const [persons, categories, subcategories, paymentMethods] = await Promise.all([
-      entities.Person.filter({ family_id: familyId }),
-      entities.Category.filter({ family_id: familyId }),
-      entities.Subcategory.filter({ family_id: familyId }),
-      entities.PaymentMethod.filter({ family_id: familyId }),
+      userEntities.Person.filter({ family_id: familyId }),
+      userEntities.Category.filter({ family_id: familyId }),
+      userEntities.Subcategory.filter({ family_id: familyId }),
+      userEntities.PaymentMethod.filter({ family_id: familyId }),
     ]);
 
     const today = new Date().toISOString().slice(0, 10);

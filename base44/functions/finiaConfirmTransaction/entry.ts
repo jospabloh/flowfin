@@ -10,10 +10,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const entities = base44.asServiceRole.entities;
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
 
-    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-    if (!memberships.length) memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
 
     const activeId = user.data?.family_id ?? user.data?.data?.family_id;
@@ -49,20 +50,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'invalid_date' }, { status: 400 });
     }
 
-    // Validate all referenced entities belong to this family
+    // Validate all referenced entities belong to this family (user-scoped to respect RLS)
     const [catCheck, personCheck] = await Promise.all([
-      entities.Category.filter({ id: category_id, family_id: familyId }),
-      entities.Person.filter({ id: person_id, family_id: familyId }),
+      userEntities.Category.filter({ id: category_id, family_id: familyId }),
+      userEntities.Person.filter({ id: person_id, family_id: familyId }),
     ]);
     if (!catCheck?.length) return Response.json({ error: 'La categoría no pertenece a tu familia.' }, { status: 400 });
     if (!personCheck?.length) return Response.json({ error: 'La persona no pertenece a tu familia.' }, { status: 400 });
 
     if (subcategory_id) {
-      const subCheck = await entities.Subcategory.filter({ id: subcategory_id, family_id: familyId });
+      const subCheck = await userEntities.Subcategory.filter({ id: subcategory_id, family_id: familyId });
       if (!subCheck?.length) return Response.json({ error: 'La subcategoría no pertenece a tu familia.' }, { status: 400 });
     }
     if (payment_method_id) {
-      const pmCheck = await entities.PaymentMethod.filter({ id: payment_method_id, family_id: familyId });
+      const pmCheck = await userEntities.PaymentMethod.filter({ id: payment_method_id, family_id: familyId });
       if (!pmCheck?.length) return Response.json({ error: 'El método de pago no pertenece a tu familia.' }, { status: 400 });
     }
 
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
     if (subcategory_id) txData.subcategory_id = subcategory_id;
     if (payment_method_id) txData.payment_method_id = payment_method_id;
 
-    const created = await entities.Transaction.create(txData);
+    const created = await userEntities.Transaction.create(txData);
 
     return Response.json({
       ok: true,

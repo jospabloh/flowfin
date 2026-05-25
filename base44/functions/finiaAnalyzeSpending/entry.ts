@@ -9,10 +9,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const entities = base44.asServiceRole.entities;
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
 
-    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-    if (!memberships.length) memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
 
     const activeId = user.data?.family_id ?? user.data?.data?.family_id;
@@ -27,9 +28,10 @@ Deno.serve(async (req) => {
     const todayISO = today.toISOString().slice(0, 10);
     const startDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (months - 1), 1)).toISOString().slice(0, 10);
 
+    // Use user-scoped entities — asServiceRole returns empty for family-scoped entities
     const [allTxs, categories] = await Promise.all([
-      entities.Transaction.filter({ family_id: familyId }, '-date', 500).catch(() => []),
-      entities.Category.filter({ family_id: familyId }).catch(() => []),
+      userEntities.Transaction.filter({ family_id: familyId }, '-date', 500).catch(() => []),
+      userEntities.Category.filter({ family_id: familyId }).catch(() => []),
     ]);
 
     const catMap = new Map((categories || []).map(c => [c.id, c.name ?? c.id]));

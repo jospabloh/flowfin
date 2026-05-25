@@ -9,10 +9,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const entities = base44.asServiceRole.entities;
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
 
-    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-    if (!memberships.length) memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
 
     const activeId = user.data?.family_id ?? user.data?.data?.family_id;
@@ -25,9 +26,10 @@ Deno.serve(async (req) => {
     const cutoff30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const currentMonth = todayISO.slice(0, 7);
 
+    // Use user-scoped entities — asServiceRole returns empty for family-scoped entities
     const [scheduledArr, paidRecordsArr] = await Promise.all([
-      entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
-      entities.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth }).catch(() => []),
+      userEntities.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
+      userEntities.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth }).catch(() => []),
     ]);
 
     const paidIds = new Set((paidRecordsArr || []).map(r => r.scheduled_payment_id));

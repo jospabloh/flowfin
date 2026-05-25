@@ -10,10 +10,11 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const entities = base44.asServiceRole.entities;
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
 
-    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
-    if (!memberships.length) memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
     if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
 
     const activeId = user.data?.family_id ?? user.data?.data?.family_id;
@@ -33,8 +34,8 @@ Deno.serve(async (req) => {
     const windowStart = new Date(targetDate.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const windowEnd = new Date(targetDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    // Fetch recent transactions in window
-    const recentTxs = await entities.Transaction.filter(
+    // Fetch recent transactions in window (user-scoped to respect RLS)
+    const recentTxs = await userEntities.Transaction.filter(
       { family_id: familyId },
       '-date',
       100
