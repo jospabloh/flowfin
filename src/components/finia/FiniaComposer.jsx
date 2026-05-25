@@ -29,11 +29,9 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
     onSend(msg);
   }, [input, disabled, onSend]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  // Enter always adds a new line; Shift+Enter also works naturally
+  const handleKeyDown = (_e) => {
+    // No special handling — let textarea default behavior apply
   };
 
   // Voice
@@ -218,9 +216,9 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
         </div>
       </div>
 
-      {/* Trust footer — no extra safe-area here; container already accounts for keyboard */}
-      <div className="pb-1">
-        <p className="text-[10px] text-muted-foreground/50 text-center pb-1">
+      {/* Trust footer */}
+      <div className="pb-1 flex items-center justify-center gap-3">
+        <p className="text-[10px] text-muted-foreground/40 pb-1">
           🔒 Finia solo accede a los datos de tu familia
         </p>
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { ChevronLeft, MessageCircle } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import FiniaMessageBubble from '@/components/finia/FiniaMessageBubble';
@@ -30,6 +30,20 @@ function useVisualViewport() {
 
 const AGENT_NAME = 'finia';
 const STORAGE_KEY_PREFIX = 'ff_finia_conv:';
+const USER_TZ = 'America/Mexico_City';
+const MAX_HISTORY_DAYS = 3;
+
+// Returns today's date string in USER_TZ (YYYY-MM-DD)
+function todayInTZ() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: USER_TZ });
+}
+
+// Returns how many calendar days ago a date string was (in USER_TZ)
+function daysAgo(dateStr) {
+  const today = todayInTZ();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.floor((new Date(today) - new Date(dateStr)) / msPerDay);
+}
 
 export default function Assistant() {
   const { currentUser, familyId } = useFamily();
@@ -37,6 +51,8 @@ export default function Assistant() {
   const { height: vvHeight, offsetTop: vvOffsetTop } = useVisualViewport();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [visibleMessages, setVisibleMessages] = useState([]); // cleared by "limpiar" but still exists on server
+  const [cleared, setCleared] = useState(false); // tracks if user manually cleared view
   const [sending, setSending] = useState(false);
   const [initError, setInitError] = useState(false);
   const serverIdsRef = useRef(new Set());
@@ -48,21 +64,24 @@ export default function Assistant() {
   useEffect(() => {
     if (!currentUser?.id || !familyId) return;
     const storageKey = `${STORAGE_KEY_PREFIX}${familyId}:${currentUser.id}`;
-    const todayISO = new Date().toISOString().slice(0, 10);
+    const today = todayInTZ();
     let stored = null;
     try { stored = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { /* ignore */ }
 
-    if (stored?.date === todayISO && stored?.conversationId) {
+    // If stored date is today (same calendar day in user's TZ), reuse conversation
+    if (stored?.date === today && stored?.conversationId) {
       setConversation({ id: stored.conversationId });
       return;
     }
 
+    // If stored date is too old (>MAX_HISTORY_DAYS), start fresh silently
+    // Otherwise a new day → new conversation but that's fine
     base44.agents.createConversation({
       agent_name: AGENT_NAME,
-      metadata: { name: `Finia ${todayISO}`, family_id: familyId },
+      metadata: { name: `Finia ${today}`, family_id: familyId },
     }).then(c => {
       setConversation(c);
-      try { localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: todayISO })); } catch { /* ignore */ }
+      try { localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: today })); } catch { /* ignore */ }
     }).catch(() => setInitError(true));
   }, [currentUser?.id, familyId]);
 
@@ -99,11 +118,30 @@ export default function Assistant() {
     return unsub;
   }, [conversation?.id]);
 
+  // ── Sync visible messages (only when not manually cleared) ────────────────
+  useEffect(() => {
+    if (!cleared) setVisibleMessages(messages);
+  }, [messages, cleared]);
+
+  // When new messages arrive after a clear, show them too
+  useEffect(() => {
+    if (cleared && messages.length > 0) {
+      // Only show messages that arrived AFTER the clear (new ones)
+      // We track this by only updating visibleMessages with new additions
+      setVisibleMessages(prev => {
+        const prevIds = new Set(prev.map(m => m.id));
+        const newMsgs = messages.filter(m => !prevIds.has(m.id));
+        if (!newMsgs.length) return prev;
+        return [...prev, ...newMsgs];
+      });
+    }
+  }, [messages, cleared]);
+
   // ── Auto-scroll — only if user hasn't manually scrolled up ────────────────
   useEffect(() => {
     if (userScrolledRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, sending]);
+  }, [visibleMessages, sending]);
 
   // Track manual scroll
   useEffect(() => {
@@ -117,6 +155,13 @@ export default function Assistant() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // ── Clear visible window (keeps server history intact) ────────────────────
+  const clearWindow = useCallback(() => {
+    setCleared(true);
+    setVisibleMessages([]);
+    userScrolledRef.current = false;
+  }, []);
+
   // ── Send message ────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (text) => {
     const msg = typeof text === 'string' ? text.trim() : '';
@@ -125,11 +170,16 @@ export default function Assistant() {
     setSending(true);
 
     const localId = `local-user-${Date.now()}`;
-    setMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+    // When cleared, new messages appear in visibleMessages directly
+    if (cleared) {
+      setVisibleMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+    } else {
+      setMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+    }
 
     await base44.agents.addMessage(conversation, { role: 'user', content: msg });
     setSending(false);
-  }, [sending, conversation]);
+  }, [sending, conversation, cleared]);
 
   // ── Loading state ────────────────────────────────────────────────────────────
   if (!conversation && !initError) {
@@ -159,7 +209,7 @@ export default function Assistant() {
     );
   }
 
-  const hasMessages = messages.length > 0;
+  const hasMessages = visibleMessages.length > 0;
 
   // The Assistant page is rendered inside a Layout that has a fixed bottom nav on mobile.
   // When the keyboard opens, visualViewport.height shrinks to the visible area above the keyboard.
@@ -211,6 +261,18 @@ export default function Assistant() {
           <p className="text-[11px] text-muted-foreground truncate">Tu copiloto financiero familiar</p>
         </div>
 
+        {/* Clear button */}
+        {messages.length > 0 && (
+          <button
+            onClick={clearWindow}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted text-muted-foreground text-[11px] font-medium hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0 border border-border"
+            title="Limpiar ventana (el historial del día se mantiene)"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Limpiar</span>
+          </button>
+        )}
+
         {/* WhatsApp badge */}
         <a
           href={base44.agents.getWhatsAppConnectURL(AGENT_NAME)}
@@ -242,7 +304,7 @@ export default function Assistant() {
           {hasMessages && (
             <div className="space-y-3 pt-2">
               <AnimatePresence initial={false}>
-                {messages.map((msg) => (
+                {visibleMessages.map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 8, scale: 0.98 }}
