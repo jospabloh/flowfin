@@ -122,27 +122,79 @@ TEXTO DEL USUARIO:
 
     const draft = aiResponse ?? {};
 
-    // Validate references exist in family catalogs (security: don't trust AI-returned IDs)
+    // Normalize string for fuzzy matching: remove accents, lowercase, trim
+    const norm = (s) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+    // Fuzzy match: find catalog item whose name is most similar to the given name
+    const fuzzyFind = (list, name) => {
+      if (!name) return null;
+      const n = norm(name);
+      // Exact match first
+      let match = list.find(x => norm(x.name) === n);
+      if (match) return match;
+      // Contains match
+      match = list.find(x => norm(x.name).includes(n) || n.includes(norm(x.name)));
+      if (match) return match;
+      // Partial word match (any word in common)
+      const words = n.split(/\s+/).filter(w => w.length > 2);
+      match = list.find(x => words.some(w => norm(x.name).includes(w)));
+      return match ?? null;
+    };
+
     const catIds = new Set((categories || []).map(c => c.id));
     const personIds = new Set((persons || []).map(p => p.id));
     const subIds = new Set((subcategories || []).map(s => s.id));
     const pmIds = new Set((paymentMethods || []).map(m => m.id));
 
+    // If LLM returned invalid category_id, try to recover via name fuzzy match
     if (draft.category_id && !catIds.has(draft.category_id)) {
-      draft.category_id = null;
-      draft.category_name = null;
+      const recovered = fuzzyFind(categories || [], draft.category_name);
+      if (recovered) {
+        draft.category_id = recovered.id;
+        draft.category_name = recovered.name;
+      } else {
+        draft.category_id = null;
+        draft.category_name = null;
+      }
     }
+    // If category_id is still null but we have a name hint, try to infer from name
+    if (!draft.category_id && draft.category_name) {
+      const recovered = fuzzyFind(categories || [], draft.category_name);
+      if (recovered) {
+        draft.category_id = recovered.id;
+        draft.category_name = recovered.name;
+      }
+    }
+
     if (draft.person_id && !personIds.has(draft.person_id)) {
-      draft.person_id = selfPersonId;
-      draft.person_name = selfPerson?.name ?? null;
+      const recovered = fuzzyFind(persons || [], draft.person_name);
+      if (recovered) {
+        draft.person_id = recovered.id;
+        draft.person_name = recovered.name;
+      } else {
+        draft.person_id = selfPersonId;
+        draft.person_name = selfPerson?.name ?? null;
+      }
     }
     if (draft.subcategory_id && !subIds.has(draft.subcategory_id)) {
-      draft.subcategory_id = null;
-      draft.subcategory_name = null;
+      const recovered = fuzzyFind(subcategories || [], draft.subcategory_name);
+      if (recovered) {
+        draft.subcategory_id = recovered.id;
+        draft.subcategory_name = recovered.name;
+      } else {
+        draft.subcategory_id = null;
+        draft.subcategory_name = null;
+      }
     }
     if (draft.payment_method_id && !pmIds.has(draft.payment_method_id)) {
-      draft.payment_method_id = null;
-      draft.payment_method_name = null;
+      const recovered = fuzzyFind(paymentMethods || [], draft.payment_method_name);
+      if (recovered) {
+        draft.payment_method_id = recovered.id;
+        draft.payment_method_name = recovered.name;
+      } else {
+        draft.payment_method_id = null;
+        draft.payment_method_name = null;
+      }
     }
 
     return Response.json({ draft, is_draft: true });
