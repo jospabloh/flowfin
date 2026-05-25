@@ -62,7 +62,11 @@ REGLAS:
 - "ayer" = un día antes de ${today}.
 - Si no se menciona tipo, asume "expense" (gasto).
 - Para person_id: si el usuario no menciona persona, usa self_person.id si existe.
-- Busca coincidencias por nombre normalizado (sin acentos, minúsculas).
+- MATCHING DE CATEGORÍAS (MUY IMPORTANTE): Usa matching semántico y fonético, NO exacto.
+  * Normaliza quitando acentos, plurales, variantes: "alimento"→"alimentación", "comida"→"alimentación", "super"→"supermercado" o "alimentación", "salud"→"médico/salud", "ropa"→"vestimenta", etc.
+  * Si el texto menciona un tipo de gasto (restaurante, farmacia, gasolina, etc.), infiere la categoría más cercana del catálogo aunque el nombre no sea idéntico.
+  * SIEMPRE elige el category_id más parecido semánticamente del catálogo — NUNCA dejes category_id null si hay alguna categoría relacionada.
+- Busca coincidencias por nombre normalizado (sin acentos, minúsculas, singular/plural).
 - confidence: 0.0 a 1.0 (qué tan seguro estás del borrador completo).
 - missing_fields: lista de campos requeridos que faltan.
 
