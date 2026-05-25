@@ -1,16 +1,26 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.25";
 import { AgentError, agentErrorResponse, resolveAgentAccess } from "../_agentGuard.ts";
+import { fetchFamilyTransactions, toISODate } from "../_txAggregateHelper.ts";
 
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+// Reads the family by id using plain .filter (the agent context does not honor
+// .get(id) reliably), falling back to the user-context client.
+// deno-lint-ignore no-explicit-any
+async function getFamily(base44: any, familyId: string): Promise<Record<string, unknown> | null> {
+  for (const ents of [base44.asServiceRole?.entities, base44.entities]) {
+    if (!ents) continue;
+    try {
+      const arr = await ents.Family.filter({ id: familyId });
+      if (arr && arr.length) return arr[0];
+    } catch {
+      // try next client
+    }
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
-    // Resolves tenant identity from trusted signals only and logs a diagnostic
-    // line (auth.me + headers) so the WhatsApp identity path can be confirmed.
     const access = await resolveAgentAccess(base44, req);
     const { user, familyId, selfPersonId, membership } = access;
     const entities = base44.asServiceRole.entities;
@@ -22,36 +32,19 @@ Deno.serve(async (req) => {
 
     console.log("[getWhatsAppContext] familyId:", familyId, "selfPersonId:", selfPersonId ?? null);
 
-    const txFilter = { family_id: familyId, date: { $gte: monthStart, $lte: todayISO } };
-
-    const [familyArr, personArr, txArr, scheduledArr] = await Promise.all([
-      entities.Family.get(familyId).then((f: unknown) => (f ? [f] : [])).catch(() => []),
-      selfPersonId
-        ? entities.Person.get(selfPersonId).then((p: unknown) => (p ? [p] : [])).catch(() => [])
-        : Promise.resolve([]),
-      (async () => {
-        try {
-          return await entities.Transaction.filter(txFilter, "-date", 200, 0);
-        } catch (e) {
-          console.log("[getWhatsAppContext] Transaction query error:", (e as Error)?.message ?? String(e));
-          return [];
-        }
-      })(),
-      (async () => {
-        try {
-          return await entities.ScheduledPayment.filter({ family_id: familyId, is_active: true });
-        } catch {
-          return [];
-        }
-      })(),
+    const [persons, fam, monthTxs, scheduledArr] = await Promise.all([
+      entities.Person.filter({ family_id: familyId }).catch(() => []),
+      getFamily(base44, familyId),
+      fetchFamilyTransactions(base44, { familyId, start: monthStart, end: todayISO }),
+      entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
     ]);
 
-    const fam = (familyArr || [])[0] ?? {};
-    const person = (personArr || [])[0] ?? null;
+    // deno-lint-ignore no-explicit-any
+    const person = (persons || []).find((p: any) => p.id === selfPersonId) ?? null;
 
     let income = 0;
     let expenses = 0;
-    for (const tx of (txArr || [])) {
+    for (const tx of monthTxs) {
       if (typeof tx.amount !== "number" || isNaN(tx.amount)) continue;
       if (tx.type === "income") income += tx.amount;
       else if (tx.type === "expense") expenses += tx.amount;
@@ -63,7 +56,7 @@ Deno.serve(async (req) => {
       "expenses:",
       expenses,
       "txCount:",
-      (txArr || []).length,
+      monthTxs.length,
     );
 
     const currentMonth = todayISO.slice(0, 7);
@@ -78,7 +71,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       person_name: person?.name ?? membership?.user_name ?? user?.full_name ?? user?.email ?? null,
-      family_name: fam.name ?? null,
+      family_name: fam?.name ?? null,
       family_id: familyId,
       person_id: selfPersonId ?? null,
       locale: "es-MX",

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -37,21 +38,8 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-async function fetchTotals(entities, familyId, start, end, type, personId) {
-  const filter = { family_id: familyId };
-  if (start) filter.date = { ...filter.date, $gte: start };
-  if (end) filter.date = { ...filter.date, $lte: end };
-  if (type && type !== 'all') filter.type = type;
-  if (personId) filter.person_id = personId;
-
-  let all = [], skip = 0, truncated = false;
-  while (true) {
-    const page = await entities.Transaction.filter(filter, '-date', 200, skip);
-    all = all.concat(page || []);
-    if (!page || page.length < 200) break;
-    skip += 200;
-    if (all.length >= 2000) { truncated = true; break; }
-  }
+async function fetchTotals(base44, familyId, start, end, type, personId) {
+  const all = await fetchFamilyTransactions(base44, { familyId, start, end, type, personId });
 
   let expense = 0, income = 0;
   for (const tx of all) {
@@ -59,7 +47,7 @@ async function fetchTotals(entities, familyId, start, end, type, personId) {
     if (tx.type === 'expense') expense += tx.amount;
     else if (tx.type === 'income') income += tx.amount;
   }
-  return { total: { expense, income, balance: income - expense }, truncated };
+  return { total: { expense, income, balance: income - expense }, truncated: all.length >= 50000 };
 }
 
 Deno.serve(async (req) => {
@@ -78,10 +66,9 @@ Deno.serve(async (req) => {
     const familyId = access.familyId;
     const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
 
-    const entities = base44.asServiceRole.entities;
     const [current, previous] = await Promise.all([
-      fetchTotals(entities, familyId, currentStart, currentEnd, type, personId),
-      fetchTotals(entities, familyId, previousStart, previousEnd, type, personId),
+      fetchTotals(base44, familyId, currentStart, currentEnd, type, personId),
+      fetchTotals(base44, familyId, previousStart, previousEnd, type, personId),
     ]);
 
     const currAmt = current.total.expense;

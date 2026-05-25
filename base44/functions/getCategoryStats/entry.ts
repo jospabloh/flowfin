@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -37,30 +38,6 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-async function fetchAllTransactions(base44, filters) {
-  const PAGE_SIZE = 2000;
-  const HARD_CAP = 50000;
-  const queryFilter = { family_id: filters.familyId };
-  if (filters.type && filters.type !== 'all') queryFilter.type = filters.type;
-  if (filters.personId) queryFilter.person_id = filters.personId;
-  if (filters.categoryId) queryFilter.category_id = filters.categoryId;
-  if (filters.subcategoryId) queryFilter.subcategory_id = filters.subcategoryId;
-  if (filters.paymentMethodId) queryFilter.payment_method_id = filters.paymentMethodId;
-  if (filters.start) queryFilter.date_gte = filters.start;
-  if (filters.end) queryFilter.date_lte = filters.end;
-  const all = [];
-  let offset = 0;
-  let truncated = false;
-  while (true) {
-    const page = await base44.asServiceRole.entities.Transaction.filter(queryFilter, 'date', PAGE_SIZE, offset);
-    all.push(...page);
-    if (all.length >= HARD_CAP) { truncated = true; break; }
-    if (page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-  return { transactions: all.slice(0, HARD_CAP), truncated };
-}
-
 function quantile(sorted, q) {
   if (sorted.length === 0) return 0;
   const pos = q * (sorted.length - 1);
@@ -90,9 +67,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'invalid date range' }, { status: 400 });
     }
 
-    const { transactions, truncated } = await fetchAllTransactions(base44, {
+    const transactions = await fetchFamilyTransactions(base44, {
       familyId, start, end, categoryId, type, personId,
     });
+    const truncated = transactions.length >= 50000;
 
     const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
     const amounts = filtered.map(t => t.amount || 0).sort((a, b) => a - b);
