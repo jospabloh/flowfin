@@ -532,7 +532,7 @@ export default function Layout() {
           <div
             className={`flex-1 min-h-0 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar'}`}
             id="main-scroll"
-            style={!isAssistantPage ? { WebkitOverflowScrolling: 'touch' } : undefined}
+            style={!isAssistantPage ? { WebkitOverflowScrolling: 'touch' } : { display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}
           >
             <Outlet />
           </div>

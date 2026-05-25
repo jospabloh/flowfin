@@ -9,12 +9,32 @@ import FiniaWelcome from '@/components/finia/FiniaWelcome';
 import FiniaTypingIndicator from '@/components/finia/FiniaTypingIndicator';
 import FiniaComposer from '@/components/finia/FiniaComposer';
 
+// Hook: tracks visible viewport height and offset to handle virtual keyboard on Android/iOS.
+// When the keyboard opens, visualViewport.height shrinks and offsetTop may change.
+// We use this to set the exact container height, making the composer float just above the keyboard.
+function useVisualViewport() {
+  const [vp, setVp] = useState(() => ({
+    height: window.visualViewport?.height ?? window.innerHeight,
+    offsetTop: window.visualViewport?.offsetTop ?? 0,
+  }));
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVp({ height: vv.height, offsetTop: vv.offsetTop });
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, []);
+  return vp;
+}
+
 const AGENT_NAME = 'finia';
 const STORAGE_KEY_PREFIX = 'ff_finia_conv:';
 
 export default function Assistant() {
   const { currentUser, familyId } = useFamily();
   const navigate = useNavigate();
+  const { height: vvHeight, offsetTop: vvOffsetTop } = useVisualViewport();
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
@@ -141,13 +161,34 @@ export default function Assistant() {
 
   const hasMessages = messages.length > 0;
 
+  // The Assistant page is rendered inside a Layout that has a fixed bottom nav on mobile.
+  // When the keyboard opens, visualViewport.height shrinks to the visible area above the keyboard.
+  // We set the container to exactly that height so the composer always sits just above the keyboard
+  // and the bottom nav is covered/pushed out of view automatically.
+  // position:fixed + top/left/right/bottom = vvHeight anchors the box to the visual viewport.
+  const isMobile = window.innerWidth < 768;
+  const containerStyle = isMobile ? {
+    position: 'fixed',
+    top: `${vvOffsetTop}px`,
+    left: 0,
+    right: 0,
+    height: `${vvHeight}px`,
+    zIndex: 45, // above bottom nav (z-40) but below more-drawer (z-50)
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'hsl(var(--background))',
+  } : {
+    height: '100%',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  };
+
   return (
-    <div
-      className="flex flex-col bg-background"
-      style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
-    >
+    <div style={containerStyle}>
       {/* ── Sticky Header ────────────────────────────────────────────────── */}
-      <header className="flex-shrink-0 flex items-center gap-3 px-3 pt-safe pt-3 pb-3 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+      <header className="flex-shrink-0 flex items-center gap-3 px-3 pt-3 pb-3 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <button
           onClick={() => navigate(-1)}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all active:scale-95 flex-shrink-0"

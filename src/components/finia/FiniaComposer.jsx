@@ -85,7 +85,7 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
   const canSend = (input.trim() || uploadPreview) && !disabled;
 
   return (
-    <div className="flex-shrink-0 bg-background border-t border-border">
+    <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-border">
       {/* Quick chips — only shown when no messages yet or always */}
       {showChips && (
         <div className="pt-2 pb-1">
@@ -145,7 +145,7 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
       </AnimatePresence>
 
       {/* Composer row */}
-      <div className="flex items-end gap-2 px-3 py-3 pb-safe">
+      <div className="flex items-end gap-2 px-3 py-2.5">
         {/* Attach buttons */}
         <div className="flex gap-1 flex-shrink-0 pb-1">
           <button
@@ -218,8 +218,8 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
         </div>
       </div>
 
-      {/* Trust footer */}
-      <div className="pb-safe pb-1">
+      {/* Trust footer — no extra safe-area here; container already accounts for keyboard */}
+      <div className="pb-1">
         <p className="text-[10px] text-muted-foreground/50 text-center pb-1">
           🔒 Finia solo accede a los datos de tu familia
         </p>
