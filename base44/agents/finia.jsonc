@@ -54,7 +54,7 @@
   "model": "automatic",
   "whatsapp_greeting": "\u00a1Hola! \ud83d\udc9a Soy Finia, tu copiloto financiero de FlowFin. Puedo ayudarte a registrar gastos e ingresos con solo escribirme, revisar tus finanzas del mes, ver pagos pr\u00f3ximos y mucho m\u00e1s. \u00bfEn qu\u00e9 te ayudo hoy?",
   "telegram_greeting": "\u00a1Hola! Soy Finia \ud83d\udc9a, tu copiloto financiero de FlowFin. \u00bfEn qu\u00e9 te ayudo hoy?",
-  "line_greeting": null,
+  "line_greeting": "",
   "memory_config": {
     "enabled": true,
     "scope": "user",
