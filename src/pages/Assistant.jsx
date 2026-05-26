@@ -232,6 +232,14 @@ export default function Assistant() {
 
   const hasMessages = visibleMessages.length > 0;
 
+  // Find last assistant message content for contextual chips
+  const lastAssistantMessage = (() => {
+    for (let i = visibleMessages.length - 1; i >= 0; i--) {
+      if (visibleMessages[i].role === 'assistant') return visibleMessages[i].content;
+    }
+    return null;
+  })();
+
   // The Assistant page is rendered inside a Layout that has a fixed bottom nav on mobile.
   // When the keyboard opens, visualViewport.height shrinks to the visible area above the keyboard.
   // We set the container to exactly that height so the composer always sits just above the keyboard
@@ -360,6 +368,7 @@ export default function Assistant() {
         onSend={sendMessage}
         disabled={sending || !conversation}
         showChips={hasMessages}
+        lastAssistantMessage={lastAssistantMessage}
       />
     </div>
   );

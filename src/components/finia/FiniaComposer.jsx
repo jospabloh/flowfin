@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
 
-export default function FiniaComposer({ onSend, disabled, showChips }) {
+export default function FiniaComposer({ onSend, disabled, showChips, lastAssistantMessage }) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -186,10 +186,14 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
 
   return (
     <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-border">
-      {/* Quick chips — only shown when no messages yet or always */}
+      {/* Quick chips — contextual based on last assistant message */}
       {showChips && (
         <div className="pt-2 pb-1">
-          <FiniaQuickChips onAction={(text) => onSend(text)} disabled={disabled} />
+          <FiniaQuickChips
+            onAction={(text) => onSend(text)}
+            disabled={disabled}
+            lastAssistantMessage={lastAssistantMessage}
+          />
         </div>
       )}
 
