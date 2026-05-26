@@ -89,7 +89,21 @@ export default function Assistant() {
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const serverMsgs = (data.messages || []).filter(m => m.content?.trim());
+      // Filter out empty messages and messages that are only tool-call artifacts
+      // (single emoji, "?", whitespace, or shorter than 2 visible chars)
+      const serverMsgs = (data.messages || []).filter(m => {
+        const c = (m.content || '').trim();
+        if (!c) return false;
+        // Strip emojis/punctuation to check if there's actual text content
+        const visible = c.replace(/[\p{Emoji}\p{P}\s]/gu, '');
+        if (visible.length < 2) return false;
+        return true;
+      });
+
+      // Once we receive an assistant message, turn off "sending" state
+      const hasAssistantReply = serverMsgs.some(m => m.role === 'assistant');
+      if (hasAssistantReply) setSending(false);
+
       setMessages(prev => {
         let updated = [...prev];
         let changed = false;
@@ -163,6 +177,8 @@ export default function Assistant() {
   }, []);
 
   // ── Send message ────────────────────────────────────────────────────────────
+  // Note: `sending` stays true until the assistant's first reply arrives (handled
+  // in the subscribe effect). This prevents double-sends from quick chip taps.
   const sendMessage = useCallback(async (text) => {
     const msg = typeof text === 'string' ? text.trim() : '';
     if (!msg || sending || !conversation) return;
@@ -170,15 +186,20 @@ export default function Assistant() {
     setSending(true);
 
     const localId = `local-user-${Date.now()}`;
-    // When cleared, new messages appear in visibleMessages directly
     if (cleared) {
       setVisibleMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
     } else {
       setMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
     }
 
-    await base44.agents.addMessage(conversation, { role: 'user', content: msg });
-    setSending(false);
+    try {
+      await base44.agents.addMessage(conversation, { role: 'user', content: msg });
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setSending(false);
+    }
+    // Safety: re-enable composer after 30s in case no reply arrives
+    setTimeout(() => setSending(false), 30000);
   }, [sending, conversation, cleared]);
 
   // ── Loading state ────────────────────────────────────────────────────────────

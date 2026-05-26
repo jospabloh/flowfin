@@ -22,7 +22,15 @@ const typeConfig = {
 
 export default function FiniaMessageBubble({ message }) {
   const isUser = message.role === 'user';
-  const msgType = isUser ? 'normal' : detectMessageType(message.content);
+  const content = (message.content || '').trim();
+
+  // Safety: don't render bubbles with empty or non-textual content
+  // (handles tool-call artifacts like single emojis or "?")
+  if (!content) return null;
+  const visibleChars = content.replace(/[\p{Emoji}\p{P}\s]/gu, '');
+  if (visibleChars.length < 2) return null;
+
+  const msgType = isUser ? 'normal' : detectMessageType(content);
   const config = typeConfig[msgType] || typeConfig.normal;
 
   return (
@@ -50,7 +58,7 @@ export default function FiniaMessageBubble({ message }) {
         )}
 
         {isUser ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
         ) : (
           <ReactMarkdown
             className="prose prose-sm max-w-none dark:prose-invert
@@ -67,7 +75,7 @@ export default function FiniaMessageBubble({ message }) {
               prose-blockquote:border-l-2 prose-blockquote:border-primary/30 prose-blockquote:pl-3 prose-blockquote:text-muted-foreground prose-blockquote:my-2
               prose-hr:border-border prose-hr:my-2"
           >
-            {message.content}
+            {content}
           </ReactMarkdown>
         )}
       </div>
