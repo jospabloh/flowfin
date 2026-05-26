@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { Save, X, Trash2, PlayCircle, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Save, X, Trash2, PlayCircle } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import LocaleSelector from '@/components/LocaleSelector';
@@ -14,7 +13,6 @@ import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 export default function FamilySettings() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [config, setConfig] = useState({
@@ -213,23 +211,6 @@ export default function FamilySettings() {
           <p className="text-xs text-muted-foreground text-center">
             Esta configuración es exclusiva de su familia y no afecta a otros usuarios de la plataforma.
           </p>
-        </div>
-
-        {/* WhatsApp Setup */}
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
-          <button
-            onClick={() => navigate('/WhatsAppSetup')}
-            className="w-full flex items-center gap-3"
-          >
-            <div className="w-10 h-10 rounded-xl bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-5 h-5 text-[#25D366]" />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 className="text-sm font-bold text-foreground">Configurar WhatsApp</h3>
-              <p className="text-xs text-muted-foreground">Reconectar Finia con WhatsApp</p>
-            </div>
-            <span className="text-xs font-semibold text-primary">Ir →</span>
-          </button>
         </div>
 
         {/* Tutorial relaunch */}
