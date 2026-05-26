@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Send, Mic, MicOff, Paperclip, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -155,21 +155,63 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     }
   };
 
-  // File upload for receipts
-  const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
+  // Upload an image file (from picker, paste, or drop) and set as preview
+  const uploadImageFile = useCallback(async (file, fallbackName) => {
     if (!file) return;
-    e.target.value = '';
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploadPreview({ url: file_url, name: file.name });
+      const namedFile = file.name
+        ? file
+        : new File([file], fallbackName || `recibo-pegado-${Date.now()}.png`, { type: file.type || 'image/png' });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
+      setUploadPreview({ url: file_url, name: namedFile.name });
     } catch {
       // silently fail — user can still type
     } finally {
       setUploading(false);
     }
+  }, []);
+
+  // File upload from file picker
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    await uploadImageFile(file);
   };
+
+  // Paste handler — extract image from clipboard
+  const handlePaste = useCallback((e) => {
+    if (disabled || uploading) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          uploadImageFile(file, `recibo-pegado-${Date.now()}.${(item.type.split('/')[1] || 'png')}`);
+          return;
+        }
+      }
+    }
+  }, [disabled, uploading, uploadImageFile]);
+
+  // Global paste listener so users can paste anywhere on the Assistant page
+  useEffect(() => {
+    const onWindowPaste = (e) => {
+      // Only act if there's an image — let normal text paste flow through textarea
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      let hasImage = false;
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) { hasImage = true; break; }
+      }
+      if (hasImage) handlePaste(e);
+    };
+    window.addEventListener('paste', onWindowPaste);
+    return () => window.removeEventListener('paste', onWindowPaste);
+  }, [handlePaste]);
 
   const sendWithImage = () => {
     if (!uploadPreview) return;
@@ -305,8 +347,9 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             value={input}
             onChange={e => { setInput(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             disabled={disabled}
-            placeholder="Escribe o habla con Finia…"
+            placeholder="Escribe, habla o pega una imagen…"
             className="w-full bg-muted/60 border border-border focus:border-primary/40 rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/15 resize-none leading-relaxed transition-all disabled:opacity-50"
             style={{ minHeight: '46px', maxHeight: '120px', overflowY: 'auto' }}
           />
