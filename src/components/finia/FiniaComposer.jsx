@@ -1,18 +1,26 @@
 import { useRef, useState, useCallback } from 'react';
-import { Send, Mic, MicOff, Paperclip, Camera, X } from 'lucide-react';
+import { Send, Mic, MicOff, Paperclip, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
 
 export default function FiniaComposer({ onSend, disabled, showChips }) {
   const [input, setInput] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [voiceSupported] = useState(() => !!(globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition));
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [voiceSupported] = useState(() =>
+    typeof navigator !== 'undefined' &&
+    !!navigator.mediaDevices?.getUserMedia &&
+    typeof MediaRecorder !== 'undefined'
+  );
   const [uploading, setUploading] = useState(false);
   const [uploadPreview, setUploadPreview] = useState(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
 
   const adjustHeight = () => {
     const el = textareaRef.current;
@@ -34,24 +42,118 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
     // No special handling — let textarea default behavior apply
   };
 
-  // Voice
-  const startVoice = () => {
-    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-    if (!SR) return;
-    const r = new SR();
-    r.lang = 'es-MX';
-    r.onstart = () => setIsListening(true);
-    r.onend = () => setIsListening(false);
-    r.onerror = () => setIsListening(false);
-    r.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(transcript);
-      setTimeout(adjustHeight, 0);
-    };
-    r.start();
-    recognitionRef.current = r;
+  // Voice — record audio with MediaRecorder, then transcribe via Whisper (TranscribeAudio).
+  // Works on iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari.
+  const cleanupStream = () => {
+    try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
+    streamRef.current = null;
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
   };
-  const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
+
+  const pickMimeType = () => {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ];
+    for (const m of candidates) {
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.(m)) return m;
+    }
+    return ''; // let browser pick
+  };
+
+  const extFromMime = (mime) => {
+    if (!mime) return 'webm';
+    if (mime.includes('mp4')) return 'm4a';
+    if (mime.includes('ogg')) return 'ogg';
+    return 'webm';
+  };
+
+  const startVoice = async () => {
+    setVoiceError(null);
+    if (!voiceSupported) {
+      setVoiceError('Tu navegador no soporta grabación de audio.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mimeType = pickMimeType();
+      const rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      rec.onstop = async () => {
+        const chunks = audioChunksRef.current;
+        const usedMime = rec.mimeType || mimeType || 'audio/webm';
+        cleanupStream();
+        if (!chunks.length) { setIsRecording(false); return; }
+        const blob = new Blob(chunks, { type: usedMime });
+        if (blob.size < 1000) {
+          setIsRecording(false);
+          setVoiceError('La grabación fue muy corta. Intenta de nuevo.');
+          setTimeout(() => setVoiceError(null), 3000);
+          return;
+        }
+        const ext = extFromMime(usedMime);
+        const file = new File([blob], `finia-audio-${Date.now()}.${ext}`, { type: usedMime });
+        setIsRecording(false);
+        setIsTranscribing(true);
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          const transcript = await base44.integrations.Core.TranscribeAudio({ audio_url: file_url });
+          const text = typeof transcript === 'string' ? transcript : (transcript?.text || '');
+          if (text?.trim()) {
+            setInput(prev => (prev ? `${prev} ${text.trim()}` : text.trim()));
+            setTimeout(adjustHeight, 0);
+          } else {
+            setVoiceError('No pude entender el audio. Intenta de nuevo.');
+            setTimeout(() => setVoiceError(null), 3000);
+          }
+        } catch (err) {
+          setVoiceError('Error al transcribir. Intenta de nuevo.');
+          setTimeout(() => setVoiceError(null), 3000);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      rec.start();
+      mediaRecorderRef.current = rec;
+      setIsRecording(true);
+    } catch (err) {
+      cleanupStream();
+      setIsRecording(false);
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+        setVoiceError('Permiso de micrófono denegado. Habilítalo en los ajustes del navegador.');
+      } else if (err?.name === 'NotFoundError') {
+        setVoiceError('No se encontró ningún micrófono.');
+      } else {
+        setVoiceError('No se pudo iniciar la grabación.');
+      }
+      setTimeout(() => setVoiceError(null), 4000);
+    }
+  };
+
+  const stopVoice = () => {
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      } else {
+        cleanupStream();
+        setIsRecording(false);
+      }
+    } catch {
+      cleanupStream();
+      setIsRecording(false);
+    }
+  };
 
   // File upload for receipts
   const handleFileSelect = async (e) => {
@@ -117,9 +219,23 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
         )}
       </AnimatePresence>
 
-      {/* Listening indicator */}
+      {/* Voice error */}
       <AnimatePresence>
-        {isListening && (
+        {voiceError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-4 mb-2 flex items-center gap-2 bg-destructive/5 border border-destructive/20 rounded-xl px-3 py-2"
+          >
+            <p className="text-xs text-destructive font-medium flex-1">{voiceError}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Recording indicator */}
+      <AnimatePresence>
+        {isRecording && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -136,8 +252,25 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
                 />
               ))}
             </div>
-            <p className="text-xs text-destructive font-medium">Escuchando... habla ahora</p>
-            <button onClick={stopVoice} className="ml-auto text-xs text-muted-foreground underline">Cancelar</button>
+            <p className="text-xs text-destructive font-medium">Grabando... habla ahora</p>
+            <button onClick={stopVoice} className="ml-auto text-xs font-semibold text-destructive underline">
+              Detener
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Transcribing indicator */}
+      <AnimatePresence>
+        {isTranscribing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-4 mb-2 flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2"
+          >
+            <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+            <p className="text-xs text-primary font-medium">Transcribiendo audio…</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -177,19 +310,24 @@ export default function FiniaComposer({ onSend, disabled, showChips }) {
 
         {/* Right action buttons */}
         <div className="flex gap-1 flex-shrink-0 pb-1">
-          {/* Voice — only if supported */}
+          {/* Voice — record audio and transcribe with Whisper */}
           {voiceSupported && (
             <button
-              onClick={isListening ? stopVoice : startVoice}
-              disabled={disabled}
+              onClick={isRecording ? stopVoice : startVoice}
+              disabled={disabled || isTranscribing}
               className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
-                isListening
-                  ? 'bg-destructive text-white'
+                isRecording
+                  ? 'bg-destructive text-white animate-pulse'
                   : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
-              title={isListening ? 'Detener' : 'Hablar'}
+              title={isRecording ? 'Detener grabación' : isTranscribing ? 'Transcribiendo…' : 'Grabar audio'}
             >
-              {isListening ? <MicOff className="w-[18px] h-[18px]" /> : <Mic className="w-[18px] h-[18px]" />}
+              {isTranscribing
+                ? <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                : isRecording
+                  ? <MicOff className="w-[18px] h-[18px]" />
+                  : <Mic className="w-[18px] h-[18px]" />
+              }
             </button>
           )}
 
