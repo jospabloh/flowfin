@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       'salidas': ['salidas', 'restaurante', 'bar', 'café', 'cafe'],
     };
 
-    const semanticFind = (list, nameHint, txType) => {
+    const semanticFind = (list, nameHint) => {
       if (!nameHint) return null;
       const n = norm(nameHint);
       // Try each semantic group
@@ -112,11 +112,11 @@ Deno.serve(async (req) => {
     let catCheck = fuzzyFind(allCats || [], category_id, body.category_name);
     // Last resort: semantic inference from name hint
     if (!catCheck && body.category_name) {
-      catCheck = semanticFind(allCats || [], body.category_name, type);
+      catCheck = semanticFind(allCats || [], body.category_name);
     }
     // Absolute last resort: if description/concept mentions food words, try to find food category
     if (!catCheck && description) {
-      catCheck = semanticFind(allCats || [], description, type);
+      catCheck = semanticFind(allCats || [], description);
     }
 
     const personCheck = fuzzyFind(allPersons || [], person_id, body.person_name);
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 
     // Use resolved IDs (fuzzy match may have corrected them)
     const resolvedCategoryId = catCheck.id;
-    let resolvedPersonId = personCheck.id;
+    const resolvedPersonId = personCheck.id;
 
     let resolvedSubcategoryId = subcategory_id ?? null;
     if (subcategory_id) {
@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     if (resolvedSubcategoryId) txData.subcategory_id = resolvedSubcategoryId;
     if (resolvedPaymentMethodId) txData.payment_method_id = resolvedPaymentMethodId;
 
-    const created = await userEntities.Transaction.create(txData);
+    await userEntities.Transaction.create(txData);
 
     return Response.json({
       ok: true,
