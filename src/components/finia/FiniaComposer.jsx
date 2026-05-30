@@ -16,6 +16,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   );
   const [uploading, setUploading] = useState(false);
   const [uploadPreview, setUploadPreview] = useState(null);
+  const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -37,10 +38,29 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     onSend(msg);
   }, [input, disabled, onSend]);
 
-  // Enter always adds a new line; Shift+Enter also works naturally
-  const handleKeyDown = (_e) => {
-    // No special handling — let textarea default behavior apply
-  };
+  // 1st Enter → new line, 2nd consecutive Enter → send
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (lastEnterWasNewLine.current) {
+        // 2nd Enter: trim the trailing newline we added, then send
+        lastEnterWasNewLine.current = false;
+        const trimmed = input.replace(/\n$/, '');
+        if (!trimmed || disabled) return;
+        setInput('');
+        if (textareaRef.current) textareaRef.current.style.height = '46px';
+        onSend(trimmed);
+      } else {
+        // 1st Enter: insert newline
+        lastEnterWasNewLine.current = true;
+        setInput(prev => prev + '\n');
+        setTimeout(adjustHeight, 0);
+      }
+    } else {
+      // Any other key resets the double-enter tracker
+      lastEnterWasNewLine.current = false;
+    }
+  }, [input, disabled, onSend]);
 
   // Voice — record audio with MediaRecorder, then transcribe via Whisper (TranscribeAudio).
   // Works on iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari.

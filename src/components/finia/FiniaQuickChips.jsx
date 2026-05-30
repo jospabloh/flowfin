@@ -1,4 +1,8 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useFamily } from '@/lib/FamilyContext';
+
+// ─── Static chip sets ────────────────────────────────────────────────────────
 
 const DEFAULT_CHIPS = [
   { emoji: '💸', label: 'Registrar gasto', text: 'Quiero registrar un gasto' },
@@ -47,38 +51,115 @@ const BUDGET_CHIPS = [
   { emoji: '📅', label: 'Pagos próximos', text: '¿Qué pagos tengo próximos?' },
 ];
 
-// Pick chips based on the last assistant message content
-function pickChips(lastAssistantContent) {
-  if (!lastAssistantContent) return DEFAULT_CHIPS;
-  const c = lastAssistantContent.toLowerCase();
+// ─── Intent detection ─────────────────────────────────────────────────────────
+// Returns: 'draft' | 'duplicate' | 'summary' | 'payments' | 'budget'
+//          | 'ask_person' | 'ask_category' | 'ask_payment_method'
+//          | 'default' | null (no chips — pure statement)
+function detectIntent(msg) {
+  if (!msg) return 'default';
+  const c = msg.toLowerCase();
 
-  // Draft / confirmation context
-  if (c.includes('borrador') || c.includes('¿confirmas') || c.includes('confirmas que guarde')) {
-    return DRAFT_CHIPS;
-  }
-  // Duplicate detected
-  if (c.includes('duplicado') || c.includes('similar reciente') || c.includes('movimiento similar')) {
-    return DUPLICATE_CHIPS;
-  }
-  // Financial summary / month review
-  if (c.includes('ingresos') && c.includes('gastos') && (c.includes('balance') || c.includes('mes'))) {
-    return SUMMARY_CHIPS;
-  }
+  // Catalog questions — must check BEFORE generic keyword matches
+  if (/¿?(quién|quien|a nombre de quién|a nombre de quien|para quién|para quien|qué persona|que persona|de qué integrante|de que integrante|de quién|de quien)/.test(c)) return 'ask_person';
+  if (/¿?(con (qué|que) (pagaste|forma de pago|método|metodo|tarjeta|efectivo)|cómo (pagaste|lo pagaste))/.test(c) || /método de pago|forma de pago|payment method/.test(c)) return 'ask_payment_method';
+  if (/¿?(en (qué|que) (rubro|categoría|categoria)|a (qué|que) (rubro|categoría|categoria)|tipo de gasto|tipo de egreso|clasificar)/.test(c)) return 'ask_category';
+
+  // Draft / confirmation
+  if (c.includes('borrador') || c.includes('¿confirmas') || c.includes('confirmas que guarde') || c.includes('¿lo guardo')) return 'draft';
+  // Duplicate
+  if (c.includes('duplicado') || c.includes('similar reciente') || c.includes('movimiento similar')) return 'duplicate';
+  // Financial summary
+  if (c.includes('ingresos') && c.includes('gastos') && (c.includes('balance') || c.includes('mes'))) return 'summary';
   // Upcoming payments
-  if (c.includes('pagos próximos') || c.includes('próximos pagos') || c.includes('vence')) {
-    return PAYMENTS_CHIPS;
-  }
-  // Budget status
-  if (c.includes('presupuesto') || c.includes('límite') || c.includes('asignado')) {
-    return BUDGET_CHIPS;
-  }
-  return DEFAULT_CHIPS;
+  if (c.includes('pagos próximos') || c.includes('próximos pagos') || c.includes('vence')) return 'payments';
+  // Budget
+  if (c.includes('presupuesto') || c.includes('límite') || c.includes('asignado')) return 'budget';
+
+  // Pure statements (no '?' and no action keywords) → no chips needed — show default
+  return 'default';
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function FiniaQuickChips({ onAction, disabled, lastAssistantMessage }) {
   const scrollRef = useRef(null);
+  const { familyId } = useFamily();
 
-  const chips = useMemo(() => pickChips(lastAssistantMessage), [lastAssistantMessage]);
+  const [catalogChips, setCatalogChips] = useState(null); // null = not loaded yet
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+
+  const intent = useMemo(() => detectIntent(lastAssistantMessage), [lastAssistantMessage]);
+
+  // Fetch catalog data when intent requires it
+  useEffect(() => {
+    if (!familyId) return;
+    if (intent !== 'ask_person' && intent !== 'ask_category' && intent !== 'ask_payment_method') {
+      setCatalogChips(null);
+      return;
+    }
+
+    setLoadingCatalog(true);
+    setCatalogChips(null);
+
+    const fetchers = {
+      ask_person: () => base44.entities.Person.filter({ family_id: familyId }),
+      ask_category: () => base44.entities.Category.filter({ family_id: familyId }),
+      ask_payment_method: () => base44.entities.PaymentMethod.filter({ family_id: familyId }),
+    };
+
+    fetchers[intent]()
+      .then((items) => {
+        if (!items?.length) { setCatalogChips([]); return; }
+
+        let chips;
+        if (intent === 'ask_person') {
+          chips = items.slice(0, 8).map(p => ({
+            emoji: p.avatar_initial ? p.avatar_initial : '👤',
+            label: p.name,
+            text: p.name,
+          }));
+        } else if (intent === 'ask_category') {
+          chips = items.slice(0, 8).map(cat => ({
+            emoji: cat.icon || '🏷️',
+            label: cat.name,
+            text: cat.name,
+          }));
+        } else if (intent === 'ask_payment_method') {
+          chips = items.slice(0, 8).map(pm => ({
+            emoji: pm.type === 'credit' ? '💳' : pm.type === 'debit' ? '🏦' : pm.type === 'cash' ? '💵' : '🔁',
+            label: pm.name,
+            text: pm.name,
+          }));
+        }
+        setCatalogChips(chips || []);
+      })
+      .catch(() => setCatalogChips([]))
+      .finally(() => setLoadingCatalog(false));
+  }, [intent, familyId]);
+
+  // Determine which chips to show
+  const chips = useMemo(() => {
+    if (intent === 'ask_person' || intent === 'ask_category' || intent === 'ask_payment_method') {
+      return catalogChips ?? [];
+    }
+    if (intent === 'draft') return DRAFT_CHIPS;
+    if (intent === 'duplicate') return DUPLICATE_CHIPS;
+    if (intent === 'summary') return SUMMARY_CHIPS;
+    if (intent === 'payments') return PAYMENTS_CHIPS;
+    if (intent === 'budget') return BUDGET_CHIPS;
+    return DEFAULT_CHIPS;
+  }, [intent, catalogChips]);
+
+  if (loadingCatalog) {
+    return (
+      <div className="px-4 py-1.5 flex gap-2">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-8 w-20 rounded-full bg-muted animate-pulse flex-shrink-0" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!chips.length) return null;
 
   return (
     <div
