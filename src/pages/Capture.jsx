@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
 import { useCreateTransaction } from '@/hooks/useCreateTransaction';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users, CalendarDays } from 'lucide-react';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import { computeTripSpent } from '@/lib/tripBudget';
 import NativeSelect from '@/components/NativeSelect';
@@ -851,7 +851,10 @@ export default function Capture() {
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             onClick={e => e.target.showPicker?.()}
-            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
+            className="w-full bg-card border border-border rounded-xl pl-3 pr-10 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
+          <CalendarDays
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+          />
           {date !== today && (
             <span className="absolute -top-2 left-3 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
               {date < today.slice(0, 7) ? 'Mes anterior' : 'Fecha pasada'}
