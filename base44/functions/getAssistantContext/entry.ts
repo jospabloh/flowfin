@@ -1,4 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
+
+// Reads the family by id using plain .filter (the edge runtime does not honor
+// .get(id) reliably), falling back to the user-context client.
+async function getFamily(base44, familyId) {
+  for (const ents of [base44.asServiceRole?.entities, base44.entities]) {
+    if (!ents) continue;
+    try {
+      const arr = await ents.Family.filter({ id: familyId });
+      if (arr && arr.length) return arr[0];
+    } catch {
+      // try next client
+    }
+  }
+  return null;
+}
 
 async function assertFamilyMember(base44, familyId) {
   const user = await base44.auth.me();
@@ -39,43 +55,6 @@ function sumByType(txs) {
     else if (tx.type === 'income') income += tx.amount;
   }
   return { expense, income, balance: income - expense };
-}
-
-// Fetches transactions for a bounded period efficiently.
-// Strategy: request pages sorted -date (newest first), skip rows that fall AFTER
-// `end`, collect rows inside [start, end], stop as soon as a row falls BEFORE
-// `start` (early-exit). This means we never scan beyond the target window
-// regardless of how much historical data the family has accumulated.
-async function fetchTransactions(userEntities, familyId, start, end) {
-  const PAGE = 200;
-  const MAX = 500; // hard cap per period to stay fast
-  const all = [];
-  let skip = 0;
-  let truncated = false;
-  try {
-    while (true) {
-      const page = await userEntities.Transaction.filter(
-        { family_id: familyId },
-        '-date',
-        PAGE,
-        skip
-      );
-      if (!page || page.length === 0) break;
-      let doneEarly = false;
-      for (const tx of page) {
-        if (!tx.date) continue;
-        if (tx.date > end) continue;          // still in the future relative to period end, skip
-        if (tx.date < start) { doneEarly = true; break; } // passed start — nothing older matters
-        all.push(tx);
-        if (all.length >= MAX) { truncated = true; doneEarly = true; break; }
-      }
-      if (doneEarly || page.length < PAGE) break;
-      skip += PAGE;
-    }
-  } catch (e) {
-    console.error('[fetchTransactions] ERROR:', e?.message, 'familyId:', familyId, 'range:', start, '-', end);
-  }
-  return { transactions: all, truncated };
 }
 
 Deno.serve(async (req) => {
@@ -134,17 +113,13 @@ Deno.serve(async (req) => {
       investmentsArr,
       rentalPropertiesArr,
     ] = await Promise.all([
-      entities.Family.get(familyId).catch(() =>
-        entities.Family.filter({ admin_user_id: { $exists: true } }, '-created_date', 1, 0)
-          .then(r => r?.find(f => f.id === familyId) ?? null)
-          .catch(() => null)
-      ),
+      getFamily(base44, familyId),
       entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
       userEntities.Person.filter({ family_id: familyId }).catch(() => entities.Person.filter({ family_id: familyId })),
       userEntities.Category.filter({ family_id: familyId }).catch(() => entities.Category.filter({ family_id: familyId })),
-      fetchTransactions(userEntities, familyId, monthStart, todayISO),
-      fetchTransactions(userEntities, familyId, prevMonthStart, prevMonthEnd),
-      fetchTransactions(userEntities, familyId, twoMonthsStart, twoMonthsEnd),
+      fetchFamilyTransactions(base44, { familyId, start: monthStart, end: todayISO }),
+      fetchFamilyTransactions(base44, { familyId, start: prevMonthStart, end: prevMonthEnd }),
+      fetchFamilyTransactions(base44, { familyId, start: twoMonthsStart, end: twoMonthsEnd }),
       (async () => { try { return await entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
       (async () => { try { return await entities.FamilyConfig.filter({ family_id: familyId }); } catch { return []; } })(),
       (async () => { try { return await entities.MSI.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
@@ -152,9 +127,10 @@ Deno.serve(async (req) => {
       (async () => { try { return await entities.RentalProperty.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
     ]);
 
-    const { transactions: txs, truncated } = txResult;
-    const { transactions: prevTxs } = prevTxResult;
-    const { transactions: twoMonthsTxs } = twoMonthsTxResult;
+    const txs = txResult || [];
+    const prevTxs = prevTxResult || [];
+    const twoMonthsTxs = twoMonthsTxResult || [];
+    const truncated = txs.length >= 50000;
 
     console.log('[getAssistantContext] txs:', txs.length, 'prevTxs:', prevTxs.length, 'family:', familyRecord?.name);
 
