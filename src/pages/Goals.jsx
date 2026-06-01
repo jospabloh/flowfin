@@ -6,6 +6,17 @@ import PageHeader from '@/components/PageHeader';
 import GoalCard from '@/components/goals/GoalCard';
 import GoalFormModal from '@/components/goals/GoalFormModal';
 import GoalShareCard from '@/components/goals/GoalShareCard';
+import { usePermission } from '@/lib/permissions/usePermission';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PlusCircle, Target } from 'lucide-react';
 
 export default function Goals() {
@@ -14,6 +25,10 @@ export default function Goals() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState(null);
+  const [goalToDelete, setGoalToDelete] = useState(null);
+  const { can_write: canCreate } = usePermission('goals.manage.create');
+  const { can_modify: canEdit }  = usePermission('goals.manage.edit');
+  const { can_delete: canDelete } = usePermission('goals.manage.delete');
 
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ['goals', familyId],
@@ -68,14 +83,14 @@ export default function Goals() {
       <PageHeader
         title="Metas financieras"
         subtitle={`${active.length} meta${active.length !== 1 ? 's' : ''} activa${active.length !== 1 ? 's' : ''}`}
-        action={
+        action={canCreate && (
           <button
             onClick={() => { setEditingGoal(null); setShowForm(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold shadow-sm">
             <PlusCircle className="w-4 h-4" />
             Nueva meta
           </button>
-        }
+        )}
       />
 
       {isLoading ? (
@@ -93,11 +108,13 @@ export default function Goals() {
           <p className="text-sm text-muted-foreground mb-6">
             Define objetivos financieros y sigue tu progreso con una barra visual.
           </p>
-          <button onClick={() => { setEditingGoal(null); setShowForm(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold">
-            <PlusCircle className="w-4 h-4" />
-            Crear mi primera meta
-          </button>
+          {canCreate && (
+            <button onClick={() => { setEditingGoal(null); setShowForm(true); }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold">
+              <PlusCircle className="w-4 h-4" />
+              Crear mi primera meta
+            </button>
+          )}
         </div>
       ) : (
         <div className="px-4 mt-4 space-y-3">
@@ -120,8 +137,8 @@ export default function Goals() {
                   savedAmount={saved}
                   currency={currency}
                   locale={locale}
-                  onEdit={() => handleEdit(g)}
-                  onDelete={() => deleteMutation.mutate(g.id)}
+                  onEdit={canEdit ? () => handleEdit(g) : undefined}
+                  onDelete={canDelete ? () => setGoalToDelete(g) : undefined}
                 />
               </div>
             );
@@ -129,13 +146,33 @@ export default function Goals() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && (canCreate || canEdit) && (
         <GoalFormModal
           goal={editingGoal}
           onClose={handleClose}
           onSaved={handleSaved}
         />
       )}
+
+      <AlertDialog open={!!goalToDelete} onOpenChange={(open) => { if (!open) setGoalToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar meta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará permanentemente la meta <strong>{goalToDelete?.name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { deleteMutation.mutate(goalToDelete.id); setGoalToDelete(null); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

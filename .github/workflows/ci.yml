@@ -1,4 +1,4 @@
-name: Deno CI
+name: CI
 on: [push, pull_request]
 jobs:
   test:
@@ -10,3 +10,15 @@ jobs:
           deno-version: v2.x
       - run: deno lint base44/functions/
       - run: deno test base44/functions/
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Security audit
+        # xlsx has a HIGH vuln with no upstream fix (GHSA-4r6h-8v6p-xvw6); gate on critical only
+        run: npm audit --audit-level=critical

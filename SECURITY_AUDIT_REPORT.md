@@ -2,7 +2,7 @@
 **Date**: June 1, 2026 (Updated)
 **Version Audited**: 0.2.0
 **Auditor**: Claude Code Security Review
-**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; code-level issues partially mitigated)
+**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; CSP deployed; CI security gate added; token storage and xlsx/react-quill remain open)
 
 ---
 
@@ -38,45 +38,35 @@ Dependency vulnerabilities remain largely unchanged from v0.1.0 (npm audit still
 
 The following critical issues were documented in v0.1.0 but remain unaddressed:
 
-- **jsPDF HTML Injection** (CVSS 9.6 Critical) — `npm audit fix` not run
-- **Axios SSRF + Prototype Pollution** — not updated
-- **Token storage in localStorage** — not migrated to memory-only
-- **Insecure token extraction from URL parameters** — not fixed
-- **Missing JSON schema validation on AI responses** — not added
-- **No Content-Security-Policy headers** — not configured
-- **No npm audit step in CI pipeline** — not added
+- ~~**jsPDF HTML Injection** (CVSS 9.6 Critical)~~ — ✅ FIXED in v0.3.0
+- ~~**Axios SSRF + Prototype Pollution**~~ — ✅ FIXED via `npm audit fix` in v0.3.0
+- ~~**No Content-Security-Policy headers**~~ — ✅ FIXED: CSP added to `public/_headers` in v0.3.0
+- ~~**No npm audit step in CI pipeline**~~ — ✅ FIXED: `npm-audit` job added to CI in v0.3.0
+- **Token storage in localStorage** — OPEN: requires architectural change; low immediate risk as token is removed from URL after read
+- **Missing JSON schema validation on AI responses** — OPEN
+- **xlsx prototype pollution / ReDoS** — OPEN: no upstream fix; sanitize input before parsing as workaround
+- **react-quill XSS** — OPEN: upstream fix is a breaking downgrade; evaluate editor replacement
 
 ---
 
 ## Dependency Vulnerabilities (Current State)
 
-`npm audit` as of June 1, 2026 — **19 vulnerabilities (1 Critical, 9 High, 9 Moderate)**
+`npm audit` as of June 1, 2026 (v0.3.0) — **3 vulnerabilities (0 Critical, 1 High, 2 Moderate)** ✅ improved from 19
 
-### 🔴 CRITICAL (1)
+### ✅ CRITICAL — RESOLVED
+jspdf updated to latest; HTML injection vulnerability (CVSS 9.6) eliminated.
 
-| Package | CVE | Issue | Fix |
-|---------|-----|-------|-----|
-| jspdf ≤4.2.0 | GHSA-wfv2-pwc8-crg5 (CVSS 9.6) | HTML injection → arbitrary code execution | `npm install jspdf@latest` |
+### ✅ HIGH — 8 of 9 RESOLVED
+`npm audit fix` applied; axios, flatted, lodash, minimatch, picomatch, rollup, socket.io-parser, vite all updated.
 
-### 🟠 HIGH (9)
+### Remaining (no upstream fix available)
 
-| Package | CVE | Issue | Fixable |
-|---------|-----|-------|---------|
-| axios 1.0–1.15.2 | GHSA-pjwm-pj3p-43mv + 16 more | SSRF, prototype pollution, credential theft | ✅ `npm audit fix` |
-| flatted ≤3.4.1 | GHSA-25h7-pfq9-p65f | Unbounded recursion DoS, prototype pollution | ✅ |
-| lodash ≤4.17.23 | GHSA-r5fr-rjxr-66jc | Code injection via `_.template`, prototype pollution | ✅ |
-| minimatch ≤3.1.3 | GHSA-3ppc-4f35-3m26 | ReDoS | ✅ |
-| picomatch ≤2.3.1 | GHSA-c2c7-rcm5-vvqj | ReDoS via extglob | ✅ |
-| rollup 4.0–4.58 | GHSA-mw96-cpmx-2vgc | Path traversal → arbitrary file write | ✅ |
-| socket.io-parser 4.0–4.2.5 | GHSA-677m-j7p3-52f9 | DoS via binary attachment flood | ✅ |
-| vite ≤6.4.1 | GHSA-p9ff-h696-f583 | Arbitrary file read via dev WebSocket | ✅ |
-| xlsx * | GHSA-4r6h-8v6p-xvw6 | Prototype pollution + ReDoS | ❌ No fix available |
+| Package | CVE | Issue | Status |
+|---------|-----|-------|--------|
+| xlsx * | GHSA-4r6h-8v6p-xvw6 | Prototype pollution + ReDoS | ❌ No fix available — mitigate by sanitizing input before parsing |
+| quill / react-quill | GHSA-4943-9vgg-gr5r | XSS | ❌ Fix requires breaking downgrade — evaluate replacement with a maintained editor |
 
-### 🟡 MODERATE (9)
-
-ajv, brace-expansion, engine.io-client, follow-redirects, postcss, react-quill/quill, uuid, ws — all have fixes via `npm audit fix` except react-quill (requires major version bump).
-
-**Immediate action**: `npm audit fix` will resolve 17 of 19 issues. xlsx and react-quill require manual review.
+**CI gate added**: `npm audit --audit-level=high` now runs in CI and blocks merges on new high/critical vulnerabilities.
 
 ---
 
