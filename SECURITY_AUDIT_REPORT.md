@@ -2,7 +2,7 @@
 **Date**: June 1, 2026 (Updated)
 **Version Audited**: 0.2.0
 **Auditor**: Claude Code Security Review
-**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; CSP deployed; CI security gate added; token storage and xlsx/react-quill remain open)
+**Overall Risk Level**: **LOW-MEDIUM** (Critical dependency resolved; CSP deployed; CI gate active; react-quill removed; xlsx write-only — no parse-path exposure; token storage remains open)
 
 ---
 
@@ -44,8 +44,8 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 - ~~**No npm audit step in CI pipeline**~~ — ✅ FIXED: `npm-audit` job added to CI in v0.3.0
 - **Token storage in localStorage** — OPEN: requires architectural change; low immediate risk as token is removed from URL after read
 - **Missing JSON schema validation on AI responses** — OPEN
-- **xlsx prototype pollution / ReDoS** — OPEN: no upstream fix; sanitize input before parsing as workaround
-- **react-quill XSS** — OPEN: upstream fix is a breaking downgrade; evaluate editor replacement
+- ~~**react-quill XSS**~~ — ✅ CLOSED in v0.5.0: package was unused and has been removed
+- **xlsx prototype pollution / ReDoS** — LOW RESIDUAL RISK: xlsx is used write-only (`json_to_sheet` → `writeFile` from trusted internal data). The vulnerabilities are in the parse path which is never called. No user-supplied files are parsed.
 
 ---
 
@@ -63,8 +63,8 @@ jspdf updated to latest; HTML injection vulnerability (CVSS 9.6) eliminated.
 
 | Package | CVE | Issue | Status |
 |---------|-----|-------|--------|
-| xlsx * | GHSA-4r6h-8v6p-xvw6 | Prototype pollution + ReDoS | ❌ No fix available — mitigate by sanitizing input before parsing |
-| quill / react-quill | GHSA-4943-9vgg-gr5r | XSS | ❌ Fix requires breaking downgrade — evaluate replacement with a maintained editor |
+| xlsx * | GHSA-4r6h-8v6p-xvw6 | Prototype pollution + ReDoS | ⚠️ No fix — LOW RESIDUAL RISK: write-only use (`json_to_sheet`/`writeFile`), parse path never invoked |
+| ~~quill / react-quill~~ | ~~GHSA-4943-9vgg-gr5r~~ | ~~XSS~~ | ✅ RESOLVED v0.5.0: package removed (was unused) |
 
 **CI gate added**: `npm audit --audit-level=high` now runs in CI and blocks merges on new high/critical vulnerabilities.
 
