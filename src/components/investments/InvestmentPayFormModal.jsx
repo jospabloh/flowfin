@@ -13,29 +13,26 @@ export default function InvestmentPayFormModal({
     <AnimatePresence>
       {show && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[200]"
+            className="fixed inset-0 bg-black/60 z-[300]"
             onClick={onClose}
           />
+
+          {/* Bottom sheet — mismo patrón que el resto de la app */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
             onClick={e => e.stopPropagation()}
-            className="fixed z-[201] bg-card rounded-2xl border border-border shadow-2xl flex flex-col"
-            style={{
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 'calc(100vw - 2rem)',
-              maxWidth: '420px',
-              maxHeight: '85vh',
-            }}
+            className="fixed bottom-0 left-0 right-0 z-[301] bg-card rounded-t-3xl border-t border-border flex flex-col"
+            style={{ maxHeight: '90vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
           >
+            {/* Handle */}
+            <div className="w-12 h-1 bg-muted rounded-full mx-auto mt-3 flex-shrink-0" />
+
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 pt-4 pb-4 flex-shrink-0">
               <h3 className="font-bold text-foreground text-base">{title}</h3>
               <button onClick={onClose} className="p-2 rounded-xl bg-muted hover:bg-border transition-colors">
                 <X className="w-4 h-4" />
@@ -112,19 +109,19 @@ export default function InvestmentPayFormModal({
               </div>
             </div>
 
-            {/* Footer — siempre visible */}
-            <div className="flex-shrink-0 px-5 pt-3 pb-5 border-t border-border">
+            {/* Footer siempre visible */}
+            <div className="flex-shrink-0 px-5 pt-3 pb-6 border-t border-border">
               {(!form.person_id || !form.category_id) && form.amount && (
                 <p className="text-xs text-muted-foreground text-center mb-2">* Selecciona persona y rubro para continuar</p>
               )}
               <div className="flex gap-2">
                 <button onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">
+                  className="flex-1 py-3 rounded-xl bg-muted text-foreground text-sm font-medium">
                   Cancelar
                 </button>
                 <button onClick={onSave}
                   disabled={!form.amount || !form.person_id || !form.category_id}
-                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
                   Confirmar pago
                 </button>
               </div>
