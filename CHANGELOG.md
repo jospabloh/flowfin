@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-01
+
+### 🔒 Security / Code Quality (All Tenants)
+- **LOW**: Removed unused `Info` import in `src/components/finia/FiniaMessageBubble.jsx` — resolves ESLint lint failure that blocked clean CI runs.
+
+### 📚 Documentation
+- **Retroactive CHANGELOG entry for v0.3.0** — dependency security updates, CSP headers, and CI audit gate from PR #110 are now formally documented.
+- Updated `SECURITY_AUDIT_REPORT.md` with v0.4.0 audit status, confirmed remaining open items, and closed previously outstanding findings.
+- Updated `USER_MANUAL.md` with current permission model and release notes.
+
+### 🔖 Version
+- Bumped package.json from 0.2.0 → 0.4.0 (v0.3.0 code changes were shipped in PR #110 without a version bump; this release formally documents the 0.3.0 delta and adds the current 0.4.0 fixes).
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **HIGH**: xlsx prototype pollution/ReDoS (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) — no upstream fix; sanitize file input before parsing.
+- **MODERATE**: react-quill/quill XSS (GHSA-4943-9vgg-gr5r) — upstream fix requires breaking downgrade; evaluate editor replacement.
+- **HIGH**: Authentication tokens stored in localStorage — architectural change required; low immediate risk since token is removed from URL after use.
+- **INFO**: WaitlistAdmin backend function `listWaitlist` server-side authorization not verified in this audit — ensure backend enforces platform-admin role check independently.
+
+---
+
+## [0.3.0] - 2026-06-01
+
+> **Note**: These changes were shipped in PR #110 (`claude/hopeful-euler-9kai9`) without a formal CHANGELOG entry or version bump. Retroactively documented here.
+
+### 🔒 Security Fixes (All Tenants)
+- **CRITICAL → RESOLVED**: jsPDF updated to v4.2.1, eliminating HTML injection vulnerability (GHSA-wfv2-pwc8-crg5, CVSS 9.6).
+- **HIGH × 8 → RESOLVED**: `npm audit fix` applied — axios, flatted, lodash, minimatch, picomatch, rollup, socket.io-parser, vite all updated to safe versions.
+- **NEW**: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy headers added to `public/_headers`.
+- **NEW**: `npm-audit` CI job added to `.github/workflows/ci.yml` — blocks merges on critical dependency vulnerabilities.
+- **NEW**: `setup-deno` upgraded to v2 in `.github/workflows/deno.yml`.
+- Permission gates added to Goals, Messages, and Trips pages (`usePermission` for action-level gating).
+
+### 📚 Documentation
+- `SECURITY_AUDIT_REPORT.md` updated with v0.3.0 resolution status.
+
+### ⚠️ Remaining After v0.3.0
+- xlsx and react-quill/quill vulnerabilities remain — no upstream fix.
+- Token storage in localStorage — architectural concern.
+- npm audit vulnerability count: 3 (0 critical, 1 high [xlsx], 2 moderate [quill]).
+
+---
+
 ## [0.2.0] - 2026-06-01
 
 ### 🔒 Security Fixes (All Tenants)
