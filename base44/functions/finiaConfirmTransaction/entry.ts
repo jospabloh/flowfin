@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       'salidas': ['salidas', 'restaurante', 'bar', 'café', 'cafe'],
     };
 
-    const semanticFind = (list, nameHint, _txType) => {
+    const semanticFind = (list, nameHint) => {
       if (!nameHint) return null;
       const n = norm(nameHint);
       // Try each semantic group
@@ -112,11 +112,11 @@ Deno.serve(async (req) => {
     let catCheck = fuzzyFind(allCats || [], category_id, body.category_name);
     // Last resort: semantic inference from name hint
     if (!catCheck && body.category_name) {
-      catCheck = semanticFind(allCats || [], body.category_name, type);
+      catCheck = semanticFind(allCats || [], body.category_name);
     }
     // Absolute last resort: if description/concept mentions food words, try to find food category
     if (!catCheck && description) {
-      catCheck = semanticFind(allCats || [], description, type);
+      catCheck = semanticFind(allCats || [], description);
     }
 
     const personCheck = fuzzyFind(allPersons || [], person_id, body.person_name);
