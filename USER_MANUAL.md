@@ -1,7 +1,7 @@
 # FlowFin User Manual
 
-**Version**: 0.1.0  
-**Last Updated**: June 1, 2026  
+**Version**: 0.2.0
+**Last Updated**: June 1, 2026
 **Status**: BETA (Development Stage)
 
 ---
@@ -23,8 +23,10 @@ For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_A
 5. [AI Assistant (Finia)](#ai-assistant-finia)
 6. [Family Features](#family-features)
 7. [Advanced Features](#advanced-features)
-8. [Troubleshooting](#troubleshooting)
-9. [Latest Updates (v0.1.0)](#latest-updates-v010)
+8. [New Features (v0.2.0)](#new-features-v020)
+9. [Troubleshooting](#troubleshooting)
+10. [Latest Updates (v0.2.0)](#latest-updates-v020-release-notes)
+11. [Previous Release (v0.1.0)](#previous-release-v010)
 
 ---
 
@@ -309,19 +311,65 @@ Finia is FlowFin's intelligent financial assistant powered by AI.
 
 ### Roles & Permissions
 
-| Action | Admin | Editor | Viewer |
-|--------|-------|--------|--------|
-| View transactions | ✅ | ✅ | ✅ |
-| Add transactions | ✅ | ✅ | ❌ |
-| Edit transactions | ✅ | ✅* | ❌ |
-| Delete transactions | ✅ | ❌ | ❌ |
-| Manage budgets | ✅ | ✅ | ❌ |
-| Manage goals | ✅ | ✅ | ❌ |
-| Invite members | ✅ | ❌ | ❌ |
-| Remove members | ✅ | ❌ | ❌ |
-| Manage roles | ✅ | ❌ | ❌ |
+FlowFin uses two family-level roles: **Admin** and **Member**. A platform-level Admin role also exists for system management (Waitlist Admin).
 
-*Editors can edit only their own transactions
+**Default permissions by role** (admin can customize all of these via the Permission Admin panel):
+
+| Feature / Action | Admin | Member (Default) |
+|-----------------|-------|-----------------|
+| **Dashboard** | | |
+| View dashboard & summaries | ✅ | ✅ |
+| **Transactions** | | |
+| View transactions | ✅ | ✅ |
+| Create transactions | ✅ | ✅ |
+| Edit transactions | ✅ | ✅ |
+| Delete transactions | ✅ | ✅ |
+| Export to Excel | ✅ | ✅ |
+| **Budget** | | |
+| View budgets | ✅ | ✅ (read-only) |
+| **Scheduled Payments** | | |
+| View scheduled payments | ✅ | ✅ |
+| Create/mark/manage payments | ✅ | ❌ |
+| **Reports** | | |
+| View all report types | ✅ | ✅ |
+| Export PDF/Image | ✅ | ✅ |
+| Share reports | ✅ | ❌ |
+| **AI Assistant (Finia)** | | |
+| Chat, voice, receipt scan | ✅ | ✅ |
+| Clear conversation | ✅ | ✅ |
+| **Goals** | | |
+| View goals | ✅ | ✅ |
+| Create / Edit / Delete goals | ✅ | ❌ |
+| **Messages** | | |
+| View inbox & threads | ✅ | ✅ |
+| Send / Delete messages | ✅ | ❌ |
+| **Savings Dashboard** | | |
+| View savings opportunities | ✅ | ❌ |
+| **Trips** | | |
+| View trips & expenses | ✅ | ✅ |
+| Create / Manage / Close trips | ✅ | ❌ |
+| **Investments** | | |
+| View investments & details | ✅ | ✅ |
+| Create / Edit / Delete investments | ✅ | ❌ |
+| Record / View payment history | ✅ | ❌ |
+| **Rentals** | | |
+| View properties & details | ✅ | ✅ |
+| Create / Edit / Delete properties | ✅ | ❌ |
+| Record / Reverse rental payments | ✅ | ❌ |
+| **MSI (Installments)** | | |
+| View MSI list & tracking | ✅ | ✅ |
+| Create / Edit / Delete MSI | ✅ | ❌ |
+| Record MSI payments | ✅ | ❌ |
+| **Catalogs** | | |
+| View categories, persons, methods | ✅ | ✅ |
+| Create / Edit / Delete catalogs | ✅ | ❌ |
+| **Family Admin** | | |
+| View / Invite / Remove members | ✅ | ❌ |
+| Manage billing & plan | ✅ | ❌ |
+| **Permission Admin** | | |
+| View & edit permission matrix | ✅ | ❌ |
+
+> **Note**: All member defaults marked ❌ can be unlocked by an Admin via Settings → Permissions.
 
 ### Family Rules
 - Set rules for transaction categorization
@@ -333,6 +381,99 @@ Finia is FlowFin's intelligent financial assistant powered by AI.
 - Receive alerts when family member adds large transactions
 - Budget threshold notifications
 - Goal milestone celebrations
+
+---
+
+---
+
+## New Features (v0.2.0)
+
+### 7. Financial Goals
+Track personal and family savings goals with progress visualization.
+
+**Features**:
+- Create savings goals with a target amount and deadline
+- View a goal card with progress percentage and remaining balance
+- Edit or delete goals at any time
+- Share goal progress cards (admin permission required)
+- Goal data derived automatically from linked transactions
+
+**Access**: Main menu → Metas (Goals)
+
+**Permissions**:
+- Members: can **view** goal list and individual goal details by default
+- To create, edit, or delete goals: admin must grant `goals.manage` permission
+
+---
+
+### 8. Family Messages
+Send categorized financial notes between family members.
+
+**Features**:
+- Compose messages with categories: General, Payment, Income, Movement
+- View incoming and sent message threads
+- Message subject and body with timestamp
+- Select recipient from family member list
+- Filter threads by category
+
+**Access**: Main menu → Mensajes (Messages)
+
+**Permissions**:
+- Members: can **view** inbox and threads by default
+- To send or delete messages: admin must grant `messages.manage` permission
+
+---
+
+### 9. Savings Dashboard
+AI-powered savings opportunity analysis based on the last 6 months of transactions.
+
+**Features**:
+- **Estimated monthly savings**: total identified savings potential
+- **Forgotten subscriptions**: recurring charges that may no longer be needed
+- **Non-essential opportunities**: discretionary spending areas to consider reducing
+- **Refresh**: re-run the analysis against latest transactions
+- All amounts shown in your family's configured currency
+
+**Access**: Main menu → Ahorros (Savings)
+
+**Permissions**:
+- Members: no access by default
+- Admin must explicitly grant `savings.view` permission to allow member access
+
+---
+
+### 10. Trips
+Track travel expenses grouped by destination.
+
+**Features**:
+- Create a trip with name, destination, and travel dates
+- Associate transactions to a trip via `trip_id`
+- View active trips with cumulative expenses
+- View trip history (closed trips)
+- Spending breakdown by category within a trip
+
+**Access**: Main menu → Viajes (Trips)
+
+**Permissions**:
+- Members: can **view** trip list, details, and expenses by default
+- To create, edit, close, or delete trips: admin must grant `trips.manage` permission
+- Note: Trips access is also subject to the billing feature gate for your plan
+
+---
+
+### 11. Waitlist Admin *(Platform Administrators Only)*
+Manage the FlowFin user waitlist.
+
+**Features**:
+- View all waitlist entries with status (pending, invited, joined)
+- Search and filter by name, email, or status
+- Invite individual users from the waitlist
+- Bulk-invite multiple pending users at once
+- Track invite totals: total, pending, invited, joined
+- Export waitlist data
+
+**Access**: Admin panel → Waitlist Admin
+**Requirement**: Platform-level admin account (`role === 'admin'`). This page is hidden from all family-level admin and member accounts.
 
 ---
 
@@ -465,65 +606,66 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.1.0)
+## Latest Updates (v0.2.0 Release Notes)
 
-### New in v0.1.0 (June 1, 2026)
+### New in v0.2.0 (June 1, 2026)
 
-#### 🔒 Security Improvements (CRITICAL)
-- **Security Audit Completed**: Comprehensive review of all code and dependencies
-- **Fixed Critical Vulnerabilities**:
-  - Updated jsPDF with HTML injection fix
-  - Updated Axios with 16+ security patches
-  - Fixed token storage security issues
-  - Added input validation for all numeric fields
-  - Implemented JSON schema validation
+#### 🔒 Security Fixes (All Tenants — Action May Be Required)
+- **CRITICAL PERMISSION FIX**: The `member` role previously had full admin-level permissions on Catalogs, Investments, Rentals, and MSI modules, allowing members to create, edit, and delete financial records that should be admin-controlled. **This is now corrected — members default to view-only for these modules.**
+- **Permission Reset Notice**: If any family has existing custom permission overrides granting members access to these modules, those overrides remain intact. The fix only affects the factory defaults applied to new families or when permissions are reset.
+- Budget view section permission corrected — members' `budget.view` no longer erroneously carries write/modify/delete flags.
+- Five new permission manifests added for Goals, Messages, Savings Dashboard, Trips, and Waitlist Admin.
+- Permission snapshot regenerated (187 permission entries).
 
-#### 📊 Feature Enhancements
-- **Transaction Calculator Widget**: Quick math in transaction entry
-- **Scheduled Payment Conversion**: Easy conversion of transactions to recurring
-- **Enhanced AI Assistant** (Finia):
-  - Improved response accuracy
-  - New quick action chips
-  - Better receipt parsing
-  
-#### 📱 UI/UX Improvements
-- Refreshed transaction entry modal
-- Better mobile responsiveness
-- Improved chart visualization
-- Enhanced category selection
+#### 🆕 New Features
+- **Goals** page: Create and track financial savings goals with progress visualization
+- **Messages** page: Send categorized financial notes between family members
+- **Savings Dashboard**: AI-powered analysis identifying forgotten subscriptions and savings opportunities
+- **Trips** page: Track expenses grouped by travel destination
+- **Waitlist Admin**: Platform admin tool for managing user waitlist (admin-only)
+- **Release Notes** page: In-app version history
 
 #### 🐛 Bug Fixes
-- Fixed NaN handling in amounts
-- Corrected API response validation
-- Improved error messages
-- Fixed layout issues on small screens
+- Deno linter errors resolved in backend functions (`finiaGetFinancialSummary`, `getAssistantContext`, `finiaConfirmTransaction`)
+- `let` → `const` and unused variable cleanup in backend Deno functions
 
-#### 📈 Performance
-- Reduced bundle size by 15%
-- Faster transaction loading
-- Optimized database queries
-- Improved image compression
+#### ⚠️ Known Issues in v0.2.0
+- **OPEN CRITICAL**: jsPDF HTML injection (GHSA-wfv2-pwc8-crg5) — `npm audit fix` not yet run
+- **OPEN HIGH**: Authentication tokens stored in localStorage — architectural redesign pending
+- **OPEN HIGH**: Trips page uses billing feature gate only, not full RBAC gate
+- **OPEN HIGH**: Messages page lacks explicit permission gate at page load
+- xlsx library pending upstream security fix
+- Test coverage <30% — comprehensive test suite planned for v0.3.0
 
-### Known Issues in v0.1.0
-- xlsx library pending security fix (upstream issue)
-- CSRF protection depends on Base44 SDK implementation
-- Test coverage being expanded (currently <30%)
-- Some accessibility features in progress
-
-### What's Next (v0.2.0 - Expected July 2026)
-- Comprehensive test suite (80%+ coverage)
+#### What's Next (v0.3.0 — Planned)
+- Apply `npm audit fix` to resolve 17+ open dependency vulnerabilities
+- Migrate token storage from localStorage to memory/HttpOnly cookies
+- Add RBAC permission gates to Trips and Messages pages
+- Comprehensive test suite targeting 80%+ coverage
 - Advanced reporting and analytics
 - Mobile app (iOS/Android)
 - Offline mode improvements
-- Additional language support
-- Dark mode refinements
 
-### Migration from Previous Versions
-If upgrading from v0.0.0:
-1. No breaking changes
-2. All data is preserved
-3. New security features are automatic
-4. No action required by users
+---
+
+## Previous Release (v0.1.0)
+
+### New in v0.1.0 (June 1, 2026)
+
+#### 📚 Documentation
+- Security Audit Report published (19 dependency vulnerabilities identified)
+- CHANGELOG, USER_MANUAL, and SECURITY.md created
+- Version updated from 0.0.0 to 0.1.0; package renamed from `base44-app` to `flowfin`
+
+#### 📊 Feature Enhancements
+- Transaction Calculator Widget
+- Scheduled Payment Conversion
+- Enhanced AI Assistant (Finia) with predictive chips
+- Refreshed transaction entry modal
+
+#### ⚠️ Known Issues (carry-forward to v0.2.0)
+- All 19 npm dependency vulnerabilities remain open
+- Token storage in localStorage unaddressed
 
 ---
 
@@ -597,11 +739,12 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 0.1.0 | 2026-06-01 | Initial user manual with security updates |
+| 0.2.0 | 2026-06-01 | Added Goals, Messages, Savings Dashboard, Trips, Waitlist Admin; updated permissions table; added v0.2.0 release notes |
+| 0.1.0 | 2026-06-01 | Initial user manual with security audit findings |
 
 ---
 
-**Last Updated**: June 1, 2026  
-**Next Update**: June 15, 2026 (after v0.1.1 patch release)
+**Last Updated**: June 1, 2026
+**Next Update**: June 15, 2026 (v0.3.0 patch release)
 
 For the latest updates, visit [CHANGELOG.md](./CHANGELOG.md)
