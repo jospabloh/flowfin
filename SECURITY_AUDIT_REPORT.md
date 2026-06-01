@@ -1,266 +1,190 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 1, 2026  
-**Auditor**: Claude Code Security Review  
-**Overall Risk Level**: **HIGH** (Critical vulnerabilities present)
+**Date**: June 1, 2026 (Updated)
+**Version Audited**: 0.2.0
+**Auditor**: Claude Code Security Review
+**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; code-level issues partially mitigated)
 
 ---
 
 ## Executive Summary
 
-A comprehensive security and code quality audit of the FlowFin application has been completed. The audit identified **19 dependency vulnerabilities** (1 Critical, 9 High, 9 Moderate) and **several critical code-level security issues**. The application is in early development stage (v0.0.0) and has a solid architectural foundation using Base44 SDK, but requires immediate attention to critical vulnerabilities before production deployment.
+This report consolidates findings from the initial audit (v0.1.0, June 1, 2026) and the current incremental audit (v0.2.0). The most significant new finding is a **permission privilege-escalation misconfiguration** affecting the `member` role across five modules: Catalogs, Investments, Rentals, MSI, and Budget. These have been **fixed in this release**. Five new pages (Goals, Messages, Savings Dashboard, Trips, Waitlist Admin) were added without permission manifests — all five have been created with secure defaults.
 
-**Status**: ⚠️ **NOT PRODUCTION-READY** - Critical issues must be addressed
+Dependency vulnerabilities remain largely unchanged from v0.1.0 (npm audit still shows 19 issues, 1 Critical). The CHANGELOG entry in v0.1.0 describing dependency fixes was aspirational and those updates were **not actually applied**; this is documented as a blocker below.
+
+**Status**: ⚠️ **NOT PRODUCTION-READY** — Critical dependency and token-security issues remain open
 
 ---
 
-## Dependency Vulnerabilities
+## What Changed Since v0.1.0
+
+### ✅ Fixed in v0.2.0
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | Member role had admin-level CRUD on Catalogs | `src/pages/permissions/catalogs.permissions.js` | HIGH |
+| 2 | Member role had admin-level CRUD on Investments | `src/components/investments/permissions.js` | HIGH |
+| 3 | Member role had admin-level CRUD + Payment Reversal on Rentals | `src/components/rentals/permissions.js` | HIGH |
+| 4 | Member role had admin-level CRUD on MSI (installment payments) | `src/pages/permissions/msi.permissions.js` | HIGH |
+| 5 | Member role had write/modify/delete on Budget view section | `src/pages/permissions/budget.permissions.js` | MEDIUM |
+| 6 | Goals page had no permission manifest | `src/pages/permissions/goals.permissions.js` (created) | HIGH |
+| 7 | Messages page had no permission manifest | `src/pages/permissions/messages.permissions.js` (created) | HIGH |
+| 8 | Savings Dashboard had no permission manifest | `src/pages/permissions/savings-dashboard.permissions.js` (created) | HIGH |
+| 9 | Trips page had no permission manifest | `src/pages/permissions/trips.permissions.js` (created) | MEDIUM |
+| 10 | Waitlist Admin had no permission manifest | `src/pages/permissions/waitlist-admin.permissions.js` (created) | MEDIUM |
+| 11 | Permission snapshot regenerated with 187 entries | `base44/functions/dailyPermissionAudit/permissionManifests.ts` | INFO |
+
+### ❌ Still Open from v0.1.0
+
+The following critical issues were documented in v0.1.0 but remain unaddressed:
+
+- **jsPDF HTML Injection** (CVSS 9.6 Critical) — `npm audit fix` not run
+- **Axios SSRF + Prototype Pollution** — not updated
+- **Token storage in localStorage** — not migrated to memory-only
+- **Insecure token extraction from URL parameters** — not fixed
+- **Missing JSON schema validation on AI responses** — not added
+- **No Content-Security-Policy headers** — not configured
+- **No npm audit step in CI pipeline** — not added
+
+---
+
+## Dependency Vulnerabilities (Current State)
+
+`npm audit` as of June 1, 2026 — **19 vulnerabilities (1 Critical, 9 High, 9 Moderate)**
 
 ### 🔴 CRITICAL (1)
 
-#### 1. jsPDF HTML Injection in New Window Paths
-- **Package**: jspdf@<=4.2.0
-- **CVE**: GHSA-wfv2-pwc8-crg5
-- **Severity**: CRITICAL (CVSS 9.6)
-- **Impact**: HTML injection leading to arbitrary code execution
-- **Affected Code**: Used in `/src/pages/` for PDF export functionality
-- **Action Required**: **UPDATE IMMEDIATELY** to jspdf@>4.2.0
-- **Command**: `npm install jspdf@latest`
+| Package | CVE | Issue | Fix |
+|---------|-----|-------|-----|
+| jspdf ≤4.2.0 | GHSA-wfv2-pwc8-crg5 (CVSS 9.6) | HTML injection → arbitrary code execution | `npm install jspdf@latest` |
+
+### 🟠 HIGH (9)
+
+| Package | CVE | Issue | Fixable |
+|---------|-----|-------|---------|
+| axios 1.0–1.15.2 | GHSA-pjwm-pj3p-43mv + 16 more | SSRF, prototype pollution, credential theft | ✅ `npm audit fix` |
+| flatted ≤3.4.1 | GHSA-25h7-pfq9-p65f | Unbounded recursion DoS, prototype pollution | ✅ |
+| lodash ≤4.17.23 | GHSA-r5fr-rjxr-66jc | Code injection via `_.template`, prototype pollution | ✅ |
+| minimatch ≤3.1.3 | GHSA-3ppc-4f35-3m26 | ReDoS | ✅ |
+| picomatch ≤2.3.1 | GHSA-c2c7-rcm5-vvqj | ReDoS via extglob | ✅ |
+| rollup 4.0–4.58 | GHSA-mw96-cpmx-2vgc | Path traversal → arbitrary file write | ✅ |
+| socket.io-parser 4.0–4.2.5 | GHSA-677m-j7p3-52f9 | DoS via binary attachment flood | ✅ |
+| vite ≤6.4.1 | GHSA-p9ff-h696-f583 | Arbitrary file read via dev WebSocket | ✅ |
+| xlsx * | GHSA-4r6h-8v6p-xvw6 | Prototype pollution + ReDoS | ❌ No fix available |
+
+### 🟡 MODERATE (9)
+
+ajv, brace-expansion, engine.io-client, follow-redirects, postcss, react-quill/quill, uuid, ws — all have fixes via `npm audit fix` except react-quill (requires major version bump).
+
+**Immediate action**: `npm audit fix` will resolve 17 of 19 issues. xlsx and react-quill require manual review.
 
 ---
 
-### 🔴 HIGH (9)
+## Permission System Audit (v0.2.0 Findings)
 
-#### 1. Axios Multiple Prototype Pollution & SSRF Vulnerabilities
-- **Package**: axios@1.0.0 - 1.15.2
-- **CVE**: GHSA-pjwm-pj3p-43mv (CVSS 8.6), GHSA-35jp-ww65-95wh (CVSS 8.7), and 16+ more
-- **Issues**: 
-  - NO_PROXY bypass leading to SSRF attacks
-  - Header injection via prototype pollution
-  - Credential theft via config merge
-  - Response hijacking
-- **Action Required**: **UPDATE TO axios@>=1.16.0**
-- **Command**: `npm install axios@latest`
+### Design Principle Applied
+- **Admin role**: all permissions `true` by default
+- **Member role**: all permissions `false` by default; admin explicitly grants access via Permission Admin panel
 
-#### 2. flatted Unbounded Recursion DoS & Prototype Pollution
-- **Package**: flatted@<=3.4.1
-- **CVE**: GHSA-25h7-pfq9-p65f (CVSS 7.5), GHSA-rf6f-7fwh-wjgh
-- **Issues**: DoS via deeply nested objects, prototype pollution
-- **Action Required**: **UPDATE TO flatted@>=3.4.2**
-- **Command**: `npm install flatted@latest`
+### Fixed Modules
 
-#### 3. lodash Code Injection & Prototype Pollution
-- **Package**: lodash@<=4.17.23
-- **CVE**: GHSA-r5fr-rjxr-66jc (CVSS 8.1), GHSA-f23m-r3pf-42rh
-- **Issues**: Code injection via `_.template`, prototype pollution via `_.unset`/`_.omit`
-- **Action Required**: **UPDATE TO lodash@>=4.17.24 OR replace with alternatives**
-- **Note**: lodash is largely superseded by native JS; consider migration
-- **Command**: `npm install lodash@latest`
+#### Catalogs (categories, subcategories, persons, payment methods)
+- **Before**: Members could create, edit, delete all catalog entries (identical to admin)
+- **After**: Members can only view catalog entries; CRUD actions are `false` and hidden
 
-#### 4. minimatch ReDoS (Regular Expression Denial of Service)
-- **Package**: minimatch@<=3.1.3
-- **CVE**: GHSA-3ppc-4f35-3m26, GHSA-7r86-cg39-jmmj, GHSA-23c5-xmqv-rm74 (CVSS 7.5)
-- **Issues**: Multiple ReDoS patterns causing application hang
-- **Action Required**: **UPDATE TO minimatch@>=3.1.4**
-- **Command**: `npm install minimatch@latest`
+#### Investments
+- **Before**: Members could create, edit, delete investments and record/view payment history
+- **After**: Members can only view the investment list and details; all CRUD and payment actions closed
 
-#### 5. picomatch ReDoS Vulnerabilities
-- **Package**: picomatch@<=2.3.1 or 4.0.0-4.0.3
-- **CVE**: GHSA-c2c7-rcm5-vvqj (CVSS 7.5)
-- **Issues**: ReDoS via extglob quantifiers causing DoS
-- **Action Required**: **UPDATE TO picomatch@>=2.3.2 or >=4.0.4**
-- **Command**: `npm install picomatch@latest`
+#### Rentals
+- **Before**: Members could register, edit, delete properties; record AND reverse rental payments
+- **After**: Members can only view property list and details; all management and payment actions closed
 
-#### 6. rollup Arbitrary File Write via Path Traversal
-- **Package**: rollup@4.0.0-4.58.0
-- **CVE**: GHSA-mw96-cpmx-2vgc (CVSS High)
-- **Issues**: Path traversal allowing write outside intended directory
-- **Action Required**: **UPDATE TO rollup@>=4.59.0**
-- **Command**: `npm install rollup@latest`
+#### MSI (Installment Payments)
+- **Before**: Members could create, edit, delete MSI records and record payments
+- **After**: Members can view MSI list, tracking, and detail sheet only; CRUD and payment actions closed
 
-#### 7. socket.io-parser Unbounded Binary Attachments
-- **Package**: socket.io-parser@4.0.0-4.2.5
-- **CVE**: GHSA-677m-j7p3-52f9
-- **Issues**: DoS via unbounded number of binary attachments
-- **Action Required**: **UPDATE TO socket.io-parser@>=4.2.6**
-- **Command**: `npm install socket.io-parser@latest`
+#### Budget
+- **Before**: Members' `budget.view` section had `can_write`, `can_modify`, `can_delete` all `true`
+- **After**: Fixed to read-only (`can_read: true, can_view: true`, all others `false`)
 
-#### 8. vite Arbitrary File Read via WebSocket
-- **Package**: vite@<=6.4.1
-- **CVE**: GHSA-p9ff-h696-f583 (CVSS High)
-- **Issues**: Unauthenticated arbitrary file read via dev server WebSocket
-- **Action Required**: **UPDATE TO vite@>=6.4.2**
-- **Command**: `npm install vite@latest`
+### New Permission Manifests Added
 
-#### 9. xlsx Prototype Pollution & ReDoS
-- **Package**: xlsx@* (all versions affected)
-- **CVE**: GHSA-4r6h-8v6p-xvw6 (CVSS 7.8), GHSA-5pgg-2g8v-p4x9 (CVSS 7.5)
-- **Issues**: Prototype pollution, ReDoS
-- **Action Required**: **MONITOR for xlsx@>=0.20.2 fix**
-- **Note**: No fix available yet; monitor https://github.com/SheetJS/sheetjs
-- **Alternative**: Consider alternative spreadsheet libraries if available
-
----
-
-### 🟠 MODERATE (9)
-
-| Package | CVE | Issue | Action |
-|---------|-----|-------|--------|
-| ajv | GHSA-2g4f-4pwh-qvx6 | ReDoS with $data option | Update to >=6.14.0 |
-| brace-expansion | GHSA-f886-m6hf-6m8v | Zero-step sequence hang | Update to >=1.1.13 |
-| engine.io-client | via ws | Uninitialized memory | Update to >=6.6.5 |
-| follow-redirects | GHSA-r4q5-vmmm-2653 | Auth header leak on redirect | Update to >=1.15.12 |
-| postcss | GHSA-qx2v-qp2m-jg93 | XSS via </style> injection | Update to >=8.5.10 |
-| quill/react-quill | GHSA-4943-9vgg-gr5r | XSS vulnerability | Update react-quill to >=2.0.0 |
-| uuid | GHSA-w5hq-g745-h8pq | Buffer bounds check | Update to >=13.0.1 |
-| ws | GHSA-58qx-3vcg-4xpx | Uninitialized memory disclosure | Update to >=8.20.1 |
+| Page | Module Key | Order | Member Default |
+|------|-----------|-------|----------------|
+| Goals | `module.Goals` | 12 | View only; CRUD closed |
+| Messages | `module.Messages` | 20 | View only; Send/Delete closed |
+| Savings Dashboard | `module.SavingsDashboard` | 22 | All closed (admin explicit grant) |
+| Trips | `module.Trips` | 23 | View only; Manage closed |
+| Waitlist Admin | `module.WaitlistAdmin` | 24 | All closed (platform admin only) |
 
 ---
 
 ## Code-Level Security Issues
 
-### 🔴 CRITICAL (3)
+### 🔴 CRITICAL (3) — UNRESOLVED FROM v0.1.0
 
 #### 1. Sensitive Token Storage in localStorage
 - **Files**: `/src/lib/app-params.js` (lines 38-40, 44)
-- **Issue**: Access tokens stored in localStorage without HttpOnly flag protection
-- **Risk**: Complete account compromise if XSS vulnerability exists
-- **Impact**: Tokens can be extracted via XSS, persist on device
-- **Recommendation**:
-  - Migrate to memory-only token storage (session)
-  - Implement refresh token rotation
-  - Use secure HTTP-only cookies for sensitive tokens
-  - Never store authentication tokens in URL parameters
+- **Risk**: Tokens extractable via XSS → complete account takeover
+- **Status**: ❌ Not fixed
 
 #### 2. Insecure Token Extraction from URL Parameters
 - **Files**: `/src/lib/app-params.js` (lines 14-25)
-- **Issue**: Authentication tokens in URL query parameters get cached in:
-  - Browser history
-  - Server access logs
-  - Proxy/CDN logs
-  - Referrer headers
-- **Risk**: Token exposure across multiple systems
-- **Recommendation**:
-  - Use server-side token exchange flow
-  - Use fragment-based routing (#) instead of query parameters
-  - Implement post-login redirect that removes tokens from URL
+- **Risk**: Tokens in browser history, server logs, referrer headers
+- **Status**: ❌ Not fixed
 
 #### 3. Unsafe JSON Parsing of Untrusted AI Responses
 - **Files**: `/src/pages/Capture.jsx` (line 243)
-- **Issue**: `JSON.parse(assistantMsg.content.replace(...))`without schema validation
-- **Risk**: Code injection if AI response is compromised or malformed
-- **Recommendation**:
-  - Add JSON schema validation using Zod
-  - Validate all fields before using in application
-  - Sanitize assistant responses before parsing
+- **Risk**: Schema-less parse of AI output; potential code injection if AI is compromised
+- **Status**: ❌ Not fixed
 
----
+### 🟠 HIGH (5) — UNRESOLVED FROM v0.1.0
 
-### 🟠 HIGH (5)
+1. Missing input validation on numeric fields (`TransactionEditModal.jsx:89`, `Capture.jsx:125-128`)
+2. Unvalidated external API response from exchange rate service (`exchangeRateService.js:9-14`)
+3. Missing CSRF protection mechanism
+4. Base44 SDK `requiresAuth: false` may bypass auth (`base44Client.js:7-14`)
+5. No Content-Security-Policy headers in vite config
 
-#### 1. Missing Input Validation on Numeric Fields
-- **Files**: 
-  - `/src/components/TransactionEditModal.jsx` (line 89)
-  - `/src/pages/Capture.jsx` (lines 125-128)
-- **Issue**: `parseFloat()` results not checked for NaN before storage
-- **Risk**: Data integrity issues, silent calculation failures
-- **Recommendation**:
-  ```javascript
-  const amount = parseFloat(form.amount);
-  if (isNaN(amount) || amount <= 0) {
-    throw new Error('Invalid amount');
-  }
-  ```
+### 🟠 HIGH (4) — NEW IN v0.2.0
 
-#### 2. Unvalidated External API Response
-- **Files**: `/src/services/exchangeRateService.js` (lines 9-14)
-- **Issue**: No validation of exchange rate API response structure
-- **Risk**: Corrupted or malicious data used in financial calculations
-- **Recommendation**:
-  ```javascript
-  if (!data?.rates || typeof data.rates !== 'object') {
-    throw new Error('Invalid exchange rate response');
-  }
-  ```
+#### 6. Missing Trips Permission Enforcement (Partial)
+- **File**: `/src/pages/Trips.jsx`
+- **Issue**: Page uses `useFeatureGate('page.Trips')` which is a billing gate, NOT the new `trips.permissions.js` RBAC gate
+- **Risk**: Feature-gate bypass doesn't enforce family-level RBAC
+- **Recommendation**: Add `usePermission('trips.view.list')` guard alongside the feature gate
 
-#### 3. Missing CSRF Protection Mechanism
-- **Impact**: State-changing operations vulnerable to CSRF attacks
-- **Recommendation**:
-  - Verify Base44 SDK implements CSRF token validation
-  - Add explicit CSRF tokens to sensitive operations
-  - Use SameSite cookies
+#### 7. WaitlistAdmin Relies on Role Check Only
+- **File**: `/src/pages/WaitlistAdmin.jsx` (line: `const isPlatformAdmin = currentUser?.role === 'admin'`)
+- **Issue**: Authorization is a simple client-side role string comparison; no server-side verification visible
+- **Risk**: Role spoofing if currentUser is tampered with
+- **Recommendation**: Enforce platform-admin check server-side in the `listWaitlist` backend function
 
-#### 4. Base44 SDK Configuration Risk
-- **Files**: `/src/api/base44Client.js` (lines 7-14)
-- **Issue**: `requiresAuth: false` may bypass auth for operations
-- **Recommendation**: Review and verify all Base44 operations require auth server-side
+#### 8. Messages Page — No Authorization on Message Access
+- **File**: `/src/pages/Messages.jsx`
+- **Issue**: No permission gate visible at page load; any authenticated user can view/send messages
+- **Recommendation**: Add `usePermission('messages.view.inbox')` guard; enforce recipient ownership server-side
 
-#### 5. No Content Security Policy Headers
-- **Impact**: XSS attacks not mitigated at browser level
-- **Recommendation**:
-  - Add CSP header to vite.config.js
-  - Example:
-    ```javascript
-    headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
-    }
-    ```
+#### 9. Goals Page — Delete Without Confirmation
+- **File**: `/src/pages/Goals.jsx`
+- **Issue**: `deleteMutation` called directly on `handleDelete`; no confirmation dialog observed in page code
+- **Risk**: Accidental permanent data loss
+- **Recommendation**: Add confirmation dialog before delete mutation
 
----
+### 🟡 MEDIUM (6) — UNRESOLVED FROM v0.1.0
 
-### 🟡 MEDIUM (6)
+1. Inadequate error logging with potential PII (AuthContext.jsx, AIUsage.jsx)
+2. Unencrypted sensitive data in localStorage (useTutorialState.js, useMemory.js, FamilyContext.jsx)
+3. Missing rate limiting on AI API calls (Capture.jsx:108-120)
+4. Insufficient JSON.parse validation (FloatingActionButton.jsx:38, navigationStack.js:56,81)
+5. Analytics data exposure in PostHog (analytics.js:21-22)
+6. Unencrypted receipt images in storage (receiptCompression.js)
 
-#### 1. Inadequate Error Logging with Potential PII
-- **Files**: Multiple (AuthContext.jsx:49,80,99; AIUsage.jsx:134)
-- **Issue**: Error objects logged directly without sanitization
-- **Risk**: Sensitive information exposure in logs
-- **Recommendation**: Sanitize error objects before logging
+### 🟢 LOW (2) — UNRESOLVED FROM v0.1.0
 
-#### 2. Unencrypted Sensitive Data in localStorage
-- **Files**:
-  - `/src/hooks/useTutorialState.js` (line 76)
-  - `/src/hooks/useMemory.js` (line 19)
-  - `/src/lib/FamilyContext.jsx` (line 132)
-- **Issue**: User preferences and rules stored unencrypted
-- **Risk**: Device theft exposes user configuration
-- **Recommendation**: Encrypt sensitive localStorage data or use memory-only storage
-
-#### 3. Missing Rate Limiting on API Calls
-- **Files**: `/src/pages/Capture.jsx` (lines 108-120)
-- **Issue**: Sequential API calls without debounce or rate limit
-- **Risk**: DoS against external services, service disruption
-- **Recommendation**: Add rate limiting with debounce/throttle
-
-#### 4. Insufficient JSON.parse Validation
-- **Files**: Multiple (FloatingActionButton.jsx:38; navigationStack.js:56,81)
-- **Issue**: Parsed JSON not validated against schema
-- **Risk**: Invalid state causing app errors
-- **Recommendation**: Use Zod schemas for validation
-
-#### 5. Analytics Data Exposure
-- **Files**: `/src/lib/analytics.js` (lines 21-22)
-- **Issue**: PostHog sends user events, monitor for PII exposure
-- **Risk**: User behavior tracking, potential PII leakage
-- **Recommendation**: Audit event payloads for PII, implement anonymization
-
-#### 6. Unencrypted Receipt Images in Storage
-- **Files**: `/src/lib/receiptCompression.js`
-- **Issue**: Receipt images compressed without encryption
-- **Risk**: PII exposure (names, card numbers, addresses in images)
-- **Recommendation**: Encrypt receipt images at rest and in transit
-
----
-
-### 🟢 LOW (2)
-
-#### 1. XSS via dangerouslySetInnerHTML (Low Risk)
-- **Files**: `/src/components/ui/chart.jsx` (lines 61-75)
-- **Status**: Currently SAFE (static config data)
-- **Risk**: HIGH if config becomes dynamic
-- **Recommendation**: Replace with JSX style elements or use Template literals
-
-#### 2. Overly Broad Error Suppression
-- **Issue**: Silent try-catch blocks hiding security errors
-- **Recommendation**: Log/alert security-related errors appropriately
+1. XSS via dangerouslySetInnerHTML in chart.jsx (currently safe, risk if config becomes dynamic)
+2. Overly broad error suppression (silent try-catch blocks)
 
 ---
 
@@ -269,44 +193,32 @@ A comprehensive security and code quality audit of the FlowFin application has b
 ### ✅ Strengths
 - Deno test infrastructure in place (`base44/functions/_agentGuard.test.ts`)
 - CI/CD pipeline with linting and testing (GitHub Actions)
-- Type checking enabled (TypeScript)
+- TypeScript/JSDoc type checking enabled
+- Permission snapshot auto-sync in build pipeline
 
-### ⚠️ Gaps
-- **No unit tests for React components** (Capture.jsx, AIUsage.jsx, etc.)
-- **No integration tests** for authentication flow
-- **No security/penetration tests**
-- **Test coverage**: Likely <30% (focused on backend functions only)
-
-### Recommendations
-1. Add unit tests for all components using Vitest
-2. Add integration tests for auth flow
-3. Add security-focused tests (input validation, XSS vectors)
-4. Aim for 80%+ code coverage before production
-5. Consider OWASP ZAP or similar for penetration testing
+### ⚠️ Gaps (Unchanged from v0.1.0)
+- No unit tests for React components
+- No integration tests for auth or permissions flow
+- No security/penetration tests
+- Estimated coverage: <30%
 
 ---
 
 ## CI/CD Pipeline Assessment
 
 ### ✅ Current Implementation
-- Deno linting enabled
-- Deno tests running on push/PR
+- Deno linting and tests on push/PR
 - GitHub Actions workflow configured
-- Pinned action versions (deno@v1.1.2)
+- Permission snapshot sync in build script
+- Docs snapshot sync in build script
 
-### ⚠️ Gaps
-- **No npm audit** in CI pipeline
-- **No dependency scanning** for vulnerabilities
-- **No SAST** (Static Application Security Testing)
-- **No build security checks**
-- **No production deployment verification**
+### ⚠️ Gaps (Unchanged from v0.1.0)
+- No `npm audit` step in CI
+- No SAST tooling
+- No Dependabot configured
+- No secrets scanning
 
-### Recommendations
-1. Add `npm audit` step before build
-2. Add Dependabot for automated dependency updates
-3. Add SAST with ESLint security plugin
-4. Add build verification step
-5. Require security checks to pass before merge
+**Recommendation**: Add `npm audit --audit-level=high` as a required CI step before build.
 
 ---
 
@@ -315,131 +227,65 @@ A comprehensive security and code quality audit of the FlowFin application has b
 ### ✅ Strengths
 - Base44 SDK provides secure data layer
 - Entity-based access control
-- Role-based permission system
+- Role-based permission system with aggregated manifests
 - Protected routes implementation
-- No SQL injection vectors (entity API)
+- Permission Admin panel for runtime permission customization
+- Secure defaults: admin=all-true, member=all-false (now enforced after this audit)
 
 ### ⚠️ Concerns
 - Heavy reliance on Base44 SDK (proprietary vendor lock-in)
-- Limited visibility into authentication implementation
-- No documented security model
-- No security.md or vulnerability disclosure policy
-
----
-
-## Documentation Assessment
-
-### ✅ Present
-- README.md with basic setup instructions
-- permissions-coverage.md
-
-### ❌ Missing
-- CHANGELOG.md (needed)
-- User Manual / Feature Documentation
-- Security Policy / SECURITY.md
-- Contributing Guidelines
-- Incident Response Procedures
-- Data Privacy Policy
-- Terms of Service
+- Client-side role checks not backed by server-side verification (WaitlistAdmin)
+- Several pages bypass RBAC and rely on feature gates alone (Trips)
+- localStorage token storage (critical architectural concern)
 
 ---
 
 ## Summary Table
 
-| Category | Status | Priority |
-|----------|--------|----------|
-| **Dependency Vulnerabilities** | 19 found | CRITICAL |
-| **Token Security** | UNSAFE | CRITICAL |
-| **Input Validation** | INCOMPLETE | HIGH |
-| **XSS Prevention** | ADEQUATE | MEDIUM |
-| **CSRF Protection** | UNCLEAR | HIGH |
-| **Error Handling** | NEEDS WORK | MEDIUM |
-| **Test Coverage** | LOW (<30%) | HIGH |
-| **CI/CD Security** | INCOMPLETE | HIGH |
-| **Documentation** | POOR | MEDIUM |
-| **Overall Status** | NOT PRODUCTION READY | CRITICAL |
+| Category | Status | Severity | Change |
+|----------|--------|----------|--------|
+| Dependency Vulnerabilities (19) | Open | CRITICAL/HIGH | Unchanged |
+| Token Security (localStorage) | Open | CRITICAL | Unchanged |
+| Permission Privilege Escalation (5 modules) | **FIXED** | HIGH | ✅ Fixed v0.2.0 |
+| Missing Permission Manifests (5 pages) | **FIXED** | HIGH | ✅ Fixed v0.2.0 |
+| Input Validation | Open | HIGH | Unchanged |
+| XSS/CSRF Prevention | Open | HIGH | Unchanged |
+| New Page Authorization Issues (4) | Open | HIGH | New in v0.2.0 |
+| Error Handling / PII Logging | Open | MEDIUM | Unchanged |
+| Test Coverage (<30%) | Open | HIGH | Unchanged |
+| CI/CD Security Gaps | Open | HIGH | Unchanged |
 
 ---
 
-## Immediate Action Items (First 48 Hours)
+## Immediate Action Items (Blocking)
 
-1. ✅ **Update jsPDF** (Critical vulnerability)
+1. **Run `npm audit fix`** — resolves 17/19 dependency vulnerabilities immediately
    ```bash
-   npm install jspdf@latest
    npm audit fix
+   npm install jspdf@latest
    ```
 
-2. ✅ **Update Axios** (Multiple critical vulnerabilities)
-   ```bash
-   npm install axios@latest
-   ```
+2. **Fix token storage** — migrate from localStorage to memory/HttpOnly cookies
 
-3. ✅ **Update all HIGH severity packages**
-   ```bash
-   npm audit fix --force
-   ```
+3. **Add server-side authorization** to WaitlistAdmin backend function
 
-4. 📝 **Review and fix token storage**
-   - Migrate from localStorage to memory
-   - Remove tokens from URL parameters
+4. **Add permission gate to Trips page** — use `usePermission('trips.view.list')` alongside feature gate
 
-5. 📝 **Add JSON schema validation**
-   - Validate AI responses
-   - Validate API responses
-
-6. 📝 **Add Content-Security-Policy headers**
-   - Configure in vite.config.js or deployment
-
----
-
-## Medium-Term Actions (1-2 Weeks)
-
-1. Implement comprehensive test suite (aim for 80% coverage)
-2. Add npm audit to CI pipeline
-3. Set up Dependabot for automated dependency updates
-4. Audit and encrypt sensitive localStorage data
-5. Implement rate limiting on API calls
-6. Add CSRF token validation
-7. Create security documentation
-
----
-
-## Long-Term Recommendations (1-3 Months)
-
-1. Conduct professional penetration test
-2. Implement security audit logging
-3. Set up security incident response procedures
-4. Create user manual and privacy documentation
-5. Consider SOC 2 compliance if handling financial data
-6. Implement secrets scanning in CI/CD
-7. Plan for regular security audits (quarterly)
+5. **Add permission gate to Messages page** — use `usePermission('messages.view.inbox')`
 
 ---
 
 ## Compliance & Regulatory Notes
 
-⚠️ **Important**: This application handles **financial data** and **family information**.
+⚠️ Application handles **financial data** and **family PII**.
 
-- **PCI-DSS Compliance**: If handling credit card data, requires Level 1 or 2 certification
-- **GDPR Compliance**: If serving EU users, requires data protection audit
-- **SOC 2**: Recommended for financial applications handling sensitive data
-- **Current Status**: NOT compliant - requires significant security work
-
----
-
-## Conclusion
-
-The FlowFin application demonstrates good architectural choices using the Base44 SDK, but requires **critical security improvements before production deployment**. The identified vulnerabilities, particularly in dependency management and token security, pose significant risks to user data and application integrity.
-
-**Recommendation**: Do not deploy to production until:
-1. All CRITICAL and HIGH dependency vulnerabilities are patched
-2. Token storage is redesigned
-3. Input validation is comprehensive
-4. Test coverage reaches 80%+
-5. Security documentation is complete
+- **PCI-DSS**: Not compliant — requires significant security hardening before payment data handling
+- **GDPR**: Not compliant — requires data protection audit if serving EU users
+- **SOC 2**: Recommended for financial applications; not currently achievable
 
 ---
 
-**Report Generated**: June 1, 2026  
-**Next Review**: June 15, 2026 (recommended)  
-**Audit Scope**: Full codebase, dependencies, CI/CD, documentation
+**Report Generated**: June 1, 2026
+**Previous Report**: June 1, 2026 (v0.1.0 initial audit)
+**Next Review**: June 15, 2026 (recommended)
+**Audit Scope**: Full codebase, permissions, dependencies, CI/CD, documentation
