@@ -1,59 +1,64 @@
 {
+  "indexes": [
+    [
+      "family_id",
+      "created_at"
+    ]
+  ],
   "name": "AssistantUsage",
-  "type": "object",
   "properties": {
-    "family_id": {
-      "type": "string",
-      "description": "ID de la familia propietaria"
-    },
-    "person_id": {
-      "type": "string",
-      "description": "ID de la persona que realizó el escaneo (nullable)"
-    },
-    "operation": {
-      "type": "string",
-      "enum": ["receipt_scan", "chat_reply"],
-      "default": "receipt_scan",
-      "description": "Tipo de operación de IA"
-    },
-    "model": {
-      "type": "string",
-      "description": "Nombre del modelo de IA utilizado (ej: claude-haiku-4-5)"
-    },
-    "tokens_in": {
-      "type": "number",
-      "description": "Tokens de entrada consumidos"
-    },
-    "tokens_out": {
-      "type": "number",
-      "description": "Tokens de salida generados"
-    },
     "cache_read": {
-      "type": "number",
       "default": 0,
-      "description": "Tokens leídos desde caché (cache_read_input_tokens)"
+      "description": "Tokens le\u00eddos desde cach\u00e9 (cache_read_input_tokens)",
+      "type": "number"
     },
     "cost_usd": {
-      "type": "number",
-      "description": "Costo estimado en USD (6 decimales)"
-    },
-    "latency_ms": {
-      "type": "number",
-      "description": "Latencia de la llamada al API en milisegundos"
+      "description": "Costo estimado en USD (6 decimales)",
+      "type": "number"
     },
     "created_at": {
-      "type": "string",
+      "description": "Timestamp de la operaci\u00f3n (ISO 8601)",
       "format": "date-time",
-      "description": "Timestamp de la operación (ISO 8601)"
+      "type": "string"
+    },
+    "family_id": {
+      "description": "ID de la familia propietaria",
+      "type": "string"
+    },
+    "latency_ms": {
+      "description": "Latencia de la llamada al API en milisegundos",
+      "type": "number"
+    },
+    "model": {
+      "description": "Nombre del modelo de IA utilizado (ej: claude-haiku-4-5)",
+      "type": "string"
+    },
+    "operation": {
+      "default": "receipt_scan",
+      "description": "Tipo de operaci\u00f3n de IA",
+      "enum": [
+        "receipt_scan",
+        "chat_reply"
+      ],
+      "type": "string"
+    },
+    "person_id": {
+      "description": "ID de la persona que realiz\u00f3 el escaneo (nullable)",
+      "type": "string"
+    },
+    "tokens_in": {
+      "description": "Tokens de entrada consumidos",
+      "type": "number"
+    },
+    "tokens_out": {
+      "description": "Tokens de salida generados",
+      "type": "number"
     }
   },
   "required": [
     "family_id",
     "operation",
     "created_at"
-  ],
-  "indexes": [
-    ["family_id", "created_at"]
   ],
   "rls": {
     "create": {
@@ -70,6 +75,11 @@
           "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "$or": [
@@ -90,11 +100,7 @@
       "user_condition": {
         "role": "admin"
       }
-    },
-    "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
     }
-  }
+  },
+  "type": "object"
 }

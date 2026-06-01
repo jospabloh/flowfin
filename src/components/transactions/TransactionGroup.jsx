@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronDown, ChevronUp, Pencil, Trash2, Link as LinkIcon, Plane } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Pencil, Trash2, Link as LinkIcon, Plane, CalendarCheck } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
 import PersonAvatar from '@/components/PersonAvatar';
 import { format, parseISO } from 'date-fns';
@@ -14,9 +14,10 @@ const getPaymentLinkInfo = (t) => {
   return null;
 };
 
-export default function TransactionGroup({ date, txns, expanded, setExpanded, categories, subcategories, persons, paymentMethods, currency, locale, onEdit, onDelete }) {
+export default function TransactionGroup({ date, txns, expanded, setExpanded, categories, subcategories, persons, paymentMethods, currency, locale, onEdit, onDelete, onConvertScheduled }) {
   const { can_modify: canEdit } = usePermission('transaction.edit.details');
   const { can_delete: canDelete } = usePermission('transaction.delete.action');
+  const { can_write: canCreateScheduled } = usePermission('module.ScheduledPayments');
 
   return (
     <div className="px-4 mb-4">
@@ -111,6 +112,11 @@ export default function TransactionGroup({ date, txns, expanded, setExpanded, ca
                     {canDelete && (
                       <button onClick={() => onDelete(t.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-expense/10 text-expense text-xs font-medium hover:bg-expense/20 transition-colors touch-target">
                         <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                    )}
+                    {onConvertScheduled && canCreateScheduled !== false && !t.scheduled_payment_record_id && !t.msi_payment_id && !t.investment_payment_id && !t.rental_payment_id && (
+                      <button onClick={() => onConvertScheduled(t)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-medium hover:bg-teal-500/20 transition-colors touch-target">
+                        <CalendarCheck className="w-3.5 h-3.5" /> Convertir en domiciliado
                       </button>
                     )}
                   </div>

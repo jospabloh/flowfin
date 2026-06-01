@@ -4,73 +4,71 @@
   "properties": {
     "family_id": {
       "type": "string",
-      "description": "ID de la familia propietaria"
+      "description": "Family owner ID"
     },
     "name": {
       "type": "string",
-      "description": "Nombre del viaje"
+      "description": "Trip name"
     },
     "start_date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de inicio del viaje"
+      "description": "Trip start date"
     },
     "end_date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de fin del viaje"
+      "description": "Trip end date"
     },
     "status": {
       "type": "string",
       "enum": [
-        "planned",
         "active",
         "closed"
       ],
-      "default": "planned",
-      "description": "Estado del viaje"
-    },
-    "budget": {
-      "type": "number",
-      "description": "Presupuesto total del viaje"
-    },
-    "budget_currency": {
-      "type": "string",
-      "description": "Moneda del presupuesto (ej: MXN, USD)"
-    },
-    "currencies": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Monedas utilizadas durante el viaje"
+      "default": "active",
+      "description": "Trip status"
     },
     "destination_countries": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Países de destino del viaje"
+      "description": "List of destination countries"
+    },
+    "currencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Currencies used in trip (e.g. MXN, USD, EUR)"
+    },
+    "budget_amount": {
+      "type": "number",
+      "description": "Total budget for the trip"
+    },
+    "budget_currency": {
+      "type": "string",
+      "description": "Currency of the budget"
     },
     "participant_person_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "IDs de las personas participantes del viaje"
+      "description": "Person IDs participating in the trip"
     },
     "created_by_user_id": {
       "type": "string",
-      "description": "ID del usuario que creó el viaje"
+      "description": "User ID who created the trip"
     },
     "closed_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha y hora de cierre del viaje"
+      "description": "ISO datetime when trip was closed"
     },
     "notes": {
       "type": "string",
-      "description": "Notas adicionales sobre el viaje"
+      "description": "Optional notes"
     }
   },
   "required": [
@@ -83,11 +81,6 @@
     "create": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -97,11 +90,6 @@
     },
     "read": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -113,11 +101,6 @@
     "update": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -127,11 +110,6 @@
     },
     "delete": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },

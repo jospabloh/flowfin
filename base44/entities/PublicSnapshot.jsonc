@@ -4,30 +4,35 @@
   "properties": {
     "family_id": {
       "type": "string",
-      "description": "ID de la familia que originó el snapshot. Usado para RLS sobre el dueño y para atribución de viralidad."
+      "description": "ID de la familia que origin\u00f3 el snapshot. Usado para RLS sobre el dueno y para atribuci\u00f3n de viralidad."
     },
     "created_by_user_id": {
       "type": "string",
-      "description": "ID del usuario que creó el snapshot. Disponible para tracking de referidos."
+      "description": "ID del usuario que cre\u00f3 el snapshot. Disponible para tracking de referidos."
     },
     "type": {
       "type": "string",
-      "enum": ["goal_achieved", "trip_summary", "monthly_report", "budget_kept"],
+      "enum": [
+        "goal_achieved",
+        "trip_summary",
+        "monthly_report",
+        "budget_kept"
+      ],
       "description": "Plantilla a renderizar en /s/:slug."
     },
     "slug": {
       "type": "string",
-      "description": "Identificador público opaco de 8-12 caracteres alfanuméricos. Construido server-side y único por familia."
+      "description": "Identificador p\u00fablico opaco de 8-12 caracteres alfanum\u00e9ricos. Construido server-side y unique por familia."
     },
     "payload_json": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Datos congelados y anonimizados al momento de creación. No referencia entidades vivas. Contiene los strings/números que el template necesita."
+      "description": "Datos congelados y anonimizados al momento de creaci\u00f3n. No referencia entidades vivas. Contiene los strings/n\u00fameros que el template necesita."
     },
     "is_public": {
       "type": "boolean",
       "default": true,
-      "description": "Si está en false, getPublicSnapshot devuelve 404. Permite ocultar sin borrar."
+      "description": "Si est\u00e1 en false, getPublicSnapshot devuelve 404. Permite ocultar sin borrar."
     },
     "views": {
       "type": "number",
@@ -36,35 +41,68 @@
     },
     "expires_at": {
       "type": "string",
-      "description": "ISO datetime tras el cual getPublicSnapshot retorna 404. Default 90 días, seteado por createPublicSnapshot."
+      "description": "ISO datetime tras el cual getPublicSnapshot retorna 404. Default 90 d\u00edas, seteado por createPublicSnapshot."
     }
   },
-  "required": ["family_id", "type", "slug", "payload_json"],
+  "required": [
+    "family_id",
+    "type",
+    "slug",
+    "payload_json"
+  ],
   "rls": {
     "create": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.family_id": "{{user.data.family_id}}" },
-        { "data.family_id": "{{user.data.data.family_id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
       ]
     },
     "read": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.family_id": "{{user.data.family_id}}" },
-        { "data.family_id": "{{user.data.data.family_id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
       ]
     },
     "update": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.created_by_user_id": "{{user.id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_user_id": "{{user.id}}"
+        }
       ]
     },
     "delete": {
       "$or": [
-        { "user_condition": { "role": "admin" } },
-        { "data.created_by_user_id": "{{user.id}}" }
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.created_by_user_id": "{{user.id}}"
+        }
       ]
     }
   }

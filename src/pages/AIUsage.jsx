@@ -1,15 +1,16 @@
 /**
  * AIUsage.jsx
  * Settings sub-page: monthly AI cost + scan history for the family.
+ * Now includes per-person breakdown so admins can see who is consuming the AI quota.
  * Route: /AIUsage
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { motion } from 'framer-motion';
 import PageHeader from '@/components/PageHeader';
-import { Zap, Clock, DollarSign } from 'lucide-react';
+import { Zap, Clock, DollarSign, User } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Bilingual strings
@@ -17,17 +18,16 @@ import { Zap, Clock, DollarSign } from 'lucide-react';
 const STRINGS = {
   'es-MX': {
     title: 'Consumo de IA',
-    subtitle: 'Historial de escaneos y costo de API',
-    mtdCost: 'Costo del mes',
-    scansThisMonth: 'Escaneos del mes',
+    subtitle: 'Historial de escaneos y costo por usuario',
+    mtdCost: 'Costo del periodo',
+    scansThisMonth: 'Escaneos',
     avgLatency: 'Latencia promedio',
     recentScans: 'Escaneos recientes',
-    noScans: 'Sin escaneos todavía.',
-    filters: {
-      thisWeek: 'Esta semana',
-      thisMonth: 'Este mes',
-      last30: 'Últimos 30 días',
-    },
+    noScans: 'Sin escaneos en este periodo.',
+    byUser: 'Consumo por usuario',
+    allUsers: 'Todos los usuarios',
+    unknownUser: 'Sin asignar',
+    filters: { thisWeek: 'Esta semana', thisMonth: 'Este mes', last30: 'Últimos 30 días' },
     tokens: 'tokens',
     latencyMs: 'ms',
     loading: 'Cargando…',
@@ -35,17 +35,16 @@ const STRINGS = {
   },
   'en-US': {
     title: 'AI Usage',
-    subtitle: 'Scan history and API cost',
-    mtdCost: 'Month-to-date cost',
-    scansThisMonth: 'Scans this month',
+    subtitle: 'Scan history and cost per user',
+    mtdCost: 'Period cost',
+    scansThisMonth: 'Scans',
     avgLatency: 'Avg latency',
     recentScans: 'Recent scans',
-    noScans: 'No scans yet.',
-    filters: {
-      thisWeek: 'This week',
-      thisMonth: 'This month',
-      last30: 'Last 30 days',
-    },
+    noScans: 'No scans in this period.',
+    byUser: 'Usage per user',
+    allUsers: 'All users',
+    unknownUser: 'Unassigned',
+    filters: { thisWeek: 'This week', thisMonth: 'This month', last30: 'Last 30 days' },
     tokens: 'tokens',
     latencyMs: 'ms',
     loading: 'Loading…',
@@ -67,21 +66,18 @@ function startOfThisWeek() {
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
 }
-
 function startOfThisMonth() {
   const d = new Date();
   d.setDate(1);
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
 }
-
 function startOfLast30Days() {
   const d = new Date();
   d.setDate(d.getDate() - 30);
   d.setHours(0, 0, 0, 0);
   return d.toISOString();
 }
-
 const FILTER_STARTS = {
   thisWeek: startOfThisWeek,
   thisMonth: startOfThisMonth,
@@ -97,8 +93,8 @@ function StatCard({ icon: Icon, label, value, accent }) {
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${accent}`}>
         <Icon className="w-5 h-5" />
       </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground truncate">{label}</p>
         <p className="text-lg font-bold text-foreground leading-tight">{value}</p>
       </div>
     </div>
@@ -110,12 +106,13 @@ function StatCard({ icon: Icon, label, value, accent }) {
 // ---------------------------------------------------------------------------
 export default function AIUsage() {
   const { familyId, familyConfig, currentUser } = useFamily();
-
   const locale = familyConfig?.locale || 'es-MX';
   const s = getStrings(locale);
 
   const [filter, setFilter] = useState('thisMonth');
+  const [personFilter, setPersonFilter] = useState('all');
   const [rows, setRows] = useState([]);
+  const [persons, setPersons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -124,15 +121,53 @@ export default function AIUsage() {
     setLoading(true);
     setError(null);
 
-    base44.entities.AssistantUsage.filter({ family_id: familyId }, '-created_at', 100).then((data) => {
-      setRows(data || []);
-      setLoading(false);
-    }).catch((err) => {
-      console.error('AIUsage load error:', err);
-      setError(s.errorLoad);
-      setLoading(false);
-    });
+    Promise.all([
+      base44.entities.AssistantUsage.filter({ family_id: familyId }, '-created_at', 500),
+      base44.entities.Person.filter({ family_id: familyId }),
+    ])
+      .then(([usage, ppl]) => {
+        setRows(usage || []);
+        setPersons(ppl || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('AIUsage load error:', err);
+        setError(s.errorLoad);
+        setLoading(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId]);
+
+  // Person lookup map (id → name)
+  const personMap = useMemo(() => {
+    const m = {};
+    for (const p of persons) m[p.id] = p.name || s.unknownUser;
+    return m;
+  }, [persons, s.unknownUser]);
+
+  // Client-side filter by date + person. (computed before any early return to keep hook order stable)
+  const cutoff = FILTER_STARTS[filter]();
+  const filtered = useMemo(
+    () => rows.filter((r) => {
+      if ((r.created_at ?? '') < cutoff) return false;
+      if (personFilter !== 'all' && r.person_id !== personFilter) return false;
+      return true;
+    }),
+    [rows, cutoff, personFilter]
+  );
+
+  // Aggregate by person for the breakdown card
+  const perPerson = useMemo(() => {
+    const map = new Map();
+    for (const r of filtered) {
+      const key = r.person_id || '__unassigned__';
+      const cur = map.get(key) || { person_id: key, cost: 0, scans: 0 };
+      cur.cost += r.cost_usd ?? 0;
+      cur.scans += 1;
+      map.set(key, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.cost - a.cost);
+  }, [filtered]);
 
   if (currentUser?.role !== 'admin') {
     return (
@@ -141,10 +176,6 @@ export default function AIUsage() {
       </div>
     );
   }
-
-  // Client-side filter by date range.
-  const cutoff = FILTER_STARTS[filter]();
-  const filtered = rows.filter((r) => (r.created_at ?? '') >= cutoff);
 
   // Aggregate stats.
   const mtdCost = filtered.reduce((sum, r) => sum + (r.cost_usd ?? 0), 0);
@@ -159,19 +190,18 @@ export default function AIUsage() {
   const formatDate = (iso) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleString(locale, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   };
+
+  const personName = (pid) => personMap[pid] || s.unknownUser;
 
   return (
     <div className="pb-4">
       <PageHeader title={s.title} subtitle={s.subtitle} />
 
       {/* Filter tabs */}
-      <div className="px-4 flex gap-2 mb-4">
+      <div className="px-4 flex gap-2 mb-3 flex-wrap">
         {Object.entries(s.filters).map(([key, label]) => (
           <button
             key={key}
@@ -185,6 +215,23 @@ export default function AIUsage() {
             {label}
           </button>
         ))}
+      </div>
+
+      {/* Person filter */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center gap-2">
+          <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <select
+            value={personFilter}
+            onChange={(e) => setPersonFilter(e.target.value)}
+            className="flex-1 bg-muted text-foreground rounded-xl px-3 py-2 text-xs font-medium border border-border focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            <option value="all">{s.allUsers}</option>
+            {persons.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="px-4 space-y-4">
@@ -212,6 +259,40 @@ export default function AIUsage() {
           </div>
         </div>
 
+        {/* Per-user breakdown */}
+        {!loading && !error && perPerson.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-2">{s.byUser}</h3>
+            <div className="space-y-2">
+              {perPerson.map((row) => {
+                const pct = mtdCost > 0 ? Math.round((row.cost / mtdCost) * 100) : 0;
+                return (
+                  <div
+                    key={row.person_id}
+                    className="bg-card border border-border rounded-xl p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {row.person_id === '__unassigned__' ? s.unknownUser : personName(row.person_id)}
+                      </p>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-foreground">{formatCost(row.cost)}</p>
+                        <p className="text-[10px] text-muted-foreground">{row.scans} {s.scansThisMonth.toLowerCase()}</p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Scan history list */}
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-2">{s.recentScans}</h3>
@@ -219,28 +300,29 @@ export default function AIUsage() {
           {loading && (
             <div className="text-center py-8 text-muted-foreground text-sm">{s.loading}</div>
           )}
-
           {error && !loading && (
             <div className="text-center py-8 text-destructive text-sm">{error}</div>
           )}
-
           {!loading && !error && filtered.length === 0 && (
             <div className="text-center py-8 text-muted-foreground text-sm">{s.noScans}</div>
           )}
 
           {!loading && !error && filtered.length > 0 && (
             <div className="space-y-2">
-              {filtered.slice(0, 30).map((row, i) => (
+              {filtered.slice(0, 50).map((row, i) => (
                 <motion.div
                   key={row.id ?? i}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                  transition={{ delay: Math.min(i, 20) * 0.02 }}
                   className="bg-card border border-border rounded-xl p-3 flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">
                       {row.model ?? '—'}
+                    </p>
+                    <p className="text-[11px] text-primary truncate font-medium">
+                      {row.person_id ? personName(row.person_id) : s.unknownUser}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {formatDate(row.created_at)}

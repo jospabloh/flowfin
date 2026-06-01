@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import TransactionEditModal from '@/components/TransactionEditModal';
 import TransactionFilters from '@/components/transactions/TransactionFilters';
 import TransactionGroup from '@/components/transactions/TransactionGroup';
+import ConvertScheduledModal from '@/components/transactions/ConvertScheduledModal';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import { usePermission, useCanView } from '@/lib/permissions/usePermission';
 
@@ -48,6 +49,7 @@ export default function Transactions() {
   const [showFilters, setShowFilters] = useState(false);
   const [expanded, setExpanded] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [converting, setConverting] = useState(null);
   const [allTransactions, setAllTransactions] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const pageSize = 100;
@@ -125,6 +127,10 @@ export default function Transactions() {
         <TransactionEditModal transaction={editing} categories={categories} subcategories={subcategories}
           persons={persons} paymentMethods={paymentMethods} onClose={() => setEditing(null)} onSaved={handleEditSaved} />
       )}
+      {converting && (
+        <ConvertScheduledModal transaction={converting} categories={categories} paymentMethods={paymentMethods}
+          persons={persons} onClose={() => setConverting(null)} onCreated={() => queryClient.invalidateQueries({ queryKey: ['scheduled_payments'] })} />
+      )}
       {refreshing && (
         <div className="flex justify-center py-3"><Spinner size="sm" /></div>
       )}
@@ -164,7 +170,7 @@ export default function Transactions() {
           {groups.map(([date, txns]) => (
             <TransactionGroup key={date} date={date} txns={txns} expanded={expanded} setExpanded={setExpanded}
               categories={categories} subcategories={subcategories} persons={persons} paymentMethods={paymentMethods}
-              currency={currency} locale={locale} onEdit={setEditing} onDelete={handleDelete} />
+              currency={currency} locale={locale} onEdit={setEditing} onDelete={handleDelete} onConvertScheduled={setConverting} />
           ))}
           {hasMore && (
             <div className="flex justify-center py-4">

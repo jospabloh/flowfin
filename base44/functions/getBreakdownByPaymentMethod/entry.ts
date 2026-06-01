@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
@@ -37,27 +38,6 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-async function fetchAllTransactions(base44, { familyId, start, end, type, personId }) {
-  const PAGE = 200;
-  let all = [];
-  let skip = 0;
-  let truncated = false;
-  const filter = { family_id: familyId };
-  if (start) filter.date = { ...filter.date, $gte: start };
-  if (end) filter.date = { ...filter.date, $lte: end };
-  if (type && type !== 'all') filter.type = type;
-  if (personId) filter.person_id = personId;
-
-  while (true) {
-    const page = await base44.asServiceRole.entities.Transaction.filter(filter, '-date', PAGE, skip);
-    all = all.concat(page || []);
-    if (!page || page.length < PAGE) break;
-    skip += PAGE;
-    if (all.length >= 2000) { truncated = true; break; }
-  }
-  return { transactions: all, truncated };
-}
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -74,7 +54,7 @@ Deno.serve(async (req) => {
     const familyId = access.familyId;
     const personId = resolvePersonFilter(access, { personId: body.personId, scope: body.scope });
 
-    const { transactions, truncated } = await fetchAllTransactions(base44, { familyId, start, end, type, personId });
+    const transactions = await fetchFamilyTransactions(base44, { familyId, start, end, type, personId });
 
     const filtered = type === 'all' ? transactions : transactions.filter(t => t.type === type);
 
@@ -101,7 +81,7 @@ Deno.serve(async (req) => {
       }))
       .sort((a, b) => b.total - a.total);
 
-    return Response.json({ period: { start: start ?? null, end: end ?? null }, type, groups, truncated });
+    return Response.json({ period: { start: start ?? null, end: end ?? null }, type, groups, truncated: transactions.length >= 50000 });
   } catch (error) {
     console.error('getBreakdownByPaymentMethod error:', error);
     return Response.json({ error: 'internal' }, { status: 500 });

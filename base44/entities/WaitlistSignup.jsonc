@@ -4,7 +4,7 @@
   "properties": {
     "email": {
       "type": "string",
-      "description": "Email del usuario que se unió a la waitlist. Lower-case + trim. Unique soft via filter."
+      "description": "Email del usuario que se uni\u00f3 a la waitlist. Lower-case + trim. Unique soft via filter."
     },
     "source": {
       "type": "string",
@@ -12,33 +12,57 @@
     },
     "referrer_code": {
       "type": "string",
-      "description": "Código de referido (ref param de la URL al hacer signup)"
+      "description": "C\u00f3digo de referido (ref param de la URL al hacer signup)"
     },
     "referrals_count": {
-      "type": "number",
       "default": 0,
-      "description": "Cantidad de signups con su referrer_code igual al code de este registro"
+      "description": "Cantidad de signups con su referrer_code igual al code de este registro",
+      "type": "number"
     },
     "self_code": {
       "type": "string",
-      "description": "Código único generado server-side para este lead, para que comparta y reciba referidos"
+      "description": "C\u00f3digo \u00fanico generado server-side para este lead, para que comparta y reciba referidos"
     },
     "invited_at": {
       "type": "string",
-      "description": "ISO datetime cuando se le invitó al soft-launch (vacío = pendiente)"
+      "description": "ISO datetime cuando se le invit\u00f3 al soft-launch (vac\u00edo = pendiente)"
     },
     "joined_app_user_id": {
       "type": "string",
-      "description": "User.id si convirtió la waitlist en cuenta real"
+      "description": "User.id si convirti\u00f3 la waitlist en cuenta real"
     },
-    "utm_campaign": { "type": "string", "description": "UTM opcional" },
-    "utm_medium": { "type": "string", "description": "UTM opcional" }
+    "utm_campaign": {
+      "type": "string",
+      "description": "UTM opcional"
+    },
+    "utm_medium": {
+      "type": "string",
+      "description": "UTM opcional"
+    }
   },
-  "required": ["email"],
+  "required": [
+    "email"
+  ],
   "rls": {
-    "create": { "user_condition": { "role": "admin" } },
-    "read": { "user_condition": { "role": "admin" } },
-    "update": { "user_condition": { "role": "admin" } },
-    "delete": { "user_condition": { "role": "admin" } }
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
   }
 }
