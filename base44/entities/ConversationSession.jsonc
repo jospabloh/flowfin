@@ -8,44 +8,47 @@
     },
     "user_id": {
       "type": "string",
-      "description": "ID del usuario que inició la sesión"
+      "description": "ID del usuario que inici\u00f3 la sesi\u00f3n"
     },
     "conversation_id": {
       "type": "string",
-      "description": "ID de la conversación en el agente"
+      "description": "ID de la conversaci\u00f3n en el agente"
     },
     "channel": {
       "type": "string",
-      "enum": ["web", "whatsapp"],
+      "enum": [
+        "web",
+        "whatsapp"
+      ],
       "default": "web",
-      "description": "Canal de comunicación de la sesión"
+      "description": "Canal de comunicaci\u00f3n de la sesi\u00f3n"
     },
     "session_date": {
       "type": "string",
-      "description": "Fecha de la sesión (YYYY-MM-DD)"
+      "description": "Fecha de la sesi\u00f3n (YYYY-MM-DD)"
     },
     "messages": {
       "type": "array",
-      "description": "Mensajes de la conversación archivados"
+      "description": "Mensajes de la conversaci\u00f3n archivados"
     },
     "summary": {
       "type": "string",
-      "description": "Resumen breve de la sesión"
+      "description": "Resumen breve de la sesi\u00f3n"
     },
     "message_count": {
       "type": "number",
       "default": 0,
-      "description": "Número total de mensajes en la sesión"
+      "description": "N\u00famero total de mensajes en la sesi\u00f3n"
     },
     "archived_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp de cuando se archivó la sesión (ISO 8601)"
+      "description": "Timestamp de cuando se archiv\u00f3 la sesi\u00f3n (ISO 8601)"
     },
     "expires_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Timestamp de expiración del registro (ISO 8601)"
+      "description": "Timestamp de expiraci\u00f3n del registro (ISO 8601)"
     }
   },
   "required": [
@@ -54,19 +57,9 @@
     "conversation_id",
     "session_date"
   ],
-  "indexes": [
-    ["family_id", "session_date"],
-    ["user_id", "session_date"],
-    ["expires_at"]
-  ],
   "rls": {
     "create": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -77,11 +70,6 @@
     },
     "read": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -94,28 +82,10 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "data.user_id": "{{user.id}}"
-        }
-      ]
+      "data.user_id": "{{user.id}}"
     },
     "delete": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "data.user_id": "{{user.id}}"
-        }
-      ]
+      "data.user_id": "{{user.id}}"
     }
   }
 }

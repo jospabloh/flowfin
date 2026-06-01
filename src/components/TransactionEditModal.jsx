@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useFamily } from '@/lib/FamilyContext';
-import { X, Plus, Plane } from 'lucide-react';
+import { X, Plus, Plane, Calculator } from 'lucide-react';
 import { createFocusTrap } from '@/lib/focusTrap';
 import NativeSelect from '@/components/NativeSelect';
 import TransactionPaymentLink from '@/components/TransactionPaymentLink';
 import ApplyPaymentModal from '@/components/ApplyPaymentModal';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { getExchangeRate } from '@/services/exchangeRateService';
+import CalculatorWidget from '@/components/CalculatorWidget';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -33,6 +34,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
     exchange_rate: transaction.exchange_rate || '',
   });
   const [saving, setSaving] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const [showApplyPayment, setShowApplyPayment] = useState(false);
   const [txData, setTxData] = useState(transaction);
   const [allTrips, setAllTrips] = useState([]);
@@ -185,11 +187,21 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
           {/* Amount — if trip expense in foreign currency, show original_amount as primary */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">
-              {form.trip_id && form.original_currency && form.original_currency !== familyCurrency
-                ? `Monto en ${form.original_currency}`
-                : `Monto (${familyCurrency})`}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted-foreground">
+                {form.trip_id && form.original_currency && form.original_currency !== familyCurrency
+                  ? `Monto en ${form.original_currency}`
+                  : `Monto (${familyCurrency})`}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCalculator(v => !v)}
+                className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-lg transition-colors ${showCalculator ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                Calc
+              </button>
+            </div>
             {form.trip_id && form.original_currency && form.original_currency !== familyCurrency ? (
               <div className="space-y-1.5">
                 <input type="number" inputMode="decimal"
@@ -204,6 +216,19 @@ export default function TransactionEditModal({ transaction, categories, subcateg
             ) : (
               <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)}
                 className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            )}
+            {showCalculator && (
+              <CalculatorWidget
+                onCalculate={(result) => {
+                  const isForeign = form.trip_id && form.original_currency && form.original_currency !== familyCurrency;
+                  if (isForeign) {
+                    set('original_amount', String(result));
+                  } else {
+                    set('amount', String(result));
+                  }
+                }}
+                onClose={() => setShowCalculator(false)}
+              />
             )}
           </div>
 

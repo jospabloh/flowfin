@@ -21,7 +21,7 @@ export default {
       'budget.view.period_selector':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
     },
     member: {
-      'budget.view':                  { can_read: true, can_write: true,  can_modify: true,  can_delete: true,  can_view: true },
+      'budget.view':                  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'budget.view.recommendations':  { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'budget.view.health':           { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },
       'budget.view.cards':            { can_read: true, can_write: false, can_modify: false, can_delete: false, can_view: true },

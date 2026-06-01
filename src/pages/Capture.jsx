@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
 import { useCreateTransaction } from '@/hooks/useCreateTransaction';
-import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users } from 'lucide-react';
+import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users, CalendarDays, Calculator } from 'lucide-react';
+import CalculatorWidget from '@/components/CalculatorWidget';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import { computeTripSpent } from '@/lib/tripBudget';
 import NativeSelect from '@/components/NativeSelect';
@@ -58,6 +59,7 @@ export default function Capture() {
   const [receiptImage, setReceiptImage] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [smartSuggestions, setSmartSuggestions] = useState({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] });
+  const [showCalculator, setShowCalculator] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -498,13 +500,29 @@ export default function Capture() {
       {/* Amount input */}
       <div className="px-4 mt-4">
         <div className={`rounded-2xl border-2 transition-colors p-4 ${type === 'expense' ? 'border-expense/30 bg-expense/5' : 'border-income/30 bg-income/5'}`}>
-          <p className="text-xs text-muted-foreground mb-1">Monto ({currency})</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-muted-foreground">Monto ({currency})</p>
+            <button
+              type="button"
+              onClick={() => setShowCalculator(v => !v)}
+              className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-lg transition-colors ${showCalculator ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'}`}
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              Calc
+            </button>
+          </div>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-light text-muted-foreground">{currencySymbol}</span>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0.00" inputMode="decimal"
               className="flex-1 text-4xl font-black bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
           </div>
+          {showCalculator && (
+            <CalculatorWidget
+              onCalculate={(result) => setAmount(String(result))}
+              onClose={() => setShowCalculator(false)}
+            />
+          )}
         </div>
       </div>
 
@@ -851,7 +869,10 @@ export default function Capture() {
         <div className="relative">
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             onClick={e => e.target.showPicker?.()}
-            className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
+            className="w-full bg-card border border-border rounded-xl pl-3 pr-10 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
+          <CalendarDays
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+          />
           {date !== today && (
             <span className="absolute -top-2 left-3 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground">
               {date < today.slice(0, 7) ? 'Mes anterior' : 'Fecha pasada'}

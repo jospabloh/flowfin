@@ -1,130 +1,115 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { useCatalog } from '@/hooks/useCatalog';
-import { Send, Mic, MicOff, Bot, Sparkles, MessageCircle, History } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import MessageBubble from '@/components/MessageBubble';
-import AssistantWelcome from '@/components/AssistantWelcome';
-import AssistantHistory from '@/components/AssistantHistory';
-import ReceiptScanButton from '@/components/ReceiptScanButton';
-import { detectIntent } from '@/lib/assistantIntents';
-import { respondToIntent } from '@/lib/assistantResponders';
-import { usePermission, useCanView } from '@/lib/permissions/usePermission';
+import { useNavigate } from 'react-router-dom';
+import FiniaMessageBubble from '@/components/finia/FiniaMessageBubble';
+import FiniaWelcome from '@/components/finia/FiniaWelcome';
+import FiniaTypingIndicator from '@/components/finia/FiniaTypingIndicator';
+import FiniaComposer from '@/components/finia/FiniaComposer';
+
+// Hook: tracks visible viewport height and offset to handle virtual keyboard on Android/iOS.
+// When the keyboard opens, visualViewport.height shrinks and offsetTop may change.
+// We use this to set the exact container height, making the composer float just above the keyboard.
+function useVisualViewport() {
+  const [vp, setVp] = useState(() => ({
+    height: window.visualViewport?.height ?? window.innerHeight,
+    offsetTop: window.visualViewport?.offsetTop ?? 0,
+  }));
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVp({ height: vv.height, offsetTop: vv.offsetTop });
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => { vv.removeEventListener('resize', update); vv.removeEventListener('scroll', update); };
+  }, []);
+  return vp;
+}
+
+const AGENT_NAME = 'finia';
+const STORAGE_KEY_PREFIX = 'ff_finia_conv:';
+const USER_TZ = 'America/Mexico_City';
+const MAX_HISTORY_DAYS = 3;
+
+// Returns today's date string in USER_TZ (YYYY-MM-DD)
+function todayInTZ() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: USER_TZ });
+}
+
+// Returns how many calendar days ago a date string was (in USER_TZ)
+function daysAgo(dateStr) {
+  const today = todayInTZ();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.floor((new Date(today) - new Date(dateStr)) / msPerDay);
+}
 
 export default function Assistant() {
-  const { currentUser, family, familyId, familyConfig, membership } = useFamily();
-  const { persons } = useCatalog(familyId);
-  const { can_write: canSend } = usePermission('assistant.chat.send');
-  const { can_write: canUseVoice } = usePermission('assistant.chat.voice');
-  const canViewChips = useCanView('assistant.features.predictive_chips');
+  const { currentUser, familyId } = useFamily();
+  const navigate = useNavigate();
+  const { height: vvHeight, offsetTop: vvOffsetTop } = useVisualViewport();
   const [conversation, setConversation] = useState(null);
-  // messages: array of { id, role, content, kind?, thumbnailDataUrl?, source: 'local'|'server', ts }
   const [messages, setMessages] = useState([]);
-  // Track ids already added from server to avoid duplication
-  const serverIdsRef = useRef(new Set());
-  const [input, setInput] = useState('');
+  const [visibleMessages, setVisibleMessages] = useState([]); // cleared by "limpiar" but still exists on server
+  const [cleared, setCleared] = useState(false); // tracks if user manually cleared view
   const [sending, setSending] = useState(false);
-  // When a spend query is ambiguous (self vs. family) we ask before answering.
-  // Holds { range, type } of the pending query until the user picks a scope.
-  const [pendingScope, setPendingScope] = useState(null);
-  const [isListening, setIsListening] = useState(false);
-  const [ctx, setCtx] = useState(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-  const inputBarRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const containerRef = useRef(null);
-  const scanButtonRef = useRef(null);
-  const archivingRef = useRef(false);
-  const messagesRef = useRef([]);
+  const [initError, setInitError] = useState(false);
+  const serverIdsRef = useRef(new Set());
+  const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const userScrolledRef = useRef(false);
 
-  // Active locale: familyConfig > browser > fallback es-MX
-  const activeLocale = familyConfig?.locale || navigator?.language || 'es-MX';
-  const voiceLang = activeLocale.startsWith('en') ? 'en-US' : activeLocale;
-
-  // Strip internal system headers/metadata from user message content for display
-  function cleanContent(raw) {
-    if (!raw) return '';
-    let s = raw;
-    // Strip system metadata blocks
-    s = s.replace(/<<<SYSTEM_METADATA_BEGIN>>>[\s\S]*?<<<SYSTEM_METADATA_END>>>/g, '');
-    // Strip CLIENT_RESOLVED audit trail
-    s = s.replace(/^\s*\[CLIENT_RESOLVED:[^\]]*\]\s*/g, '');
-    // Strip RECEIPT_SCAN internal instruction
-    s = s.replace(/^\s*\[RECEIPT_SCAN\]\s*/g, '');
-    // If message starts with known system headers, strip everything up to the last \n\n
-    const headerPattern = /^\s*\[(?:LOCALE|FAMILY_ID|PERSON_ID|PERSON_NAME|FAMILY_NAME|UNLINKED_USER|SYSTEM_CONTEXT):/;
-    if (headerPattern.test(s)) {
-      const lastDouble = s.lastIndexOf('\n\n');
-      s = lastDouble !== -1 ? s.slice(lastDouble + 2) : '';
-    }
-    s = s.trim();
-    if (s.startsWith('{') || s.startsWith('[{') || /^\[(?:LOCALE|FAMILY|PERSON|SYSTEM|CLIENT|RECEIPT)/.test(s)) return '';
-    return s;
-  }
-
-  // Create or resume conversation on mount, with same-day localStorage persistence.
+  // ── Init conversation ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!currentUser?.id || !familyId) return;
-    const storageKey = `ff_conv:${familyId}:${currentUser.id}`;
-    const todayISO = new Date().toISOString().slice(0, 10);
-
+    const storageKey = `${STORAGE_KEY_PREFIX}${familyId}:${currentUser.id}`;
+    const today = todayInTZ();
     let stored = null;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      stored = raw ? JSON.parse(raw) : null;
-    } catch { /* ignore */ }
+    try { stored = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { /* ignore */ }
 
-    if (stored?.date === todayISO && stored?.conversationId) {
-      // Resume today's conversation — subscription will load messages from server
+    // If stored date is today (same calendar day in user's TZ), reuse conversation
+    if (stored?.date === today && stored?.conversationId) {
       setConversation({ id: stored.conversationId });
       return;
     }
 
-    // New day or first load: create a fresh conversation
-    const sessionDate = new Date().toLocaleDateString(activeLocale);
+    // If stored date is too old (>MAX_HISTORY_DAYS), start fresh silently
+    // Otherwise a new day → new conversation but that's fine
     base44.agents.createConversation({
-      agent_name: 'finance_assistant',
-      metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
+      agent_name: AGENT_NAME,
+      metadata: { name: `Finia ${today}`, family_id: familyId },
     }).then(c => {
       setConversation(c);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: todayISO }));
-      } catch { /* ignore */ }
-      // Load any existing messages (e.g. page refresh within same session)
-      const existing = (c.messages || []).filter(m => (m.content || '').trim());
-      if (existing.length > 0) {
-        const msgs = existing
-          .map((m, i) => {
-            const content = m.role === 'user' ? cleanContent(m.content) : m.content;
-            if (m.role === 'user' && !content) return null;
-            const id = m.id || `init-${i}`;
-            serverIdsRef.current.add(id);
-            return { id, role: m.role, content, source: 'server', ts: i };
-          })
-          .filter(Boolean);
-        setMessages(msgs);
-      }
-    });
+      try { localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: today })); } catch { /* ignore */ }
+    }).catch(() => setInitError(true));
   }, [currentUser?.id, familyId]);
 
-  // Subscribe to conversation updates from server
+  // ── Subscribe to conversation ──────────────────────────────────────────────
   useEffect(() => {
     if (!conversation?.id) return;
     const unsub = base44.agents.subscribeToConversation(conversation.id, (data) => {
-      const serverMsgs = (data.messages || []).filter(m => (m.content || '').trim());
+      // Filter out empty messages and messages that are only tool-call artifacts
+      // (single emoji, "?", whitespace, or shorter than 2 visible chars)
+      const serverMsgs = (data.messages || []).filter(m => {
+        const c = (m.content || '').trim();
+        if (!c) return false;
+        // Strip emojis/punctuation to check if there's actual text content
+        const visible = c.replace(/[\p{Emoji}\p{P}\s]/gu, '');
+        if (visible.length < 2) return false;
+        return true;
+      });
+
+      // Once we receive an assistant message, turn off "sending" state
+      const hasAssistantReply = serverMsgs.some(m => m.role === 'assistant');
+      if (hasAssistantReply) setSending(false);
 
       setMessages(prev => {
         let updated = [...prev];
         let changed = false;
-
         for (const m of serverMsgs) {
           const id = m.id || m._id;
           if (!id) continue;
-
-          // Already tracked — check if streaming update needed
           if (serverIdsRef.current.has(id)) {
             if (m.role === 'assistant') {
               const idx = updated.findIndex(x => x.id === id);
@@ -136,634 +121,255 @@ export default function Assistant() {
             }
             continue;
           }
-
-          // New message from server
-          const content = m.role === 'user' ? cleanContent(m.content) : m.content;
-          if (m.role === 'user' && !content) continue; // skip internal system messages
-
           serverIdsRef.current.add(id);
-
-          // Remove any local optimistic message with the same content to avoid duplication
-          const beforeLen = updated.length;
-          updated = updated.filter(x => !(x.source === 'local' && x.role === m.role && x.content === content));
-          if (updated.length < beforeLen) changed = true;
-
-          updated = [...updated, { id, role: m.role, content, source: 'server', ts: Date.now() }];
+          updated = updated.filter(x => !(x.source === 'local' && x.role === m.role && x.content === m.content));
+          updated = [...updated, { id, role: m.role, content: m.content, source: 'server' }];
           changed = true;
         }
-
         return changed ? updated : prev;
       });
     });
     return unsub;
   }, [conversation?.id]);
 
-  // Resolve person / family identifiers from context.
-  const personId = membership?.person_id || '';
-  const personName = personId ? (persons?.find(p => p.id === personId)?.name || '') : '';
-  const familyName = family?.name || '';
-  const unlinked = !personId;
-
-  // ── Lazy-inject: build identity header in a ref, never send it alone ────────
-  // It will be prepended to the FIRST message actually sent to the LLM.
-  const identityHeaderRef = useRef('');
-  const headerInjectedRef = useRef(false);
+  // ── Sync visible messages (only when not manually cleared) ────────────────
   useEffect(() => {
-    if (!familyId) return;
-    const unlinkedTag = unlinked ? ' [UNLINKED_USER: true]' : '';
-    identityHeaderRef.current =
-      `[LOCALE: ${activeLocale}] [FAMILY_ID: ${familyId}] [PERSON_ID: ${personId}] ` +
-      `[PERSON_NAME: ${personName}] [FAMILY_NAME: ${familyName}]${unlinkedTag} ` +
-      `[SYSTEM_CONTEXT: Locale: ${activeLocale}. family_id: ${familyId}. ` +
-      `person_id: ${personId || 'no vinculado'}. person_name: ${personName || 'desconocido'}. ` +
-      `family_name: ${familyName}. Filtra SIEMPRE por family_id: ${familyId}.]`;
-  }, [familyId, personId, personName, familyName, unlinked, activeLocale]);
+    if (!cleared) setVisibleMessages(messages);
+  }, [messages, cleared]);
 
-  // ── Load assistant context (no addMessage) ──────────────────────────────────
-  // Stored in a ref for lazy injection. description/person_name stripped from
-  // recentTransactions so the LLM cannot treat history as pending actions.
-  const ctxPayloadRef = useRef(null);
-
-  // Reusable context fetcher — called at mount and silently after write intents.
-  const refreshContext = useCallback(async () => {
-    if (!familyId) return;
-    try {
-      const res = await base44.functions.invoke('getAssistantContext', {
-        familyId,
-        personId: personId || undefined,
-        locale: activeLocale,
+  // When new messages arrive after a clear, show them too
+  useEffect(() => {
+    if (cleared && messages.length > 0) {
+      // Only show messages that arrived AFTER the clear (new ones)
+      // We track this by only updating visibleMessages with new additions
+      setVisibleMessages(prev => {
+        const prevIds = new Set(prev.map(m => m.id));
+        const newMsgs = messages.filter(m => !prevIds.has(m.id));
+        if (!newMsgs.length) return prev;
+        return [...prev, ...newMsgs];
       });
-      const loaded = res?.data ?? res ?? null;
-      if (!loaded) return;
-      setCtx(loaded);
-      ctxPayloadRef.current = {
-        ...loaded,
-        recentTransactions: (loaded.recentTransactions || []).map(
-          ({ id, date, amount, type, category_name }) =>
-            ({ id, date, amount, type, category_name })
-        ),
-      };
-    } catch (err) {
-      console.warn('getAssistantContext failed, proceeding without rich context', err);
     }
-  }, [familyId, personId, activeLocale]);
+  }, [messages, cleared]);
 
+  // ── Auto-scroll — only if user hasn't manually scrolled up ────────────────
   useEffect(() => {
-    if (!familyId) return;
-    refreshContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [familyId]);
+    if (userScrolledRef.current) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [visibleMessages, sending]);
 
-  // Archive a past conversation session to ConversationSession entity
-  const archiveConversation = useCallback(async (storedEntry, finalMessages) => {
-    if (archivingRef.current || !currentUser?.id || !familyId) return;
-    if (!storedEntry?.conversationId || !storedEntry?.date) return;
-    archivingRef.current = true;
-    try {
-      const HIDDEN_PREFIXES = ['[LOCALE:', '[SYSTEM_CONTEXT:', '[HISTORIAL:'];
-      const visibleMsgs = (finalMessages || []).filter(m =>
-        m?.role && m?.content && !HIDDEN_PREFIXES.some(p => m.content.startsWith(p))
-      );
-      if (visibleMsgs.length === 0) return;
-      const userMsgs = visibleMsgs.filter(m => m.role === 'user').slice(0, 3);
-      const summary = userMsgs.map(m => m.content.slice(0, 60)).join(' · ');
-      await base44.entities.ConversationSession.create({
-        user_id: currentUser.id,
-        family_id: familyId,
-        conversation_id: storedEntry.conversationId,
-        channel: 'web',
-        session_date: storedEntry.date,
-        messages: visibleMsgs,
-        summary,
-        message_count: visibleMsgs.length,
-        archived_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-    } catch (e) {
-      console.error('[Assistant] Error archivando sesión:', e);
-    } finally {
-      archivingRef.current = false;
-    }
-  }, [currentUser?.id, familyId]);
-
+  // Track manual scroll
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Keep messagesRef in sync for use inside event listeners without stale closures
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-
-  // Check for day change on window focus — archive old session and start fresh
-  useEffect(() => {
-    if (!currentUser?.id || !familyId || !conversation?.id) return;
-    const storageKey = `ff_conv:${familyId}:${currentUser.id}`;
-
-    const checkDayChange = async () => {
-      const todayISO = new Date().toISOString().slice(0, 10);
-      let stored = null;
-      try { stored = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { /* ignore */ }
-      if (!stored || stored.date === todayISO) return;
-
-      // Day has changed: archive and reset
-      await archiveConversation(stored, messagesRef.current);
-      localStorage.removeItem(storageKey);
-      setMessages([]);
-      serverIdsRef.current = new Set();
-      headerInjectedRef.current = false;
-
-      const sessionDate = new Date().toLocaleDateString(activeLocale);
-      const c = await base44.agents.createConversation({
-        agent_name: 'finance_assistant',
-        metadata: { name: `Sesión ${sessionDate}`, locale: activeLocale, family_id: familyId }
-      });
-      setConversation(c);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({ conversationId: c.id, date: todayISO }));
-      } catch { /* ignore */ }
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      userScrolledRef.current = distFromBottom > 80;
     };
-
-    window.addEventListener('focus', checkDayChange);
-    return () => window.removeEventListener('focus', checkDayChange);
-  }, [currentUser?.id, conversation?.id, archiveConversation, activeLocale, familyId]);
-
-  // Keep input bar visible on iOS and other devices
-  useEffect(() => {
-    const handleFocus = () => {
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
-      }, 300);
-    };
-    
-    const input = inputRef.current;
-    if (input) {
-      input.addEventListener('focus', handleFocus);
-      return () => input.removeEventListener('focus', handleFocus);
-    }
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ── wrapWithHeader ──────────────────────────────────────────────────────────
-  // Prepends identity + context block to the first message sent to the LLM.
-  // All subsequent calls pass the message through unchanged.
-  const wrapWithHeader = useCallback((msg) => {
-    if (headerInjectedRef.current) return msg;
-    headerInjectedRef.current = true;
-    const header = identityHeaderRef.current;
-    const ctxBlock = ctxPayloadRef.current
-      ? `\n<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify(ctxPayloadRef.current)}<<<SYSTEM_METADATA_END>>>`
-      : '';
-    return `${header}${ctxBlock}\n\n${msg}`;
+  // ── Clear visible window (keeps server history intact) ────────────────────
+  const clearWindow = useCallback(() => {
+    setCleared(true);
+    setVisibleMessages([]);
+    userScrolledRef.current = false;
   }, []);
 
-  // ── handlePaste — intercept images pasted into the text input ───────────────
-  const handlePaste = useCallback((e) => {
-    const items = Array.from(e.clipboardData?.items ?? []);
-    const imageItem = items.find(item => item.kind === 'file' && item.type.startsWith('image/'));
-    if (!imageItem) return; // plain-text paste — let input handle it normally
-    e.preventDefault();
-    const file = imageItem.getAsFile();
-    if (file && scanButtonRef.current && !sending && conversation) {
-      scanButtonRef.current.processFile(file);
-    }
-  }, [sending, conversation]);
-
-  // ── sendMessage ─────────────────────────────────────────────────────────────
+  // ── Send message ────────────────────────────────────────────────────────────
+  // Note: `sending` stays true until the assistant's first reply arrives (handled
+  // in the subscribe effect). This prevents double-sends from quick chip taps.
   const sendMessage = useCallback(async (text) => {
-    const msg = (text ?? input).trim();
+    const msg = typeof text === 'string' ? text.trim() : '';
     if (!msg || sending || !conversation) return;
-    setInput('');
-    // Reset textarea height
-    if (inputRef.current) {
-      inputRef.current.style.height = '48px';
-    }
+    userScrolledRef.current = false;
     setSending(true);
 
-    const now = Date.now();
-    const localUserMsgId = `local-user-${now}`;
+    const localId = `local-user-${Date.now()}`;
+    if (cleared) {
+      setVisibleMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+    } else {
+      setMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+    }
 
-    // Add user message to display immediately (optimistic)
-    setMessages(prev => [
-      ...prev,
-      { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now }
-    ]);
-
-    // 1) ALWAYS try the deterministic router first
     try {
-      const ctxForRouter = ctx || ctxPayloadRef.current;
-      const knownPersonNames = Array.isArray(persons) ? persons.filter(Boolean) : [];
-      const routerCtx = {
-        ...(ctxForRouter || {}),
-        family: ctxForRouter?.family || { id: familyId },
-        knownPersonNames,
-        authPersonId: personId,
-      };
-
-      const match = detectIntent(msg, routerCtx);
-
-      // Ambiguous scope (self vs. family): ask before answering instead of guessing.
-      if (match && match.intent === 'spend_period' && match.params.needsScope) {
-        const isEn = activeLocale.startsWith('en');
-        const question = isEn
-          ? 'Do you want just your own total or the whole family?'
-          : '¿Quieres ver solo lo tuyo o el total de toda la familia?';
-        const botMsgId = `local-bot-${now}`;
-        setMessages(prev => [
-          ...prev.filter(m => m.id !== localUserMsgId),
-          { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now },
-          { id: botMsgId, role: 'assistant', content: question, source: 'local', ts: now + 1 },
-        ]);
-        setPendingScope({ range: match.params.range, type: match.params.type });
-        setSending(false);
-        return;
-      }
-
-      if (match) {
-        const reply = await respondToIntent(match.intent, match.params, routerCtx, activeLocale);
-        if (reply) {
-          const botMsgId = `local-bot-${now}`;
-          // Replace the local user message and add bot response, both marked local
-          setMessages(prev => [
-            ...prev.filter(m => m.id !== localUserMsgId),
-            { id: localUserMsgId, role: 'user', content: msg, source: 'local', ts: now },
-            { id: botMsgId, role: 'assistant', content: reply, source: 'local', ts: now + 1 },
-          ]);
-          // Fire-and-forget audit trail to LLM (won't appear in display since it becomes empty after clean)
-          base44.agents.addMessage(conversation, {
-            role: 'user',
-            content: wrapWithHeader(`[CLIENT_RESOLVED: ${match.intent}] ${msg}`),
-          }).catch(() => {});
-          const isWriteIntent = match.intent === 'register_expense' || match.intent === 'register_income';
-          if (isWriteIntent) refreshContext();
-          setSending(false);
-          return;
-        }
-      }
+      await base44.agents.addMessage(conversation, { role: 'user', content: msg });
     } catch (err) {
-      console.warn('intent router failed, falling back to LLM', err);
+      console.error('Error sending message:', err);
+      setSending(false);
     }
+    // Safety: re-enable composer after 30s in case no reply arrives
+    setTimeout(() => setSending(false), 30000);
+  }, [sending, conversation, cleared]);
 
-    // 2) LLM fallback — user message already in display, now send to LLM
-    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
-    setSending(false);
-  }, [input, sending, ctx, persons, activeLocale, conversation, wrapWithHeader, refreshContext]);
-
-  // ── resolveScopeAndRespond ──────────────────────────────────────────────────
-  // Completes a pending ambiguous spend query once the user picks self / family.
-  const resolveScopeAndRespond = useCallback(async (scope) => {
-    if (!pendingScope || sending) return;
-    const { range, type } = pendingScope;
-    setPendingScope(null);
-    const isEn = activeLocale.startsWith('en');
-    const choiceText = scope === 'self'
-      ? (isEn ? 'Just mine' : 'Solo lo mío')
-      : (isEn ? 'The whole family' : 'Toda la familia');
-
-    const now = Date.now();
-    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: choiceText, source: 'local', ts: now }]);
-    setSending(true);
-
-    const ctxForRouter = ctx || ctxPayloadRef.current;
-    const routerCtx = {
-      ...(ctxForRouter || {}),
-      family: ctxForRouter?.family || { id: familyId },
-      knownPersonNames: Array.isArray(persons) ? persons.filter(Boolean) : [],
-      authPersonId: personId,
-    };
-    const resolvedPersonId = scope === 'self' ? (personId || undefined) : undefined;
-
-    const reply = await respondToIntent(
-      'spend_period',
-      { range, type, ...(resolvedPersonId ? { personId: resolvedPersonId } : {}) },
-      routerCtx,
-      activeLocale,
+  // ── Loading state ────────────────────────────────────────────────────────────
+  if (!conversation && !initError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh] gap-4">
+        <div className="w-14 h-14 rounded-3xl bg-primary/10 flex items-center justify-center text-2xl animate-pulse">
+          💚
+        </div>
+        <p className="text-sm text-muted-foreground">Iniciando Finia…</p>
+      </div>
     );
-    const fallback = isEn
-      ? 'Something went wrong. Want to try again?'
-      : 'Ups, algo salió mal. ¿Puedes intentarlo de nuevo?';
-    setMessages(prev => [...prev, { id: `local-bot-${now}`, role: 'assistant', content: reply || fallback, source: 'local', ts: now + 1 }]);
-    setSending(false);
-  }, [pendingScope, sending, ctx, familyId, personId, persons, activeLocale]);
+  }
 
-  const handleConfirmTransaction = async () => {
-    if (!conversation || sending) return;
-    const msg = 'Sí, confirmo';
-    const now = Date.now();
-    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
-    setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
-    setSending(false);
-  };
+  if (initError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh] gap-4 px-8 text-center">
+        <div className="text-3xl">😕</div>
+        <p className="text-sm font-semibold text-foreground">No se pudo iniciar Finia</p>
+        <p className="text-xs text-muted-foreground">Verifica tu conexión e intenta de nuevo.</p>
+        <button
+          onClick={() => { setInitError(false); window.location.reload(); }}
+          className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
-  const handleModifyTransaction = async () => {
-    if (!conversation || sending) return;
-    const msg = 'No, quiero modificar los datos';
-    const now = Date.now();
-    setMessages(prev => [...prev, { id: `local-user-${now}`, role: 'user', content: msg, source: 'local', ts: now }]);
-    setSending(true);
-    await base44.agents.addMessage(conversation, { role: 'user', content: wrapWithHeader(msg) });
-    setSending(false);
-  };
+  const hasMessages = visibleMessages.length > 0;
 
-  const startVoice = () => {
-    const SR = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-    if (!SR) { alert('Tu navegador no soporta voz'); return; }
-    const r = new SR();
-    r.lang = voiceLang;
-    r.onstart = () => setIsListening(true);
-    r.onend = () => setIsListening(false);
-    r.onerror = () => setIsListening(false);
-    r.onresult = (e) => sendMessage(e.results[0][0].transcript);
-    r.start();
-    recognitionRef.current = r;
-  };
-
-  const stopVoice = () => { recognitionRef.current?.stop(); setIsListening(false); };
-
-  // ── handleScanComplete ──────────────────────────────────────────────────────
-  // Called by ReceiptScanButton when the vision API returns a parsed receipt.
-  // Shows a clean thumbnail bubble and sends metadata+context directly to LLM
-  // WITHOUT adding another visible user message bubble.
-  const handleScanComplete = async (parsed) => {
-    if (!conversation || sending) return;
-    const isEn = activeLocale.startsWith('en');
-    const transactions = parsed.transactions || [parsed];
-    const count = transactions.length;
-
-    // Build a human-readable summary of what was found
-    const summary = count > 1
-      ? (isEn
-          ? `Scanned image: found ${count} transactions. ${transactions.map(t => `${t.merchant ?? '?'} $${t.amount ?? '?'} (${t.date ?? '?'})`).join(', ')}.`
-          : `Imagen escaneada: encontré ${count} transacciones. ${transactions.map(t => `${t.merchant ?? '?'} $${t.amount ?? '?'} (${t.date ?? '?'})`).join(', ')}.`)
-      : (isEn
-          ? `Scanned receipt: ${parsed.merchant ?? '?'}, $${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`
-          : `Ticket escaneado: ${parsed.merchant ?? '?'}, $${parsed.amount ?? '?'} ${parsed.currency ?? ''}, ${parsed.date ?? '?'}`);
-
-    // 1. Show thumbnail bubble immediately (clean, no JSON)
-    const now = Date.now();
-    setMessages(prev => [...prev, {
-      id: `local-receipt-${now}`,
-      role: 'user',
-      kind: 'receipt',
-      thumbnailDataUrl: parsed.thumbnailUrl,
-      summary,
-      content: isEn ? 'Scanned image' : 'Imagen escaneada',
-      source: 'local',
-      ts: now,
-    }]);
-
-    // 2. Send to LLM with metadata hidden — the content is NOT shown as a user bubble
-    //    because cleanContent strips everything before \n\n and the instructions block
-    setSending(true);
-    const metadata = `<<<SYSTEM_METADATA_BEGIN>>>${JSON.stringify({ receipt_scan: parsed, all_transactions: transactions })}<<<SYSTEM_METADATA_END>>>`;
-    const instruction = isEn
-      ? `${metadata}\n\n[RECEIPT_SCAN] ${summary}. Read Category and Person entities. Then show a confirmation summary for ALL ${count} transaction(s) and ask who they belong to before saving. Do NOT save yet.`
-      : `${metadata}\n\n[RECEIPT_SCAN] ${summary}. Lee las entidades Category y Person. Luego muestra un resumen de confirmación de TODAS las ${count} transacción(es) y pregúntame a quién pertenecen antes de guardar. NO guardes todavía.`;
-
-    await base44.agents.addMessage(conversation, {
-      role: 'user',
-      content: wrapWithHeader(instruction),
-    });
-    setSending(false);
-  };
-
-  // Detect if last assistant message is asking who the expense belongs to (person chips)
-  const personQuestionChips = (() => {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (!lastAssistant?.content) return null;
-    const c = lastAssistant.content;
-    const isPersonQuestion =
-      /¿a\s*qui[eé]n\s*pertenece/.test(c.toLowerCase()) ||
-      /¿de\s*qui[eé]n\s*es/.test(c.toLowerCase()) ||
-      /¿es\s*de\s*\w+\s*o\s*\w+\?/i.test(c) ||
-      /¿para\s*qui[eé]n/.test(c.toLowerCase()) ||
-      /who\s*(is\s*this|does\s*this\s*belong)/i.test(c) ||
-      (/¿[^?]*\s*o\s*[^?]*\?/.test(c) && persons?.some(p => c.toLowerCase().includes(p.name.toLowerCase())));
-    if (!isPersonQuestion) return null;
-    if (!persons || persons.length === 0) return null;
-    return persons.map(p => ({ id: p.id, name: p.name }));
+  // Find last assistant message content for contextual chips
+  const lastAssistantMessage = (() => {
+    for (let i = visibleMessages.length - 1; i >= 0; i--) {
+      if (visibleMessages[i].role === 'assistant') return visibleMessages[i].content;
+    }
+    return null;
   })();
 
-  // Detect if last assistant message is a confirmation question (Sí/No chips)
-  const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
-  const isLastMsgConfirmation = !sending && lastAssistantMsg && (
-    lastAssistantMsg.content?.includes('¿Confirmas') ||
-    lastAssistantMsg.content?.includes('¿Lo guardo') ||
-    lastAssistantMsg.content?.includes('¿Los guardo') ||
-    lastAssistantMsg.content?.includes('¿Guardamos') ||
-    lastAssistantMsg.content?.includes('Confirm?') ||
-    lastAssistantMsg.content?.includes('Shall I save')
-  );
-
-  if (!conversation) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin" />
-    </div>
-  );
+  // The Assistant page is rendered inside a Layout that has a fixed bottom nav on mobile.
+  // When the keyboard opens, visualViewport.height shrinks to the visible area above the keyboard.
+  // We set the container to exactly that height so the composer always sits just above the keyboard
+  // and the bottom nav is covered/pushed out of view automatically.
+  // position:fixed + top/left/right/bottom = vvHeight anchors the box to the visual viewport.
+  const isMobile = window.innerWidth < 768;
+  const containerStyle = isMobile ? {
+    position: 'fixed',
+    top: `${vvOffsetTop}px`,
+    left: 0,
+    right: 0,
+    height: `${vvHeight}px`,
+    zIndex: 45, // above bottom nav (z-40) but below more-drawer (z-50)
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'hsl(var(--background))',
+  } : {
+    height: '100%',
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+  };
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full min-h-0 relative overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border flex-shrink-0">
-        <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-md shadow-primary/20">
-          <Sparkles className="w-5 h-5 text-primary-foreground" />
-        </div>
-        <div className="flex-1">
-          <h1 className="font-bold text-foreground text-sm">Asistente IA</h1>
-          <p className="text-xs text-muted-foreground">Tu asistente financiero personal</p>
-        </div>
+    <div style={containerStyle}>
+      {/* ── Sticky Header ────────────────────────────────────────────────── */}
+      <header className="flex-shrink-0 flex items-center gap-3 px-3 pt-3 pb-3 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <button
-          onClick={() => setShowHistory(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium flex-shrink-0"
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all active:scale-95 flex-shrink-0"
+          aria-label="Regresar"
         >
-          <History className="w-3.5 h-3.5" />
-          Historia
+          <ChevronLeft className="w-5 h-5" />
         </button>
+
+        {/* Avatar */}
+        <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center text-lg flex-shrink-0 ring-1 ring-primary/10 shadow-sm">
+          💚
+        </div>
+
+        {/* Title */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-bold text-foreground leading-tight">Finia</h1>
+            <span className="w-1.5 h-1.5 rounded-full bg-income flex-shrink-0" />
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">Tu copiloto financiero familiar</p>
+        </div>
+
+        {/* Clear button */}
+        {messages.length > 0 && (
+          <button
+            onClick={clearWindow}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-muted text-muted-foreground text-[11px] font-medium hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0 border border-border"
+            title="Limpiar ventana (el historial del día se mantiene)"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Limpiar</span>
+          </button>
+        )}
+
+        {/* WhatsApp badge */}
         <a
-          href={base44.agents.getWhatsAppConnectURL('finance_assistant')}
+          href={base44.agents.getWhatsAppConnectURL(AGENT_NAME)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25D366] text-white text-xs font-semibold hover:bg-[#1ebe5d] transition-colors flex-shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#25D366]/10 text-[#25D366] text-[11px] font-semibold hover:bg-[#25D366]/20 transition-colors flex-shrink-0 border border-[#25D366]/20"
+          title="Hablar con Finia por WhatsApp"
         >
           <MessageCircle className="w-3.5 h-3.5" />
-          WhatsApp
+          <span className="hidden sm:inline">WhatsApp</span>
         </a>
-      </div>
+      </header>
 
-      {/* Messages — scrollable area */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 pb-4">
-        {messages.length === 0 && (
-          <AssistantWelcome
-            ctx={ctx}
-            locale={activeLocale}
-            onAction={(intent) => sendMessage(intent)}
-          />
-        )}
-
-        <AnimatePresence>
-          {messages.map((msg, i) => {
-            const prevMsg = messages[i - 1];
-            const isGrouped = prevMsg && prevMsg.role === msg.role;
-
-            return (
-              <motion.div key={msg.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className={isGrouped ? 'mt-1' : 'mt-3'}>
-                {msg.kind === 'receipt' ? (
-                  <div className="flex justify-end">
-                    <div className="max-w-[70%] bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-sm overflow-hidden">
-                      {msg.thumbnailDataUrl && (
-                        <img src={msg.thumbnailDataUrl} alt={msg.content} className="w-full max-h-40 object-cover" />
-                      )}
-                      <p className="text-xs text-primary px-3 py-1.5 font-medium">{msg.content}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <MessageBubble message={msg} hideAvatar={isGrouped} />
-                )}
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-
-        {sending && (
-          <div className="flex gap-2 mt-3">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Bot className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="flex gap-1.5">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 rounded-full bg-muted-foreground/60"
-                    animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.25, 1] }}
-                    transition={{ duration: 1.4, delay: i * 0.2, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Scope chips — ask self vs. family for ambiguous spend queries */}
-      {pendingScope && !sending && (
-        <div className="flex-shrink-0 px-4 pb-2 pt-2 border-t border-border bg-background flex flex-wrap gap-2">
-          <button onClick={() => resolveScopeAndRespond('self')}
-            className="flex-1 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors">
-            {activeLocale.startsWith('en') ? '👤 Just mine' : '👤 Solo lo mío'}
-          </button>
-          <button onClick={() => resolveScopeAndRespond('family')}
-            className="flex-1 py-2.5 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors">
-            {activeLocale.startsWith('en') ? '👨‍👩‍👧 Whole family' : '👨‍👩‍👧 Toda la familia'}
-          </button>
-        </div>
-      )}
-
-      {/* Action chips — shown above input bar, never hidden by sending state */}
-      {(isLastMsgConfirmation || (canViewChips && personQuestionChips && !sending)) && (
-        <div className="flex-shrink-0 px-4 pb-2 pt-2 border-t border-border bg-background flex flex-wrap gap-2">
-          {isLastMsgConfirmation && (
-            <>
-              <button onClick={handleConfirmTransaction}
-                className="flex-1 py-2.5 rounded-xl bg-income text-white text-sm font-semibold hover:bg-income/90 transition-colors">
-                ✅ Sí, guardar
-              </button>
-              <button onClick={handleModifyTransaction}
-                className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-border transition-colors">
-                ✏️ No, modificar
-              </button>
-            </>
-          )}
-          {!isLastMsgConfirmation && personQuestionChips && personQuestionChips.map(p => (
-            <button
-              key={p.id}
-              onClick={() => sendMessage(p.name)}
-              className="px-4 py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Historia panel — slides in from the right */}
-      <AnimatePresence>
-        {showHistory && (
-          <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed inset-0 z-40"
-          >
-            <AssistantHistory onClose={() => setShowHistory(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Input — in-flow at bottom. On mobile, bottom padding accounts for fixed nav bar (~64px) + safe area */}
+      {/* ── Messages area ────────────────────────────────────────────────── */}
       <div
-        ref={inputBarRef}
-        className="flex-shrink-0 px-4 pt-2 border-t border-border bg-background assistant-input-bar"
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <div className="flex gap-2 items-end max-w-full">
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              // Auto-grow
-              const el = e.target;
-              el.style.height = 'auto';
-              el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-            }}
-            onKeyDown={e => {
-              // Enter sin Shift: nueva línea (no envía)
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const el = e.target;
-                const start = el.selectionStart;
-                const end = el.selectionEnd;
-                const newVal = input.slice(0, start) + '\n' + input.slice(end);
-                setInput(newVal);
-                // Re-calcular altura tras el estado nuevo
-                setTimeout(() => {
-                  el.style.height = 'auto';
-                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-                  el.selectionStart = el.selectionEnd = start + 1;
-                }, 0);
-              }
-            }}
-            onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)}
-            onPaste={handlePaste}
-            placeholder="Escribe tu mensaje..."
-            className="flex-1 bg-background border border-border rounded-2xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 min-w-0 resize-none leading-relaxed"
-            style={{ minHeight: '48px', maxHeight: '120px', overflowY: 'auto' }}
-          />
-          {canUseVoice && (
-            <button onClick={isListening ? stopVoice : startVoice}
-              className={`flex-shrink-0 p-3 rounded-xl transition-all ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
+        <div className="px-4 py-4 space-y-3 min-h-full flex flex-col justify-end">
+          {/* Empty state */}
+          {!hasMessages && (
+            <div className="flex-1">
+              <FiniaWelcome onAction={sendMessage} />
+            </div>
           )}
-          <ReceiptScanButton
-            ref={scanButtonRef}
-            onScanComplete={handleScanComplete}
-            disabled={sending || !conversation}
-            locale={activeLocale}
-          />
-          {canSend && (
-            <button onClick={() => sendMessage(input)} disabled={!input.trim() || sending}
-              className="flex-shrink-0 p-3 rounded-xl bg-primary text-primary-foreground disabled:opacity-50 transition-all">
-              <Send className="w-5 h-5" />
-            </button>
+
+          {/* Messages */}
+          {hasMessages && (
+            <div className="space-y-3 pt-2">
+              <AnimatePresence initial={false}>
+                {visibleMessages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                  >
+                    <FiniaMessageBubble message={msg} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {/* Typing indicator */}
+              {sending && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <FiniaTypingIndicator />
+                </motion.div>
+              )}
+            </div>
           )}
+
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} className="h-1" />
         </div>
       </div>
+
+      {/* ── Bottom composer ───────────────────────────────────────────────── */}
+      <FiniaComposer
+        onSend={sendMessage}
+        disabled={sending || !conversation}
+        showChips={hasMessages}
+        lastAssistantMessage={lastAssistantMessage}
+      />
     </div>
   );
 }
