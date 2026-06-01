@@ -4,6 +4,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
 
+// Accepted attachment types: images plus common document formats.
+const ATTACHMENT_ACCEPT = 'image/*,.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
+
+// Categorize a file into a kind/label/emoji for the preview UI and message text.
+function describeFile(file) {
+  const name = file?.name || '';
+  const type = file?.type || '';
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  if (type.startsWith('image/')) return { kind: 'image', label: 'Imagen', emoji: '🧾' };
+  if (ext === 'csv' || type === 'text/csv') return { kind: 'document', label: 'CSV', emoji: '📊' };
+  if (ext === 'xls' || ext === 'xlsx' || type.includes('excel') || type.includes('spreadsheet'))
+    return { kind: 'document', label: 'Excel', emoji: '📊' };
+  if (ext === 'doc' || ext === 'docx' || type.includes('word'))
+    return { kind: 'document', label: 'Documento', emoji: '📄' };
+  if (ext === 'md') return { kind: 'document', label: 'Markdown', emoji: '📝' };
+  if (ext === 'txt' || type === 'text/plain') return { kind: 'document', label: 'Texto', emoji: '📄' };
+  return { kind: 'document', label: 'Archivo', emoji: '📎' };
+}
+
 export default function FiniaComposer({ onSend, disabled, showChips, lastAssistantMessage }) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -15,7 +34,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     typeof MediaRecorder !== 'undefined'
   );
   const [uploading, setUploading] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState(null);
+  const [uploadPreviews, setUploadPreviews] = useState([]);
   const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -175,16 +194,22 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     }
   };
 
-  // Upload an image file (from picker, paste, or drop) and set as preview
-  const uploadImageFile = useCallback(async (file, fallbackName) => {
-    if (!file) return;
+  // Upload one or more files (from picker or paste) and append them to the previews.
+  // Accepts images and common document types (txt, md, csv, doc/docx, xls/xlsx).
+  const uploadFiles = useCallback(async (files, fallbackName) => {
+    const list = Array.from(files || []).filter(Boolean);
+    if (!list.length) return;
     setUploading(true);
     try {
-      const namedFile = file.name
-        ? file
-        : new File([file], fallbackName || `recibo-pegado-${Date.now()}.png`, { type: file.type || 'image/png' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
-      setUploadPreview({ url: file_url, name: namedFile.name });
+      const uploaded = await Promise.all(list.map(async (file) => {
+        const namedFile = file.name
+          ? file
+          : new File([file], fallbackName || `adjunto-${Date.now()}.png`, { type: file.type || 'image/png' });
+        const meta = describeFile(namedFile);
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
+        return { url: file_url, name: namedFile.name, ...meta };
+      }));
+      setUploadPreviews(prev => [...prev, ...uploaded]);
     } catch {
       // silently fail — user can still type
     } finally {
@@ -192,30 +217,33 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     }
   }, []);
 
-  // File upload from file picker
+  const removePreview = (url) => setUploadPreviews(prev => prev.filter(p => p.url !== url));
+
+  // File upload from file picker (supports selecting multiple files at once)
   const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files?.length) return;
     e.target.value = '';
-    await uploadImageFile(file);
+    await uploadFiles(files);
   };
 
-  // Paste handler — extract image from clipboard
+  // Paste handler — extract image(s) from clipboard
   const handlePaste = useCallback((e) => {
     if (disabled || uploading) return;
     const items = e.clipboardData?.items;
     if (!items) return;
+    const images = [];
     for (const item of items) {
       if (item.kind === 'file' && item.type.startsWith('image/')) {
         const file = item.getAsFile();
-        if (file) {
-          e.preventDefault();
-          uploadImageFile(file, `recibo-pegado-${Date.now()}.${(item.type.split('/')[1] || 'png')}`);
-          return;
-        }
+        if (file) images.push(file);
       }
     }
-  }, [disabled, uploading, uploadImageFile]);
+    if (images.length) {
+      e.preventDefault();
+      uploadFiles(images, `recibo-pegado-${Date.now()}.png`);
+    }
+  }, [disabled, uploading, uploadFiles]);
 
   // Global paste listener so users can paste anywhere on the Assistant page
   useEffect(() => {
@@ -233,18 +261,29 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     return () => window.removeEventListener('paste', onWindowPaste);
   }, [handlePaste]);
 
-  const sendWithImage = () => {
-    if (!uploadPreview) return;
-    const msg = input.trim()
-      ? `${input.trim()}\n[Imagen: ${uploadPreview.url}]`
-      : `[Imagen adjunta: ${uploadPreview.url}]\nPor favor analiza este recibo y prepara el borrador del gasto.`;
+  const sendWithAttachments = () => {
+    if (!uploadPreviews.length) return;
+    const attachmentLines = uploadPreviews
+      .map(p => `[${p.label} adjunto: ${p.name} — ${p.url}]`)
+      .join('\n');
+    const base = input.trim();
+    let msg;
+    if (base) {
+      msg = `${base}\n${attachmentLines}`;
+    } else {
+      const onlyImages = uploadPreviews.every(p => p.kind === 'image');
+      const instruction = onlyImages
+        ? 'Por favor analiza estos archivos y prepara el borrador del gasto.'
+        : 'Por favor revisa estos archivos adjuntos.';
+      msg = `${attachmentLines}\n${instruction}`;
+    }
     setInput('');
-    setUploadPreview(null);
+    setUploadPreviews([]);
     if (textareaRef.current) textareaRef.current.style.height = '46px';
     onSend(msg);
   };
 
-  const canSend = (input.trim() || uploadPreview) && !disabled;
+  const canSend = (input.trim() || uploadPreviews.length) && !disabled;
 
   return (
     <div className="flex-shrink-0 bg-background/95 backdrop-blur-sm border-t border-border">
@@ -259,28 +298,37 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
         </div>
       )}
 
-      {/* Upload preview */}
+      {/* Upload previews — supports multiple attachments */}
       <AnimatePresence>
-        {uploadPreview && (
+        {uploadPreviews.length > 0 && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mx-4 mb-2 flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2"
+            className="mx-4 mb-2 flex flex-col gap-1.5"
           >
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm flex-shrink-0">
-              🧾
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">{uploadPreview.name}</p>
-              <p className="text-[10px] text-muted-foreground">Imagen lista para analizar</p>
-            </div>
-            <button
-              onClick={() => setUploadPreview(null)}
-              className="p-1 rounded-lg hover:bg-muted text-muted-foreground"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            {uploadPreviews.map(p => (
+              <div
+                key={p.url}
+                className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2"
+              >
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm flex-shrink-0">
+                  {p.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {p.kind === 'image' ? 'Imagen lista para analizar' : `${p.label} listo para analizar`}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removePreview(p.url)}
+                  className="p-1 rounded-lg hover:bg-muted text-muted-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -349,14 +397,14 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || uploading}
             className="w-10 h-10 rounded-2xl flex items-center justify-center bg-muted text-muted-foreground hover:text-foreground hover:bg-accent transition-all active:scale-95 disabled:opacity-40"
-            title="Adjuntar imagen o recibo"
+            title="Adjuntar imágenes o documentos (txt, md, csv, doc, xls)"
           >
             {uploading
               ? <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
               : <Paperclip className="w-[18px] h-[18px]" />
             }
           </button>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileInputRef} type="file" accept={ATTACHMENT_ACCEPT} multiple className="hidden" onChange={handleFileSelect} />
         </div>
 
         {/* Text input */}
@@ -369,7 +417,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             disabled={disabled}
-            placeholder="Escribe, habla o pega una imagen…"
+            placeholder="Escribe, habla o adjunta archivos…"
             className="w-full bg-muted/60 border border-border focus:border-primary/40 rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/15 resize-none leading-relaxed transition-all disabled:opacity-50"
             style={{ minHeight: '46px', maxHeight: '120px', overflowY: 'auto' }}
           />
@@ -399,12 +447,12 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
           )}
 
           {/* Send */}
-          {uploadPreview ? (
+          {uploadPreviews.length ? (
             <button
-              onClick={sendWithImage}
+              onClick={sendWithAttachments}
               disabled={!canSend}
               className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground disabled:opacity-40 transition-all active:scale-95 shadow-sm"
-              title="Enviar con imagen"
+              title="Enviar con adjuntos"
             >
               <Send className="w-[18px] h-[18px]" />
             </button>
