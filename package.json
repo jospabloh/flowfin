@@ -1,8 +1,9 @@
 {
-  "name": "base44-app",
+  "name": "flowfin",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "FlowFin: AI-powered financial management for families",
   "scripts": {
     "dev": "vite",
     "build": "node scripts/sync-permission-snapshot.mjs && node scripts/sync-docs-snapshot.mjs && node scripts/permissions-check.mjs && vite build",
