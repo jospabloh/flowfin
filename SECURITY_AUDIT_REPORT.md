@@ -1,8 +1,27 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 1, 2026 (Updated)
-**Version Audited**: 0.2.0
+**Date**: June 1, 2026 (Updated — v0.4.0 Audit)
+**Version Audited**: 0.4.0
 **Auditor**: Claude Code Security Review
-**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; CSP deployed; CI security gate added; token storage and xlsx/react-quill remain open)
+**Overall Risk Level**: **MEDIUM** (Critical dependency resolved; CSP deployed; CI security gate added; lint error fixed; token storage and xlsx/react-quill remain open)
+
+## v0.4.0 Audit Summary
+
+**New in v0.4.0:**
+- ✅ Fixed: Unused `Info` import in `src/components/finia/FiniaMessageBubble.jsx` (ESLint lint failure — LOW)
+- ✅ Fixed: Retroactive version bump (package.json 0.2.0 → 0.4.0); CHANGELOG entries added for v0.3.0 and v0.4.0
+- ✅ Confirmed: All permission manifests current — 19 permission files covering all pages
+- ✅ Confirmed: CSP headers in place (`public/_headers`)
+- ✅ Confirmed: CI audit gate runs on every push/PR (`npm audit --audit-level=critical`)
+- ✅ Confirmed: ESLint passes cleanly (0 errors after fix)
+- ✅ Confirmed: npm audit shows 0 critical, 0 high from non-xlsx packages
+
+**Remaining open issues (unchanged from v0.3.0):**
+- ⚠️ HIGH: xlsx prototype pollution/ReDoS — no upstream fix
+- ⚠️ MODERATE: react-quill/quill XSS — no upstream fix
+- ⚠️ HIGH: Token storage in localStorage — architectural change required
+- ⚠️ INFO: WaitlistAdmin backend `listWaitlist` server-side auth not verified in code review
+
+**Dependency audit (current):** `npm audit` → 3 vulnerabilities (0 critical, 1 high [xlsx], 2 moderate [quill/react-quill])
 
 ---
 

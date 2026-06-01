@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown';
-import { AlertTriangle, CheckCircle2, Info, XCircle, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
 
 // Detect special message types from content patterns
 function detectMessageType(content) {
