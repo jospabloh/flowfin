@@ -71,17 +71,16 @@ export function useDashboardData() {
   }, [rentalProperties, rentalPayments]);
 
   const pendingInvestments = useMemo(() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const localToday = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ, no UTC drift
+    const now = new Date();
     return investments.filter(inv => {
       if (inv.is_active === false) return false;
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id && new Date(p.date) <= today).length;
+      const paid = investmentPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= localToday)).length;
       if (paid >= inv.total_payments) return false;
-      const base = new Date(inv.start_date);
-      const next = new Date(base);
+      const next = new Date(inv.start_date);
       next.setMonth(next.getMonth() + paid);
       if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
-      const diff = Math.ceil((next - today) / 86400000);
+      const diff = Math.ceil((next - now) / 86400000);
       return diff <= 7;
     });
   }, [investments, investmentPayments]);
@@ -137,10 +136,9 @@ export function useDashboardData() {
   const upcoming = useMemo(() => {
     const items = [];
     const today = new Date();
-    const todayForUpcoming = new Date();
-    todayForUpcoming.setHours(23, 59, 59, 999);
+    const localToday = today.toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ, no UTC drift
     investments.filter(i => i.is_active !== false).forEach(inv => {
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id && new Date(p.date) <= todayForUpcoming).length;
+      const paid = investmentPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= localToday)).length;
       if (paid < inv.total_payments) {
         const next = new Date(inv.start_date);
         next.setMonth(next.getMonth() + paid);

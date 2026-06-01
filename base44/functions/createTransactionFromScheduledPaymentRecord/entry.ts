@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'Transaction already linked' }, { status: 200 });
     }
 
-    // Resolve person_id: use paid_by if available as a hint, fallback to primary person or first person
-    let resolvedPersonId = null;
-    if (scheduledPayment.family_id) {
+    // Resolve person_id: prefer the configured person on the ScheduledPayment, then paid_by hint, then first person
+    let resolvedPersonId = scheduledPayment.person_id || null;
+    if (!resolvedPersonId && scheduledPayment.family_id) {
       const persons = await base44.asServiceRole.entities.Person.filter({ 
         family_id: scheduledPayment.family_id 
       });
@@ -69,11 +69,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Build transaction data
+    // Build transaction data — respect the ScheduledPayment.type (expense by default, income for recurring inflows)
     const txData = {
       family_id: scheduledPaymentRecord.family_id,
       date: scheduledPaymentRecord.paid_date || new Date().toISOString().split('T')[0],
-      type: 'expense',
+      type: scheduledPayment.type === 'income' ? 'income' : 'expense',
       amount: scheduledPaymentRecord.amount_paid || scheduledPayment.amount || 0,
       description: scheduledPayment.name || 'Pago programado',
       category_id: scheduledPayment.category_id || '',

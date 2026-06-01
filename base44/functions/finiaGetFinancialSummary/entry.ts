@@ -18,7 +18,7 @@ function sumByType(txs, excludedCatIds) {
 async function fetchTxsForPeriod(entities, familyId, start, end) {
   const PAGE = 200;
   const MAX = 500;
-  let all = [];
+  const all = [];
   let skip = 0;
   while (true) {
     const page = await entities.Transaction.filter({ family_id: familyId }, '-date', PAGE, skip);

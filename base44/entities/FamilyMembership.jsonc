@@ -39,17 +39,17 @@
     },
     "tutorial_state": {
       "type": "object",
-      "description": "Estado del tutorial de configuraci\u00f3n para el administrador de esta membres\u00eda",
       "additionalProperties": true,
-      "default": {}
+      "default": {},
+      "description": "Estado del tutorial de configuraci\u00f3n para el administrador de esta membres\u00eda"
     },
     "person_id": {
       "type": "string",
-      "description": "ID del Person (integrante) vinculado a este usuario. El admin lo configura para que el asistente IA identifique al usuario."
+      "description": "ID del Person (integrante) vinculado a este usuario."
     },
     "last_active_at": {
       "type": "string",
-      "description": "ISO datetime de la \u00faltima vez que el usuario fue activo en la app (throttled, m\u00e1x una vez cada 20 min)"
+      "description": "ISO datetime de la \u00faltima vez que el usuario fue activo en la app"
     },
     "last_trial_reactivation_email_at": {
       "type": "string",
@@ -62,7 +62,7 @@
     },
     "invited_by_user_id": {
       "type": "string",
-      "description": "ID del usuario que envi\u00f3 el deep-link de invitaci\u00f3n que origin\u00f3 esta membres\u00eda. Vac\u00edo para admins (creadores de la familia) o miembros que se unieron sin link de referido."
+      "description": "ID del usuario que envi\u00f3 el deep-link de invitaci\u00f3n que origin\u00f3 esta membres\u00eda."
     }
   },
   "required": [
@@ -112,16 +112,10 @@
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "data.user_id": "{{user.id}}"
         },
         {
           "data.family_id": "{{user.data.admin_family_ids}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
-        },
-        {
-          "data.user_id": "{{user.id}}"
         }
       ]
     },
@@ -133,13 +127,10 @@
           }
         },
         {
-          "created_by": "{{user.email}}"
+          "data.user_id": "{{user.id}}"
         },
         {
           "data.family_id": "{{user.data.admin_family_ids}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

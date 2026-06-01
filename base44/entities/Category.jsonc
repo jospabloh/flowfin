@@ -32,7 +32,7 @@
     "exclude_from_totals": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, las transacciones de esta categoría no se suman en los totales de egresos (ej: Pago TDC)"
+      "description": "Si es true, las transacciones de esta categor\u00eda no se suman en totales ni reportes (ej: Pago TDC)"
     }
   },
   "required": [
@@ -41,11 +41,6 @@
   "rls": {
     "create": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -57,11 +52,6 @@
     "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -72,11 +62,6 @@
     "update": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -86,11 +71,6 @@
     },
     "delete": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },

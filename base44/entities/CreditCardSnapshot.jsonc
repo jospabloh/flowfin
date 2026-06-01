@@ -3,25 +3,29 @@
   "type": "object",
   "properties": {
     "family_id": {
-      "type": "string",
-      "description": "ID de la familia propietaria"
+      "description": "Family owner ID",
+      "type": "string"
     },
     "payment_method_id": {
-      "type": "string",
-      "description": "ID del método de pago (TDC) al que pertenece este snapshot"
+      "description": "Credit card payment method ID",
+      "type": "string"
     },
     "balance": {
-      "type": "number",
-      "description": "Saldo manual capturado para la TDC"
+      "description": "Saldo total adeudado en la tarjeta",
+      "type": "number"
+    },
+    "amount_due": {
+      "description": "Monto que el banco indica pagar en este ciclo de corte",
+      "type": "number"
     },
     "snapshot_date": {
-      "type": "string",
+      "description": "Date of this balance snapshot",
       "format": "date",
-      "description": "Fecha del snapshot del saldo"
+      "type": "string"
     },
     "notes": {
-      "type": "string",
-      "description": "Notas adicionales sobre el snapshot"
+      "description": "Optional notes",
+      "type": "string"
     }
   },
   "required": [
@@ -32,6 +36,21 @@
   ],
   "rls": {
     "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
       "$or": [
         {
           "user_condition": {
@@ -62,21 +81,6 @@
       ]
     },
     "update": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
-        }
-      ]
-    },
-    "delete": {
       "$or": [
         {
           "user_condition": {

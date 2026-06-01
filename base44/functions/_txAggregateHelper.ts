@@ -123,10 +123,8 @@ export async function resolveAccess(
     if (!requestedFamilyId && memberships.length > 1) {
       const activeId = user.data?.family_id ?? user.data?.data?.family_id;
       membership =
-        // deno-lint-ignore no-explicit-any
-        memberships.find((m: any) => m.family_id === activeId) ??
-        // deno-lint-ignore no-explicit-any
-        [...memberships].sort((a: any, b: any) =>
+        memberships.find((m) => m.family_id === activeId) ??
+        [...memberships].sort((a, b) =>
           (b.last_active_at ?? '').localeCompare(a.last_active_at ?? '')
         )[0];
     }

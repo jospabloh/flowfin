@@ -5,11 +5,11 @@
     "snapshot_date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha en que se tomó el snapshot"
+      "description": "Fecha en que se tom\u00f3 el snapshot"
     },
     "schema_hash": {
       "type": "string",
-      "description": "Hash SHA del contenido serializado para comparación rápida"
+      "description": "Hash SHA del contenido serializado para comparaci\u00f3n r\u00e1pida"
     },
     "schema_data": {
       "type": "object",
@@ -19,22 +19,42 @@
     "is_current": {
       "type": "boolean",
       "default": true,
-      "description": "Si es el snapshot activo más reciente"
+      "description": "Si es el snapshot activo m\u00e1s reciente"
     },
     "entities_count": {
       "type": "number",
-      "description": "Número de entidades en el snapshot"
+      "description": "N\u00famero de entidades en el snapshot"
     },
     "fields_count": {
       "type": "number",
-      "description": "Número total de campos en el snapshot"
+      "description": "N\u00famero total de campos en el snapshot"
     }
   },
-  "required": ["snapshot_date", "schema_hash", "schema_data"],
+  "required": [
+    "snapshot_date",
+    "schema_hash",
+    "schema_data"
+  ],
   "rls": {
-    "create": { "user_condition": { "role": "admin" } },
-    "read": { "user_condition": { "role": "admin" } },
-    "update": { "user_condition": { "role": "admin" } },
-    "delete": { "user_condition": { "role": "admin" } }
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
   }
 }
