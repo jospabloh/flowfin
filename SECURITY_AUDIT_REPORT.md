@@ -1,6 +1,6 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 1, 2026 (Updated)
-**Version Audited**: 0.2.0
+**Date**: June 1, 2026 (Updated — v0.4.0 Audit)
+**Version Audited**: 0.4.0
 **Auditor**: Claude Code Security Review
 **Overall Risk Level**: **LOW-MEDIUM** (Critical dependency resolved; CSP deployed; CI gate active; react-quill removed; xlsx write-only — no parse-path exposure; token storage remains open)
 

@@ -1,8 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
 
 // WhatsApp context function for Finia agent.
 // Resolves user identity, family data, monthly financials and upcoming payments.
 // Uses filter() everywhere — never .get() which is unreliable in agent context.
+// Transactions are fetched via fetchFamilyTransactions so pagination + date range
+// work in the agent context. A bare sr.Transaction.filter without limit/sort
+// silently returns a subset that may exclude the current month → txCount: 0.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -34,11 +38,12 @@ Deno.serve(async (req) => {
 
     console.log('[getWhatsAppContext] familyId:', familyId, 'personId:', membership.person_id ?? null);
 
-    // Fetch all data in parallel
-    const [persons, families, transactions, scheduledArr] = await Promise.all([
+    // Fetch all data in parallel. Transactions go through fetchFamilyTransactions
+    // so the date range is applied properly under the agent's execution context.
+    const [persons, families, monthTxs, scheduledArr] = await Promise.all([
       sr.Person.filter({ family_id: familyId }).catch(() => []),
       sr.Family.filter({ id: familyId }).catch(() => []),
-      sr.Transaction.filter({ family_id: familyId }).catch(() => []),
+      fetchFamilyTransactions(base44, { familyId, start: monthStart, end: todayISO }).catch(() => []),
       sr.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
     ]);
 
@@ -48,8 +53,6 @@ Deno.serve(async (req) => {
     const personName = selfPerson?.name ?? membership.user_name ?? user.full_name ?? user.email ?? null;
     const familyName = families?.[0]?.name ?? null;
 
-    // Calculate month totals from transactions
-    const monthTxs = (transactions || []).filter(tx => tx.date >= monthStart && tx.date <= todayISO);
     let income = 0;
     let expenses = 0;
     for (const tx of monthTxs) {

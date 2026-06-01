@@ -1,5 +1,5 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.25";
-import { AgentError, agentErrorResponse, resolveAgentAccess } from "../_agentGuard.ts";
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { AgentError, agentErrorResponse, resolveAgentAccess } from '../_agentGuard.ts';
 
 // Returns the family's catalogs (persons, categories, subcategories, payment
 // methods) for the assistant to map names → ids. Identity is resolved server-side

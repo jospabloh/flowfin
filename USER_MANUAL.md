@@ -1,6 +1,6 @@
 # FlowFin User Manual
 
-**Version**: 0.2.0
+**Version**: 0.4.0
 **Last Updated**: June 1, 2026
 **Status**: BETA (Development Stage)
 
@@ -8,9 +8,7 @@
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v0.1.0)**. This version includes critical security updates but is **not yet recommended for production use with real financial data**. 
-
-For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v0.4.0)**. This version includes security updates and code quality improvements. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -25,8 +23,8 @@ For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_A
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v0.2.0)](#latest-updates-v020-release-notes)
-11. [Previous Release (v0.1.0)](#previous-release-v010)
+10. [Latest Updates (v0.4.0)](#latest-updates-v040-release-notes)
+11. [Previous Releases](#previous-releases)
 
 ---
 
@@ -606,9 +604,45 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.2.0 Release Notes)
+## Latest Updates (v0.4.0 Release Notes)
 
-### New in v0.2.0 (June 1, 2026)
+### New in v0.4.0 (June 1, 2026)
+
+#### 🔒 Security / Code Quality
+- **LOW → FIXED**: Removed unused `Info` import in the AI assistant message bubble component — this caused a lint failure that would block CI on strict lint jobs. No user-facing behavior change.
+- Version synchronized: package.json and CHANGELOG now reflect all deployed changes through v0.4.0.
+- CHANGELOG retroactively documents v0.3.0 changes that shipped in PR #110 without a formal version entry.
+
+#### ⚠️ Known Open Issues in v0.4.0
+- **HIGH**: Authentication tokens stored in localStorage — architectural redesign required; token is removed from URL after use which reduces exposure.
+- **HIGH**: xlsx prototype pollution/ReDoS — no upstream fix available; mitigate by only importing trusted files.
+- **MODERATE**: react-quill/quill XSS — upstream fix requires breaking change; evaluating replacement editor.
+- **INFO**: WaitlistAdmin `listWaitlist` backend authorization — confirm server-side platform-admin check is enforced.
+
+#### What's Next
+- Migrate token storage from localStorage to memory/HttpOnly cookies
+- Evaluate editor replacement for react-quill
+- Expand test coverage toward 80%+ target
+- Advanced reporting analytics and mobile optimizations
+
+---
+
+## Previous Releases
+
+### v0.3.0 (June 1, 2026)
+
+#### 🔒 Security Fixes
+- **CRITICAL → RESOLVED**: jsPDF updated, eliminating HTML injection vulnerability (GHSA-wfv2-pwc8-crg5, CVSS 9.6)
+- **HIGH × 8 → RESOLVED**: `npm audit fix` applied — axios, flatted, lodash, minimatch, picomatch, rollup, socket.io-parser, vite updated
+- **NEW**: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy response headers deployed
+- **NEW**: CI security gate blocks merges on critical dependency vulnerabilities
+
+#### 🆕 Feature Gate Improvements
+- Goals, Messages, and Trips pages now include action-level permission gates using `usePermission`
+
+---
+
+### v0.2.0 (June 1, 2026)
 
 #### 🔒 Security Fixes (All Tenants — Action May Be Required)
 - **CRITICAL PERMISSION FIX**: The `member` role previously had full admin-level permissions on Catalogs, Investments, Rentals, and MSI modules, allowing members to create, edit, and delete financial records that should be admin-controlled. **This is now corrected — members default to view-only for these modules.**
@@ -626,29 +660,11 @@ Export your financial data.
 - **Release Notes** page: In-app version history
 
 #### 🐛 Bug Fixes
-- Deno linter errors resolved in backend functions (`finiaGetFinancialSummary`, `getAssistantContext`, `finiaConfirmTransaction`)
-- `let` → `const` and unused variable cleanup in backend Deno functions
-
-#### ⚠️ Known Issues in v0.2.0
-- **OPEN CRITICAL**: jsPDF HTML injection (GHSA-wfv2-pwc8-crg5) — `npm audit fix` not yet run
-- **OPEN HIGH**: Authentication tokens stored in localStorage — architectural redesign pending
-- **OPEN HIGH**: Trips page uses billing feature gate only, not full RBAC gate
-- **OPEN HIGH**: Messages page lacks explicit permission gate at page load
-- xlsx library pending upstream security fix
-- Test coverage <30% — comprehensive test suite planned for v0.3.0
-
-#### What's Next (v0.3.0 — Planned)
-- Apply `npm audit fix` to resolve 17+ open dependency vulnerabilities
-- Migrate token storage from localStorage to memory/HttpOnly cookies
-- Add RBAC permission gates to Trips and Messages pages
-- Comprehensive test suite targeting 80%+ coverage
-- Advanced reporting and analytics
-- Mobile app (iOS/Android)
-- Offline mode improvements
+- Deno linter errors resolved in backend functions
 
 ---
 
-## Previous Release (v0.1.0)
+### Previous Release (v0.1.0)
 
 ### New in v0.1.0 (June 1, 2026)
 
