@@ -1,5 +1,49 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.25";
-import { AgentError, agentErrorResponse, resolveAgentAccess } from "../_agentGuard.ts";
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+async function resolveAccess(base44, bodyFamilyId) {
+  const entities = base44.asServiceRole.entities;
+
+  // Try user session first (app web)
+  let user = null;
+  try { user = await base44.auth.me(); } catch { user = null; }
+
+  if (user) {
+    let memberships = await entities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships || memberships.length === 0) {
+      memberships = await entities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    }
+    const membership = (memberships || [])[0] ?? null;
+    if (!membership) {
+      const err = new Error('No approved family membership found');
+      err.httpStatus = 401;
+      err.code = 'not_linked';
+      throw err;
+    }
+    return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
+  }
+
+  // Fallback: agent calling from WhatsApp passes familyId explicitly
+  if (bodyFamilyId) {
+    try {
+      const family = await entities.Family.get(bodyFamilyId);
+      if (!family) {
+        const err = new Error('Family not found');
+        err.httpStatus = 403;
+        throw err;
+      }
+    } catch {
+      const err = new Error('Family not found');
+      err.httpStatus = 403;
+      throw err;
+    }
+    return { user: null, familyId: bodyFamilyId, selfPersonId: null, membership: null };
+  }
+
+  const err = new Error('not_linked');
+  err.httpStatus = 401;
+  err.code = 'not_linked';
+  throw err;
+}
 
 // Returns the family's catalogs (persons, categories, subcategories, payment
 // methods) for the assistant to map names → ids. Identity is resolved server-side
