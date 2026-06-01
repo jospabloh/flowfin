@@ -8,12 +8,14 @@ import TripCard from '@/components/trips/TripCard';
 import TripFormModal from '@/components/trips/TripFormModal';
 import Spinner from '@/components/Spinner';
 import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import { usePermission } from '@/lib/permissions/usePermission';
 import PaywallPrompt from '@/components/billing/PaywallPrompt';
 
 export default function Trips() {
   const { familyId } = useFamily();
   const { persons } = useCatalog(familyId);
   const gate = useFeatureGate('page.Trips');
+  const { can_write: canCreate } = usePermission('trips.manage.create');
   const [trips, setTrips] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ export default function Trips() {
       <PageHeader
         title="Viajes"
         subtitle="Viajes y gastos por destino"
-        action={
+        action={canCreate && (
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
@@ -87,7 +89,7 @@ export default function Trips() {
             <Plus className="w-4 h-4" />
             Nuevo Viaje
           </button>
-        }
+        )}
       />
 
       {loading ? (
@@ -109,13 +111,15 @@ export default function Trips() {
               </div>
               <p className="font-semibold text-foreground mb-1">No tienes viajes activos</p>
               <p className="text-sm text-muted-foreground mb-4">¡Crea uno para empezar a rastrear tus gastos por destino!</p>
-              <button
-                onClick={() => setShowForm(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Crear mi primer viaje
-              </button>
+              {canCreate && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Crear mi primer viaje
+                </button>
+              )}
             </div>
           )}
 
@@ -147,7 +151,7 @@ export default function Trips() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && canCreate && (
         <TripFormModal
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); load(); }}

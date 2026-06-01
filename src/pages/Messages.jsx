@@ -14,6 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import NativeSelect from '@/components/NativeSelect';
 import PageHeader from '@/components/PageHeader';
+import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
+import { usePermission } from '@/lib/permissions/usePermission';
+import PaywallPrompt from '@/components/billing/PaywallPrompt';
+import Spinner from '@/components/Spinner';
 import { Plus, MessageCircle, CreditCard, TrendingUp, ArrowRightLeft } from 'lucide-react';
 
 const CATEGORIES = [
@@ -40,6 +44,8 @@ export default function Messages() {
   const { familyId, currentUser } = useFamily();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const gate = useFeatureGate('page.Messages');
+  const { can_write: canSend } = usePermission('messages.manage.send');
 
   const [showComposer, setShowComposer] = useState(false);
   const [recipientId, setRecipientId] = useState('');
@@ -118,12 +124,29 @@ export default function Messages() {
     }
   }
 
+  if (gate.status === 'loading') {
+    return (
+      <div className="flex justify-center py-12">
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (gate.status === 'denied') {
+    return (
+      <div className="pb-8">
+        <PageHeader title="Mensajes" subtitle="Comunicación con tu familia" />
+        <PaywallPrompt feature="page.Messages" requiredPlan={gate.requiredPlan} />
+      </div>
+    );
+  }
+
   return (
     <div className="pb-24">
       <PageHeader
         title="Mensajes"
         subtitle="Comunicación con tu familia"
-        action={
+        action={canSend && (
           <button
             onClick={() => setShowComposer(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm"
@@ -131,7 +154,7 @@ export default function Messages() {
             <Plus className="w-3.5 h-3.5" />
             Nuevo mensaje
           </button>
-        }
+        )}
       />
 
       <div className="px-4">
@@ -247,7 +270,7 @@ export default function Messages() {
         </Tabs>
       </div>
 
-      <Dialog open={showComposer} onOpenChange={(open) => { if (!open) resetComposer(); }}>
+      <Dialog open={showComposer && canSend} onOpenChange={(open) => { if (!open) resetComposer(); }}>
         <DialogContent className="max-w-sm mx-4">
           <DialogHeader>
             <DialogTitle>Nuevo mensaje</DialogTitle>
