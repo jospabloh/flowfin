@@ -1,6 +1,30 @@
 const isNode = typeof document === 'undefined';
-const windowObj = isNode ? { localStorage: new Map() } : globalThis;
-const storage = windowObj.localStorage;
+const windowObj = isNode ? { sessionStorage: new Map(), localStorage: new Map() } : globalThis;
+// Auth tokens are kept in sessionStorage (cleared when the tab closes) instead of
+// localStorage to avoid a persistent token at rest that any future XSS could read
+// long after the user has left. sessionStorage still survives same-tab refresh, so
+// there is no re-authentication regression.
+const storage = windowObj.sessionStorage;
+
+// Token keys that older builds wrote to localStorage. We migrate them to sessionStorage
+// once (so already-signed-in users aren't logged out on deploy) and then keep
+// localStorage free of tokens.
+const LEGACY_TOKEN_KEYS = ['base44_access_token', 'token'];
+
+const migrateLegacyTokenStorage = () => {
+	if (isNode || !windowObj.localStorage) return;
+	for (const key of LEGACY_TOKEN_KEYS) {
+		try {
+			const legacyValue = windowObj.localStorage.getItem(key);
+			if (legacyValue && !storage.getItem(key)) {
+				storage.setItem(key, legacyValue);
+			}
+			windowObj.localStorage.removeItem(key);
+		} catch {
+			// Storage access can throw in locked-down browser modes; ignore.
+		}
+	}
+};
 
 const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -35,6 +59,7 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 }
 
 const getAppParams = () => {
+	migrateLegacyTokenStorage();
 	if (getAppParamValue("clear_access_token") === 'true') {
 		storage.removeItem('base44_access_token');
 		storage.removeItem('token');
