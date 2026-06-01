@@ -49,7 +49,7 @@ function sumByType(txs) {
 async function fetchTransactions(userEntities, familyId, start, end) {
   const PAGE = 200;
   const MAX = 500; // hard cap per period to stay fast
-  let all = [];
+  const all = [];
   let skip = 0;
   let truncated = false;
   try {
