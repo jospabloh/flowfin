@@ -1,35 +1,60 @@
 {
   "name": "ChangelogDraft",
-  "type": "object",
   "properties": {
-    "type": {
-      "type": "string",
-      "enum": ["fix", "feature", "security", "system", "breaking"],
-      "description": "Tipo de cambio"
-    },
     "description": {
-      "type": "string",
-      "description": "Descripción del cambio escrita por el developer"
+      "description": "Descripci\u00f3n del cambio escrita por el developer",
+      "type": "string"
     },
     "is_published": {
-      "type": "boolean",
       "default": false,
-      "description": "Si ya fue incluido en un AppChangelog publicado"
+      "description": "Si ya fue incluido en un AppChangelog publicado",
+      "type": "boolean"
     },
     "published_at": {
-      "type": "string",
-      "description": "ISO datetime cuando fue publicado"
+      "description": "ISO datetime cuando fue publicado",
+      "type": "string"
     },
     "published_in_version": {
-      "type": "string",
-      "description": "Versión en la que fue publicado (ej. 1.0.2)"
+      "description": "Versi\u00f3n en la que fue publicado (ej. 1.0.2)",
+      "type": "string"
+    },
+    "type": {
+      "description": "Tipo de cambio",
+      "enum": [
+        "fix",
+        "feature",
+        "security",
+        "system",
+        "breaking"
+      ],
+      "type": "string"
     }
   },
-  "required": ["description", "type"],
+  "required": [
+    "description",
+    "type"
+  ],
   "rls": {
-    "create": { "user_condition": { "role": "admin" } },
-    "read": { "user_condition": { "role": "admin" } },
-    "update": { "user_condition": { "role": "admin" } },
-    "delete": { "user_condition": { "role": "admin" } }
-  }
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
 }

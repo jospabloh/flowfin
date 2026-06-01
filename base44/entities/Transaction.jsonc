@@ -30,7 +30,7 @@
     },
     "category_id": {
       "type": "string",
-      "description": "ID de categor\u00eda (Rubro) \u2014 obligatorio"
+      "description": "ID de categor\u00eda (Rubro)"
     },
     "subcategory_id": {
       "type": "string",
@@ -38,11 +38,11 @@
     },
     "person_id": {
       "type": "string",
-      "description": "ID de la persona \u2014 obligatorio"
+      "description": "ID de la persona"
     },
     "payment_method_id": {
       "type": "string",
-      "description": "ID del m\u00e9todo de pago (Forma)"
+      "description": "ID del m\u00e9todo de pago"
     },
     "required_type": {
       "type": "string",
@@ -53,84 +53,70 @@
         "Inversi\u00f3n",
         "Otro"
       ],
-      "default": "Necesario",
-      "description": "Clasificaci\u00f3n de necesidad"
+      "default": "Necesario"
     },
     "has_invoice": {
       "type": "boolean",
-      "default": false,
-      "description": "\u00bfTiene factura?"
+      "default": false
     },
     "transferred_to": {
-      "type": "string",
-      "description": "Transferido a (ej: Actinver, Ahorro)"
+      "type": "string"
     },
     "tags": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Etiquetas"
+      }
     },
     "notes": {
-      "type": "string",
-      "description": "Notas adicionales"
+      "type": "string"
     },
     "week": {
-      "type": "number",
-      "description": "N\u00famero de semana del a\u00f1o"
+      "type": "number"
     },
     "receipt_image": {
       "type": "string",
       "description": "URL de imagen del ticket/recibo"
     },
     "msi_payment_id": {
-      "type": "string",
-      "description": "ID del pago MSI vinculado (si aplica)"
+      "type": "string"
     },
     "investment_payment_id": {
-      "type": "string",
-      "description": "ID del pago de inversi\u00f3n vinculado (si aplica)"
+      "type": "string"
     },
     "scheduled_payment_record_id": {
-      "type": "string",
-      "description": "ID del registro de pago programado vinculado (si aplica)"
+      "type": "string"
     },
     "rental_payment_id": {
-      "type": "string",
-      "description": "ID del pago de renta vinculado (si aplica)"
-    },
-    "credit_card_balance": {
-      "type": "number",
-      "description": "Saldo pendiente de la TDC después de este pago (solo aplica a categorías de Pago TDC)"
+      "type": "string"
     },
     "trip_id": {
       "type": "string",
-      "description": "ID del viaje al que pertenece esta transacción (si aplica)"
+      "description": "ID of the trip this expense belongs to"
     },
     "original_currency": {
       "type": "string",
-      "description": "Moneda usada al momento del gasto"
+      "description": "Currency in which expense was recorded (e.g. USD, EUR)"
     },
     "original_amount": {
       "type": "number",
-      "description": "Monto en la moneda original"
+      "description": "Amount in original currency before conversion"
     },
     "exchange_rate": {
       "type": "number",
-      "description": "Tipo de cambio aplicado al momento del registro"
+      "description": "Exchange rate applied at moment of registration"
     },
     "is_split": {
       "type": "boolean",
       "default": false,
-      "description": "¿El gasto fue dividido entre participantes?"
+      "description": "Whether this expense was split between trip participants"
     },
     "split_with_person_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "IDs de las personas con quienes se dividió este gasto"
+      "description": "Person IDs this expense was split with"
     }
   },
   "required": [
@@ -145,11 +131,6 @@
     "create": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -159,11 +140,6 @@
     },
     "read": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -175,11 +151,6 @@
     "update": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -189,11 +160,6 @@
     },
     "delete": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },

@@ -12,22 +12,25 @@ export default function InvestmentPayFormModal({
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 z-[60]" onClick={onClose} />
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[61] bg-card rounded-2xl border border-border p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
+            className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-md top-1/2 -translate-y-1/2 z-[61] bg-card rounded-2xl border border-border shadow-2xl flex flex-col max-h-[85vh]">
+
+            {/* Header — fixed, never scrolls */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 flex-shrink-0">
               <h3 className="font-bold text-foreground">{title}</h3>
               <button onClick={onClose} className="p-2 rounded-xl bg-muted hover:bg-border transition-colors"><X className="w-4 h-4" /></button>
             </div>
 
-            {/* Confirmation summary */}
-            {investmentName && paymentNumber && (
-              <div className="mb-4 px-4 py-3 bg-primary/10 border border-primary/20 rounded-xl">
-                <p className="text-xs text-muted-foreground">Estás registrando:</p>
-                <p className="text-sm font-bold text-foreground mt-0.5">{investmentName}</p>
-                <p className="text-xs text-primary font-semibold">Pago #{paymentNumber}</p>
-              </div>
-            )}
+            {/* Scrollable content */}
+            <div className="overflow-y-auto flex-1 px-5 pb-2 space-y-3">
+              {/* Confirmation summary */}
+              {investmentName && paymentNumber && (
+                <div className="px-4 py-3 bg-primary/10 border border-primary/20 rounded-xl">
+                  <p className="text-xs text-muted-foreground">Estás registrando:</p>
+                  <p className="text-sm font-bold text-foreground mt-0.5">{investmentName}</p>
+                  <p className="text-xs text-primary font-semibold">Pago #{paymentNumber}</p>
+                </div>
+              )}
 
-            <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Monto *</label>
                 <input type="number" placeholder="0.00" value={form.amount}
@@ -41,7 +44,6 @@ export default function InvestmentPayFormModal({
                   className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
               </div>
 
-              {/* Persona */}
               {persons.length > 0 && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Persona *</label>
@@ -56,7 +58,6 @@ export default function InvestmentPayFormModal({
                 </div>
               )}
 
-              {/* Rubro */}
               {categories.length > 0 && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Rubro *</label>
@@ -73,7 +74,6 @@ export default function InvestmentPayFormModal({
                 </div>
               )}
 
-              {/* Forma de pago */}
               {paymentMethods.length > 0 && (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Forma de pago</label>
@@ -96,19 +96,22 @@ export default function InvestmentPayFormModal({
               </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">Cancelar</button>
-              <button
-                onClick={onSave}
-                disabled={!form.amount || !form.person_id || !form.category_id}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
-              >
-                Confirmar pago
-              </button>
+            {/* Footer — fixed, always visible */}
+            <div className="flex-shrink-0 px-5 pt-3 pb-5 border-t border-border bg-card rounded-b-2xl">
+              {(!form.person_id || !form.category_id) && form.amount && (
+                <p className="text-xs text-muted-foreground text-center mb-2">* Selecciona persona y rubro para continuar</p>
+              )}
+              <div className="flex gap-2">
+                <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">Cancelar</button>
+                <button
+                  onClick={onSave}
+                  disabled={!form.amount || !form.person_id || !form.category_id}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+                >
+                  Confirmar pago
+                </button>
+              </div>
             </div>
-            {(!form.person_id || !form.category_id) && form.amount && (
-              <p className="text-xs text-muted-foreground text-center mt-2">* Selecciona persona y rubro para continuar</p>
-            )}
           </motion.div>
         </>
       )}

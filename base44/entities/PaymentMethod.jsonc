@@ -28,6 +28,18 @@
     "identifier": {
       "type": "string",
       "description": "\u00daltimos 4 d\u00edgitos u otro identificador"
+    },
+    "cut_day": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31,
+      "description": "D\u00eda del mes en que cierra el ciclo de facturaci\u00f3n (fecha de corte)"
+    },
+    "payment_day": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31,
+      "description": "D\u00eda del mes en que vence el pago (fecha l\u00edmite de pago)"
     }
   },
   "required": [
@@ -36,11 +48,6 @@
   "rls": {
     "create": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
@@ -52,11 +59,6 @@
     "read": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -67,11 +69,6 @@
     "update": {
       "$or": [
         {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
@@ -81,11 +78,6 @@
     },
     "delete": {
       "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
         {
           "data.family_id": "{{user.data.family_id}}"
         },
