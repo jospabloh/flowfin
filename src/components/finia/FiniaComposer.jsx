@@ -263,24 +263,22 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
 
   const sendWithAttachments = () => {
     if (!uploadPreviews.length) return;
-    const attachmentLines = uploadPreviews
-      .map(p => `[${p.label} adjunto: ${p.name} — ${p.url}]`)
-      .join('\n');
+    // Pass the file URLs through the dedicated `file_urls` channel (handled in
+    // Assistant.sendMessage → agent SDK) so the assistant actually receives the
+    // files. The text content only carries the user's prompt plus a short,
+    // human-readable note of the attachment names for the chat bubble.
+    const urls = uploadPreviews.map(p => p.url);
     const base = input.trim();
-    let msg;
-    if (base) {
-      msg = `${base}\n${attachmentLines}`;
-    } else {
-      const onlyImages = uploadPreviews.every(p => p.kind === 'image');
-      const instruction = onlyImages
-        ? 'Por favor analiza estos archivos y prepara el borrador del gasto.'
-        : 'Por favor revisa estos archivos adjuntos.';
-      msg = `${attachmentLines}\n${instruction}`;
-    }
+    const onlyImages = uploadPreviews.every(p => p.kind === 'image');
+    const prompt = base || (onlyImages
+      ? 'Por favor analiza estos archivos y prepara el borrador del gasto.'
+      : 'Por favor revisa estos archivos adjuntos.');
+    const note = uploadPreviews.map(p => `${p.emoji} ${p.name}`).join(', ');
+    const msg = `${prompt}\n\n📎 Adjuntos: ${note}`;
     setInput('');
     setUploadPreviews([]);
     if (textareaRef.current) textareaRef.current.style.height = '46px';
-    onSend(msg);
+    onSend(msg, urls);
   };
 
   const canSend = (input.trim() || uploadPreviews.length) && !disabled;
