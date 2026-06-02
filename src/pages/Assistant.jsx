@@ -179,21 +179,27 @@ export default function Assistant() {
   // ── Send message ────────────────────────────────────────────────────────────
   // Note: `sending` stays true until the assistant's first reply arrives (handled
   // in the subscribe effect). This prevents double-sends from quick chip taps.
-  const sendMessage = useCallback(async (text) => {
+  const sendMessage = useCallback(async (text, fileUrls) => {
     const msg = typeof text === 'string' ? text.trim() : '';
-    if (!msg || sending || !conversation) return;
+    const files = Array.isArray(fileUrls) ? fileUrls.filter(Boolean) : [];
+    if ((!msg && !files.length) || sending || !conversation) return;
     userScrolledRef.current = false;
     setSending(true);
 
     const localId = `local-user-${Date.now()}`;
+    const localMsg = { id: localId, role: 'user', content: msg, source: 'local', ...(files.length ? { file_urls: files } : {}) };
     if (cleared) {
-      setVisibleMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+      setVisibleMessages(prev => [...prev, localMsg]);
     } else {
-      setMessages(prev => [...prev, { id: localId, role: 'user', content: msg, source: 'local' }]);
+      setMessages(prev => [...prev, localMsg]);
     }
 
     try {
-      await base44.agents.addMessage(conversation, { role: 'user', content: msg });
+      // Attachments are passed via the agent SDK's dedicated `file_urls` field so the
+      // assistant can actually read them — embedding URLs in `content` does not work.
+      const payload = { role: 'user', content: msg };
+      if (files.length) payload.file_urls = files;
+      await base44.agents.addMessage(conversation, payload);
     } catch (err) {
       console.error('Error sending message:', err);
       setSending(false);
