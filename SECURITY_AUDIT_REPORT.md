@@ -2,7 +2,7 @@
 **Date**: June 1, 2026 (Updated — v0.4.0 Audit)
 **Version Audited**: 0.4.0
 **Auditor**: Claude Code Security Review
-**Overall Risk Level**: **LOW-MEDIUM** (Critical dependency resolved; CSP deployed; CI gate active; react-quill removed; xlsx write-only — no parse-path exposure; token storage remains open)
+**Overall Risk Level**: **LOW** (Critical dependency resolved; CSP deployed; CI gate active; react-quill removed; xlsx write-only — no parse-path exposure; auth tokens moved off persistent localStorage to sessionStorage)
 
 ---
 
@@ -42,7 +42,7 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 - ~~**Axios SSRF + Prototype Pollution**~~ — ✅ FIXED via `npm audit fix` in v0.3.0
 - ~~**No Content-Security-Policy headers**~~ — ✅ FIXED: CSP added to `public/_headers` in v0.3.0
 - ~~**No npm audit step in CI pipeline**~~ — ✅ FIXED: `npm-audit` job added to CI in v0.3.0
-- **Token storage in localStorage** — OPEN: requires architectural change; low immediate risk as token is removed from URL after read
+- ~~**Token storage in localStorage**~~ — ✅ CLOSED in v0.6.0: auth tokens moved from persistent `localStorage` to `sessionStorage` (`src/lib/app-params.js`). The token no longer persists at rest across sessions or after the tab closes, and the `localStorage` copies the SDK writes are scrubbed on client init (`src/api/base44Client.js`) and on logout (`src/lib/AuthContext.jsx`). A full HttpOnly-cookie design remains a future option but requires Base44 platform/SDK support, since the SDK sends a Bearer token read from web storage.
 - **Missing JSON schema validation on AI responses** — OPEN
 - ~~**react-quill XSS**~~ — ✅ CLOSED in v0.5.0: package was unused and has been removed
 - **xlsx prototype pollution / ReDoS** — LOW RESIDUAL RISK: xlsx is used write-only (`json_to_sheet` → `writeFile` from trusted internal data). The vulnerabilities are in the parse path which is never called. No user-supplied files are parsed.
@@ -115,14 +115,14 @@ jspdf updated to latest; HTML injection vulnerability (CVSS 9.6) eliminated.
 ### 🔴 CRITICAL (3) — UNRESOLVED FROM v0.1.0
 
 #### 1. Sensitive Token Storage in localStorage
-- **Files**: `/src/lib/app-params.js` (lines 38-40, 44)
-- **Risk**: Tokens extractable via XSS → complete account takeover
-- **Status**: ❌ Not fixed
+- **Files**: `/src/lib/app-params.js`, `/src/api/base44Client.js`, `/src/lib/AuthContext.jsx`
+- **Risk**: Tokens persisting in `localStorage` are readable by XSS and linger at rest across sessions / after the tab closes
+- **Status**: ✅ FIXED in v0.6.0 — tokens moved to `sessionStorage`; legacy `localStorage` tokens migrated once then cleared; SDK-written `localStorage` copies scrubbed on init and logout
 
 #### 2. Insecure Token Extraction from URL Parameters
-- **Files**: `/src/lib/app-params.js` (lines 14-25)
+- **Files**: `/src/lib/app-params.js`
 - **Risk**: Tokens in browser history, server logs, referrer headers
-- **Status**: ❌ Not fixed
+- **Status**: ⚠️ PARTIALLY MITIGATED — `access_token` is read with `removeFromUrl: true`, which strips it from the address bar via `history.replaceState` immediately after read (no browser-history entry). The token still transits the initial URL; fully eliminating that requires a cookie/redirect handshake on the Base44 platform side.
 
 #### 3. Unsafe JSON Parsing of Untrusted AI Responses
 - **Files**: `/src/pages/Capture.jsx` (line 243)

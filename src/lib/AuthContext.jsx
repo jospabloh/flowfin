@@ -113,7 +113,18 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
+
+    // The SDK's logout clears the token from localStorage, but our tokens live in
+    // sessionStorage (see src/lib/app-params.js), so clear those copies too.
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        window.sessionStorage.removeItem('base44_access_token');
+        window.sessionStorage.removeItem('token');
+      } catch {
+        // Storage access can throw in locked-down browser modes; ignore.
+      }
+    }
+
     if (shouldRedirect) {
       // Use the SDK's logout method which handles token cleanup and redirect
       base44.auth.logout(globalThis.location.href);
