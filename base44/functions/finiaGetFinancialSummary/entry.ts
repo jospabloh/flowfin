@@ -1,4 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+// IMPORTANT: base44.asServiceRole does NOT bypass RLS for family-scoped entities
+// in the backend function runtime. Use base44.entities (user-context) for all
+// family-scoped reads (Transaction, Category, Person, etc.).
+// Only use asServiceRole for FamilyMembership (has user.id/user.email RLS paths).
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
@@ -15,13 +20,13 @@ function sumByType(txs, excludedCatIds) {
   return { expense, income, balance: income - expense };
 }
 
-async function fetchTxsForPeriod(entities, familyId, start, end) {
+async function fetchTxsForPeriod(userEntities, familyId, start, end) {
   const PAGE = 200;
-  const MAX = 500;
+  const MAX = 1000;
   const all = [];
   let skip = 0;
   while (true) {
-    const page = await entities.Transaction.filter({ family_id: familyId }, '-date', PAGE, skip);
+    const page = await userEntities.Transaction.filter({ family_id: familyId }, '-date', PAGE, skip);
     if (!page || page.length === 0) break;
     let done = false;
     for (const tx of page) {
@@ -46,7 +51,9 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // asServiceRole works for FamilyMembership (has user.id / user.email RLS paths)
     const srEntities = base44.asServiceRole.entities;
+    // user-context client works for all family-scoped entities (Transaction, Category, etc.)
     const userEntities = base44.entities;
 
     let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
@@ -82,12 +89,16 @@ Deno.serve(async (req) => {
       periodLabel = `${today.toLocaleString('es-MX', { month: 'long' })} ${today.getFullYear()}`;
     }
 
-    // Use user-scoped entities — asServiceRole bypasses RLS and returns empty for family-scoped entities
+    console.log('[finiaGetFinancialSummary] familyId:', familyId, 'period:', start, '→', end);
+
+    // All reads through user-context (family-scoped RLS requires user session)
     const [txs, categoriesArr, personsArr] = await Promise.all([
       fetchTxsForPeriod(userEntities, familyId, start, end),
       userEntities.Category.filter({ family_id: familyId }).catch(() => []),
       userEntities.Person.filter({ family_id: familyId }).catch(() => []),
     ]);
+
+    console.log('[finiaGetFinancialSummary] txs:', txs.length, 'categories:', categoriesArr.length);
 
     const excludedCatIds = new Set(
       (categoriesArr || []).filter(c => c.exclude_from_totals).map(c => c.id)

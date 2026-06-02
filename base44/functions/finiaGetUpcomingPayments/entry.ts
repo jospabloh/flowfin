@@ -1,7 +1,8 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Returns upcoming scheduled payments for the next 30 days.
 // Resolves family_id server-side from authenticated session.
+// IMPORTANT: Use base44.entities (user-context) for all family-scoped reads.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -26,11 +27,15 @@ Deno.serve(async (req) => {
     const cutoff30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const currentMonth = todayISO.slice(0, 7);
 
-    // Use user-scoped entities — asServiceRole returns empty for family-scoped entities
+    console.log('[finiaGetUpcomingPayments] familyId:', familyId);
+
+    // All reads through user-context
     const [scheduledArr, paidRecordsArr] = await Promise.all([
       userEntities.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
       userEntities.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth }).catch(() => []),
     ]);
+
+    console.log('[finiaGetUpcomingPayments] scheduled:', scheduledArr.length, 'paidRecords:', paidRecordsArr.length);
 
     const paidIds = new Set((paidRecordsArr || []).map(r => r.scheduled_payment_id));
 

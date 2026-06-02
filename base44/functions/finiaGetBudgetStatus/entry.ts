@@ -1,8 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Returns budget status for the current month.
 // Identifies categories near or over budget limit.
 // Resolves family_id server-side from authenticated session.
+// IMPORTANT: Use base44.entities (user-context) for all family-scoped reads.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -27,12 +28,16 @@ Deno.serve(async (req) => {
     const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)).toISOString().slice(0, 10);
     const currentMonth = todayISO.slice(0, 7);
 
-    // Use user-scoped entities — asServiceRole returns empty for family-scoped entities
+    console.log('[finiaGetBudgetStatus] familyId:', familyId, 'monthStart:', monthStart);
+
+    // All reads through user-context
     const [budgets, categories, txs] = await Promise.all([
       userEntities.CategoryBudget.filter({ family_id: familyId }).catch(() => []),
       userEntities.Category.filter({ family_id: familyId }).catch(() => []),
       userEntities.Transaction.filter({ family_id: familyId }, '-date', 500).catch(() => []),
     ]);
+
+    console.log('[finiaGetBudgetStatus] budgets:', budgets.length, 'txs:', txs.length);
 
     const catMap = new Map((categories || []).map(c => [c.id, c]));
     const activeBudgets = (budgets || []).filter(b => !b.period || b.period === currentMonth);

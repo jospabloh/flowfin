@@ -1,36 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Reads the family by id using plain .filter (the edge runtime does not honor
-// .get(id) reliably), falling back to the user-context client.
-async function getFamily(base44, familyId) {
-  for (const ents of [base44.asServiceRole?.entities, base44.entities]) {
-    if (!ents) continue;
-    try {
-      const arr = await ents.Family.filter({ id: familyId });
-      if (arr && arr.length) return arr[0];
-    } catch {
-      // try next client
-    }
-  }
-  return null;
-}
-
-async function assertFamilyMember(base44, familyId) {
-  const user = await base44.auth.me();
-  if (!user) { const err = new Error('Unauthorized'); err.httpStatus = 401; throw err; }
-  if (user.role === 'admin') return { user, membership: null };
-  let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, family_id: familyId, status: 'approved' });
-  if (!memberships.length) memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, family_id: familyId, status: 'approved' });
-  if (!memberships.length) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
-  return { user, membership: memberships[0] };
-}
-
-function errorResponse(err) {
-  const status = (err && err.httpStatus) || 500;
-  const message = status === 500 ? 'internal' : err?.message || 'error';
-  return Response.json({ error: message }, { status });
-}
+// IMPORTANT: base44.asServiceRole does NOT bypass RLS for family-scoped entities
+// in the backend function runtime ({{user.data.family_id}} template resolves to empty).
+// Use base44.entities (user-context) for ALL family-scoped reads.
+// Only use asServiceRole for FamilyMembership and Family (have admin/user.id RLS paths).
 
 function toISODate(d) {
   return d.toISOString().slice(0, 10);
@@ -57,30 +30,61 @@ function sumByType(txs) {
   return { expense, income, balance: income - expense };
 }
 
+// Paginated transaction fetch using user-context client
+async function fetchTxsForPeriod(userEntities, familyId, start, end) {
+  const PAGE = 200;
+  const MAX = 1000;
+  const all = [];
+  let skip = 0;
+  while (true) {
+    const page = await userEntities.Transaction.filter({ family_id: familyId }, '-date', PAGE, skip);
+    if (!page || page.length === 0) break;
+    let done = false;
+    for (const tx of page) {
+      if (!tx.date) continue;
+      if (tx.date > end) continue;
+      if (tx.date < start) { done = true; break; }
+      all.push(tx);
+      if (all.length >= MAX) { done = true; break; }
+    }
+    if (done || page.length < PAGE) break;
+    skip += PAGE;
+  }
+  return all;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const body = await req.json();
-    const { familyId, personId: rawPersonId, locale: _locale } = body;
-
-    if (!familyId) {
-      return Response.json({ error: 'familyId required' }, { status: 400 });
-    }
+    const body = await req.json().catch(() => ({}));
+    const { familyId: bodyFamilyId, personId: rawPersonId } = body;
 
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Reject access to a family the caller isn't an approved member of.
-    try {
-      await assertFamilyMember(base44, familyId);
-    } catch (e) {
-      return errorResponse(e);
+    // Resolve family from server-side session — never trust body.familyId alone
+    const sr = base44.asServiceRole.entities;
+    const ue = base44.entities; // user-context for family-scoped entities
+
+    let memberships = await sr.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await sr.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
+
+    // If body provides a familyId, verify the user is a member of it
+    let familyId;
+    if (bodyFamilyId) {
+      const found = memberships.find(m => m.family_id === bodyFamilyId);
+      if (!found) return Response.json({ error: 'forbidden' }, { status: 403 });
+      familyId = bodyFamilyId;
+    } else {
+      const activeId = user.data?.family_id ?? user.data?.data?.family_id;
+      const membership = memberships.find(m => m.family_id === activeId)
+        ?? [...memberships].sort((a, b) => (b.last_active_at ?? '').localeCompare(a.last_active_at ?? ''))[0];
+      familyId = membership.family_id;
     }
 
-    const entities = base44.asServiceRole.entities;
-    // Use user-scoped entities for transactions (RLS requires user session)
-    const userEntities = base44.entities;
+    const membership = memberships.find(m => m.family_id === familyId) ?? memberships[0];
 
     const today = new Date();
     const todayISO = toISODate(today);
@@ -98,67 +102,62 @@ Deno.serve(async (req) => {
     const twoMonthsStart = toISODate(twoMonthsDate);
     const twoMonthsEnd = toISODate(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 0)));
 
-    // Parallel fetches
+    console.log('[getAssistantContext] familyId:', familyId, 'user:', user.email);
+
+    // Parallel fetches — user-context for all family-scoped entities
     const [
-      familyRecord,
+      familiesArr,
       membershipsArr,
       personsArr,
       categoriesArr,
-      txResult,
-      prevTxResult,
-      twoMonthsTxResult,
+      txs,
+      prevTxs,
+      twoMonthsTxs,
       scheduledArr,
-      familyConfigArr,
       msiArr,
       investmentsArr,
       rentalPropertiesArr,
     ] = await Promise.all([
-      getFamily(base44, familyId),
-      entities.FamilyMembership.filter({ family_id: familyId, status: 'approved' }),
-      userEntities.Person.filter({ family_id: familyId }).catch(() => entities.Person.filter({ family_id: familyId })),
-      userEntities.Category.filter({ family_id: familyId }).catch(() => entities.Category.filter({ family_id: familyId })),
-      fetchFamilyTransactions(base44, { familyId, start: monthStart, end: todayISO }),
-      fetchFamilyTransactions(base44, { familyId, start: prevMonthStart, end: prevMonthEnd }),
-      fetchFamilyTransactions(base44, { familyId, start: twoMonthsStart, end: twoMonthsEnd }),
-      (async () => { try { return await entities.ScheduledPayment.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
-      (async () => { try { return await entities.FamilyConfig.filter({ family_id: familyId }); } catch { return []; } })(),
-      (async () => { try { return await entities.MSI.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
-      (async () => { try { return await entities.Investment.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
-      (async () => { try { return await entities.RentalProperty.filter({ family_id: familyId, is_active: true }); } catch { return []; } })(),
+      sr.Family.filter({ id: familyId }).catch(() => []),
+      sr.FamilyMembership.filter({ family_id: familyId, status: 'approved' }).catch(() => []),
+      ue.Person.filter({ family_id: familyId }).catch(() => []),
+      ue.Category.filter({ family_id: familyId }).catch(() => []),
+      fetchTxsForPeriod(ue, familyId, monthStart, todayISO),
+      fetchTxsForPeriod(ue, familyId, prevMonthStart, prevMonthEnd),
+      fetchTxsForPeriod(ue, familyId, twoMonthsStart, twoMonthsEnd),
+      ue.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
+      ue.MSI.filter({ family_id: familyId, is_active: true }).catch(() => []),
+      ue.Investment.filter({ family_id: familyId, is_active: true }).catch(() => []),
+      ue.RentalProperty.filter({ family_id: familyId, is_active: true }).catch(() => []),
     ]);
 
-    const txs = txResult || [];
-    const prevTxs = prevTxResult || [];
-    const twoMonthsTxs = twoMonthsTxResult || [];
-    const truncated = txs.length >= 50000;
+    console.log('[getAssistantContext] txs:', txs.length, 'prevTxs:', prevTxs.length, 'categories:', categoriesArr.length);
 
-    console.log('[getAssistantContext] txs:', txs.length, 'prevTxs:', prevTxs.length, 'family:', familyRecord?.name);
+    const familyRecord = familiesArr?.[0] ?? {};
 
-    // Family
-    const fam = familyRecord ?? {};
+    // Family output
     const familyOut = {
-      id: fam.id,
-      name: fam.name,
-      currency: fam.currency || 'MXN',
-      currency_symbol: fam.currency_symbol || '$',
-      plan: fam.license_plan,
-      billing_status: fam.billing_status,
+      id: familyRecord.id,
+      name: familyRecord.name,
+      currency: familyRecord.currency || 'MXN',
+      currency_symbol: familyRecord.currency_symbol || '$',
+      plan: familyRecord.license_plan,
+      billing_status: familyRecord.billing_status,
     };
 
     // Person
     let personId = rawPersonId ?? null;
     let personOut = null;
+    const personMap = new Map((personsArr || []).map(p => [p.id, p]));
     if (personId) {
-      const found = (personsArr || []).find((p) => p.id === personId && p.family_id === familyId);
+      const found = (personsArr || []).find(p => p.id === personId && p.family_id === familyId);
       if (!found) personId = null;
       else personOut = { id: found.id, name: found.name ?? found.id };
     }
 
     // Members
-    const personMap = new Map((personsArr || []).map((p) => [p.id, p]));
     const membersOut = [];
     const seenPersonIds = new Set();
-
     for (const ms of (membershipsArr || [])) {
       const pid = ms.person_id ?? null;
       const person = pid ? personMap.get(pid) : undefined;
@@ -176,11 +175,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    const catMap = new Map((categoriesArr || []).map((c) => [c.id, c.name ?? c.id]));
+    const catMap = new Map((categoriesArr || []).map(c => [c.id, c.name ?? c.id]));
 
-    // ── Current month aggregations ──────────────────────────────────────────
+    // Current month aggregations
     const totals = sumByType(txs);
-
     const personAggMap = new Map();
     for (const tx of txs) {
       if (typeof tx.amount !== 'number' || isNaN(tx.amount)) continue;
@@ -203,7 +201,6 @@ Deno.serve(async (req) => {
       };
     }).sort((a, b) => b.expense - a.expense);
 
-    // Top categories current month
     const catAgg = new Map();
     for (const tx of txs) {
       if (tx.type !== 'expense' || !tx.category_id) continue;
@@ -222,7 +219,7 @@ Deno.serve(async (req) => {
         count: agg.count,
       }));
 
-    // ── Previous month aggregations ─────────────────────────────────────────
+    // Previous month aggregations
     const prevTotals = sumByType(prevTxs);
     const prevCatAgg = new Map();
     for (const tx of prevTxs) {
@@ -241,34 +238,27 @@ Deno.serve(async (req) => {
         count: agg.count,
       }));
 
-    // ── Two months ago aggregations ─────────────────────────────────────────
+    // Two months ago
     const twoMonthsTotals = sumByType(twoMonthsTxs);
 
-    // ── Comparative analysis ────────────────────────────────────────────────
-    // Category deltas: this month vs previous month
+    // Category deltas
     const categoryDeltas = [];
     for (const [catId, curr] of catAgg.entries()) {
       const prev = prevCatAgg.get(catId);
       if (!prev) continue;
       const delta = curr.total - prev.total;
       const pct = prev.total > 0 ? Math.round((delta / prev.total) * 100) : null;
-      if (Math.abs(delta) > 50) { // only significant changes
-        categoryDeltas.push({
-          name: catMap.get(catId) ?? catId,
-          current: curr.total,
-          previous: prev.total,
-          delta,
-          pct,
-        });
+      if (Math.abs(delta) > 50) {
+        categoryDeltas.push({ name: catMap.get(catId) ?? catId, current: curr.total, previous: prev.total, delta, pct });
       }
     }
     categoryDeltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
 
-    // ── Recent transactions ─────────────────────────────────────────────────
+    // Recent transactions
     const recentTransactions = [...txs]
       .sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0))
       .slice(0, 10)
-      .map((tx) => ({
+      .map(tx => ({
         id: tx.id,
         date: tx.date,
         amount: tx.amount,
@@ -278,14 +268,15 @@ Deno.serve(async (req) => {
         person_name: tx.person_id ? (personMap.get(tx.person_id)?.name ?? tx.person_id) : null,
       }));
 
-    // ── Upcoming commitments (next 14 days) ─────────────────────────────────
+    // Upcoming commitments (next 14 days)
     const cutoff14 = addDays(todayISO, 14);
     const upcoming = [];
-
     const currentMonth = todayISO.slice(0, 7);
+
+    // ScheduledPaymentRecord — use user-context
     const paidScheduledIds = new Set();
     try {
-      const paidRecords = await entities.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth });
+      const paidRecords = await ue.ScheduledPaymentRecord.filter({ family_id: familyId, month: currentMonth });
       for (const r of (paidRecords || [])) paidScheduledIds.add(r.scheduled_payment_id);
     } catch { /* ignore */ }
 
@@ -296,62 +287,40 @@ Deno.serve(async (req) => {
       if (!dueDay) continue;
       const dueDate = `${currentMonth}-${String(dueDay).padStart(2, '0')}`;
       if (dueDate > cutoff14) continue;
-      upcoming.push({
-        type: 'scheduled',
-        id: sp.id,
-        label: sp.name || sp.description || '—',
-        amount: sp.amount || 0,
-        due_date: dueDate,
-      });
+      upcoming.push({ type: 'scheduled', id: sp.id, label: sp.name || sp.description || '—', amount: sp.amount || 0, due_date: dueDate });
     }
     upcoming.sort((a, b) => (a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0));
 
-    // ── Active financial commitments summary ────────────────────────────────
+    // Active commitments
     const activeMSI = (msiArr || []).map(m => ({
-      store: m.store,
-      monthly_amount: m.monthly_amount,
-      total_months: m.total_months,
-      start_date: m.start_date,
-      concept: m.concept,
+      store: m.store, monthly_amount: m.monthly_amount, total_months: m.total_months,
+      start_date: m.start_date, concept: m.concept,
     }));
-
     const activeInvestments = (investmentsArr || []).map(i => ({
-      name: i.name,
-      type: i.type,
-      payment_amount: i.payment_amount,
-      total_payments: i.total_payments,
-      start_date: i.start_date,
-      payment_day: i.payment_day,
+      name: i.name, type: i.type, payment_amount: i.payment_amount,
+      total_payments: i.total_payments, start_date: i.start_date, payment_day: i.payment_day,
     }));
-
     const activeRentals = (rentalPropertiesArr || []).map(r => ({
-      name: r.name,
-      tenant_name: r.tenant_name,
-      base_rent: r.base_rent,
-      payment_day: r.payment_day,
+      name: r.name, tenant_name: r.tenant_name, base_rent: r.base_rent, payment_day: r.payment_day,
     }));
 
-    const smartRules = (familyConfigArr || [])[0]?.smart_rules ?? null;
-
-    // ── Historial de conversaciones recientes (últimas 3 sesiones archivadas) ──
+    // Conversation history — try user-context first for ConversationSession
     let conversationHistory = [];
     try {
-      const recentSessions = await base44.asServiceRole.entities.ConversationSession.filter(
+      const recentSessions = await ue.ConversationSession.filter(
         { family_id: familyId, user_id: user.id },
         '-session_date',
         3
-      );
-      conversationHistory = recentSessions.map(s => {
+      ).catch(() => sr.ConversationSession.filter({ family_id: familyId, user_id: user.id }, '-session_date', 3));
+      conversationHistory = (recentSessions || []).map(s => {
         const excerpt = s.summary || `${s.message_count || 0} mensajes`;
         const ch = s.channel === 'whatsapp' ? 'WhatsApp' : 'app';
         return `${s.session_date} [${ch}]: ${excerpt}`;
       });
-    } catch {
-      // Si ConversationSession no existe aún o hay error, seguimos sin historial
-    }
+    } catch { /* continue without history */ }
 
     return Response.json({
-      user: user ? { id: user.id, email: user.email, name: user.full_name || user.email } : { id: null, email: null, name: 'Usuario' },
+      user: { id: user.id, email: user.email, name: user.full_name || user.email },
       person: personOut,
       family: familyOut,
       members: membersOut,
@@ -390,9 +359,8 @@ Deno.serve(async (req) => {
         rentals: activeRentals,
         scheduledPayments: (scheduledArr || []).map(sp => ({ name: sp.name, amount: sp.amount, due_day: sp.due_day })),
       },
-      smartRules,
       conversationHistory,
-      truncated,
+      truncated: txs.length >= 1000,
       generated_at: new Date().toISOString(),
     });
 

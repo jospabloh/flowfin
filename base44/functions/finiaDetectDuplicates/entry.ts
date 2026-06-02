@@ -1,8 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Detects possible duplicate transactions before saving.
 // Checks recent transactions in the authenticated user's family only.
 // Never exposes internal IDs.
+// IMPORTANT: Use base44.entities (user-context) for all family-scoped reads.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
     const windowStart = new Date(targetDate.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const windowEnd = new Date(targetDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    // Fetch recent transactions in window (user-scoped to respect RLS)
+    // Fetch recent transactions via user-context (family-scoped RLS works here)
     const recentTxs = await userEntities.Transaction.filter(
       { family_id: familyId },
       '-date',

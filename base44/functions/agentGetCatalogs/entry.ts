@@ -1,47 +1,63 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { AgentError, agentErrorResponse, resolveAgentAccess } from '../_agentGuard.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Returns the family's catalogs (persons, categories, subcategories, payment
-// methods) for the assistant to map names → ids. Identity is resolved server-side
-// by the guard; no family_id is accepted from the caller.
+// methods) for the assistant to map names → ids. Identity is resolved server-side;
+// no family_id is accepted from the caller.
+// IMPORTANT: Use base44.entities (user-context) for family-scoped reads.
+// asServiceRole does NOT bypass RLS for these entities in the function runtime.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const access = await resolveAgentAccess(base44, req);
-    const familyId = access.familyId;
-    const entities = base44.asServiceRole.entities;
+
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const srEntities = base44.asServiceRole.entities;
+    const userEntities = base44.entities;
+
+    let memberships = await srEntities.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+    if (!memberships.length) memberships = await srEntities.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+    if (!memberships.length) return Response.json({ error: 'forbidden' }, { status: 403 });
+
+    const activeId = user.data?.family_id ?? user.data?.data?.family_id;
+    const membership = memberships.find(m => m.family_id === activeId)
+      ?? [...memberships].sort((a, b) => (b.last_active_at ?? '').localeCompare(a.last_active_at ?? ''))[0];
+    const familyId = membership.family_id;
+
+    console.log('[agentGetCatalogs] familyId:', familyId);
 
     const [persons, categories, subcategories, paymentMethods] = await Promise.all([
-      entities.Person.filter({ family_id: familyId }),
-      entities.Category.filter({ family_id: familyId }),
-      entities.Subcategory.filter({ family_id: familyId }),
-      entities.PaymentMethod.filter({ family_id: familyId }),
+      userEntities.Person.filter({ family_id: familyId }),
+      userEntities.Category.filter({ family_id: familyId }),
+      userEntities.Subcategory.filter({ family_id: familyId }),
+      userEntities.PaymentMethod.filter({ family_id: familyId }),
     ]);
+
+    console.log('[agentGetCatalogs] persons:', persons.length, 'categories:', categories.length);
 
     return Response.json({
       family_id: familyId,
-      self_person_id: access.selfPersonId,
-      persons: (persons || []).map((p: Record<string, unknown>) => ({ id: p.id, name: p.name })),
-      categories: (categories || []).map((c: Record<string, unknown>) => ({
+      self_person_id: membership.person_id ?? null,
+      persons: (persons || []).map(p => ({ id: p.id, name: p.name })),
+      categories: (categories || []).map(c => ({
         id: c.id,
         name: c.name,
         type: c.type,
         icon: c.icon,
       })),
-      subcategories: (subcategories || []).map((s: Record<string, unknown>) => ({
+      subcategories: (subcategories || []).map(s => ({
         id: s.id,
         name: s.name,
         category_id: s.category_id,
       })),
-      payment_methods: (paymentMethods || []).map((m: Record<string, unknown>) => ({
+      payment_methods: (paymentMethods || []).map(m => ({
         id: m.id,
         name: m.name,
         type: m.type,
       })),
     });
   } catch (error) {
-    if (error instanceof AgentError) return agentErrorResponse(error);
-    console.error("agentGetCatalogs error:", error);
-    return Response.json({ error: (error as Error).message || "internal" }, { status: 500 });
+    console.error('agentGetCatalogs error:', error);
+    return Response.json({ error: error.message || 'internal' }, { status: 500 });
   }
 });

@@ -1,7 +1,8 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Analyzes spending behavior across 1-3 months.
 // Resolves family_id server-side from authenticated session.
+// IMPORTANT: Use base44.entities (user-context) for all family-scoped reads.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -28,11 +29,15 @@ Deno.serve(async (req) => {
     const todayISO = today.toISOString().slice(0, 10);
     const startDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - (months - 1), 1)).toISOString().slice(0, 10);
 
-    // Use user-scoped entities — asServiceRole returns empty for family-scoped entities
+    console.log('[finiaAnalyzeSpending] familyId:', familyId, 'start:', startDate);
+
+    // All reads through user-context
     const [allTxs, categories] = await Promise.all([
       userEntities.Transaction.filter({ family_id: familyId }, '-date', 500).catch(() => []),
       userEntities.Category.filter({ family_id: familyId }).catch(() => []),
     ]);
+
+    console.log('[finiaAnalyzeSpending] allTxs:', allTxs.length, 'categories:', categories.length);
 
     const catMap = new Map((categories || []).map(c => [c.id, c.name ?? c.id]));
     const excludedCatIds = new Set((categories || []).filter(c => c.exclude_from_totals).map(c => c.id));
@@ -64,7 +69,7 @@ Deno.serve(async (req) => {
         avg_per_transaction: agg.count > 0 ? Math.round(agg.total / agg.count) : 0,
       }));
 
-    // Month-over-month comparison (current vs previous)
+    // Month-over-month comparison
     const currMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)).toISOString().slice(0, 10);
     const prevMonthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - 1, 1)).toISOString().slice(0, 10);
     const prevMonthEnd = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 0)).toISOString().slice(0, 10);
@@ -77,7 +82,7 @@ Deno.serve(async (req) => {
     const delta = currTotal - prevTotal;
     const deltaPct = prevTotal > 0 ? Math.round((delta / prevTotal) * 100) : null;
 
-    // Detect possible unusual transactions (much higher than average for category)
+    // Unusual transactions
     const unusual = [];
     for (const [catId, agg] of catAgg.entries()) {
       if (agg.count < 2) continue;
@@ -96,7 +101,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Simple suggestions
     const suggestions = [];
     if (topCategories.length > 0) {
       suggestions.push(`Tu mayor gasto es en "${topCategories[0].name}" con $${Math.round(topCategories[0].total)} en el período.`);

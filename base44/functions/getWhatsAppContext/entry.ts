@@ -1,12 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // WhatsApp context function for Finia agent.
 // Resolves user identity, family data, monthly financials and upcoming payments.
-// Uses filter() everywhere — never .get() which is unreliable in agent context.
-// Transactions are fetched via fetchFamilyTransactions so pagination + date range
-// work in the agent context. A bare sr.Transaction.filter without limit/sort
-// silently returns a subset that may exclude the current month → txCount: 0.
+// IMPORTANT: base44.asServiceRole does NOT bypass RLS for family-scoped entities
+// in the backend function runtime ({{user.data.family_id}} resolves to empty).
+// Use base44.entities (user-context) for all family-scoped reads.
+// Only use asServiceRole for FamilyMembership and Family (which have admin/user.id paths).
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -14,7 +13,9 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // FamilyMembership is readable via asServiceRole (has user.id / user.email RLS paths)
     const sr = base44.asServiceRole.entities;
+    const ue = base44.entities; // user-context — works for family-scoped entities
 
     // Resolve approved membership
     let memberships = await sr.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
@@ -38,14 +39,38 @@ Deno.serve(async (req) => {
 
     console.log('[getWhatsAppContext] familyId:', familyId, 'personId:', membership.person_id ?? null);
 
-    // Fetch all data in parallel. Transactions go through fetchFamilyTransactions
-    // so the date range is applied properly under the agent's execution context.
+    // Fetch transactions using paginated user-context reads
+    async function fetchMonthTxs() {
+      const PAGE = 200;
+      const MAX = 1000;
+      const all = [];
+      let skip = 0;
+      while (true) {
+        const page = await ue.Transaction.filter({ family_id: familyId }, '-date', PAGE, skip);
+        if (!page || page.length === 0) break;
+        let done = false;
+        for (const tx of page) {
+          if (!tx.date) continue;
+          if (tx.date > todayISO) continue;
+          if (tx.date < monthStart) { done = true; break; }
+          all.push(tx);
+          if (all.length >= MAX) { done = true; break; }
+        }
+        if (done || page.length < PAGE) break;
+        skip += PAGE;
+      }
+      return all;
+    }
+
+    // Fetch all data in parallel using user-context for family-scoped entities
     const [persons, families, monthTxs, scheduledArr] = await Promise.all([
-      sr.Person.filter({ family_id: familyId }).catch(() => []),
+      ue.Person.filter({ family_id: familyId }).catch(() => []),
       sr.Family.filter({ id: familyId }).catch(() => []),
-      fetchFamilyTransactions(base44, { familyId, start: monthStart, end: todayISO }).catch(() => []),
-      sr.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
+      fetchMonthTxs().catch(() => []),
+      ue.ScheduledPayment.filter({ family_id: familyId, is_active: true }).catch(() => []),
     ]);
+
+    console.log('[getWhatsAppContext] persons:', persons.length, 'monthTxs:', monthTxs.length);
 
     // Resolve person name
     const selfPersonId = membership.person_id ?? null;

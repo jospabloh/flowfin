@@ -1,31 +1,48 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.25";
-import {
-  AgentError,
-  agentErrorResponse,
-  assertBillingAllowed,
-  assertRefInFamily,
-  requireRole,
-  resolveAgentAccess,
-} from "../_agentGuard.ts";
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+// Guard helpers — inlined (no local imports in Deno deploy)
+
+async function resolveFamily(base44, user) {
+  const sr = base44.asServiceRole.entities;
+  let memberships = await sr.FamilyMembership.filter({ user_id: user.id, status: 'approved' });
+  if (!memberships.length) memberships = await sr.FamilyMembership.filter({ user_email: user.email, status: 'approved' });
+  if (!memberships.length) throw Object.assign(new Error('No tienes acceso a ninguna familia activa.'), { httpStatus: 403 });
+  const activeId = user.data?.family_id ?? user.data?.data?.family_id;
+  const membership = memberships.find(m => m.family_id === activeId)
+    ?? [...memberships].sort((a, b) => (b.last_active_at ?? '').localeCompare(a.last_active_at ?? ''))[0];
+  return { familyId: membership.family_id, selfPersonId: membership.person_id ?? null };
+}
+
+async function assertRefInFamily(userEntities, entity, id, familyId, label) {
+  const rows = await userEntities[entity].filter({ id, family_id: familyId });
+  if (!rows || !rows.length) {
+    throw Object.assign(new Error(`${label} no pertenece a tu familia o no existe.`), { httpStatus: 400 });
+  }
+}
 
 // Deletes a transaction that belongs to the caller's family.
+// IMPORTANT: Use base44.entities (user-context) for family-scoped reads.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const access = await resolveAgentAccess(base44, req);
-    await assertBillingAllowed(base44, access);
-    await requireRole(base44, access, "transaction.delete", "delete");
+
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { familyId } = await resolveFamily(base44, user);
+    const ue = base44.entities;
 
     const body = await req.json().catch(() => ({}));
     const id = body.id;
-    if (!id) return Response.json({ error: "missing_required_fields", fields: ["id"] }, { status: 400 });
+    if (!id) return Response.json({ error: 'missing_required_fields', fields: ['id'] }, { status: 400 });
 
-    await assertRefInFamily(base44, access, "Transaction", String(id), "El movimiento");
-    await base44.asServiceRole.entities.Transaction.delete(String(id));
+    // Verify transaction belongs to this family
+    await assertRefInFamily(ue, 'Transaction', String(id), familyId, 'El movimiento');
+    await ue.Transaction.delete(String(id));
     return Response.json({ ok: true, id });
   } catch (error) {
-    if (error instanceof AgentError) return agentErrorResponse(error);
-    console.error("agentDeleteTransaction error:", error);
-    return Response.json({ error: (error as Error).message || "internal" }, { status: 500 });
+    const status = error.httpStatus || 500;
+    console.error('agentDeleteTransaction error:', error);
+    return Response.json({ error: error.message || 'internal' }, { status });
   }
 });
