@@ -35,6 +35,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   );
   const [uploading, setUploading] = useState(false);
   const [uploadPreviews, setUploadPreviews] = useState([]);
+  const [uploadError, setUploadError] = useState(null);
   const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -49,37 +50,51 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   };
 
-  const handleSend = useCallback(() => {
-    const msg = input.trim();
-    if (!msg || disabled) return;
-    setInput('');
-    if (textareaRef.current) textareaRef.current.style.height = '46px';
-    onSend(msg);
-  }, [input, disabled, onSend]);
+  // Unified submit: sends with or without attachments depending on state.
+  const handleSubmit = useCallback((rawText) => {
+    if (disabled) return;
+    const msg = rawText?.trim() ?? input.trim();
+    if (!msg && !uploadPreviews.length) return;
+
+    if (uploadPreviews.length) {
+      const urls = uploadPreviews.map(p => p.url);
+      const onlyImages = uploadPreviews.every(p => p.kind === 'image');
+      const prompt = msg || (onlyImages
+        ? 'Por favor analiza estos archivos y prepara el borrador del gasto.'
+        : 'Por favor revisa estos archivos adjuntos.');
+      const attachmentLines = uploadPreviews
+        .map(p => `[${p.label} adjunto: ${p.name} — ${p.url}]`)
+        .join('\n');
+      const fullMsg = `${prompt}\n${attachmentLines}`;
+      setInput('');
+      setUploadPreviews([]);
+      if (textareaRef.current) textareaRef.current.style.height = '46px';
+      onSend(fullMsg, urls);
+    } else {
+      if (!msg) return;
+      setInput('');
+      if (textareaRef.current) textareaRef.current.style.height = '46px';
+      onSend(msg);
+    }
+  }, [input, uploadPreviews, disabled, onSend]);
 
   // 1st Enter → new line, 2nd consecutive Enter → send
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (lastEnterWasNewLine.current) {
-        // 2nd Enter: trim the trailing newline we added, then send
         lastEnterWasNewLine.current = false;
         const trimmed = input.replace(/\n$/, '');
-        if (!trimmed || disabled) return;
-        setInput('');
-        if (textareaRef.current) textareaRef.current.style.height = '46px';
-        onSend(trimmed);
+        handleSubmit(trimmed);
       } else {
-        // 1st Enter: insert newline
         lastEnterWasNewLine.current = true;
         setInput(prev => prev + '\n');
         setTimeout(adjustHeight, 0);
       }
     } else {
-      // Any other key resets the double-enter tracker
       lastEnterWasNewLine.current = false;
     }
-  }, [input, disabled, onSend]);
+  }, [input, handleSubmit]);
 
   // Voice — record audio with MediaRecorder, then transcribe via Whisper (TranscribeAudio).
   // Works on iOS Safari, Android Chrome, desktop Chrome/Firefox/Safari.
@@ -211,7 +226,8 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
       }));
       setUploadPreviews(prev => [...prev, ...uploaded]);
     } catch {
-      // silently fail — user can still type
+      setUploadError('No se pudo subir el archivo. Intenta de nuevo.');
+      setTimeout(() => setUploadError(null), 3500);
     } finally {
       setUploading(false);
     }
@@ -261,25 +277,6 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     return () => window.removeEventListener('paste', onWindowPaste);
   }, [handlePaste]);
 
-  const sendWithAttachments = () => {
-    if (!uploadPreviews.length) return;
-    const urls = uploadPreviews.map(p => p.url);
-    const base = input.trim();
-    const onlyImages = uploadPreviews.every(p => p.kind === 'image');
-    const prompt = base || (onlyImages
-      ? 'Por favor analiza estos archivos y prepara el borrador del gasto.'
-      : 'Por favor revisa estos archivos adjuntos.');
-    // Embed each file URL inline in the content so the agent backend can fetch
-    // the files (it parses URLs from message content). Also pass via file_urls.
-    const attachmentLines = uploadPreviews
-      .map(p => `[${p.label} adjunto: ${p.name} — ${p.url}]`)
-      .join('\n');
-    const msg = `${prompt}\n${attachmentLines}`;
-    setInput('');
-    setUploadPreviews([]);
-    if (textareaRef.current) textareaRef.current.style.height = '46px';
-    onSend(msg, urls);
-  };
 
   const canSend = (input.trim() || uploadPreviews.length) && !disabled;
 
@@ -327,6 +324,20 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
                 </button>
               </div>
             ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Upload error */}
+      <AnimatePresence>
+        {uploadError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-4 mb-2 flex items-center gap-2 bg-destructive/5 border border-destructive/20 rounded-xl px-3 py-2"
+          >
+            <p className="text-xs text-destructive font-medium flex-1">{uploadError}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -445,25 +456,14 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
           )}
 
           {/* Send */}
-          {uploadPreviews.length ? (
-            <button
-              onClick={sendWithAttachments}
-              disabled={!canSend}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground disabled:opacity-40 transition-all active:scale-95 shadow-sm"
-              title="Enviar con adjuntos"
-            >
-              <Send className="w-[18px] h-[18px]" />
-            </button>
-          ) : (
-            <button
-              onClick={handleSend}
-              disabled={!canSend}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground disabled:opacity-40 transition-all active:scale-95 shadow-sm hover:bg-primary/90"
-              title="Enviar"
-            >
-              <Send className="w-[18px] h-[18px]" />
-            </button>
-          )}
+          <button
+            onClick={() => handleSubmit()}
+            disabled={!canSend}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center bg-primary text-primary-foreground disabled:opacity-40 transition-all active:scale-95 shadow-sm hover:bg-primary/90"
+            title={uploadPreviews.length ? 'Enviar con adjuntos' : 'Enviar'}
+          >
+            <Send className="w-[18px] h-[18px]" />
+          </button>
         </div>
       </div>
 
