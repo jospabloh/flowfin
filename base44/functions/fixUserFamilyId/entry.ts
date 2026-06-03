@@ -29,33 +29,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No family_id found for this user', raw: d }, { status: 400 });
     }
 
-    // Use direct REST API to PUT (full replace) the data field — avoids SDK deep-merge
-    const appId = Deno.env.get('BASE44_APP_ID');
-    const apiBase = `https://api.base44.com/api/apps/${appId}`;
-
-    const patchRes = await fetch(`${apiBase}/entities/User/${user_id}`, {
-      method: 'PUT',
-      headers: {
-        'X-API-Key': caller.api_key || '',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data: { family_id } }),
+    // Write via the service-role SDK. The SDK manages privileged credentials
+    // internally, so we never forward the caller's api_key (or any raw key) in
+    // an outbound request header.
+    await base44.asServiceRole.entities.User.update(user_id, {
+      data: { family_id }
     });
-
-    if (patchRes.ok) {
-      await patchRes.json();
-    } else {
-      // Fallback to SDK (may still nest, but better than nothing)
-      await base44.asServiceRole.entities.User.update(user_id, {
-        data: { family_id }
-      });
-    }
 
     // Verify
     const updated = await base44.asServiceRole.entities.User.filter({ id: user_id });
     const newData = updated?.[0]?.data;
 
-    return Response.json({ success: true, fixed: { family_id }, newData, usedRest: patchRes?.ok });
+    return Response.json({ success: true, fixed: { family_id }, newData });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return Response.json({ error: message }, { status: 500 });

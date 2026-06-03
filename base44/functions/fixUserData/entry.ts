@@ -15,17 +15,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'user_id and family_id required' }, { status: 400 });
     }
 
-    const appId = Deno.env.get('BASE44_APP_ID');
+    // Read the raw user record via the service-role SDK. The SDK manages
+    // privileged credentials internally, so we never touch the service role
+    // key from the function's environment.
+    const users = await base44.asServiceRole.entities.User.filter({ id: user_id });
+    const rawUser = users?.[0];
 
-    // Use the internal REST API to get the raw user record
-    const getRes = await fetch(`https://api.base44.com/api/apps/${appId}/entities/User/${user_id}`, {
-      headers: {
-        'X-API-Key': Deno.env.get('BASE44_SERVICE_ROLE_KEY') || '',
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!getRes.ok) {
+    if (!rawUser) {
       // Fallback: just force-write via SDK with the correct structure
       await base44.asServiceRole.entities.User.update(user_id, {
         data: { role: 'user', family_id }
@@ -33,7 +29,6 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, method: 'sdk_fallback' });
     }
 
-    const rawUser = await getRes.json();
     // Build correct flat data
     const currentData = rawUser.data || {};
     // Unwrap nested .data if present
