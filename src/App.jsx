@@ -35,7 +35,6 @@ const Assistant = lazy(() => import('@/pages/Assistant'));
 const AccountSettings = lazy(() => import('@/pages/AccountSettings'));
 const ScheduledPayments = lazy(() => import('@/pages/ScheduledPayments'));
 const Budget = lazy(() => import('@/pages/Budget'));
-const AIUsage = lazy(() => import('@/pages/AIUsage'));
 const PermissionAdmin = lazy(() => import('@/pages/PermissionAdmin'));
 const Trips = lazy(() => import('@/pages/Trips'));
 const SavingsDashboard = lazy(() => import('@/pages/SavingsDashboard'));
@@ -201,7 +200,6 @@ const AuthenticatedApp = () => {
               <Route path="/Trips" element={<Suspense fallback={<LoadingFallback />}><Trips /></Suspense>} />
               <Route path="/SavingsDashboard" element={<Suspense fallback={<LoadingFallback />}><SavingsDashboard /></Suspense>} />
               <Route path="/Goals" element={<Suspense fallback={<LoadingFallback />}><Goals /></Suspense>} />
-              <Route path="/AIUsage" element={<Suspense fallback={<LoadingFallback />}><AIUsage /></Suspense>} />
               <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.PermissionAdmin" element={<PermissionAdmin />} /></Suspense>} />
               <Route path="/ReleaseNotes" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.ReleaseNotes" element={<ReleaseNotes />} /></Suspense>} />
             </Route>
