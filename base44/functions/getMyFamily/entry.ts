@@ -17,11 +17,21 @@ Deno.serve(async (req) => {
 
     let authorized = isAdmin || family_id === ownFamilyId;
     if (!authorized) {
-      const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+      // Memberships may be keyed by user_id or, for some accounts, only by
+      // user_email — mirror the user_id -> user_email fallback used elsewhere
+      // (e.g. getMyMembership) so email-based members aren't wrongly denied.
+      let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         user_id: user.id,
         family_id,
         status: 'approved',
       });
+      if (!memberships.length) {
+        memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+          user_email: user.email,
+          family_id,
+          status: 'approved',
+        });
+      }
       authorized = memberships.length > 0;
     }
 
