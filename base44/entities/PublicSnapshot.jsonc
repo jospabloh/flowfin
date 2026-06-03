@@ -74,6 +74,9 @@
           }
         },
         {
+          "data.is_public": true
+        },
+        {
           "data.family_id": "{{user.data.family_id}}"
         },
         {
