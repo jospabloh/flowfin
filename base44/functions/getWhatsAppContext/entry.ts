@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     console.log('[getWhatsAppContext] familyId:', familyId, 'personId:', membership.person_id ?? null);
 
     // Fetch transactions using paginated user-context reads
-    async function fetchMonthTxs() {
+    const fetchMonthTxs = async () => {
       const PAGE = 200;
       const MAX = 1000;
       const all = [];
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
         skip += PAGE;
       }
       return all;
-    }
+    };
 
     // Fetch all data in parallel using user-context for family-scoped entities
     const [persons, families, monthTxs, scheduledArr] = await Promise.all([

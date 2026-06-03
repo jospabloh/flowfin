@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
@@ -43,6 +44,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
+          setAuthChecked(true);
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {
@@ -75,6 +77,7 @@ export const AuthProvider = ({ children }) => {
         }
         setIsLoadingPublicSettings(false);
         setIsLoadingAuth(false);
+        setAuthChecked(true);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -84,6 +87,7 @@ export const AuthProvider = ({ children }) => {
       });
       setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
+      setAuthChecked(true);
     }
   };
 
@@ -95,10 +99,12 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
+      setAuthChecked(true);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
+      setAuthChecked(true);
       
       // If user auth fails, it might be an expired token
       if (error.status === 401 || error.status === 403) {
@@ -141,14 +147,16 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+      user,
+      isAuthenticated,
       isLoadingAuth,
+      authChecked,
       isLoadingPublicSettings,
       authError,
       appPublicSettings,
       logout,
       navigateToLogin,
+      checkUserAuth,
       checkAppState
     }}>
       {children}

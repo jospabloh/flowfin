@@ -2,13 +2,13 @@ import { Suspense, lazy, useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ThemeProvider } from 'next-themes';
 import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingFallback from '@/components/LoadingFallback';
 import TutorialController from '@/components/tutorial/TutorialController';
 import DowngradeNotice from '@/components/billing/DowngradeNotice';
@@ -45,6 +45,12 @@ const PublicSnapshotPage = lazy(() => import('@/pages/PublicSnapshot'));
 const LandingPage = lazy(() => import('@/pages/Landing'));
 const WaitlistAdmin = lazy(() => import('@/pages/WaitlistAdmin'));
 const Messages = lazy(() => import('@/pages/Messages'));
+
+// Custom authentication pages
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 
 /**
  * PermissionRoute — wraps a page element and redirects to /Dashboard
@@ -116,28 +122,31 @@ const FamilyGate = ({ children }) => {
   return children;
 };
 
-const AuthenticatedApp = () => {
-  const location = useLocation();
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
-
-  // Public routes bypass auth + family gating entirely so visitors without
-  // an account can land on share links and the waitlist page. Keep this
-  // branch BEFORE any auth-state checks.
-  const isPublicSnapshot = location.pathname.startsWith('/s/');
-  const isPublicLanding = location.pathname.toLowerCase().startsWith('/landing');
-  if (isPublicSnapshot || isPublicLanding) {
-    return (
+/**
+ * ProtectedShell — the authenticated application shell. ProtectedRoute has
+ * already confirmed the user is signed in before this renders, so here we
+ * wire up family context/gating and the cross-app controllers, then defer to
+ * the nested route's <Layout /> via <Outlet />.
+ */
+const ProtectedShell = () => (
+  <FamilyProvider>
+    <FamilyGate>
       <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/s/:slug" element={<PublicSnapshotPage />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/Landing" element={<LandingPage />} />
-        </Routes>
+        <TutorialController />
+        <DowngradeNotice />
+        <MessagePopup />
+        <Outlet />
       </Suspense>
-    );
-  }
+    </FamilyGate>
+  </FamilyProvider>
+);
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+const AuthenticatedApp = () => {
+  const { isLoadingPublicSettings } = useAuth();
+
+  // Wait for the app's public settings before deciding what to render, so we
+  // don't briefly flash the login page while the initial app state loads.
+  if (isLoadingPublicSettings) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -150,20 +159,24 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
-    else if (authError.type === 'auth_required') { navigateToLogin(); return null; }
-  }
-
   return (
-    <FamilyProvider>
-      <FamilyGate>
-        <Suspense fallback={<LoadingFallback />}>
-          <TutorialController />
-          <DowngradeNotice />
-          <MessagePopup />
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        {/* Public routes — no authentication required. */}
+        <Route path="/s/:slug" element={<PublicSnapshotPage />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/Landing" element={<LandingPage />} />
 
-          <Routes>
+        {/* Custom authentication pages. */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Everything else requires a signed-in user. Unauthenticated visitors
+            are sent to the custom /login page. */}
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route element={<ProtectedShell />}>
             <Route path="/" element={<Navigate to="/Dashboard" replace />} />
             <Route element={<Layout />}>
               <Route path="/Dashboard" element={<Suspense fallback={<LoadingFallback />}><Dashboard /></Suspense>} />
@@ -192,11 +205,12 @@ const AuthenticatedApp = () => {
               <Route path="/PermissionAdmin" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.PermissionAdmin" element={<PermissionAdmin />} /></Suspense>} />
               <Route path="/ReleaseNotes" element={<Suspense fallback={<LoadingFallback />}><PermissionRoute permission="module.ReleaseNotes" element={<ReleaseNotes />} /></Suspense>} />
             </Route>
-            <Route path="*" element={<PageNotFound />} />
-          </Routes>
-        </Suspense>
-      </FamilyGate>
-    </FamilyProvider>
+          </Route>
+        </Route>
+
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
