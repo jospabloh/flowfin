@@ -84,8 +84,6 @@ Deno.serve(async (req) => {
       familyId = membership.family_id;
     }
 
-    const membership = memberships.find(m => m.family_id === familyId) ?? memberships[0];
-
     const today = new Date();
     const todayISO = toISODate(today);
 
