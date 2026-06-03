@@ -212,7 +212,6 @@ export default function Layout() {
   const canViewFamilyAdmin     = useCanView('module.FamilyAdmin');
   const canViewPermAdmin       = useCanView('module.PermissionAdmin');
   const canViewLicenseAdmin    = useCanView('module.LicenseAdmin');
-  const canViewAIUsage         = useCanView('module.AIUsage');
   const canViewUserManual      = useCanView('module.UserManual');
   const canViewAbout           = useCanView('module.About');
   const canViewReleaseNotes    = useCanView('module.ReleaseNotes');
@@ -239,14 +238,13 @@ export default function Layout() {
     '/FamilyAdmin':     canViewFamilyAdmin,
     '/PermissionAdmin': canViewPermAdmin,
     '/LicenseAdmin':    canViewLicenseAdmin,
-    '/AIUsage':         canViewAIUsage,
     '/UserManual':      canViewUserManual,
     '/About':           canViewAbout,
     '/ReleaseNotes':    canViewReleaseNotes,
   }), [canViewDashboard, canViewTransactions, canViewReports, canViewAssistant, canViewBudget,
        canViewScheduled, canViewInvestments, canViewMSI, canViewRentals, canViewCatalogs,
        canViewFamilySettings, canViewAccountSettings, canViewFamilyAdmin, canViewPermAdmin,
-       canViewLicenseAdmin, canViewAIUsage, canViewUserManual, canViewAbout, canViewReleaseNotes]);
+       canViewLicenseAdmin, canViewUserManual, canViewAbout, canViewReleaseNotes]);
 
   function canShowItem(item) {
     // adminOnly items are shown if isAdmin OR the permission matrix allows it
@@ -374,11 +372,10 @@ export default function Layout() {
       </nav>
 
       {/* System Admin */}
-      {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (() => {
+      {(currentUser?.role === 'admin' || canViewLicenseAdmin) && (() => {
         const sidebarExpanded = !collapsed || inDrawer;
         const sistemaItems = [
           { to: '/LicenseAdmin', icon: ShieldCheck, label: 'Licencias', visible: currentUser?.role === 'admin' || canViewLicenseAdmin },
-          { to: '/AIUsage',      icon: Sparkles,    label: 'Uso de IA', visible: currentUser?.role === 'admin' || canViewAIUsage },
         ].filter(x => x.visible);
         const isSistemaCollapsed = sidebarExpanded && !!groupCollapsed['Sistema'];
         const hasSistemaActive = sistemaItems.some(x => location.pathname === x.to);
@@ -657,7 +654,7 @@ export default function Layout() {
                 })}
 
                 {/* Sistema — solo visible para el app-admin (owner) o con permiso explícito */}
-                {(currentUser?.role === 'admin' || canViewLicenseAdmin || canViewAIUsage) && (
+                {(currentUser?.role === 'admin' || canViewLicenseAdmin) && (
                   <div className="px-4 pb-4">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/80 mb-2 mt-3">Sistema</p>
                     <div className="grid grid-cols-4 gap-2">
@@ -671,18 +668,6 @@ export default function Layout() {
                             <ShieldCheck className="w-5 h-5" aria-hidden="true" />
                           </div>
                           <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Licencias</span>
-                        </button>
-                      )}
-                      {(currentUser?.role === 'admin' || canViewAIUsage) && (
-                        <button
-                          onClick={() => { handleNavClick('/AIUsage'); setShowMore(false); }}
-                          aria-label="Uso de IA"
-                          className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-colors touch-target
-                            ${location.pathname === '/AIUsage' ? 'bg-amber-100 dark:bg-amber-900/30 ring-1 ring-amber-400/40' : 'bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100/80 dark:hover:bg-amber-900/30'}`}>
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm bg-amber-500/10 text-amber-600">
-                            <Sparkles className="w-5 h-5" aria-hidden="true" />
-                          </div>
-                          <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 text-center leading-tight">Uso IA</span>
                         </button>
                       )}
                     </div>
