@@ -61,20 +61,21 @@
     "create": {
       "$or": [
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "user_condition": {
+            "role": "admin"
+          }
         },
         {
-          "data.family_id": "{{user.data.data.family_id}}"
+          "data.user_id": "{{user.id}}"
         }
       ]
     },
     "read": {
       "$or": [
         {
-          "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
+          "user_condition": {
+            "role": "admin"
+          }
         },
         {
           "data.user_id": "{{user.id}}"
@@ -82,10 +83,28 @@
       ]
     },
     "update": {
-      "data.user_id": "{{user.id}}"
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
     },
     "delete": {
-      "data.user_id": "{{user.id}}"
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.user_id": "{{user.id}}"
+        }
+      ]
     }
   }
 }

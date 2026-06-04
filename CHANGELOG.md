@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🔒 Security (RLS Hardening)
+- **CRITICAL**: Added platform-admin (`user_condition.role == "admin"`) override to the row-level security (`rls`) rules of all family-scoped entities flagged by the Base44 security scanner, bringing them in line with the existing `Family`/`FamilyConfig` pattern (platform admin **or** family member). Entities updated for `create`/`read`/`update`/`delete`: `Category`, `CategoryBudget`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`, `MSIPayment`, `PaymentMethod`, `Person`, `RentalPayment`, `RentalProperty`, `ScheduledPayment`, `ScheduledPaymentRecord`, `Subcategory`, `Transaction`, `Trip`. Existing family-scoped access is unchanged; this only grants ACACIA platform admins the ability to manage tenant data for support. (`FamilyConfig` already carried this rule and was left untouched.)
+- **CRITICAL**: Reworked `ConversationSession` RLS so platform admins can manage all sessions while regular users can only access and modify **their own** sessions (`data.user_id == {{user.id}}`) across all four operations. Read access is no longer family-wide, matching the principle that conversation history is per-user; consuming functions already query by `user_id` (or run as service role), so there is no behavior regression.
+
 ## [0.4.0] - 2026-06-01
 
 ### 🔒 Security / Code Quality (All Tenants)
