@@ -358,7 +358,8 @@ export default function MSIPage() {
                 <input type="number" placeholder="Monto" value={editPayForm.amount} onChange={e => setEditPayForm(p => ({...p, amount: e.target.value}))}
                   className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
                 <input type="date" value={editPayForm.paid_date} onChange={e => setEditPayForm(p => ({...p, paid_date: e.target.value}))}
-                  className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+                  onClick={e => e.target.showPicker?.()}
+                  className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none cursor-pointer" />
               </div>
               <div className="flex gap-2 mt-4">
                 <button onClick={() => setEditingPayment(null)} className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-medium">Cancelar</button>
@@ -392,7 +393,7 @@ export default function MSIPage() {
                   <input type="number" placeholder="# meses" value={form.total_months} onChange={e => setForm(f => ({...f, total_months: e.target.value}))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
                   <input type="number" placeholder="Día de cargo" value={form.billing_day} onChange={e => setForm(f => ({...f, billing_day: e.target.value}))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
                 </div>
-                <input type="date" value={form.start_date} onChange={e => setForm(f => ({...f, start_date: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+                <input type="date" value={form.start_date} onChange={e => setForm(f => ({...f, start_date: e.target.value}))} onClick={e => e.target.showPicker?.()} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none cursor-pointer" />
               </div>
               <button onClick={handleCreate} className="w-full mt-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm">Crear MSI</button>
             </motion.div>

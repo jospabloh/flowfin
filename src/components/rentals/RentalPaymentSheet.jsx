@@ -32,7 +32,8 @@ export default function RentalPaymentSheet({ show, prop, payForm, setPayForm, pe
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Mes a cobrar</p>
                 <input type="month" value={payForm.month} onChange={e => setPayForm(p => ({ ...p, month: e.target.value }))}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  onClick={e => e.target.showPicker?.()}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Monto cobrado</p>
@@ -43,7 +44,8 @@ export default function RentalPaymentSheet({ show, prop, payForm, setPayForm, pe
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Fecha del cobro</p>
                 <input type="date" value={payForm.date_paid} onChange={e => setPayForm(p => ({ ...p, date_paid: e.target.value }))}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  onClick={e => e.target.showPicker?.()}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">¿Quién recibió el pago?</p>

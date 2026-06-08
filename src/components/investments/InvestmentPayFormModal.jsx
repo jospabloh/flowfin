@@ -60,7 +60,8 @@ export default function InvestmentPayFormModal({
                 <label className="text-xs text-muted-foreground mb-1 block">Fecha de pago *</label>
                 <input type="date" value={form.date}
                   onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                  className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground" />
+                  onClick={e => e.target.showPicker?.()}
+                  className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 text-foreground cursor-pointer" />
               </div>
 
               {persons.length > 0 && (

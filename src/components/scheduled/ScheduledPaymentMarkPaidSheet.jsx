@@ -36,7 +36,8 @@ export default function ScheduledPaymentMarkPaidSheet({ payingItem, payAmount, s
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Fecha de pago</p>
                 <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  onClick={e => e.target.showPicker?.()}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
               </div>
               <SearchableButtonSelect value={payPersonId} onChange={e => setPayPersonId(e.target.value)}
                 options={persons.map(p => ({ id: p.id, label: p.name }))} placeholder="Buscar persona..." label="¿Quién paga?" />

@@ -126,7 +126,8 @@ export default function GoalFormModal({ goal, onClose, onSaved }) {
           <div>
             <label className="text-xs font-semibold text-muted-foreground">Fecha límite</label>
             <input type="date" value={form.deadline} onChange={e => set('deadline', e.target.value)}
-              className="mt-1 w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+              onClick={e => e.target.showPicker?.()}
+              className="mt-1 w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
           </div>
 
           {/* Manual saved */}
