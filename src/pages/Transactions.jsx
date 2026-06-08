@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import Spinner from '@/components/Spinner';
 import { Download, AlertTriangle, MessageCircle } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import writeXlsxFile from 'write-excel-file/browser';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
@@ -105,19 +105,24 @@ export default function Transactions() {
   const handleDelete = async (id) => { if (await confirmDelete('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) deleteTransactionMutation.mutate(id); };
   const handleEditSaved = () => { queryClient.invalidateQueries({ queryKey: ['transactions', familyId] }); queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] }); };
 
-  const handleExport = () => {
-    const rows = filtered.map(t => ({
-      Fecha: t.date, Tipo: t.type === 'expense' ? 'Egreso' : 'Ingreso', Monto: t.amount,
-      Descripción: t.description || '', Rubro: categories.find(c => c.id === t.category_id)?.name || '',
-      SubRubro: subcategories.find(s => s.id === t.subcategory_id)?.name || '',
-      Quien: persons.find(p => p.id === t.person_id)?.name || '',
-      Forma: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '',
-      Requerido: t.required_type || '', Factura: t.has_invoice ? 'Sí' : 'No', Notas: t.notes || '',
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Movimientos');
-    XLSX.writeFile(wb, `FlowFin_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const handleExport = async () => {
+    const columns = [
+      { header: 'Fecha', cell: (t) => ({ value: t.date || '' }) },
+      { header: 'Tipo', cell: (t) => ({ value: t.type === 'expense' ? 'Egreso' : 'Ingreso' }) },
+      { header: 'Monto', cell: (t) => ({ value: t.amount == null ? null : Number(t.amount), type: Number }) },
+      { header: 'Descripción', cell: (t) => ({ value: t.description || '' }) },
+      { header: 'Rubro', cell: (t) => ({ value: categories.find(c => c.id === t.category_id)?.name || '' }) },
+      { header: 'SubRubro', cell: (t) => ({ value: subcategories.find(s => s.id === t.subcategory_id)?.name || '' }) },
+      { header: 'Quien', cell: (t) => ({ value: persons.find(p => p.id === t.person_id)?.name || '' }) },
+      { header: 'Forma', cell: (t) => ({ value: paymentMethods.find(m => m.id === t.payment_method_id)?.name || '' }) },
+      { header: 'Requerido', cell: (t) => ({ value: t.required_type || '' }) },
+      { header: 'Factura', cell: (t) => ({ value: t.has_invoice ? 'Sí' : 'No' }) },
+      { header: 'Notas', cell: (t) => ({ value: t.notes || '' }) },
+    ];
+    await writeXlsxFile(filtered, {
+      columns,
+      sheet: 'Movimientos',
+    }).toFile(`FlowFin_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
