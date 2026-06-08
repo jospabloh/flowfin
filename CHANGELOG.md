@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔒 Security (Dependency Remediation — All Tenants)
+- **HIGH → RESOLVED**: Replaced the unmaintained `xlsx` (SheetJS) dependency with `write-excel-file` for the Transactions Excel export. This eliminates the accepted-risk prototype pollution / ReDoS advisories (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) that had no upstream fix. `npm audit` now reports **0 vulnerabilities** (previously 1 high). The export output is unchanged — same columns, sheet name (`Movimientos`), and `FlowFin_YYYY-MM-DD.xlsx` filename. (`src/pages/Transactions.jsx`)
+
 ## [0.5.0] - 2026-06-08
 
 ### 🔒 Security (RLS Hardening — All Tenants)
