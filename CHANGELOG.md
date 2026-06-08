@@ -7,9 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### 🔒 Security (RLS Hardening)
-- **CRITICAL**: Added platform-admin (`user_condition.role == "admin"`) override to the row-level security (`rls`) rules of all family-scoped entities flagged by the Base44 security scanner, bringing them in line with the existing `Family`/`FamilyConfig` pattern (platform admin **or** family member). Entities updated for `create`/`read`/`update`/`delete`: `Category`, `CategoryBudget`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`, `MSIPayment`, `PaymentMethod`, `Person`, `RentalPayment`, `RentalProperty`, `ScheduledPayment`, `ScheduledPaymentRecord`, `Subcategory`, `Transaction`, `Trip`. Existing family-scoped access is unchanged; this only grants ACACIA platform admins the ability to manage tenant data for support. (`FamilyConfig` already carried this rule and was left untouched.)
-- **CRITICAL**: Reworked `ConversationSession` RLS so platform admins can manage all sessions while regular users can only access and modify **their own** sessions (`data.user_id == {{user.id}}`) across all four operations. Read access is no longer family-wide, matching the principle that conversation history is per-user; consuming functions already query by `user_id` (or run as service role), so there is no behavior regression.
+## [0.5.0] - 2026-06-08
+
+### 🔒 Security (RLS Hardening — All Tenants)
+- **CRITICAL → RESOLVED**: Added platform-admin (`user_condition.role == "admin"`) override to the row-level security (`rls`) rules of all family-scoped entities flagged by the Base44 security scanner, bringing them in line with the existing `Family`/`FamilyConfig` pattern (platform admin **or** family member). Entities updated for `create`/`read`/`update`/`delete`: `Category`, `CategoryBudget`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`, `MSIPayment`, `PaymentMethod`, `Person`, `RentalPayment`, `RentalProperty`, `ScheduledPayment`, `ScheduledPaymentRecord`, `Subcategory`, `Transaction`, `Trip`. Existing family-scoped access is unchanged; only grants platform admins the ability to manage tenant data for support purposes.
+- **CRITICAL → RESOLVED**: Reworked `ConversationSession` RLS so platform admins can manage all sessions while regular users can only access and modify **their own** sessions (`data.user_id == {{user.id}}`) across all four operations. Read access is no longer family-wide, matching the principle that conversation history is per-user; consuming functions already query by `user_id` (or run as service role), so there is no behavior regression.
+
+### 🔒 Security (Permission Enforcement — All Tenants)
+- **MEDIUM → FIXED**: `SavingsDashboard` page had no component-level permission gate. Members with `savings.view.can_view: false` (the default) could access the AI-powered savings analysis. Added `useCanView('savings.view')` check with redirect to `/Dashboard`. (`src/pages/SavingsDashboard.jsx`)
+- **MEDIUM → FIXED**: `usePermission` hook's DB-record fallback used `?? true` for all five permission fields (`can_read`, `can_write`, `can_modify`, `can_delete`, `can_view`). A partial `RolePermission` record in the database with null fields would default those to `true`, potentially granting unintended write/delete/modify access. Changed all fallbacks to `?? false` (deny-by-default). (`src/lib/permissions/usePermission.js`)
+
+### 🔒 Security (Dependency Update — All Tenants)
+- **MODERATE → RESOLVED**: Updated `react-router` from 6.26.x to the patched version via `npm audit fix` — eliminates same-origin open-redirect vulnerability via protocol-relative URL reinterpretation (GHSA-2j2x-hqr9-3h42).
+
+### 🔖 Version
+- Bumped `package.json` from `0.4.0` → `0.5.0`.
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **HIGH**: `xlsx` prototype pollution/ReDoS (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) — no upstream fix available. Used write-only (`json_to_sheet` → `writeFile`); parse path is never called. Accepted residual risk.
+- **INFO**: WaitlistAdmin backend function `listWaitlist` server-side authorization not independently verified in this audit — backend is expected to enforce platform-admin role check; client-side guard (`enabled: isPlatformAdmin`) is in place.
+
+---
 
 ## [0.4.0] - 2026-06-01
 
