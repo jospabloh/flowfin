@@ -533,7 +533,8 @@ export default function LicenseAdmin() {
                     type="date"
                     value={payForm.license_expires_at}
                     onChange={e => setPayForm(f => ({ ...f, license_expires_at: e.target.value }))}
-                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    onClick={e => e.target.showPicker?.()}
+                    className="w-full bg-white dark:bg-card border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
                   />
                 </div>
 
@@ -630,7 +631,8 @@ export default function LicenseAdmin() {
                     type="date"
                     value={form.license_expires_at}
                     onChange={e => setForm(f => ({ ...f, license_expires_at: e.target.value }))}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                    onClick={e => e.target.showPicker?.()}
+                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
                   />
                 </div>
 

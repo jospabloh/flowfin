@@ -264,11 +264,11 @@ export default function Reports() {
         <div className="flex gap-2 px-4 mb-4">
           <div className="flex-1">
             <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} onClick={e => e.target.showPicker?.()} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
           </div>
           <div className="flex-1">
             <label className="text-xs text-muted-foreground mb-1 block">Hasta</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} onClick={e => e.target.showPicker?.()} className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer" />
           </div>
         </div>
       )}

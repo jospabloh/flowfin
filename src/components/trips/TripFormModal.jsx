@@ -157,7 +157,8 @@ export default function TripFormModal({ onClose, onSaved }) {
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className={`w-full bg-muted border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 ${errors.startDate ? 'border-red-400' : 'border-border'}`}
+                onClick={e => e.target.showPicker?.()}
+                className={`w-full bg-muted border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer ${errors.startDate ? 'border-red-400' : 'border-border'}`}
               />
               {errors.startDate && <p className="text-xs text-red-500 mt-0.5">{errors.startDate}</p>}
             </div>
@@ -168,7 +169,8 @@ export default function TripFormModal({ onClose, onSaved }) {
                 value={endDate}
                 min={startDate}
                 onChange={e => setEndDate(e.target.value)}
-                className={`w-full bg-muted border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 ${errors.endDate ? 'border-red-400' : 'border-border'}`}
+                onClick={e => e.target.showPicker?.()}
+                className={`w-full bg-muted border rounded-xl px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer ${errors.endDate ? 'border-red-400' : 'border-border'}`}
               />
               {errors.endDate && <p className="text-xs text-red-500 mt-0.5">{errors.endDate}</p>}
             </div>

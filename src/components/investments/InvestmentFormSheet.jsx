@@ -28,7 +28,7 @@ export default function InvestmentFormSheet({ show, form, setForm, onCreate, onC
                 <input type="number" placeholder="$ por pago" value={form.payment_amount} onChange={e => setForm(f => ({ ...f, payment_amount: e.target.value }))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
                 <input type="number" placeholder="Día de pago (1-28)" value={form.payment_day} onChange={e => setForm(f => ({ ...f, payment_day: e.target.value }))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
               </div>
-              <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
+              <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} onClick={e => e.target.showPicker?.()} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none cursor-pointer" />
             </div>
             <button onClick={onCreate} className="w-full mt-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm">Crear Inversión</button>
           </motion.div>
