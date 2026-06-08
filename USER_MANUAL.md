@@ -1,14 +1,14 @@
 # FlowFin User Manual
 
-**Version**: 0.4.0
-**Last Updated**: June 1, 2026
+**Version**: 0.5.0
+**Last Updated**: June 8, 2026
 **Status**: BETA (Development Stage)
 
 ---
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v0.4.0)**. This version includes security updates and code quality improvements. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v0.5.0)**. This version includes security updates and permission hardening. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v0.4.0)**. This version includ
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v0.4.0)](#latest-updates-v040-release-notes)
+10. [Latest Updates (v0.5.0)](#latest-updates-v050-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -604,30 +604,43 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.4.0 Release Notes)
+## Latest Updates (v0.5.0 Release Notes)
 
-### New in v0.4.0 (June 1, 2026)
+### New in v0.5.0 (June 8, 2026)
 
-#### 🔒 Security / Code Quality
-- **LOW → FIXED**: Removed unused `Info` import in the AI assistant message bubble component — this caused a lint failure that would block CI on strict lint jobs. No user-facing behavior change.
-- Version synchronized: package.json and CHANGELOG now reflect all deployed changes through v0.4.0.
-- CHANGELOG retroactively documents v0.3.0 changes that shipped in PR #110 without a formal version entry.
+#### 🔒 Security Fixes
 
-#### ⚠️ Known Open Issues in v0.4.0
-- **HIGH**: Authentication tokens stored in localStorage — architectural redesign required; token is removed from URL after use which reduces exposure.
-- **HIGH**: xlsx prototype pollution/ReDoS — no upstream fix available; mitigate by only importing trusted files.
-- **MODERATE**: react-quill/quill XSS — upstream fix requires breaking change; evaluating replacement editor.
-- **INFO**: WaitlistAdmin `listWaitlist` backend authorization — confirm server-side platform-admin check is enforced.
+**Permission Enforcement**
+- **MEDIUM → FIXED**: The Savings Dashboard page was accessible to any authenticated family member regardless of their `savings.view` permission. Members now receive a redirect to the Dashboard if they do not have view access (the default for new members). No data was exposed to unauthorized users since the backend enforces family membership, but the page-level gate was missing and is now in place.
+- **MEDIUM → FIXED**: The permissions system now uses a deny-by-default approach when a partial permission record exists in the database. Previously, null fields in a `RolePermission` record would default to `true`, potentially granting unintended access. All fields now default to `false` when not explicitly set.
+
+**RLS Hardening**
+- Platform admin accounts can now access and manage all family data for support purposes. This does not change what family admins and members can do — their access is unchanged.
+- Conversation sessions are now strictly per-user. AI conversation history is only visible to the user who created it, not to all family members.
+
+**Dependency Update**
+- **MODERATE → FIXED**: `react-router` updated to resolve a same-origin open-redirect vulnerability (protocol-relative URL).
+
+#### ⚠️ Known Open Issues in v0.5.0
+- **HIGH**: xlsx prototype pollution/ReDoS — no upstream fix available; the app only writes xlsx files (never parses user-uploaded files), so this is low immediate risk.
+- **INFO**: WaitlistAdmin platform tool — only visible to platform admins; no action required for family admins or members.
 
 #### What's Next
-- Migrate token storage from localStorage to memory/HttpOnly cookies
-- Evaluate editor replacement for react-quill
 - Expand test coverage toward 80%+ target
 - Advanced reporting analytics and mobile optimizations
+- SAST (static analysis security testing) integration
 
 ---
 
 ## Previous Releases
+
+### v0.4.0 (June 1, 2026)
+
+#### 🔒 Security / Code Quality
+- **LOW → FIXED**: Removed unused import in the AI assistant message bubble component — resolved a lint failure.
+- Version synchronized: package.json and CHANGELOG now reflect all deployed changes through v0.4.0.
+
+---
 
 ### v0.3.0 (June 1, 2026)
 

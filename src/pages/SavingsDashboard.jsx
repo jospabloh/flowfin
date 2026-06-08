@@ -4,9 +4,12 @@ import { useFamily } from '@/lib/FamilyContext';
 import PageHeader from '@/components/PageHeader';
 import { formatCurrency } from '@/lib/formatters';
 import { Coins, TrendingDown, RefreshCw, Loader2 } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { useCanView } from '@/lib/permissions/usePermission';
 
 export default function SavingsDashboard() {
   const { familyId, currency, familyConfig } = useFamily();
+  const canView = useCanView('savings.view');
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = (v) => formatCurrency(v, { locale, currency });
 
@@ -16,9 +19,11 @@ export default function SavingsDashboard() {
       const res = await base44.functions.invoke('getSavingsOpportunities', { familyId });
       return res.data;
     },
-    enabled: !!familyId,
+    enabled: !!familyId && canView,
     staleTime: 10 * 60 * 1000,
   });
+
+  if (!canView) return <Navigate to="/Dashboard" replace />;
 
   const summary = data?.summary || {};
   const subscriptions = data?.forgottenSubscriptions || [];

@@ -44,13 +44,14 @@ export function usePermission(permissionKey) {
   }
 
   // Si existe permiso en BD, úsalo
+  // Null fields in a partial DB record default to false (deny-by-default).
   if (dbPerms) {
     return {
-      can_read: dbPerms.can_read ?? true,
-      can_write: dbPerms.can_write ?? true,
-      can_modify: dbPerms.can_modify ?? true,
-      can_delete: dbPerms.can_delete ?? true,
-      can_view: dbPerms.can_view ?? true,
+      can_read: dbPerms.can_read ?? false,
+      can_write: dbPerms.can_write ?? false,
+      can_modify: dbPerms.can_modify ?? false,
+      can_delete: dbPerms.can_delete ?? false,
+      can_view: dbPerms.can_view ?? false,
     };
   }
 
