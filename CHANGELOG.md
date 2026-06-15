@@ -5,10 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2026-06-15
 
 ### 🔒 Security (Dependency Remediation — All Tenants)
-- **HIGH → RESOLVED**: Replaced the unmaintained `xlsx` (SheetJS) dependency with `write-excel-file` for the Transactions Excel export. This eliminates the accepted-risk prototype pollution / ReDoS advisories (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) that had no upstream fix. `npm audit` now reports **0 vulnerabilities** (previously 1 high). The export output is unchanged — same columns, sheet name (`Movimientos`), and `FlowFin_YYYY-MM-DD.xlsx` filename. (`src/pages/Transactions.jsx`)
+- **HIGH → RESOLVED**: Replaced the unmaintained `xlsx` (SheetJS) dependency with `write-excel-file` for the Transactions Excel export. This eliminates the prototype pollution / ReDoS advisories (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) that had no upstream fix. The export output is unchanged — same columns, sheet name (`Movimientos`), and `FlowFin_YYYY-MM-DD.xlsx` filename. (`src/pages/Transactions.jsx`)
+- **HIGH — ACCEPTED (build-tool, not runtime)**: `esbuild` < 0.28.1 (transitively via Vite 6.x) is flagged by `npm audit` for GHSA-gv7w-rqvm-qjhr (CVSS 8.1) — missing binary-integrity verification in esbuild's **Deno** download path, enabling RCE when `NPM_CONFIG_REGISTRY` is attacker-controlled. Risk assessment: esbuild is a **build-time devDependency only** — it is not deployed to production, not run in a Deno context, and the vulnerable download mechanism is not invoked in the Node.js/npm workflow used by this project. Fix requires upgrading Vite to v8.x (breaking change). Deferred to a dedicated Vite upgrade sprint; accepted residual risk for build tooling.
+
+### 🖱️ UX Improvement (All Tenants)
+- **Date pickers now open on full-field tap**: Native `<input type="date">` and `<input type="month">` fields across the app now call `showPicker()` on click, so the calendar opens when tapping anywhere on the field — not only when tapping the browser's calendar icon. Affects: Reports filters, License Admin, MSI, Investments, Scheduled Payments, Rentals, Goals, and Trips forms. (`src/components/goals/GoalFormModal.jsx`, `src/components/investments/InvestmentFormSheet.jsx`, `src/components/investments/InvestmentPayFormModal.jsx`, `src/components/rentals/RentalPaymentSheet.jsx`, `src/components/scheduled/ScheduledPaymentMarkPaidSheet.jsx`, `src/components/trips/TripFormModal.jsx`, `src/pages/LicenseAdmin.jsx`, `src/pages/MSIPage.jsx`, `src/pages/Reports.jsx`)
+
+### 🔖 Version
+- Bumped `package.json` from `0.5.0` → `0.6.0`.
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **HIGH (accepted)**: esbuild GHSA-gv7w-rqvm-qjhr — build-tool only, Deno-specific path, not production. Fix requires Vite v8 upgrade (deferred).
+- **INFO**: WaitlistAdmin backend function `listWaitlist` server-side authorization not independently verified — client-side guard (`enabled: isPlatformAdmin`) is in place.
 
 ## [0.5.0] - 2026-06-08
 

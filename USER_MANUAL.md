@@ -1,14 +1,14 @@
 # FlowFin User Manual
 
-**Version**: 0.5.0
-**Last Updated**: June 8, 2026
+**Version**: 0.6.0
+**Last Updated**: June 15, 2026
 **Status**: BETA (Development Stage)
 
 ---
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v0.5.0)**. This version includes security updates and permission hardening. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v0.6.0)**. This version includes a dependency security fix and UX improvements. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v0.5.0)**. This version includ
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v0.5.0)](#latest-updates-v050-release-notes)
+10. [Latest Updates (v0.6.0)](#latest-updates-v060-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -604,35 +604,57 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.5.0 Release Notes)
+## Latest Updates (v0.6.0 Release Notes)
 
-### New in v0.5.0 (June 8, 2026)
+### New in v0.6.0 (June 15, 2026)
 
-#### 🔒 Security Fixes
+#### 🔒 Security Fix
 
-**Permission Enforcement**
-- **MEDIUM → FIXED**: The Savings Dashboard page was accessible to any authenticated family member regardless of their `savings.view` permission. Members now receive a redirect to the Dashboard if they do not have view access (the default for new members). No data was exposed to unauthorized users since the backend enforces family membership, but the page-level gate was missing and is now in place.
-- **MEDIUM → FIXED**: The permissions system now uses a deny-by-default approach when a partial permission record exists in the database. Previously, null fields in a `RolePermission` record would default to `true`, potentially granting unintended access. All fields now default to `false` when not explicitly set.
+- **HIGH → RESOLVED**: The `xlsx` (SheetJS) library has been replaced with `write-excel-file`. SheetJS had prototype pollution / ReDoS vulnerabilities with no upstream fix. The Transactions Excel export works exactly as before — same columns, same filename format (`FlowFin_YYYY-MM-DD.xlsx`), same sheet name (`Movimientos`). No action required.
 
-**RLS Hardening**
-- Platform admin accounts can now access and manage all family data for support purposes. This does not change what family admins and members can do — their access is unchanged.
-- Conversation sessions are now strictly per-user. AI conversation history is only visible to the user who created it, not to all family members.
+#### 🖱️ UX Improvement — Date Pickers
 
-**Dependency Update**
-- **MODERATE → FIXED**: `react-router` updated to resolve a same-origin open-redirect vulnerability (protocol-relative URL).
+Date fields across the app now open the calendar when you tap anywhere on the field, not only when tapping the small calendar icon. This affects:
 
-#### ⚠️ Known Open Issues in v0.5.0
-- **HIGH**: xlsx prototype pollution/ReDoS — no upstream fix available; the app only writes xlsx files (never parses user-uploaded files), so this is low immediate risk.
+- Reports filters (date range and month selector)
+- Investments (start date)
+- Investment payment (payment date)
+- Scheduled payments (mark paid date)
+- Rental payments (payment date and period)
+- Goals (target date)
+- Trips (start and end dates)
+- License Admin (date fields)
+- MSI (dates)
+
+#### ⚠️ Known Open Issues in v0.6.0
+- **HIGH (accepted, build tool only)**: An esbuild vulnerability (GHSA-gv7w-rqvm-qjhr, CVSS 8.1) is flagged for build tooling. This is a Deno-specific path not used in this project's Node.js build and is not deployed to production. No user-facing risk. A dedicated Vite upgrade will address it.
 - **INFO**: WaitlistAdmin platform tool — only visible to platform admins; no action required for family admins or members.
 
 #### What's Next
+- Vite 8.x upgrade to clear the esbuild build-tool advisory
 - Expand test coverage toward 80%+ target
 - Advanced reporting analytics and mobile optimizations
-- SAST (static analysis security testing) integration
 
 ---
 
 ## Previous Releases
+
+### v0.5.0 (June 8, 2026)
+
+#### 🔒 Security Fixes
+
+**Permission Enforcement**
+- **MEDIUM → FIXED**: The Savings Dashboard page was accessible to any authenticated family member regardless of their `savings.view` permission. Members now receive a redirect to the Dashboard if they do not have view access (the default for new members).
+- **MEDIUM → FIXED**: The permissions system now uses a deny-by-default approach when a partial permission record exists in the database. Previously, null fields in a `RolePermission` record would default to `true`. All fields now default to `false` when not explicitly set.
+
+**RLS Hardening**
+- Platform admin accounts can now access and manage all family data for support purposes. Family admins and members are unaffected.
+- Conversation sessions are now strictly per-user. AI conversation history is only visible to the user who created it.
+
+**Dependency Update**
+- **MODERATE → FIXED**: `react-router` updated to resolve a same-origin open-redirect vulnerability.
+
+---
 
 ### v0.4.0 (June 1, 2026)
 
@@ -768,12 +790,14 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.6.0 | 2026-06-15 | Added v0.6.0 release notes: xlsx replaced, date picker UX improvement, esbuild advisory accepted; moved v0.5.0 to Previous Releases |
+| 0.5.0 | 2026-06-08 | Added v0.5.0 release notes: SavingsDashboard gate, deny-by-default permissions, RLS hardening |
 | 0.2.0 | 2026-06-01 | Added Goals, Messages, Savings Dashboard, Trips, Waitlist Admin; updated permissions table; added v0.2.0 release notes |
 | 0.1.0 | 2026-06-01 | Initial user manual with security audit findings |
 
 ---
 
-**Last Updated**: June 1, 2026
-**Next Update**: June 15, 2026 (v0.3.0 patch release)
+**Last Updated**: June 15, 2026
+**Next Update**: July 15, 2026 (v0.7.0 — Vite upgrade and test coverage sprint)
 
 For the latest updates, visit [CHANGELOG.md](./CHANGELOG.md)
