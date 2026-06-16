@@ -2,18 +2,31 @@
  * ConvertScheduledModal.jsx
  * Convert an existing Transaction into a recurring "domiciliado" ScheduledPayment.
  * Pre-fills fields from the source transaction. Defaults to manual mode.
+ *
+ * To avoid duplicating the movement: by default the source transaction is treated as
+ * the payment for its own month — a reconciled ScheduledPaymentRecord is created and
+ * the existing transaction is linked to it. The recurring payment then starts next month.
  */
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
+import { todayISO } from '@/lib/formatters';
 import { X, CalendarCheck, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ICON_PRESETS = ['💰', '💡', '📱', '🏠', '🚗', '🎓', '💳', '🌐', '📺', '🏥'];
 
+function monthLabel(ym) {
+  const [y, m] = (ym || '').split('-').map(Number);
+  if (!y || !m) return '';
+  return new Date(y, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+}
+
 export default function ConvertScheduledModal({ transaction, categories = [], paymentMethods = [], persons = [], onClose, onCreated }) {
-  const { familyId } = useFamily();
+  const { familyId, currentUser } = useFamily();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
@@ -23,6 +36,10 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
     const d = Number(transaction.date.slice(8, 10) || 1);
     return Math.min(28, Math.max(1, d));
   }, [transaction]);
+
+  // Month (YYYY-MM) of the source transaction — that's the month it already paid for.
+  const txMonth = useMemo(() => (transaction?.date ? transaction.date.slice(0, 7) : ''), [transaction]);
+  const canMarkPaid = !!transaction?.id && !!txMonth;
 
   const [form, setForm] = useState({
     name: transaction?.description || '',
@@ -38,6 +55,8 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
     autopost_enabled: false,
     autopost_day_tolerance: 0,
   });
+  // Treat the existing movement as the payment for its month (avoids a duplicate movement).
+  const [markCurrentPaid, setMarkCurrentPaid] = useState(canMarkPaid);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -52,7 +71,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
     if (!canSave) return;
     setSaving(true);
     try {
-      await base44.entities.ScheduledPayment.create({
+      const scheduledPayment = await base44.entities.ScheduledPayment.create({
         family_id: familyId,
         name: form.name.trim(),
         description: form.description.trim() || undefined,
@@ -68,7 +87,41 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
         autopost_enabled: form.automation_mode === 'auto' ? !!form.autopost_enabled : false,
         autopost_day_tolerance: Number(form.autopost_day_tolerance || 0),
       });
-      toast({ title: '✅ Domiciliado creado', description: `${form.name} se registró como movimiento recurrente.` });
+
+      let linkedThisMonth = false;
+      if (markCurrentPaid && canMarkPaid && scheduledPayment?.id) {
+        const selectedPerson = (persons || []).find((p) => p.id === form.person_id);
+        const record = await base44.entities.ScheduledPaymentRecord.create({
+          scheduled_payment_id: scheduledPayment.id,
+          family_id: familyId,
+          month: txMonth,
+          paid_date: transaction.date || todayISO(),
+          amount_paid: Number(transaction.amount) || Number(form.amount) || 0,
+          notes: 'Pago inicial: movimiento existente al convertir en domiciliado',
+          paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario',
+          status: 'reconciled',
+          origin: 'converted',
+          linked_transaction_id: transaction.id,
+        });
+        await base44.entities.Transaction.update(transaction.id, {
+          scheduled_payment_id: scheduledPayment.id,
+          scheduled_payment_record_id: record.id,
+          status: 'reconciled',
+        });
+        linkedThisMonth = true;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+
+      toast({
+        title: '✅ Domiciliado creado',
+        description: linkedThisMonth
+          ? `${form.name}: este movimiento quedó como el pago de ${monthLabel(txMonth)}. El domiciliado se registrará el próximo mes.`
+          : `${form.name} se registró como movimiento recurrente.`,
+      });
       onCreated?.();
       onClose?.();
     } catch (err) {
@@ -223,6 +276,29 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
                 ))}
               </div>
             </div>
+
+            {/* Mark current month as already paid via the existing movement */}
+            {canMarkPaid && (
+              <div className="rounded-xl border border-border bg-muted/40 p-3">
+                <button
+                  type="button"
+                  onClick={() => setMarkCurrentPaid((v) => !v)}
+                  className="flex items-center justify-between w-full gap-3 min-h-[44px]"
+                >
+                  <span className="text-xs font-semibold text-foreground text-left">
+                    Este movimiento ya es el pago de {monthLabel(txMonth)}
+                  </span>
+                  <div className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ${markCurrentPaid ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform mt-0.5 ${markCurrentPaid ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
+                  </div>
+                </button>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {markCurrentPaid
+                    ? 'No se creará un segundo movimiento: este gasto cuenta como el pago de este mes y el domiciliado quedará listo para el próximo.'
+                    : 'Se creará el domiciliado, pero tendrás que registrar el pago de este mes por separado (puede duplicar el movimiento).'}
+                </p>
+              </div>
+            )}
 
             {/* Automation mode */}
             <div>
