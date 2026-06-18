@@ -103,11 +103,21 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
           origin: 'converted',
           linked_transaction_id: transaction.id,
         });
+        // Reuse the existing movement as this month's payment.
         await base44.entities.Transaction.update(transaction.id, {
           scheduled_payment_id: scheduledPayment.id,
           scheduled_payment_record_id: record.id,
           status: 'reconciled',
         });
+        // Defensive: a backend automation may auto-create a movement when the record
+        // is created. Since the existing movement already covers this month, remove any
+        // other movement linked to this record so it never gets duplicated.
+        try {
+          const linkedTxs = await base44.entities.Transaction.filter({ scheduled_payment_record_id: record.id });
+          for (const dup of linkedTxs || []) {
+            if (dup.id !== transaction.id) await base44.entities.Transaction.delete(dup.id);
+          }
+        } catch { /* best-effort cleanup */ }
         linkedThisMonth = true;
       }
 

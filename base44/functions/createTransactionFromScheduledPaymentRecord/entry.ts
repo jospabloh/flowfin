@@ -27,7 +27,14 @@ Deno.serve(async (req) => {
     }
 
     const scheduledPaymentRecord = data;
-    
+
+    // If the record is already linked to an existing movement (e.g. it was created by
+    // the "Convertir en domiciliado" flow, which reuses the original movement as the
+    // payment for its month), do NOT create a duplicate transaction.
+    if (scheduledPaymentRecord.linked_transaction_id) {
+      return Response.json({ message: 'Record already linked to an existing transaction' }, { status: 200 });
+    }
+
     // Fetch ScheduledPayment details
     const scheduledPaymentRecords = await base44.asServiceRole.entities.ScheduledPayment.filter({ 
       id: scheduledPaymentRecord.scheduled_payment_id,
