@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FlowFin — Dashboard hero prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+  /* Tokens lifted from src/index.css */
+  .light {
+    --background:50 25% 98%; --foreground:222 47% 9%; --card:0 0% 100%;
+    --muted:210 16% 95%; --muted-foreground:215 16% 47%; --border:220 13% 91%;
+    --primary:161 94% 30%; --income:158 64% 40%; --expense:0 84% 60%;
+  }
+  .dark {
+    --background:222 47% 5%; --foreground:210 20% 95%; --card:222 47% 9%;
+    --muted:222 47% 14%; --muted-foreground:215 20% 55%; --border:222 47% 18%;
+    --primary:161 80% 38%; --income:158 60% 48%; --expense:0 72% 55%;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Inter',sans-serif; background:#e9e9ee; padding:32px; -webkit-font-smoothing:antialiased; }
+  .nums-money { font-feature-settings:'tnum' 1,'lnum' 1,'zero' 1; font-variant-numeric:tabular-nums lining-nums slashed-zero; }
+  .display { font-family:'Bricolage Grotesque','Inter',sans-serif; }
+
+  .stage { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+  .frame {
+    width:390px; border-radius:28px; padding:18px; background:hsl(var(--background)); color:hsl(var(--foreground));
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.35); border:1px solid hsl(var(--border));
+  }
+  .mode-tag { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:hsl(var(--muted-foreground)); margin:2px 4px 14px; }
+
+  .page-title { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 4px 2px; }
+  .page-sub { font-size:13px; color:hsl(var(--muted-foreground)); margin:0 4px 16px; }
+
+  /* Hero card (mirrors DashboardSummaryCards.jsx) */
+  .hero { position:relative; overflow:hidden; border-radius:24px; border:1px solid hsl(var(--border)); background:hsl(var(--card)); box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .glow { position:absolute; top:-64px; right:-40px; width:176px; height:176px; border-radius:50%; filter:blur(48px); opacity:.5; pointer-events:none; }
+  .glow.pos { background:hsl(var(--primary)/.15); }
+  .glow.neg { background:hsl(var(--expense)/.15); }
+  .hero-inner { position:relative; padding:20px; }
+  .eyebrow { font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:hsl(var(--muted-foreground)); margin:0; }
+  .balance-row { display:flex; align-items:baseline; gap:8px; margin-top:6px; }
+  .balance { font-size:32px; font-weight:800; letter-spacing:-.025em; }
+  .balance.pos { color:hsl(var(--income)); } .balance.neg { color:hsl(var(--expense)); }
+  .tag { font-size:14px; font-weight:600; } .tag.pos{color:hsl(var(--income));} .tag.neg{color:hsl(var(--expense));}
+
+  .bar-wrap { margin-top:16px; }
+  .bar { height:10px; width:100%; border-radius:999px; background:hsl(var(--muted)); overflow:hidden; }
+  .bar > span { display:block; height:100%; border-radius:999px; }
+  .bar .fill-ok { background:hsl(var(--income)); } .bar .fill-over { background:hsl(var(--expense)); }
+  .bar-cap { margin:6px 0 0; font-size:12px; color:hsl(var(--muted-foreground)); }
+
+  .flows { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+  .flow { border:1px solid hsl(var(--border)/.7); background:hsl(var(--background)/.4); border-radius:16px; padding:12px; }
+  .flow-head { display:flex; align-items:center; gap:6px; }
+  .pill { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; }
+  .pill.in { background:hsl(var(--income)/.12); color:hsl(var(--income)); }
+  .pill.out { background:hsl(var(--expense)/.12); color:hsl(var(--expense)); }
+  .flow-label { font-size:12px; font-weight:500; color:hsl(var(--muted-foreground)); }
+  .flow-amt { margin-top:6px; font-size:20px; font-weight:700; letter-spacing:-.02em; }
+  .flow-amt.in{color:hsl(var(--income));} .flow-amt.out{color:hsl(var(--expense));}
+
+  .specimen { width:824px; max-width:100%; background:#fff; border-radius:20px; padding:28px 32px; margin:28px auto 0; box-shadow:0 10px 30px -12px rgba(0,0,0,.25); }
+  .specimen h2 { font-family:'Bricolage Grotesque'; font-weight:800; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#667; margin:0 0 16px; }
+  .type-row { display:flex; align-items:baseline; gap:16px; padding:10px 0; border-bottom:1px solid #eee; }
+  .type-row .k { width:150px; font-size:12px; color:#889; }
+  .big-display { font-family:'Bricolage Grotesque'; font-weight:800; font-size:40px; letter-spacing:-.02em; }
+  .caption { text-align:center; color:#667; font-size:13px; margin:18px auto 0; max-width:760px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <!-- LIGHT, net positive -->
+    <div class="frame light">
+      <p class="mode-tag">Light · a favor</p>
+      <h1 class="page-title display">Junio 2026</h1>
+      <p class="page-sub">Resumen familiar</p>
+      <div class="hero">
+        <div class="glow pos"></div>
+        <div class="hero-inner">
+          <p class="eyebrow">Balance del mes</p>
+          <div class="balance-row">
+            <span class="balance pos display nums-money">$18,420.00</span>
+            <span class="tag pos">a favor</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar"><span class="fill-ok" style="width:62%"></span></div>
+            <p class="bar-cap">Has usado 62% de tus ingresos</p>
+          </div>
+          <div class="flows">
+            <div class="flow">
+              <div class="flow-head"><span class="pill in">↙</span><span class="flow-label">Entró</span></div>
+              <div class="flow-amt in display nums-money">$48,500.00</div>
+            </div>
+            <div class="flow">
+              <div class="flow-head"><span class="pill out">↗</span><span class="flow-label">Salió</span></div>
+              <div class="flow-amt out display nums-money">$30,080.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DARK, overspent -->
+    <div class="frame dark">
+      <p class="mode-tag">Dark · en contra</p>
+      <h1 class="page-title display">Junio 2026</h1>
+      <p class="page-sub">Resumen familiar</p>
+      <div class="hero">
+        <div class="glow neg"></div>
+        <div class="hero-inner">
+          <p class="eyebrow">Balance del mes</p>
+          <div class="balance-row">
+            <span class="balance neg display nums-money">$3,260.00</span>
+            <span class="tag neg">en contra</span>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar"><span class="fill-over" style="width:100%"></span></div>
+            <p class="bar-cap">Gastaste más de lo que entró este mes</p>
+          </div>
+          <div class="flows">
+            <div class="flow">
+              <div class="flow-head"><span class="pill in">↙</span><span class="flow-label">Entró</span></div>
+              <div class="flow-amt in display nums-money">$41,000.00</div>
+            </div>
+            <div class="flow">
+              <div class="flow-head"><span class="pill out">↗</span><span class="flow-label">Salió</span></div>
+              <div class="flow-amt out display nums-money">$44,260.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="specimen">
+    <h2>Type system — Bricolage Grotesque (display) · Inter (body)</h2>
+    <div class="type-row"><span class="k">Display / balance</span><span class="big-display nums-money">$18,420.00</span></div>
+    <div class="type-row"><span class="k">Page title</span><span class="display" style="font-size:26px;font-weight:700;letter-spacing:-.02em">Junio 2026</span></div>
+    <div class="type-row"><span class="k">Body (Inter)</span><span style="font-size:15px">Resumen familiar — registra movimientos y revisa tu mes.</span></div>
+    <div class="type-row" style="border:none"><span class="k">Numerals</span><span class="nums-money" style="font-size:18px;font-weight:600">0123456789 · tabular · slashed-zero</span></div>
+  </div>
+
+  <p class="caption">Prototype of the proposed FlowFin dashboard hero. The net balance is the thesis; income and expense read as the two
+  flows that produce it (the “flow” in FlowFin), and the bar encodes how much of the month’s income has flowed back out.
+  Open in a browser with internet access so the Google Fonts load.</p>
+</body>
+</html>

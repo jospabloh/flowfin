@@ -6,6 +6,7 @@ module.exports = {
     extend: {
       fontFamily: {
         inter: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',
