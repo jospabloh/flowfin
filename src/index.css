@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -155,5 +155,25 @@ body {
   button, [role="tab"], [role="button"], nav a {
     -webkit-user-select: none;
     user-select: none;
+  }
+}
+
+/* Money figures: lining tabular numerals + slashed zero for unambiguous amounts */
+@layer utilities {
+  .nums-money {
+    font-feature-settings: 'tnum' 1, 'lnum' 1, 'zero' 1, 'ss01' 1;
+    font-variant-numeric: tabular-nums lining-nums slashed-zero;
+  }
+}
+
+/* Quality floor: honor reduced-motion preference across animations + transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

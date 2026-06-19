@@ -17,6 +17,9 @@ export default function AmountDisplay({ amount, type = 'expense', size = 'md', s
   }).format(Math.abs(amount || 0));
 
   const sizes = { sm: 'text-sm font-semibold', md: 'text-base font-bold', lg: 'text-xl font-bold', xl: 'text-3xl font-black' };
+  // Larger figures carry the display face for personality; small inline amounts stay in Inter.
+  const isLarge = size === 'lg' || size === 'xl';
+  const family = isLarge ? 'font-display tracking-tight' : '';
 
-  return <span className={`${color} ${sizes[size]} tabular-nums`}>{sign}{formatted}</span>;
+  return <span className={`${color} ${sizes[size]} ${family} nums-money`}>{sign}{formatted}</span>;
 }
