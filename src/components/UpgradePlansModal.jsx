@@ -28,6 +28,18 @@ const PLANS = [
     features: ['Incluye todo lo de Home', 'Hasta 10 miembros', 'Mejor colaboración compartida', 'Más orden para familias activas'],
     popular: true,
   },
+  {
+    id: 'circle',
+    name: 'FlowFin Circle',
+    price: '$799 MXN/mes',
+    members: 20,
+    membersDesc: 'De 11 a 20 miembros',
+    icon: '🌐',
+    color: 'text-violet-600',
+    bg: 'bg-violet-50 dark:bg-violet-950/30',
+    border: 'border-violet-200 dark:border-violet-800',
+    features: ['Incluye todo lo de Family+', 'Hasta 20 miembros', 'Para familias grandes o equipos', 'Activación asistida por ACACIA'],
+  },
 ];
 
 export default function UpgradePlansModal({ open, onClose }) {
