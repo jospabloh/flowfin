@@ -3,9 +3,10 @@
 // Last synced: 2026-06-22
 // Sources: src/pages/About.jsx + src/pages/UserManual.jsx
 
-export const CURRENT_VERSION_IN_CODE = '2.17.0';
+export const CURRENT_VERSION_IN_CODE = '2.18.0';
 
 export const VERSION_HISTORY_SNAPSHOT: Array<{ version: string; date: string }> = [
+  { version: '2.18.0', date: '2026-06-22' },
   { version: '2.17.0', date: '2026-05-14' },
   { version: '2.16.0', date: '2026-04-28' },
   { version: '2.15.0', date: '2026-04-24' },
@@ -37,14 +38,16 @@ export const VERSION_HISTORY_SNAPSHOT: Array<{ version: string; date: string }> 
 ];
 
 // Number of sections in UserManual.jsx — changes when new docs are added.
-export const USER_MANUAL_SECTIONS_COUNT = 24;
+export const USER_MANUAL_SECTIONS_COUNT = 25;
 
 // Update this date manually when you review / update UserManual content.
 // The daily audit will flag this as stale after 60 days without an update.
-export const USER_MANUAL_LAST_REVIEWED = '2026-05-06';
+export const USER_MANUAL_LAST_REVIEWED = '2026-06-22';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `3f4c85d design: distinctive typography + balance-flow dashboard hero
+export const GIT_LOG_SNAPSHOT = `e5bb9ba feat(ux): global Command Palette (⌘K) + quick-add shortcut
+cb9971a security: v0.7.0 — full dependency sweep, 0 vulnerabilities (#129)
+3f4c85d design: distinctive typography + balance-flow dashboard hero
 2be29a1 Add files via upload
 cd51d8b Add Apache License 2.0 to frontend-design
 8f15c72 fix(scheduled): don't duplicate the movement when converting to domiciliado
@@ -62,7 +65,4 @@ c79e0a0 Fix pre-existing deno lint errors in edge functions
 17d7115 Wire up custom auth pages and gate routes with ProtectedRoute
 5f050b3 chore: add boilerplate auth templates
 50305ca File changes
-58cdd1a Update base44 packages
-daf5301 chore: refresh auto-generated snapshots for 2026-06-02
-fc48def Fix attachments not being sent in FiniaComposer
-82b8734 fix: embed file URLs in message content so agent backend receives attachments`;
+58cdd1a Update base44 packages`;

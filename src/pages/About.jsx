@@ -6,9 +6,23 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.18.0',
+    date: '2026-06-22',
+    label: 'Actual',
+    changes: [
+      'Nueva Paleta de Comandos: abre con ⌘K (Mac) o Ctrl+K y busca o navega al instante a cualquier sección (Inicio, Movimientos, Reportes, Asistente, Presupuesto, Metas, Viajes, Inversiones, Rentas, MSI, y más), respetando tus permisos',
+      'Acciones rápidas desde la paleta: registrar un movimiento, preguntar a Finia, crear una meta, planear un viaje o cambiar el tema, sin salir de donde estás',
+      'Atajo de teclado "N" para registrar un movimiento al instante (se desactiva mientras escribes o con una ventana abierta)',
+      'Botón "Buscar" visible en la barra lateral (escritorio) y en la barra superior (móvil), con búsqueda en español e inglés',
+      'Versionado unificado: la app ahora usa una sola línea de versión (2.x) en package.json, changelog, Acerca de y el aviso de actualización — se corrige el desfase histórico del número de versión',
+      'Documentación sincronizada: manual de usuario, changelog y notas de versión actualizados a 2.18.0',
+      'Sitio web acaciaco.com.mx: la página de FlowFin ahora refleja todas las funciones reales (Asistente IA, escaneo de recibos, reportes con exportación, inversiones, rentas, viajes multi-moneda, MSI) y corrige los límites de miembros (Home 1–4, Family+ 5–10)',
+    ],
+  },
+  {
     version: '2.17.0',
     date: '2026-05-14',
-    label: 'Actual',
+    label: '',
     changes: [
       'Manual actualizado: sección de Roles y Permisos ahora documenta explícitamente módulos, visuales y acciones con operaciones Ver/Crear/Modificar/Eliminar',
       'Permisos por defecto documentados: admin inicia con acceso total (todos true) en todos los artefactos',

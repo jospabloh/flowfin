@@ -1,6 +1,6 @@
 # FlowFin User Manual
 
-**Version**: 0.7.0
+**Version**: 2.18.0
 **Last Updated**: June 22, 2026
 **Status**: BETA (Development Stage)
 
@@ -8,7 +8,7 @@
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v0.7.0)**. This version is a full dependency security sweep — all known dependency vulnerabilities are now resolved. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v2.18.0)**. This release adds a global **Command Palette (⌘K)** for keyboard-first navigation and **unifies the app's version numbering onto the 2.x product line** (previously `package.json` and the in-app history carried different numbers). For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v0.7.0)**. This version is a f
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v0.7.0)](#latest-updates-v070-release-notes)
+10. [Latest Updates (v2.18.0)](#latest-updates-v2180-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -604,9 +604,28 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.7.0 Release Notes)
+## Latest Updates (v2.18.0 Release Notes)
 
-### New in v0.7.0 (June 22, 2026)
+### New in v2.18.0 (June 22, 2026)
+
+#### ⌨️ Command Palette (⌘K) — keyboard-first navigation
+
+A global launcher is now available from anywhere in the app.
+
+**What this means for you:**
+- Press **⌘K** (Mac) or **Ctrl+K** (Windows/Linux) — or tap the **"Buscar…"** button in the sidebar / the 🔍 icon in the mobile top bar — to open it.
+- Search and jump instantly to any section you have permission to see, and run quick actions (registrar movimiento, preguntar a Finia, crear meta, planear viaje, cambiar tema) without leaving the current screen.
+- Search understands Spanish and English. Press **N** (when not typing) to open transaction capture instantly.
+
+See the new **"Paleta de Comandos (⌘K)"** section in the in-app manual for full details.
+
+#### 🔖 Unified versioning
+
+FlowFin previously carried two version numbers (an engineering line in `package.json` and a product line shown in-app). They are now **unified onto the 2.x product line**, so the number you see in *Acerca de*, the changelog, and the update banner all match. This release moves `package.json` from `0.7.0` to `2.18.0`.
+
+> The previous `v0.7.0` security-sweep release (full dependency remediation, `npm audit` = 0 vulnerabilities) remains in effect — see Previous Releases below.
+
+### Earlier in this cycle — v0.7.0 (June 22, 2026)
 
 #### 🔒 Security — Dependency Sweep (All Tenants)
 
