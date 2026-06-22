@@ -6,11 +6,12 @@ import {
   ChevronLeft, ChevronDown, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
   PanelLeftClose, PanelLeftOpen, Plane, Coins, Target, ScrollText,
-  MessageCircle
+  MessageCircle, Search
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
+import CommandPalette from './CommandPalette';
 import InternetBanner from './InternetBanner';
 import TrialBanner from './TrialBanner';
 import FloatingActionButton from './FloatingActionButton';
@@ -126,6 +127,33 @@ const SIDEBAR_GROUPS = [
   },
 ];
 
+// Extra search terms (incl. English + synonyms) so the Command Palette finds
+// destinations even when the user types something other than the Spanish label.
+const NAV_KEYWORDS = {
+  '/Dashboard': 'inicio home resumen panel overview',
+  '/Transactions': 'movimientos gastos ingresos transactions expenses history historial',
+  '/Reports': 'reportes analitica analytics graficas charts informe',
+  '/Assistant': 'asistente ia ai finia chat ayuda',
+  '/Budget': 'presupuesto budget limite categoria',
+  '/SavingsDashboard': 'ahorro savings oportunidades',
+  '/Goals': 'metas goals objetivos ahorro',
+  '/Trips': 'viajes trips vacaciones gastos compartidos',
+  '/Messages': 'mensajes messages familia notificaciones',
+  '/ScheduledPayments': 'pagos del mes recurrentes scheduled bills suscripciones',
+  '/Investments': 'inversiones investments acciones crypto bolsa',
+  '/MSI': 'msi meses sin intereses installments mensualidades tarjeta',
+  '/Rentals': 'rentas alquileres propiedades inmuebles rent',
+  '/Catalogs': 'catalogos categorias personas metodos catalogs',
+  '/FamilySettings': 'familia ajustes moneda configuracion family settings',
+  '/AccountSettings': 'cuenta perfil contrasena account profile password',
+  '/FamilyAdmin': 'admin miembros invitar family members',
+  '/PermissionAdmin': 'permisos roles permissions rbac',
+  '/LicenseAdmin': 'licencia plan pago suscripcion license billing',
+  '/UserManual': 'manual ayuda help guia documentacion',
+  '/About': 'acerca about version informacion',
+  '/ReleaseNotes': 'novedades cambios release notes changelog',
+};
+
 // Simple tooltip wrapper for collapsed sidebar items
 function NavTooltip({ label, collapsed, children }) {
   if (!collapsed) return children;
@@ -147,6 +175,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [showMore, setShowMore] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -253,6 +282,19 @@ export default function Layout() {
     return perm !== false; // undefined = not in map = show by default
   }
 
+  // Permission-filtered destinations for the Command Palette (⌘K), reusing the
+  // same source of truth as the sidebar so the two never drift apart.
+  const commandGroups = useMemo(() => (
+    SIDEBAR_GROUPS
+      .map(group => ({
+        heading: group.label || 'General',
+        items: group.items
+          .filter(canShowItem)
+          .map(({ to, icon, label }) => ({ to, icon, label, keywords: NAV_KEYWORDS[to] || '' })),
+      }))
+      .filter(group => group.items.length > 0)
+  ), [moduleVisibility, isAdmin]);
+
   const handleNavClick = (path) => {
     if (path !== location.pathname) navigate(path);
   };
@@ -296,6 +338,31 @@ export default function Layout() {
           >
             {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
           </button>
+        )}
+      </div>
+
+      {/* Command palette trigger */}
+      <div className={`${collapsed && !inDrawer ? 'px-2 pt-3' : 'px-3 pt-3'}`}>
+        {(!collapsed || inDrawer) ? (
+          <button
+            onClick={() => { setCmdOpen(true); if (inDrawer) setMobileOpen(false); }}
+            className="flex items-center gap-2 w-full rounded-xl border border-border bg-muted/40 hover:bg-muted px-3 py-2 text-sm text-muted-foreground transition-colors"
+            aria-label="Buscar (atajo Ctrl o Cmd + K)"
+          >
+            <Search className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span className="flex-1 text-left">Buscar…</span>
+            <kbd className="hidden lg:inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted-foreground/70 bg-card border border-border rounded px-1.5 py-0.5">⌘K</kbd>
+          </button>
+        ) : (
+          <NavTooltip label="Buscar (⌘K)" collapsed>
+            <button
+              onClick={() => setCmdOpen(true)}
+              aria-label="Buscar"
+              className="flex items-center justify-center w-full rounded-xl border border-border bg-muted/40 hover:bg-muted px-2 py-2.5 text-muted-foreground transition-colors touch-target"
+            >
+              <Search className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </NavTooltip>
         )}
       </div>
 
@@ -525,6 +592,11 @@ export default function Layout() {
                 <PanelLeftOpen className="w-5 h-5" />
               </button>
             )}
+            <div className="flex-1" />
+            <button onClick={() => setCmdOpen(true)} aria-label="Buscar"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <Search className="w-5 h-5" />
+            </button>
           </div>
           <div
             className={`flex-1 min-h-0 overflow-hidden ${isAssistantPage ? 'flex flex-col' : 'overflow-y-auto mb-nav md:mb-0 hide-scrollbar show-scrollbar-on-desktop'}`}
@@ -678,6 +750,14 @@ export default function Layout() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Global Command Palette (⌘K / Ctrl+K) */}
+      <CommandPalette
+        open={cmdOpen}
+        onOpenChange={setCmdOpen}
+        navGroups={commandGroups}
+        onNavigate={handleNavClick}
+      />
     </div>
   );
 }
