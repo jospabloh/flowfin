@@ -1,14 +1,14 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 22, 2026 (Updated — v0.7.0 Audit)
-**Version Audited**: 0.7.0
+**Date**: June 22, 2026 (Updated — v2.18.0 Audit)
+**Version Audited**: 2.18.0
 **Auditor**: Claude Code Security Review
-**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low) after v0.7.0 dependency remediation. All prior accepted-risk items are now fully resolved. CSP deployed; CI gate active; auth tokens in sessionStorage; RLS hardened; permission deny-by-default enforced.
+**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active; auth tokens in sessionStorage; RLS hardened (incl. PublicSnapshot read → admin-only in v2.18.0); AI-response inputs validated; permission deny-by-default enforced.
 
 ---
 
 ## Executive Summary
 
-This report reflects the cumulative audit status through v0.7.0. The v0.7.0 release is a full dependency security sweep that closes **15 previously open vulnerabilities** (3 high, 11 moderate, 1 low), including the esbuild advisory that was formally accepted in v0.6.0. `npm audit` now returns zero findings at all severity levels.
+This report reflects the cumulative audit status through v2.18.0. The v0.7.0 release was a full dependency security sweep that closed **15 vulnerabilities** (3 high, 11 moderate, 1 low); `npm audit` continues to return zero findings at all severity levels. **v2.18.0** additionally: validates AI-extraction responses with `zod` (`Capture.jsx`) and hardens receipt amounts server-side (`scanReceipt`); verifies and documents the server-side platform-admin check in `listWaitlist`; and tightens `PublicSnapshot` read RLS to admin-only (public access is served exclusively through the `getPublicSnapshot` service-role function).
 
 **npm audit (v0.7.0)**: ✅ **0 vulnerabilities** — 0 critical, 0 high, 0 moderate, 0 low.
 
@@ -43,7 +43,7 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 - ~~**No Content-Security-Policy headers**~~ — ✅ FIXED: CSP added to `public/_headers` in v0.3.0
 - ~~**No npm audit step in CI pipeline**~~ — ✅ FIXED: `npm-audit` job added to CI in v0.3.0
 - ~~**Token storage in localStorage**~~ — ✅ CLOSED in v0.6.0: auth tokens moved from persistent `localStorage` to `sessionStorage` (`src/lib/app-params.js`). The token no longer persists at rest across sessions or after the tab closes, and the `localStorage` copies the SDK writes are scrubbed on client init (`src/api/base44Client.js`) and on logout (`src/lib/AuthContext.jsx`). A full HttpOnly-cookie design remains a future option but requires Base44 platform/SDK support, since the SDK sends a Bearer token read from web storage.
-- **Missing JSON schema validation on AI responses** — OPEN
+- ~~**Missing JSON schema validation on AI responses**~~ — ✅ CLOSED in v2.18.0: the field-extraction result in `src/pages/Capture.jsx` is now validated with a `zod` schema (`aiExtractSchema`) before any value reaches the form — each field independently falls back to `undefined` if malformed, so a value like `amount: "abc"` or a wrong-typed id can never populate a transaction. Server-side, `scanReceipt` now coerces and validates every amount (`toAmount` → finite, positive) and drops invalid rows. The existing `try/catch` around `JSON.parse` (both call sites) already prevented crashes on non-JSON output.
 - ~~**react-quill XSS**~~ — ✅ CLOSED in v0.5.0: package was unused and has been removed
 - **xlsx prototype pollution / ReDoS** — LOW RESIDUAL RISK: xlsx is used write-only (`json_to_sheet` → `writeFile` from trusted internal data). The vulnerabilities are in the parse path which is never called. No user-supplied files are parsed.
 
@@ -124,9 +124,9 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 - **Status**: ⚠️ PARTIALLY MITIGATED — `access_token` is read with `removeFromUrl: true`, which strips it from the address bar via `history.replaceState` immediately after read (no browser-history entry). The token still transits the initial URL; fully eliminating that requires a cookie/redirect handshake on the Base44 platform side.
 
 #### 3. Unsafe JSON Parsing of Untrusted AI Responses
-- **Files**: `/src/pages/Capture.jsx` (line 243)
-- **Risk**: Schema-less parse of AI output; potential code injection if AI is compromised
-- **Status**: ❌ Not fixed
+- **Files**: `/src/pages/Capture.jsx`, `/base44/functions/scanReceipt/entry.ts`
+- **Risk**: Schema-less parse of AI output; malformed/hostile values reaching the form or a transaction
+- **Status**: ✅ RESOLVED in v2.18.0 — `Capture.jsx` validates the extracted result with a `zod` schema before applying it; `scanReceipt` coerces/validates every amount and drops invalid rows. `JSON.parse` was already wrapped in `try/catch` at both call sites (no crash on non-JSON).
 
 ### 🟠 HIGH (5) — UNRESOLVED FROM v0.1.0
 
@@ -146,9 +146,8 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 
 #### 7. WaitlistAdmin Relies on Role Check Only
 - **File**: `/src/pages/WaitlistAdmin.jsx` (line: `const isPlatformAdmin = currentUser?.role === 'admin'`)
-- **Issue**: Authorization is a simple client-side role string comparison; no server-side verification visible
-- **Risk**: Role spoofing if currentUser is tampered with
-- **Recommendation**: Enforce platform-admin check server-side in the `listWaitlist` backend function
+- **Issue**: The client-side role string comparison is only a UI guard.
+- **Status**: ✅ RESOLVED / VERIFIED in v2.18.0 — server-side enforcement is present: `base44/functions/listWaitlist/entry.ts` rejects non-admin callers (`if (caller.role !== 'admin') return 403`) and reads via `asServiceRole`. The client check is defense-in-depth, not the authorization boundary. Additionally, the `WaitlistSignup` entity has admin-only RLS on all operations (read/create/update/delete), protecting the email PII; public signups go through `joinWaitlist`, which uses `asServiceRole`.
 
 #### 8. Messages Page — No Authorization on Message Access
 - **File**: `/src/pages/Messages.jsx`
@@ -248,19 +247,26 @@ The following critical issues were documented in v0.1.0 but remain unaddressed:
 | ~~@opentelemetry GHSA-8988-4f7v-96qf (×9)~~ | ✅ **RESOLVED** | MODERATE | Fixed v0.7.0 → posthog-js updated |
 | ~~dompurify XSS (×4 advisories)~~ | ✅ **RESOLVED** | MODERATE | Fixed v0.7.0 → dompurify 3.4.11 |
 | ~~@babel/core GHSA-4x5r-pxfx-6jf8~~ | ✅ **RESOLVED** | LOW | Fixed v0.7.0 → @babel/core 7.29.7 |
-| Missing JSON schema validation on AI responses | ⚠️ OPEN | LOW | Deferred |
+| ~~Missing JSON schema validation on AI responses~~ | ✅ **RESOLVED** | LOW | Fixed v2.18.0 → `zod` validation in `Capture.jsx` + amount validation in `scanReceipt` |
+| ~~WaitlistAdmin backend auth unverified~~ | ✅ **RESOLVED/VERIFIED** | INFO | v2.18.0: `listWaitlist` enforces `role !== 'admin' → 403`; `WaitlistSignup` RLS is admin-only |
+| ~~PublicSnapshot direct read too broad~~ | ✅ **RESOLVED** | LOW | v2.18.0: entity `read` RLS tightened to admin-only; public access is served by `getPublicSnapshot` via `asServiceRole` |
 | Test Coverage (<30%) | ⚠️ OPEN | MEDIUM | Deferred — no test framework for React components |
-| WaitlistAdmin backend auth unverified | ⚠️ OPEN | INFO | Client guard in place; backend verification deferred |
 
 ---
 
-## Immediate Action Items (v0.7.0)
+## Immediate Action Items (v2.18.0)
 
 No blocking items remain. `npm audit` reports 0 vulnerabilities. All critical, high, and medium security issues are resolved.
 
+**Closed in v2.18.0:**
+1. **AI response schema validation** — `zod` validation added in `Capture.jsx`; `scanReceipt` validates/coerces amounts. No longer deferred.
+2. **WaitlistAdmin backend auth** — Verified: `listWaitlist` enforces platform-admin server-side; `WaitlistSignup` RLS is admin-only.
+3. **RLS hardening** — `PublicSnapshot` read tightened to admin-only (public access is served exclusively by the `getPublicSnapshot` service-role function). `WaitlistSignup` confirmed admin-only on all operations.
+
+> **Note on the WaitlistSignup advisor suggestion:** the platform advisor proposed allowing *any authenticated user* to create waitlist rows. We intentionally **did not** apply this — it would weaken a table holding email PII. Public signups already work via `joinWaitlist` (`asServiceRole`), so admin-only `create` is both safe and stricter.
+
 **Deferred (low risk):**
-1. **WaitlistAdmin backend auth** — Client-side `isPlatformAdmin` guard prevents UI access. Verify backend `listWaitlist` enforces platform-admin role independently.
-2. **AI response schema validation** — Low-risk; deferred to future sprint.
+1. **Test Coverage (<30%)** — no React component test framework yet.
 
 ---
 

@@ -21,6 +21,21 @@ import confetti from 'canvas-confetti';
 import PersonAvatar from '@/components/PersonAvatar';
 import PredictiveChips from '@/components/PredictiveChips';
 import { usePermission, useCanView } from '@/lib/permissions/usePermission';
+import { z } from 'zod';
+
+// The AI field-extraction call returns free-form JSON. Validate each field
+// independently before it touches the form so a malformed/hostile value (e.g.
+// amount: "abc", an object where a string is expected) can never populate the
+// transaction. `.catch(undefined)` drops only the bad field, keeping the rest.
+const optionalId = z.string().min(1).max(64).optional().catch(undefined);
+const aiExtractSchema = z.object({
+  categoryId: optionalId,
+  subcategoryId: optionalId,
+  personId: optionalId,
+  paymentMethodId: optionalId,
+  amount: z.coerce.number().positive().finite().optional().catch(undefined),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().catch(undefined),
+}).passthrough();
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -247,13 +262,15 @@ export default function Capture() {
           break;
         }
       }
-      if (result && Object.keys(result).length > 0) {
-        if (result.categoryId) setCategoryId(result.categoryId);
-        if (result.subcategoryId) setSubcategoryId(result.subcategoryId);
-        if (result.personId) setPersonId(result.personId);
-        if (result.paymentMethodId) setPaymentMethodId(result.paymentMethodId);
-        if (result.amount) setAmount(String(result.amount));
-        if (result.date) setDate(result.date);
+      if (result && typeof result === 'object') {
+        const parsed = aiExtractSchema.safeParse(result);
+        const data = parsed.success ? parsed.data : {};
+        if (data.categoryId) setCategoryId(data.categoryId);
+        if (data.subcategoryId) setSubcategoryId(data.subcategoryId);
+        if (data.personId) setPersonId(data.personId);
+        if (data.paymentMethodId) setPaymentMethodId(data.paymentMethodId);
+        if (data.amount !== undefined) setAmount(String(data.amount));
+        if (data.date) setDate(data.date);
       }
     } catch {
       // Silent fail — form stays as-is

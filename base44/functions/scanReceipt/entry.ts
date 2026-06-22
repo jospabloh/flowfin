@@ -40,10 +40,21 @@ function extractJson(text) {
   return text.slice(start, end + 1);
 }
 
+// Coerce a model-provided amount into a finite, positive number, or null if it
+// isn't one. Guards against the vision model returning "abc", null, an object,
+// or a negative value — none of which should ever become a transaction.
+function toAmount(v) {
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 function normalizeScannedResult(parsed) {
   // New format: { transactions: [...], merge_same_merchant_same_day: bool }
   if (Array.isArray(parsed.transactions)) {
-    let txs = parsed.transactions;
+    // Validate/coerce amounts up front and drop anything without a sane amount.
+    let txs = parsed.transactions
+      .map((tx) => ({ ...tx, amount: toAmount(tx.amount) }))
+      .filter((tx) => tx.amount !== null);
     // Apply merging only if all same merchant+date AND flag is true
     if (parsed.merge_same_merchant_same_day) {
       const grouped = {};
@@ -58,7 +69,9 @@ function normalizeScannedResult(parsed) {
   }
   // Legacy single-transaction format
   if (parsed.amount !== undefined) {
-    return [{ amount: parsed.amount, currency: parsed.currency, merchant: parsed.merchant, date: parsed.date, category_guess: parsed.category_guess, confidence: parsed.confidence }];
+    const amount = toAmount(parsed.amount);
+    if (amount === null) return null;
+    return [{ amount, currency: parsed.currency, merchant: parsed.merchant, date: parsed.date, category_guess: parsed.category_guess, confidence: parsed.confidence }];
   }
   return null;
 }
