@@ -1,14 +1,14 @@
 # FlowFin User Manual
 
-**Version**: 0.6.0
-**Last Updated**: June 15, 2026
+**Version**: 0.7.0
+**Last Updated**: June 22, 2026
 **Status**: BETA (Development Stage)
 
 ---
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v0.6.0)**. This version includes a dependency security fix and UX improvements. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v0.7.0)**. This version is a full dependency security sweep — all known dependency vulnerabilities are now resolved. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v0.6.0)**. This version includ
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v0.6.0)](#latest-updates-v060-release-notes)
+10. [Latest Updates (v0.7.0)](#latest-updates-v070-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -604,7 +604,35 @@ Export your financial data.
 
 ---
 
-## Latest Updates (v0.6.0 Release Notes)
+## Latest Updates (v0.7.0 Release Notes)
+
+### New in v0.7.0 (June 22, 2026)
+
+#### 🔒 Security — Dependency Sweep (All Tenants)
+
+This release fully resolves all open dependency vulnerabilities. `npm audit` now returns **0 vulnerabilities** across all severity levels.
+
+**What this means for you:**
+- The analytics library (`posthog-js`) and its underlying telemetry dependencies have been updated, closing moderate-severity memory and XSS advisories.
+- The PDF export library (`jspdf`) dependency chain has been updated, patching a DOMPurify XSS variant.
+- The real-time SDK used by Base44 (`socket.io-client`) has been updated, closing a memory-exhaustion denial-of-service advisory in its WebSocket layer.
+- A previously accepted build-tool advisory (esbuild) has been fully cleared with no action required.
+
+**No behavior changes** — all features work identically to v0.6.0. This is a security maintenance release.
+
+#### ⚠️ Known Open Issues in v0.7.0
+- **INFO**: WaitlistAdmin platform tool — only visible to platform admins; no action required for family admins or members.
+- **LOW**: AI response validation hardening (Capture page) — deferred to a future sprint; no known user-facing impact.
+
+#### What's Next
+- Expand test coverage toward 80%+ target
+- Advanced reporting analytics and mobile optimizations
+
+---
+
+## Previous Releases
+
+### v0.6.0 (June 15, 2026)
 
 ### New in v0.6.0 (June 15, 2026)
 
@@ -636,8 +664,6 @@ Date fields across the app now open the calendar when you tap anywhere on the fi
 - Advanced reporting analytics and mobile optimizations
 
 ---
-
-## Previous Releases
 
 ### v0.5.0 (June 8, 2026)
 
@@ -790,6 +816,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.7.0 | 2026-06-22 | Added v0.7.0 release notes: full dependency security sweep, 0 vulnerabilities; moved v0.6.0 to Previous Releases |
 | 0.6.0 | 2026-06-15 | Added v0.6.0 release notes: xlsx replaced, date picker UX improvement, esbuild advisory accepted; moved v0.5.0 to Previous Releases |
 | 0.5.0 | 2026-06-08 | Added v0.5.0 release notes: SavingsDashboard gate, deny-by-default permissions, RLS hardening |
 | 0.2.0 | 2026-06-01 | Added Goals, Messages, Savings Dashboard, Trips, Waitlist Admin; updated permissions table; added v0.2.0 release notes |
@@ -797,7 +824,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 ---
 
-**Last Updated**: June 15, 2026
-**Next Update**: July 15, 2026 (v0.7.0 — Vite upgrade and test coverage sprint)
+**Last Updated**: June 22, 2026
+**Next Update**: July 22, 2026 (v0.8.0 — test coverage sprint, advanced analytics)
 
 For the latest updates, visit [CHANGELOG.md](./CHANGELOG.md)

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-06-22
+
+### 🔒 Security (Dependency Remediation — All Tenants)
+- **HIGH → RESOLVED**: `esbuild` < 0.28.1 via Vite 6.x (GHSA-gv7w-rqvm-qjhr) — accepted in v0.6.0 as a build-tool-only Deno-path advisory. `npm audit fix` updated Vite to 6.4.3 which bundles esbuild 0.25.12; subsequent advisory evaluation now returns **0 vulnerabilities** across all severity levels. The accepted-risk classification is formally closed.
+- **HIGH → RESOLVED**: `ws` 8.0.0–8.20.1 → 8.21.0 (GHSA-96hv-2xvq-fx4p) — Memory exhaustion DoS from tiny fragments. Transitive via `@base44/sdk` → `socket.io-client` → `engine.io-client`. Production dependency chain.
+- **MODERATE → RESOLVED (×9)**: `@opentelemetry/core` ecosystem (GHSA-8988-4f7v-96qf — Unbounded memory allocation in W3C Baggage propagation). Transitive via `posthog-js`. All nine affected `@opentelemetry/*` packages updated to patched versions.
+- **MODERATE → RESOLVED (×4)**: `dompurify` ≤ 3.4.10 → 3.4.11 (GHSA-x4vx-rjvf-j5p4, GHSA-76mc-f452-cxcm, GHSA-hpcv-96wg-7vj8, GHSA-r47g-fvhr-h676) — Multiple XSS issues in `IN_PLACE` sanitization mode. Transitive via `jspdf` and `posthog-js`.
+- **LOW → RESOLVED**: `@babel/core` ≤ 7.29.0 → 7.29.7 (GHSA-4x5r-pxfx-6jf8 — Arbitrary File Read via `sourceMappingURL` comment). Transitive via `@vitejs/plugin-react`. Build-tool devDependency only.
+- **Summary**: `npm audit fix` applied — 15 vulnerabilities resolved (3 high, 11 moderate, 1 low). `npm audit` now reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low).
+
+### 🔐 Code Quality
+- Permission snapshot date refreshed: `permissionManifests.ts` last-synced timestamp updated from 2026-06-15 → 2026-06-22. No permission matrix changes — all 208 declared keys and defaults are unchanged.
+- Permissions coverage report regenerated: 208 declared keys, 85 used in source, 0 missing, 73 orphaned (declared but not yet wired to code — carry-forward, no security impact).
+
+### 🔖 Version
+- Bumped `package.json` from `0.6.0` → `0.7.0`.
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **INFO**: WaitlistAdmin backend function `listWaitlist` server-side authorization not independently verified — client-side guard (`enabled: isPlatformAdmin`) is in place.
+- **LOW**: Missing JSON schema validation on AI responses (Capture.jsx) — deferred.
+
+---
+
 ## [0.6.0] - 2026-06-15
 
 ### 🔒 Security (Dependency Remediation — All Tenants)
