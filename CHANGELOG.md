@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Versioning note (2.18.0):** FlowFin previously carried two parallel version
+> numbers — an engineering line in `package.json`/this changelog (…0.7.0) and a
+> product line shown in-app (…2.17.0). These are now **unified onto the product
+> 2.x line**. `package.json`, this changelog, the in-app *Acerca de* history and
+> the update banner all read the same number going forward. Entries at `0.x`
+> below are retained as historical engineering-line records.
+
+## [2.18.0] - 2026-06-22
+
+### ✨ Features
+- **Command Palette (⌘K / Ctrl+K)** — a global, keyboard-first launcher that
+  unifies navigation across the app's 20+ modules. Fuzzy-search and jump to any
+  destination the current user is permitted to see (it reuses the sidebar's
+  permission source of truth, so the two can't drift), plus quick actions:
+  registrar movimiento, preguntar a Finia, crear meta, planear viaje, cambiar
+  tema. Search works in Spanish and English. New component
+  `src/components/CommandPalette.jsx`, wired into `src/components/Layout.jsx`;
+  reuses the existing `cmdk` primitive (`src/components/ui/command.jsx`).
+- **Keyboard shortcut "N"** opens transaction capture instantly. Guarded so it
+  never fires while typing or while a modal/sheet/drawer is open.
+- Visible **"Buscar… ⌘K"** trigger in the desktop sidebar and a search button
+  in the mobile top bar.
+
+### 🔖 Version
+- **Unified versioning onto the 2.x product line.** `package.json` `0.7.0 → 2.18.0`;
+  in-app *Acerca de* history and Release Notes advanced to `2.18.0`; the update
+  banner build constant (`AppUpdateBanner.jsx`) corrected `2.11.0 → 2.18.0`
+  (it had silently drifted behind the product line).
+
+### 📝 Docs
+- User manual, changelog and in-app release notes synchronized to 2.18.0.
+- Permissions matrix unchanged: the Command Palette introduces **no new
+  permission keys** (it reuses existing `module.*` view permissions), so the
+  208-key matrix and defaults are intact.
+
+### 🌐 Marketing site (acaciaco-site)
+- The FlowFin product page now markets the real feature set (AI assistant,
+  receipt OCR, reports with export, investments, rentals, multi-currency trips,
+  MSI) and corrects the plan member counts (Home **1–4**, Family+ **5–10**).
+  Prices unchanged. Tracked in `jospabloh/acaciaco-site`.
+
 ## [0.7.0] - 2026-06-22
 
 ### 🔒 Security (Dependency Remediation — All Tenants)

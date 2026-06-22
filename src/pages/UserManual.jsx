@@ -400,6 +400,23 @@ La barra lateral izquierda muestra todos los módulos organizados en las mismas 
 El botón "Registrar" siempre está visible en la parte inferior de la barra.`,
   },
   {
+    id: 'paleta', icon: '⌨️', title: 'Paleta de Comandos (⌘K)',
+    content: `La Paleta de Comandos es la forma más rápida de moverte por FlowFin sin levantar las manos del teclado.
+
+Cómo abrirla:
+• Atajo de teclado: ⌘K (Mac) o Ctrl+K (Windows/Linux), desde cualquier pantalla.
+• Botón "Buscar…" en la parte superior de la barra lateral (escritorio).
+• Ícono de lupa 🔍 en la barra superior (móvil).
+
+Qué puedes hacer:
+• Buscar y saltar al instante a cualquier sección: Inicio, Movimientos, Reportes, Asistente, Presupuesto, Metas, Viajes, Inversiones, Rentas, MSI, Catálogos, Mi Familia, y más. Solo aparecen las secciones a las que tienes permiso.
+• Ejecutar acciones rápidas sin cambiar de pantalla: Registrar un movimiento, Preguntar a Finia (Asistente IA), Crear una meta de ahorro, Planear un viaje, o Cambiar entre modo claro y oscuro.
+• Escribir en español o en inglés: la búsqueda entiende sinónimos (por ejemplo "expense" encuentra Movimientos y "ai" encuentra el Asistente).
+
+Atajo extra:
+Pulsa "N" (sin estar escribiendo en un campo) para abrir la pantalla de Captura al instante. Este atajo se desactiva automáticamente mientras escribes o cuando hay una ventana abierta, para no interrumpirte.`,
+  },
+  {
     id: 'export', icon: '📤', title: 'Exportar datos',
     content: `Puedes exportar tus datos en cualquier momento desde la sección de Movimientos.
 
