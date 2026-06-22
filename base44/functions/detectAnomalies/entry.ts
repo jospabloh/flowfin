@@ -1,5 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+async function assertFamilyMember(base44, familyId) {
+  const user = await base44.auth.me();
+  if (!user) { const err = new Error('Unauthorized'); err.httpStatus = 401; throw err; }
+  if (user.role === 'admin') return { user, membership: null };
+  let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, family_id: familyId, status: 'approved' });
+  if (!memberships.length) memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, family_id: familyId, status: 'approved' });
+  if (!memberships.length) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+  return { user, membership: memberships[0] };
+}
+
 function getISOWeekKey(date: Date): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -17,6 +27,14 @@ Deno.serve(async (req) => {
 
     const { familyId } = await req.json();
     if (!familyId) return Response.json({});
+
+    // Authorization: the caller passes familyId in the body, so verify they
+    // actually belong to that family before reading its transactions.
+    try {
+      await assertFamilyMember(base44, familyId);
+    } catch (err) {
+      return Response.json({ error: 'forbidden' }, { status: err.httpStatus || 403 });
+    }
 
     const now = new Date();
     const currentWeekKey = getISOWeekKey(now);

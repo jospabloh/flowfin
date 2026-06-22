@@ -1,5 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
+async function assertFamilyMember(base44, familyId) {
+  const user = await base44.auth.me();
+  if (!user) { const err = new Error('Unauthorized'); err.httpStatus = 401; throw err; }
+  if (user.role === 'admin') return { user, membership: null };
+  let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_id: user.id, family_id: familyId, status: 'approved' });
+  if (!memberships.length) memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ user_email: user.email, family_id: familyId, status: 'approved' });
+  if (!memberships.length) { const err = new Error('forbidden'); err.httpStatus = 403; throw err; }
+  return { user, membership: memberships[0] };
+}
+
 function normalizeKey(text: string): string {
   return text.toLowerCase().trim().slice(0, 40);
 }
@@ -20,6 +30,14 @@ Deno.serve(async (req) => {
 
     const { familyId } = await req.json();
     if (!familyId) return Response.json({ candidates: [] });
+
+    // Authorization: the caller passes familyId in the body, so verify they
+    // actually belong to that family before reading its transactions.
+    try {
+      await assertFamilyMember(base44, familyId);
+    } catch (err) {
+      return Response.json({ error: 'forbidden' }, { status: err.httpStatus || 403 });
+    }
 
     // Fetch last 6 months of expense transactions + active ScheduledPayments
     const cutoff = new Date();
