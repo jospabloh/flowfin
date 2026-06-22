@@ -310,8 +310,13 @@ export default function Layout() {
   const isMoreActive = MORE_GROUPS.flatMap(g => g.items)
     .some(item => location.pathname === item.to);
 
-  // Shared sidebar content — used both in desktop and mobile drawer
-  const SidebarContent = ({ inDrawer = false }) => (
+  // Shared sidebar content — used both in desktop and mobile drawer.
+  // NOTE: this is a render helper, NOT a component rendered as <SidebarContent/>.
+  // Rendering it as a nested component remounts the scrollable <nav> on every
+  // Layout re-render (e.g. each navigation), resetting the sidebar scroll to the
+  // top. Calling it inline keeps the <nav> DOM node stable so its scroll
+  // position is preserved as the user moves between pages.
+  const renderSidebarContent = ({ inDrawer = false } = {}) => (
     <>
       {/* Logo + Toggle */}
       <div className={`border-b border-border flex items-center ${collapsed && !inDrawer ? 'justify-center p-3' : 'p-4'}`}>
@@ -538,7 +543,7 @@ export default function Layout() {
           className={`hidden md:flex flex-col h-screen sticky top-0 border-r border-border bg-card/60 backdrop-blur-xl overscroll-none transition-all duration-300 overflow-hidden flex-shrink-0
             ${collapsed ? 'w-16' : 'w-60'}`}
         >
-          <SidebarContent />
+          {renderSidebarContent({ inDrawer: false })}
         </aside>
 
         {/* Mobile Drawer Overlay */}
@@ -570,7 +575,7 @@ export default function Layout() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <SidebarContent inDrawer />
+                {renderSidebarContent({ inDrawer: true })}
               </motion.aside>
             </>
           )}
