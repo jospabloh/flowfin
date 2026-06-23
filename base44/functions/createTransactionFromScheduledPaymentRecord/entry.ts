@@ -11,18 +11,19 @@ function getWeekNumber(dateStr) {
   } catch { return 1; }
 }
 
+// Entity hook — triggered by Base44 when a ScheduledPaymentRecord is created.
+// Uses asServiceRole for all DB operations (hook runs in system context, not
+// tied to any user session). It must NOT call base44.auth.me()/check for a
+// user: hook invocations have no user context, so an `if (!user)` guard would
+// reject every hook call and break auto-creation. Matches the sibling hooks
+// createTransactionFrom{InvestmentPayment,RentalPayment,MSIPayment}.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { event, data } = await req.json();
-    
-    if (!data || event.type !== 'create') {
+
+    if (!data || event?.type !== 'create') {
       return Response.json({ message: 'Event not applicable' }, { status: 200 });
     }
 
