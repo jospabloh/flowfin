@@ -113,9 +113,6 @@
         },
         {
           "data.user_id": "{{user.id}}"
-        },
-        {
-          "data.family_id": "{{user.data.admin_family_ids}}"
         }
       ]
     },
@@ -128,9 +125,6 @@
         },
         {
           "data.user_id": "{{user.id}}"
-        },
-        {
-          "data.family_id": "{{user.data.admin_family_ids}}"
         }
       ]
     }
