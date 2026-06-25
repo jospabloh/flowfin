@@ -17,7 +17,7 @@
     "release": "node scripts/update-changelog.mjs && node scripts/sync-permission-snapshot.mjs && node scripts/sync-docs-snapshot.mjs"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.32",
+    "@base44/sdk": "^0.8.34",
     "@base44/vite-plugin": "^1.0.23",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
