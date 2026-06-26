@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronDown, CalendarCheck, PiggyBank,
   Wallet, ShieldCheck, KeyRound, BadgeCheck,
   PanelLeftClose, PanelLeftOpen, Plane, Coins, Target, ScrollText,
-  MessageCircle, Search
+  MessageCircle, Search, LifeBuoy
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,6 +70,7 @@ const MORE_GROUPS = [
   {
     label: 'Información',
     items: [
+      { to: '/SupportTickets', icon: LifeBuoy, label: 'Soporte', color: 'text-orange-500', bg: 'bg-orange-500/10' },
       { to: '/UserManual', icon: HelpCircle, label: 'Manual', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
       { to: '/About', icon: Info, label: 'Acerca de', color: 'text-muted-foreground', bg: 'bg-muted' },
     ],
@@ -121,6 +122,7 @@ const SIDEBAR_GROUPS = [
   {
     label: 'Información',
     items: [
+      { to: '/SupportTickets', icon: LifeBuoy, label: 'Soporte' },
       { to: '/UserManual', icon: HelpCircle, label: 'Manual' },
       { to: '/About', icon: Info, label: 'Acerca de' },
     ],
