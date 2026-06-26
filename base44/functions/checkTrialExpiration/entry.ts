@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
-import { guardInternal } from '../_internalGuard.ts';
+import { guardInternal } from './_internalGuard.ts';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

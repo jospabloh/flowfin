@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { ALL_PERMISSION_DEFAULTS } from './permissionManifests.ts';
-import { guardInternal } from '../_internalGuard.ts';
+import { guardInternal } from './_internalGuard.ts';
 
 const AUDIT_EMAIL = Deno.env.get('AUDIT_EMAIL') ?? '';
 

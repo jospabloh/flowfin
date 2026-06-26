@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { guardInternal } from '../_internalGuard.ts';
+import { guardInternal } from './_internalGuard.ts';
 import {
   CURRENT_VERSION_IN_CODE,
   GIT_LOG_SNAPSHOT,
