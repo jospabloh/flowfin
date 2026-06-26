@@ -1,25 +1,28 @@
 const isNode = typeof document === 'undefined';
 const windowObj = isNode ? { sessionStorage: new Map(), localStorage: new Map() } : globalThis;
-// Auth tokens are kept in sessionStorage (cleared when the tab closes) instead of
-// localStorage to avoid a persistent token at rest that any future XSS could read
-// long after the user has left. sessionStorage still survives same-tab refresh, so
-// there is no re-authentication regression.
-const storage = windowObj.sessionStorage;
+// Auth tokens live in localStorage so the session is SHARED across tabs — opening
+// the app in a new tab reuses the existing session instead of forcing a re-login.
+// This matches the rest of the ACACIA portfolio (puntos/stockflow/liuma/rumbo).
+// SECURITY TRADE-OFF (reviewed): a token at rest in localStorage is readable by a
+// future XSS for longer than a per-tab sessionStorage token. We accept it for the
+// cross-tab UX + portfolio consistency; defense stays on preventing XSS (CSP, no
+// unsafe innerHTML) and on the short token lifetime Base44 controls.
+const storage = windowObj.localStorage;
 
-// Token keys that older builds wrote to localStorage. We migrate them to sessionStorage
-// once (so already-signed-in users aren't logged out on deploy) and then keep
-// localStorage free of tokens.
+// Token keys an EARLIER build of this app kept in sessionStorage. Migrate them to
+// localStorage once so users currently signed in (token only in sessionStorage)
+// are NOT logged out by this change.
 const LEGACY_TOKEN_KEYS = ['base44_access_token', 'token'];
 
 const migrateLegacyTokenStorage = () => {
-	if (isNode || !windowObj.localStorage) return;
+	if (isNode || !windowObj.sessionStorage) return;
 	for (const key of LEGACY_TOKEN_KEYS) {
 		try {
-			const legacyValue = windowObj.localStorage.getItem(key);
-			if (legacyValue && !storage.getItem(key)) {
-				storage.setItem(key, legacyValue);
+			const sessionValue = windowObj.sessionStorage.getItem(key);
+			if (sessionValue && !storage.getItem(key)) {
+				storage.setItem(key, sessionValue);
 			}
-			windowObj.localStorage.removeItem(key);
+			windowObj.sessionStorage.removeItem(key);
 		} catch {
 			// Storage access can throw in locked-down browser modes; ignore.
 		}
@@ -60,9 +63,21 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 
 const getAppParams = () => {
 	migrateLegacyTokenStorage();
-	if (getAppParamValue("clear_access_token") === 'true') {
-		storage.removeItem('base44_access_token');
-		storage.removeItem('token');
+	// `clear_access_token` is a ONE-SHOT signal Base44 appends to the URL on logout.
+	// Read it straight from the URL and strip it — never cache it. The generic
+	// getAppParamValue() persists every param it reads, so reading the flag through
+	// it would leave `base44_clear_access_token=true` stuck in storage, wiping the
+	// token on every later load (and re-login on new tabs).
+	if (!isNode) {
+		const urlParams = new URLSearchParams(globalThis.location.search);
+		if (urlParams.get('clear_access_token') === 'true') {
+			storage.removeItem('base44_access_token');
+			storage.removeItem('token');
+			urlParams.delete('clear_access_token');
+			const newUrl = `${globalThis.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}${globalThis.location.hash}`;
+			globalThis.history.replaceState({}, document.title, newUrl);
+		}
+		storage.removeItem('base44_clear_access_token'); // undo prior sticky caching
 	}
 	return {
 		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
