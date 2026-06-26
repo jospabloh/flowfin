@@ -1,0 +1,39 @@
+{
+  "name": "SupportTicketMessage",
+  "type": "object",
+  "description": "Un mensaje dentro del hilo de un SupportTicket. Las notas internas (is_internal_note=true) solo las ve el soporte (owner) — vía RLS y UI.",
+  "properties": {
+    "ticket_id": { "type": "string", "description": "ID del ticket al que pertenece" },
+    "family_id": { "type": "string", "description": "ID de la familia (denormalizado para RLS)" },
+    "author_id": { "type": "string", "description": "ID del autor del mensaje" },
+    "author_email": { "type": "string", "description": "Email del autor" },
+    "author_name": { "type": "string", "description": "Nombre del autor" },
+    "author_role": { "type": "string", "enum": ["owner", "tenant"], "description": "Rol del autor en el contexto del ticket" },
+    "body": { "type": "string", "description": "Contenido del mensaje" },
+    "is_internal_note": { "type": "boolean", "default": false, "description": "Nota interna visible solo para el soporte (owner)" },
+    "attachments": { "type": "array", "items": { "type": "string" }, "description": "URLs de archivos adjuntos" }
+  },
+  "required": ["ticket_id", "family_id", "body"],
+  "rls": {
+    "create": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "$and": [ { "data.family_id": "{{user.data.family_id}}" }, { "data.is_internal_note": false } ] },
+        { "$and": [ { "data.family_id": "{{user.data.data.family_id}}" }, { "data.is_internal_note": false } ] }
+      ]
+    },
+    "read": {
+      "$or": [
+        { "user_condition": { "role": "admin" } },
+        { "$and": [ { "data.family_id": "{{user.data.family_id}}" }, { "data.is_internal_note": false } ] },
+        { "$and": [ { "data.family_id": "{{user.data.data.family_id}}" }, { "data.is_internal_note": false } ] }
+      ]
+    },
+    "update": {
+      "user_condition": { "role": "admin" }
+    },
+    "delete": {
+      "user_condition": { "role": "admin" }
+    }
+  }
+}
