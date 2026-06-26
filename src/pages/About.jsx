@@ -110,7 +110,7 @@ const VERSION_HISTORY = [
       'Tutorial: persistencia del estado entre sesiones y dispositivos mediante hook dedicado',
       'Licencias: nuevo estado "Archivado" — activa 14 días después de vencer; la cuenta se elimina 15 días después si no se renueva',
       'Licencias: 17 automatizaciones de correo para todo el ciclo de vida (bienvenida, recordatorios, renovación, vencimiento, archivado)',
-      'Planes actualizados: FlowFin Home $299 MXN/mes (1–4 miembros) y FlowFin Family+ $499 MXN/mes (5–10 miembros); eliminado plan Circle',
+      'Planes: FlowFin Home $299 MXN/mes (1–4 miembros), FlowFin Family+ $499 MXN/mes (5–10 miembros) y FlowFin Circle $799 MXN/mes (11–20 miembros)',
       'Admin Licencias: toggle de auto-renovación por familia con botón para enviar correos de prueba',
       'Captura: corrección de contraste en el desplegable de categorías (legible en tema claro y oscuro)',
       'Móvil: sección Sistema/Licencias ahora visible en el cajón "Más" (solo administradores)',
