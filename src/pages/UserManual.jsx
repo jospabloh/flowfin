@@ -504,7 +504,7 @@ Modelo de operación:
 • FlowFin — ACACIA confirma el pago en el panel de Licencias para extender el acceso.
 
 ¿Cómo se activa una nueva licencia?
-1. Elige tu plan en FlowFin (Home $299/mes · Family+ $499/mes).
+1. Elige tu plan en FlowFin (Home $299/mes · Family+ $499/mes · Circle $799/mes).
 2. Completa tu suscripción en Mercado Pago.
 3. ACACIA verifica el pago y confirma la licencia en el panel interno.
 4. Recibirás un correo de confirmación con los detalles de tu plan activo.
@@ -527,6 +527,7 @@ Correos que recibes:
 Planes disponibles:
 • FlowFin Home — $299 MXN/mes · hasta 4 miembros
 • FlowFin Family+ — $499 MXN/mes · hasta 10 miembros
+• FlowFin Circle — $799 MXN/mes · hasta 20 miembros
 
 ¿Qué pasa si Mercado Pago no cobra?
 Si hubo un problema con el cobro, contáctanos antes del día 1. ACACIA no confirmará la licencia hasta que el pago sea verificado en Mercado Pago.
@@ -556,6 +557,7 @@ FlowFin envía correos automáticos en los momentos clave del ciclo de vida de t
 Planes disponibles:
 • FlowFin Home — $299 MXN/mes · hasta 4 miembros
 • FlowFin Family+ — $499 MXN/mes · hasta 10 miembros
+• FlowFin Circle — $799 MXN/mes · hasta 20 miembros
 Todos los planes incluyen acceso completo a todos los módulos. El pago se procesa vía Mercado Pago, IVA incluido. Para cambiar de plan o renovar, contacta a soporte.
 
 Modo solo lectura:
