@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
-import { fetchFamilyTransactions } from '../_txAggregateHelper.ts';
+import { fetchFamilyTransactions } from './_txAggregateHelper.ts';
 
 async function resolveAccess(base44, requestedFamilyId) {
   let user = null;
