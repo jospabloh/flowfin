@@ -2,6 +2,7 @@ import { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { rememberIdentity, clearRememberedIdentity } from '@/lib/lastIdentity';
 
 const AuthContext = createContext();
 
@@ -100,6 +101,9 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
       setAuthChecked(true);
+      // Remember (cosmetically) who signed in, to greet them on the login screen
+      // next time. Non-sensitive fields only — never the token.
+      rememberIdentity(currentUser);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
@@ -119,9 +123,11 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    // Forget the remembered identity on explicit logout.
+    clearRememberedIdentity();
 
-    // The SDK's logout clears the token from localStorage, but our tokens live in
-    // sessionStorage (see src/lib/app-params.js), so clear those copies too.
+    // Tokens now live in localStorage (SDK logout clears them). Also clear any
+    // leftover sessionStorage copies from the previous storage scheme.
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
         window.sessionStorage.removeItem('base44_access_token');

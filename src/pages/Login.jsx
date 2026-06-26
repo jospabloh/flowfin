@@ -7,12 +7,22 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { getRememberedIdentity, clearRememberedIdentity } from "@/lib/lastIdentity";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  // Greet a returning user: prefill their email (cosmetic only — they still
+  // enter the password / pick Google; remembered identity is never a credential).
+  const [remembered, setRemembered] = useState(() => getRememberedIdentity());
+  const [email, setEmail] = useState(remembered?.email || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const useOtherAccount = () => {
+    clearRememberedIdentity();
+    setRemembered(null);
+    setEmail("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,6 +56,21 @@ export default function Login() {
         </>
       }
     >
+      {remembered && (remembered.name || remembered.email) && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            {(remembered.name || remembered.email).trim().charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">Welcome back{remembered.name ? `, ${remembered.name.split(" ")[0]}` : ""}</p>
+            {remembered.email && <p className="truncate text-xs text-muted-foreground">{remembered.email}</p>}
+          </div>
+          <button type="button" onClick={useOtherAccount} className="shrink-0 text-xs font-medium text-primary hover:underline">
+            Use another account
+          </button>
+        </div>
+      )}
+
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"
