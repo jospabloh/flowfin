@@ -9,14 +9,31 @@ const windowObj = isNode ? { sessionStorage: new Map(), localStorage: new Map() 
 // unsafe innerHTML) and on the short token lifetime Base44 controls.
 const storage = windowObj.localStorage;
 
-// Token keys an EARLIER build of this app kept in sessionStorage. Migrate them to
-// localStorage once so users currently signed in (token only in sessionStorage)
-// are NOT logged out by this change.
-const LEGACY_TOKEN_KEYS = ['base44_access_token', 'token'];
+// FlowFin's public Base44 app id (see base44/.app.jsonc). Baked in as the ultimate
+// fallback so `appId` is NEVER null even when the build has no VITE_BASE44_APP_ID
+// and the URL carries no `app_id` param: a null appId makes AuthContext request
+// `.../public-settings/by-id/null`, which Base44 rejects with ObjectNotFoundError
+// ("Invalid id value: null") and the app can't boot or log in. The id is public
+// (it already appears in asset URLs), so it is safe to ship.
+const DEFAULT_APP_ID = '69b97ea9c9a713486b5a01fd';
 
-const migrateLegacyTokenStorage = () => {
+// Storage keys an EARLIER build of this app kept in sessionStorage. The storage
+// backend for ALL app params moved sessionStorage → localStorage, so migrate every
+// persisted key once (not just the tokens) — otherwise returning users lose app_id
+// (→ appId null → boot/login breaks) and functions_version / app_base_url. Done
+// once so users currently signed in are NOT logged out by the change.
+const LEGACY_STORAGE_KEYS = [
+	'base44_access_token',
+	'token',
+	'base44_app_id',
+	'base44_functions_version',
+	'base44_app_base_url',
+	'base44_from_url',
+];
+
+const migrateLegacyStorage = () => {
 	if (isNode || !windowObj.sessionStorage) return;
-	for (const key of LEGACY_TOKEN_KEYS) {
+	for (const key of LEGACY_STORAGE_KEYS) {
 		try {
 			const sessionValue = windowObj.sessionStorage.getItem(key);
 			if (sessionValue && !storage.getItem(key)) {
@@ -50,19 +67,19 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		storage.setItem(storageKey, searchParam);
 		return searchParam;
 	}
-	if (defaultValue) {
-		storage.setItem(storageKey, defaultValue);
-		return defaultValue;
-	}
 	const storedValue = storage.getItem(storageKey);
 	if (storedValue) {
 		return storedValue;
+	}
+	if (defaultValue) {
+		storage.setItem(storageKey, defaultValue);
+		return defaultValue;
 	}
 	return null;
 }
 
 const getAppParams = () => {
-	migrateLegacyTokenStorage();
+	migrateLegacyStorage();
 	// `clear_access_token` is a ONE-SHOT signal Base44 appends to the URL on logout.
 	// Read it straight from the URL and strip it — never cache it. The generic
 	// getAppParamValue() persists every param it reads, so reading the flag through
@@ -80,7 +97,7 @@ const getAppParams = () => {
 		storage.removeItem('base44_clear_access_token'); // undo prior sticky caching
 	}
 	return {
-		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID }),
+		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID || DEFAULT_APP_ID }),
 		token: getAppParamValue("access_token", { removeFromUrl: true }),
 		fromUrl: getAppParamValue("from_url", { defaultValue: globalThis.location.href }),
 		functionsVersion: getAppParamValue("functions_version", { defaultValue: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION }),
