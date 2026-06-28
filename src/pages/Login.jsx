@@ -56,29 +56,58 @@ export default function Login() {
         </>
       }
     >
-      {remembered && (remembered.name || remembered.email) && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-            {(remembered.name || remembered.email).trim().charAt(0).toUpperCase()}
+      {remembered && (remembered.name || remembered.email) ? (
+        // One-tap card, styled after the Uber Eats / Google One Tap prompt.
+        // A single click signs the returning user back in with Google. base44
+        // only supports redirect-based OAuth, so this hands off to Google once
+        // (no silent floating prompt is possible on this platform) — see the
+        // Google card section in the login notes.
+        <div className="mb-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            {remembered.avatar ? (
+              <img
+                src={remembered.avatar}
+                alt=""
+                className="h-11 w-11 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-base font-semibold text-primary-foreground">
+                {(remembered.name || remembered.email).trim().charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {remembered.name || remembered.email}
+              </p>
+              {remembered.name && remembered.email && (
+                <p className="truncate text-xs text-muted-foreground">{remembered.email}</p>
+              )}
+            </div>
+            <GoogleIcon className="h-5 w-5 shrink-0" />
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">Welcome back{remembered.name ? `, ${remembered.name.split(" ")[0]}` : ""}</p>
-            {remembered.email && <p className="truncate text-xs text-muted-foreground">{remembered.email}</p>}
+          <div className="border-t border-border px-4 py-3">
+            <Button className="w-full h-12 font-medium" onClick={handleGoogle}>
+              Continue as {remembered.name ? remembered.name.split(" ")[0] : remembered.email}
+            </Button>
+            <button
+              type="button"
+              onClick={useOtherAccount}
+              className="mt-3 block w-full text-center text-xs font-medium text-primary hover:underline"
+            >
+              Use another account
+            </button>
           </div>
-          <button type="button" onClick={useOtherAccount} className="shrink-0 text-xs font-medium text-primary hover:underline">
-            Use another account
-          </button>
         </div>
+      ) : (
+        <Button
+          variant="outline"
+          className="w-full h-12 text-sm font-medium mb-6"
+          onClick={handleGoogle}
+        >
+          <GoogleIcon className="w-5 h-5 mr-2" />
+          Continue with Google
+        </Button>
       )}
-
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
