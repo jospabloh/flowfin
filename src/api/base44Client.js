@@ -13,16 +13,13 @@ export const base44 = createClient({
   appBaseUrl
 });
 
-// The Base44 SDK persists the access token to localStorage during construction.
-// We pass the token explicitly above (so the SDK never needs to read it back),
-// which lets us keep tokens out of persistent localStorage and only in
-// sessionStorage (see src/lib/app-params.js). Scrub the localStorage copies the
-// SDK just wrote.
-if (typeof window !== 'undefined' && window.localStorage) {
-  try {
-    window.localStorage.removeItem('base44_access_token');
-    window.localStorage.removeItem('token');
-  } catch {
-    // Storage access can throw in locked-down browser modes; ignore.
-  }
-}
+// The access token is INTENTIONALLY persisted in localStorage (key
+// `base44_access_token`, the SDK's default) so the session survives reloads and
+// is shared across tabs — see the trade-off note in src/lib/app-params.js. Both
+// the SDK (during construction) and app-params write that key.
+//
+// Do NOT scrub it here. An earlier build kept tokens in sessionStorage and wiped
+// the localStorage copies right after createClient(); after the migration to
+// localStorage that leftover scrub deleted the only persisted token, so every
+// reload/navigation lost the session and the user appeared to be "logged out"
+// seconds after a successful login.
