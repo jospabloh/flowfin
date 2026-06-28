@@ -50,13 +50,30 @@ const toSnakeCase = (str) => {
 	return str.replace(/([A-Z])/g, '_$1').toLowerCase();
 }
 
+// A param can arrive as the literal strings "null" or "undefined" — e.g. a build
+// that injected VITE_BASE44_APP_ID=null, a `?app_id=null` URL (the exact symptom
+// we hit), or a stale value an earlier broken build persisted to storage. Those
+// are NOT valid values: the old `value || DEFAULT_APP_ID` guard treated "null" as
+// truthy, so appId became the string "null", the SDK requested
+// `.../public-settings/by-id/null`, and Base44 answered ObjectNotFoundError
+// ("Invalid id value: null") — login broke. Normalize these (and blank/whitespace)
+// to undefined so every caller falls through to the next source (→ DEFAULT_APP_ID).
+const cleanParamValue = (value) => {
+	if (value == null) return undefined;
+	const trimmed = String(value).trim();
+	if (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') {
+		return undefined;
+	}
+	return trimmed;
+}
+
 const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl = false } = {}) => {
 	if (isNode) {
 		return defaultValue;
 	}
 	const storageKey = `base44_${toSnakeCase(paramName)}`;
 	const urlParams = new URLSearchParams(globalThis.location.search);
-	const searchParam = urlParams.get(paramName);
+	const searchParam = cleanParamValue(urlParams.get(paramName));
 	if (removeFromUrl) {
 		urlParams.delete(paramName);
 		const newUrl = `${globalThis.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ""
@@ -67,11 +84,14 @@ const getAppParamValue = (paramName, { defaultValue = undefined, removeFromUrl =
 		storage.setItem(storageKey, searchParam);
 		return searchParam;
 	}
-	if (defaultValue) {
-		storage.setItem(storageKey, defaultValue);
-		return defaultValue;
+	const cleanDefault = cleanParamValue(defaultValue);
+	if (cleanDefault) {
+		storage.setItem(storageKey, cleanDefault);
+		return cleanDefault;
 	}
-	const storedValue = storage.getItem(storageKey);
+	// A prior broken build may have persisted the literal "null"; clean it so we
+	// don't hand a bogus value back (and let the next load re-derive a good one).
+	const storedValue = cleanParamValue(storage.getItem(storageKey));
 	if (storedValue) {
 		return storedValue;
 	}
@@ -97,11 +117,13 @@ const getAppParams = () => {
 		storage.removeItem('base44_clear_access_token'); // undo prior sticky caching
 	}
 	return {
-		appId: getAppParamValue("app_id", { defaultValue: import.meta.env.VITE_BASE44_APP_ID || DEFAULT_APP_ID }),
+		// cleanParamValue on the env var too: a build can bake VITE_BASE44_APP_ID as
+		// the string "null"/"undefined", which `|| DEFAULT_APP_ID` would NOT replace.
+		appId: getAppParamValue("app_id", { defaultValue: cleanParamValue(import.meta.env.VITE_BASE44_APP_ID) || DEFAULT_APP_ID }),
 		token: getAppParamValue("access_token", { removeFromUrl: true }),
 		fromUrl: getAppParamValue("from_url", { defaultValue: globalThis.location.href }),
-		functionsVersion: getAppParamValue("functions_version", { defaultValue: import.meta.env.VITE_BASE44_FUNCTIONS_VERSION }),
-		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: import.meta.env.VITE_BASE44_APP_BASE_URL }),
+		functionsVersion: getAppParamValue("functions_version", { defaultValue: cleanParamValue(import.meta.env.VITE_BASE44_FUNCTIONS_VERSION) }),
+		appBaseUrl: getAppParamValue("app_base_url", { defaultValue: cleanParamValue(import.meta.env.VITE_BASE44_APP_BASE_URL) }),
 	}
 }
 
