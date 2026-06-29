@@ -1,6 +1,6 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-06-22T07:05:41.508Z
+Generated: 2026-06-29T07:06:28.547Z
 
 **Total declared keys:** 208  
 **Total action keys:** 139  
@@ -129,8 +129,8 @@ Generated: 2026-06-22T07:05:41.508Z
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
 | `capture.form.basic` | Campos Básicos | RWMDV | RWV | _orphan_ |
-| `capture.form.advanced` | Opciones Avanzadas | RWMDV | R | `src/pages/Capture.jsx:38` |
-| `capture.ai_assist.suggestions` | Sugerencias Automáticas | RV | RV | `src/pages/Capture.jsx:39` |
+| `capture.form.advanced` | Opciones Avanzadas | RWMDV | R | `src/pages/Capture.jsx:53` |
+| `capture.ai_assist.suggestions` | Sugerencias Automáticas | RV | RV | `src/pages/Capture.jsx:54` |
 
 ## Catálogos (`module.Catalogs`)
 

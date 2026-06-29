@@ -1,14 +1,14 @@
 # FlowFin User Manual
 
-**Version**: 2.18.0
-**Last Updated**: June 22, 2026
+**Version**: 2.19.0
+**Last Updated**: June 29, 2026
 **Status**: BETA (Development Stage)
 
 ---
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v2.18.0)**. This release adds a global **Command Palette (⌘K)** for keyboard-first navigation and **unifies the app's version numbering onto the 2.x product line** (previously `package.json` and the in-app history carried different numbers). For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v2.19.0)**. This release adds **Support Tickets**, a **persistent cross-tab session**, the **"Continue as" login card**, and closes a permissions gap in the new Support module. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v2.18.0)**. This release adds 
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v2.18.0)](#latest-updates-v2180-release-notes)
+10. [Latest Updates (v2.19.0)](#latest-updates-v2190-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -601,6 +601,46 @@ Export your financial data.
 - **Email**: support@flowfin.app
 - **In-App**: Settings → Help → Contact Support
 - **Documentation**: https://docs.flowfin.app
+
+---
+
+## Latest Updates (v2.19.0 Release Notes)
+
+### New in v2.19.0 (June 29, 2026)
+
+#### 🎫 Support Tickets — contact support directly from the app
+
+A new **Soporte** module is now available from the sidebar.
+
+**What this means for you:**
+- Open a support ticket, describe your issue, choose a category (Technical, Billing, Account, Feature Request, or Other), and set a priority.
+- Track all your tickets and read replies from the ACACIA support team in one place — no email thread juggling.
+- Reply to an open or in-progress ticket directly from the ticket thread view.
+- Tickets are private to your family — members of other families cannot see yours.
+
+**Who can access:** All family roles (admin and member) can view, create, and reply to support tickets by default. The family admin can restrict this via the **Permisos** panel if needed (permission keys: `support.ticket.create`, `support.ticket.reply`).
+
+#### 🔒 Session shared across browser tabs
+
+Your FlowFin session now **persists across browser tabs**. Opening a new tab will reuse your existing session instead of sending you back to the login screen. This matches the behaviour of the other ACACIA apps.
+
+**What this means for you:**
+- Open FlowFin in multiple tabs without re-authenticating.
+- If you log out in one tab, all tabs are effectively logged out (the shared token is cleared).
+
+#### 👤 "Continue as" login card
+
+If you've logged in before, the login screen shows a one-tap card with your name and profile photo. Tap it to resume with your email pre-filled. You can always tap **"Usar otra cuenta"** to log in as someone else. The remembered identity is cleared on explicit logout.
+
+#### 🔒 Permission fix — Support Tickets module
+
+The Support Tickets module now has a full permission manifest (`support.view`, `support.ticket.create`, `support.ticket.reply`) and is gated in the sidebar and in-page by the `module.SupportTickets` permission key. Prior to this release, the route was accessible to all authenticated users without a permission check (access was still scoped to the current family's data via RLS).
+
+#### What's Next
+- Expand test coverage toward 80%+ target
+- Advanced reporting analytics and mobile optimizations
+
+> The previous **v2.18.0** release (Command Palette, unified versioning) and **v0.7.0** (dependency security sweep, `npm audit` = 0 vulnerabilities) remain in effect — see Previous Releases below.
 
 ---
 

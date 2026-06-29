@@ -1,22 +1,34 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 22, 2026 (Updated — v2.18.0 Audit)
-**Version Audited**: 2.18.0
-**Auditor**: Claude Code Security Review
-**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active; auth tokens in sessionStorage; RLS hardened (incl. PublicSnapshot read → admin-only in v2.18.0); AI-response inputs validated; permission deny-by-default enforced.
+**Date**: June 29, 2026 (Updated — v2.19.0 Audit)
+**Version Audited**: 2.19.0
+**Auditor**: Claude Code Automated Security Review
+**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active (incl. `validate:rls`); auth tokens in localStorage (cross-tab session, security trade-off documented); RLS enforced across all 35 entities; AI-response inputs validated; permission deny-by-default enforced; SupportTickets module permission gap closed in v2.19.0.
 
 ---
 
 ## Executive Summary
 
-This report reflects the cumulative audit status through v2.18.0. The v0.7.0 release was a full dependency security sweep that closed **15 vulnerabilities** (3 high, 11 moderate, 1 low); `npm audit` continues to return zero findings at all severity levels. **v2.18.0** additionally: validates AI-extraction responses with `zod` (`Capture.jsx`) and hardens receipt amounts server-side (`scanReceipt`); verifies and documents the server-side platform-admin check in `listWaitlist`; and tightens `PublicSnapshot` read RLS to admin-only (public access is served exclusively through the `getPublicSnapshot` service-role function).
+This report reflects the cumulative audit status through **v2.19.0**. The v0.7.0 release closed 15 dependency vulnerabilities; `npm audit` continues to return **0 vulnerabilities** at all severity levels. **v2.18.0** hardened AI-response validation, PublicSnapshot RLS, and added the Command Palette. **v2.19.0** (this release) closes a HIGH-severity permission gap in the new Support Tickets module and documents the security trade-off for the localStorage session migration.
 
-**npm audit (v0.7.0)**: ✅ **0 vulnerabilities** — 0 critical, 0 high, 0 moderate, 0 low.
+**npm audit**: ✅ **0 vulnerabilities** — 0 critical, 0 high, 0 moderate, 0 low.
+**validate:rls**: ✅ **35 entities OK** — all Base44 entity schemas pass static RLS checks.
 
 **Status**: ✅ **PRODUCTION-READY** — All dependency vulnerabilities resolved. All critical, high, and medium security issues are resolved or formally accepted with documented rationale. No user-facing security risk remains.
 
 ---
 
 ## What Changed Since v0.1.0
+
+### ✅ Fixed in v2.19.0 (June 29, 2026)
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | SupportTickets module (`/SupportTickets`) had no permission manifest and no route/nav guard — all authenticated users had access regardless of role | `src/pages/permissions/support.permissions.js` (created), `src/components/Layout.jsx`, `src/pages/SupportTickets.jsx` | HIGH |
+| 2 | `app_id` URL param could arrive as literal string `"null"` or `"undefined"` (broken build artefact), causing Base44 ObjectNotFoundError on login | `src/lib/app-params.js` (`cleanParamValue()`) | MEDIUM |
+| 3 | `clear_access_token` URL flag was cached in storage via `getAppParamValue()`, silently wiping the token on every reload after logout | `src/lib/app-params.js` (read directly from URLSearchParams, not cached) | MEDIUM |
+| 4 | Auth tokens moved from `sessionStorage` to `localStorage` (cross-tab session); security trade-off reviewed and documented | `src/lib/app-params.js`, `src/api/base44Client.js` | ACCEPTED RISK (documented) |
+
+**Note on auth token storage (ACCEPTED RISK):** Tokens now live in `localStorage` so the session is shared across tabs, matching portfolio consistency. Residual risk: a future XSS could read the token; defence is CSP + no `unsafe-eval/innerHTML`. Token lifetime is controlled by the Base44 platform. This is explicitly accepted and documented.
 
 ### ✅ Fixed in v0.2.0
 
