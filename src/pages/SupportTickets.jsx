@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
+import { usePermission } from '@/lib/permissions/usePermission';
 import PageHeader from '@/components/PageHeader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,8 @@ function fmt(v) {
 export default function SupportTickets() {
   const { familyId, currentUser } = useFamily();
   const { toast } = useToast();
+  const { can_view: canView }  = usePermission('module.SupportTickets');
+  const { can_write: canWrite } = usePermission('support.ticket.create');
   const [tickets, setTickets] = useState(null);
   const [view, setView] = useState('list');
   const [active, setActive] = useState(null);
@@ -50,6 +53,15 @@ export default function SupportTickets() {
   }, [familyId, toast]);
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
+
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
+        <LifeBuoy className="mb-3 h-10 w-10 opacity-40" />
+        <p className="text-sm">No tienes acceso al módulo de soporte.</p>
+      </div>
+    );
+  }
 
   async function openThread(t) {
     setActive(t); setView('thread'); setMessages(null); setReply('');
@@ -169,7 +181,7 @@ export default function SupportTickets() {
   return (
     <div>
       <PageHeader title="Soporte" subtitle="Abre un ticket y te respondemos desde aquí."
-        action={<Button onClick={() => setView('new')}><Plus className="mr-1 h-4 w-4" /> Nuevo ticket</Button>} />
+        action={canWrite && <Button onClick={() => setView('new')}><Plus className="mr-1 h-4 w-4" /> Nuevo ticket</Button>} />
       <div className="max-w-2xl mx-auto px-4 space-y-3">
         {tickets === null ? <p className="text-sm text-muted-foreground">Cargando…</p>
           : tickets.length === 0 ? (

@@ -12,6 +12,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.19.0] - 2026-06-29
+
+### ✨ Features
+
+- **Support Tickets** — new `/SupportTickets` module lets every family member open, track, and reply to support tickets directly inside FlowFin. Tickets are scoped by `family_id` (RLS enforced). New entities: `SupportTicket`, `SupportTicketMessage`. New page: `src/pages/SupportTickets.jsx`. Admin control function `acaciaControl` gains ticket list / thread / update actions for Mission Control.
+
+- **Persistent cross-tab session** — auth tokens now live in `localStorage` (previously `sessionStorage`), matching the rest of the ACACIA portfolio. Opening a new tab reuses the existing session without re-login. Security trade-off reviewed and documented in `src/lib/app-params.js` (XSS defence stays on CSP + no `unsafe-eval/innerHTML`; token lifetime controlled by Base44 platform). A one-time migration moves all session keys from `sessionStorage` to `localStorage` so currently signed-in users are not logged out on deploy.
+
+- **"Continue as" login card** — returning users see a one-tap card on the login screen with their name and avatar (Uber Eats–style). Backed by `src/lib/lastIdentity.js` which stores only name/email/avatar — **never the access token**. Cleared on explicit logout or "use another account". `BASE44_PUBLIC_APP_ID` moved to its own module (`src/lib/base44-app.js`) so `app-params.js` carries no inline identifiers.
+
+- **acaciaControl bridge function** — admin-only backend function connecting FlowFin to ACACIA Mission Control. Actions: usage summary, per-tenant usage, license management, email status and follow-up, tenant contacts, and ticket list/thread/update. All protected by an `_internalGuard.ts` that rejects requests not originating from the trusted Mission Control origin.
+
+### 🔒 Security & Permissions
+
+- **HIGH → FIXED**: `SupportTickets` module (`/SupportTickets` route) was accessible to all authenticated users with no permission check. Added `src/pages/permissions/support.permissions.js` (6 keys: `support.view`, `support.view.list`, `support.view.thread`, `support.ticket`, `support.ticket.create`, `support.ticket.reply`). Updated `Layout.jsx` to gate the nav item on `module.SupportTickets`. Updated `SupportTickets.jsx` to render an access-denied fallback when `module.SupportTickets` is not visible. Defaults: admin all-true; member view + create/reply true (support tickets are a user-facing channel for all family roles). Permission snapshot regenerated — 215 declared keys (+7 vs v2.18.0), 0 missing.
+
+- **auth: `app_id` null-string guard** — `cleanParamValue()` normalises the literal strings `"null"` and `"undefined"` (which a broken build can persist in storage or inject via `?app_id=null`) to `undefined`, preventing Base44 from receiving `by-id/null` and returning `ObjectNotFoundError` on login.
+
+- **auth: `clear_access_token` one-shot URL flag** — was read through the generic `getAppParamValue()` which persists every value it reads; the flag was being cached in storage, wiping the token on every reload after logout. Fixed to read directly from `URLSearchParams` without caching.
+
+- **CI: `validate:rls` guard** — added `npm run validate:rls` step to the CI workflow, verifying the 35 Base44 entity schemas pass RLS checks on every push. Currently a static analysis step; failures block the merge gate.
+
+### 🔖 Version
+- Bumped `package.json` from `2.18.0` → `2.19.0`.
+- Permission snapshot updated: 215 keys (was 208 after 0.x entries; +7 new support module keys). 0 missing declared/used keys.
+
+### 📝 Docs
+- User manual updated to v2.19.0: documents Support Tickets module, session/tab-sharing behaviour, "Continue as" login, and revised permissions for the support module.
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **INFO**: `xlsx` LOW residual risk (parse path unused, write-only export). No upstream fix — accepted.
+- **INFO**: WaitlistAdmin `listWaitlist` server-side auth not independently verified; client-side `enabled: isPlatformAdmin` guard is in place.
+
+---
+
 ## [2.18.0] - 2026-06-22
 
 ### ✨ Features

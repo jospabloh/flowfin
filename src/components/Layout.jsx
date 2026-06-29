@@ -246,6 +246,7 @@ export default function Layout() {
   const canViewUserManual      = useCanView('module.UserManual');
   const canViewAbout           = useCanView('module.About');
   const canViewReleaseNotes    = useCanView('module.ReleaseNotes');
+  const canViewSupportTickets  = useCanView('module.SupportTickets');
 
   // Map route → can_view so we can filter nav items
   const moduleVisibility = useMemo(() => ({
@@ -259,6 +260,7 @@ export default function Layout() {
     '/Goals':           true,
     '/Trips':           true,
     '/Messages':        true,
+    '/SupportTickets':  canViewSupportTickets,
     '/ScheduledPayments': canViewScheduled,
     '/Investments':     canViewInvestments,
     '/MSI':             canViewMSI,
@@ -275,7 +277,8 @@ export default function Layout() {
   }), [canViewDashboard, canViewTransactions, canViewReports, canViewAssistant, canViewBudget,
        canViewScheduled, canViewInvestments, canViewMSI, canViewRentals, canViewCatalogs,
        canViewFamilySettings, canViewAccountSettings, canViewFamilyAdmin, canViewPermAdmin,
-       canViewLicenseAdmin, canViewUserManual, canViewAbout, canViewReleaseNotes]);
+       canViewLicenseAdmin, canViewUserManual, canViewAbout, canViewReleaseNotes,
+       canViewSupportTickets]);
 
   function canShowItem(item) {
     // adminOnly items are shown if isAdmin OR the permission matrix allows it

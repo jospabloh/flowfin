@@ -6,9 +6,23 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.19.0',
+    date: '2026-06-29',
+    label: 'Actual',
+    changes: [
+      'Tickets de soporte: nuevo módulo Soporte en la barra lateral — abre tickets, revisa respuestas del equipo ACACIA y replica desde la app; tickets aislados por familia (RLS)',
+      'Sesión compartida entre pestañas: al abrir una nueva pestaña ya no es necesario volver a iniciar sesión — la sesión ahora persiste en localStorage (misma experiencia que el resto del portafolio ACACIA)',
+      'Tarjeta "Continuar como": en la pantalla de inicio se muestra tu nombre y foto para iniciar sesión con un solo toque; se limpia en cierre de sesión',
+      'Corrección de permisos: el módulo Soporte ahora tiene manifesto de permisos (support.view, support.ticket.create, support.ticket.reply) y cierra la ruta sin guardia que existía antes de esta versión',
+      'Corrección de auth: el parámetro app_id ya no falla si llega como cadena "null" o "undefined"; la bandera clear_access_token ya no borra el token en recargas posteriores al cierre de sesión',
+      'CI: se añade validación estática de RLS (npm run validate:rls) como paso obligatorio en el pipeline — actualmente 35 entidades OK',
+      'Documentación sincronizada: manual de usuario, changelog y notas de versión actualizados a 2.19.0',
+    ],
+  },
+  {
     version: '2.18.0',
     date: '2026-06-22',
-    label: 'Actual',
+    label: '',
     changes: [
       'Nueva Paleta de Comandos: abre con ⌘K (Mac) o Ctrl+K y busca o navega al instante a cualquier sección (Inicio, Movimientos, Reportes, Asistente, Presupuesto, Metas, Viajes, Inversiones, Rentas, MSI, y más), respetando tus permisos',
       'Acciones rápidas desde la paleta: registrar un movimiento, preguntar a Finia, crear una meta, planear un viaje o cambiar el tema, sin salir de donde estás',
