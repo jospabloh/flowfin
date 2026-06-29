@@ -1,12 +1,12 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-06-29T07:06:28.547Z
+Generated: 2026-06-29T16:36:46.446Z
 
-**Total declared keys:** 208  
-**Total action keys:** 139  
-**Used keys:** 85  
+**Total declared keys:** 215  
+**Total action keys:** 143  
+**Used keys:** 87  
 **Missing (ERROR):** 0  
-**Orphans (WARN):** 73  
+**Orphans (WARN):** 76  
 
 ---
 
@@ -247,6 +247,15 @@ _No action keys._
 | `savings.view.opportunities` | Oportunidades no esenciales | RV | none | _orphan_ |
 | `savings.view.refresh` | Actualizar análisis | RV | none | _orphan_ |
 
+## Soporte (`module.SupportTickets`)
+
+| Key | Label | Admin | Member | Used In |
+|-----|-------|-------|--------|---------|
+| `support.view.list` | Listar Tickets | RV | RV | _orphan_ |
+| `support.view.thread` | Ver Conversación | RV | RV | _orphan_ |
+| `support.ticket.create` | Abrir Ticket | RWV | RWV | `src/pages/SupportTickets.jsx:38` |
+| `support.ticket.reply` | Responder | RWV | RWV | _orphan_ |
+
 ## Viajes (`module.Trips`)
 
 | Key | Label | Admin | Member | Used In |
@@ -333,6 +342,9 @@ _No action keys._
 - `savings.view.subscriptions`
 - `savings.view.opportunities`
 - `savings.view.refresh`
+- `support.view.list`
+- `support.view.thread`
+- `support.ticket.reply`
 - `trips.view.list`
 - `trips.view.detail`
 - `trips.view.expenses`
