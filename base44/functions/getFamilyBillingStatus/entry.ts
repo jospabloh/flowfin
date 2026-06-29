@@ -7,6 +7,8 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden: requiere rol admin del sistema' }, { status: 403 });
+    const ownerEmail = Deno.env.get('APP_OWNER_EMAIL');
+    if (!ownerEmail || user.email !== ownerEmail) return Response.json({ error: 'Forbidden: requiere ser administrador de plataforma' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const { search } = body;

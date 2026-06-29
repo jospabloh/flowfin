@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
   try {
     const secret = Deno.env.get('INGEST_HMAC_SECRET');
     if (!secret) return Response.json({ error: 'INGEST_HMAC_SECRET not set in app secrets' }, { status: 500 });
+    if (secret.length < 32) return Response.json({ error: 'INGEST_HMAC_SECRET too weak (min 32 chars)' }, { status: 500 });
 
     const body = await req.json().catch(() => ({}));
     const { action, params = {}, ts, sig } = body ?? {};
