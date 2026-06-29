@@ -59,10 +59,7 @@
           }
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
+          "created_by_id": "{{user.id}}"
         }
       ]
     },
