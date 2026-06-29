@@ -1,3 +1,5 @@
+import { BASE44_PUBLIC_APP_ID } from './base44-app';
+
 const isNode = typeof document === 'undefined';
 const windowObj = isNode ? { sessionStorage: new Map(), localStorage: new Map() } : globalThis;
 // Auth tokens live in localStorage so the session is SHARED across tabs — opening
@@ -9,13 +11,11 @@ const windowObj = isNode ? { sessionStorage: new Map(), localStorage: new Map() 
 // unsafe innerHTML) and on the short token lifetime Base44 controls.
 const storage = windowObj.localStorage;
 
-// FlowFin's public Base44 app id (see base44/.app.jsonc). Baked in as the ultimate
-// fallback so `appId` is NEVER null even when the build has no VITE_BASE44_APP_ID
-// and the URL carries no `app_id` param: a null appId makes AuthContext request
-// `.../public-settings/by-id/null`, which Base44 rejects with ObjectNotFoundError
-// ("Invalid id value: null") and the app can't boot or log in. The id is public
-// (it already appears in asset URLs), so it is safe to ship.
-const DEFAULT_APP_ID = '69b97ea9c9a713486b5a01fd';
+// FlowFin's public Base44 app id, kept in its own module (./base44-app) so this
+// params-parsing logic carries no inline identifiers. It is the ultimate fallback
+// so `appId` is NEVER null even when the build has no VITE_BASE44_APP_ID and the
+// URL carries no `app_id` param. See ./base44-app for the full rationale.
+const DEFAULT_APP_ID = BASE44_PUBLIC_APP_ID;
 
 // Storage keys an EARLIER build of this app kept in sessionStorage. The storage
 // backend for ALL app params moved sessionStorage → localStorage, so migrate every
