@@ -101,7 +101,7 @@ export default function Rentals() {
     if (!selectedProp || isSavingPayment) return;
     setIsSavingPayment(true);
     try {
-      const res = await base44.functions.invoke('registerRentalPaymentSafe', {
+      const res = await base44.functions.invoke('payments', { action: 'registerRentalPaymentSafe',
         property_id: selectedProp.id, month: payForm.month, amount: parseFloat(payForm.amount) || selectedProp.base_rent || 0,
         paid_by_id: payForm.paid_by_id || undefined, payment_method_id: payForm.payment_method_id || undefined,
         date_paid: payForm.date_paid, notes: payForm.notes || undefined,

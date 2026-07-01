@@ -36,7 +36,7 @@ export default function Onboarding() {
   // On mount, check via backend function (bypasses RLS/token caching)
   useEffect(() => {
     if (!currentUser) return;
-    base44.functions.invoke('getMyMembership', {})
+    base44.functions.invoke('family', { action: 'getMyMembership',})
       .then(res => {
         const { membership } = res.data || {};
         if (membership) {
@@ -68,7 +68,7 @@ export default function Onboarding() {
       subs.forEach(s => flatSubs.push({ ...s, _category_name: catName }));
     });
 
-    const res = await base44.functions.invoke('createFamily', {
+    const res = await base44.functions.invoke('family', { action: 'createFamily',
       family_name: familyName.trim(),
       default_categories: defaultCategories,
       default_subcategories: flatSubs,
@@ -100,7 +100,7 @@ export default function Onboarding() {
     setError('');
 
     try {
-      const res = await base44.functions.invoke('selfJoin', {
+      const res = await base44.functions.invoke('family', { action: 'selfJoin',
         join_code: joinCode.trim().toUpperCase(),
         user_email: currentUser.email,
         user_name: currentUser.full_name,

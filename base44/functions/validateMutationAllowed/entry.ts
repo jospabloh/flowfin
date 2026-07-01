@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     }
 
     // Get family license info
-    const membershipRes = await base44.functions.invoke('getMyMembership', {});
+    const membershipRes = await base44.functions.invoke('family', { action: 'getMyMembership' });
     const { family } = membershipRes.data || {};
 
     if (!family) {

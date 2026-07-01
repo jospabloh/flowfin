@@ -43,7 +43,7 @@ export function useSessionManager() {
     const device_id = getOrCreateDeviceId();
     const device_name = getDeviceName();
 
-    base44.functions.invoke('manageSession', { device_id, device_name })
+    base44.functions.invoke('session', { action: 'manageSession', device_id, device_name })
       .then(res => {
         if (cancelled) return;
         const session = res?.data?.session;
@@ -67,7 +67,7 @@ export function useSessionManager() {
     const sendHeartbeat = async () => {
       if (idleState === 'idle_warning' || sessionExpired) return;
       try {
-        const res = await base44.functions.invoke('sessionHeartbeat', { session_id: sessionId });
+        const res = await base44.functions.invoke('session', { action: 'sessionHeartbeat', session_id: sessionId });
         const status = res?.data?.status;
         if (status) setSessionStatus(status);
         if (status === 'revoked') setSessionExpired(true);
@@ -119,7 +119,7 @@ export function useSessionManager() {
     try {
       const device_id = getOrCreateDeviceId();
       const device_name = getDeviceName();
-      const res = await base44.functions.invoke('manageSession', { device_id, device_name });
+      const res = await base44.functions.invoke('session', { action: 'manageSession', device_id, device_name });
       const session = res?.data?.session;
       if (session) {
         setSessionStatus(session.status);

@@ -150,7 +150,7 @@ export default function Capture() {
       return;
     }
     const timer = setTimeout(() => {
-      base44.functions.invoke('getSmartSuggestions', { familyId, description, type })
+      base44.functions.invoke('analytics', { action: 'getSmartSuggestions', familyId, description, type })
         .then(res => setSmartSuggestions(res.data || {}))
         .catch(() => setSmartSuggestions({ suggestedCategories: [], suggestedPersons: [], suggestedPaymentMethods: [] }));
     }, 800);

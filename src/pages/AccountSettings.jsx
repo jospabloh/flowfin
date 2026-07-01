@@ -54,7 +54,7 @@ export default function AccountSettings() {
 
   // Delete account mutation
   const deleteAccountMutation = useMutation({
-    mutationFn: (code) => base44.functions.invoke('deleteAccount', { verification_code: code }),
+    mutationFn: (code) => base44.functions.invoke('admin', { action: 'deleteAccount', verification_code: code }),
     onSuccess: () => {
       setStep(3);
       toast({

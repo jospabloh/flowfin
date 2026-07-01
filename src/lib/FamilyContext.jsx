@@ -113,7 +113,7 @@ export function FamilyProvider({ children }) {
     queryKey: ['family-license', familyId],
     queryFn: async () => {
       try {
-        const res = await base44.functions.invoke('getFamilyLicenseInfo', {});
+        const res = await base44.functions.invoke('family', { action: 'getFamilyLicenseInfo',});
         return res.data || null;
       } catch {
         // Ignore transient license-info errors; UI falls back to family entity values.

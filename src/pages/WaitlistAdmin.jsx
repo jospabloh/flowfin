@@ -28,7 +28,7 @@ export default function WaitlistAdmin() {
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['waitlist-admin', onlyPending],
     queryFn: async () => {
-      const res = await base44.functions.invoke('listWaitlist', { only_pending: onlyPending, limit: 500 });
+      const res = await base44.functions.invoke('waitlist', { action: 'listWaitlist', only_pending: onlyPending, limit: 500 });
       if (res?.data?.error) throw new Error(res.data.error);
       return res?.data;
     },
@@ -57,7 +57,7 @@ export default function WaitlistAdmin() {
 
   const inviteMutation = useMutation({
     mutationFn: async (ids) => {
-      const res = await base44.functions.invoke('markWaitlistInvited', { ids });
+      const res = await base44.functions.invoke('waitlist', { action: 'markWaitlistInvited', ids });
       if (res?.data?.error) throw new Error(res.data.error);
       return res?.data;
     },

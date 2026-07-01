@@ -20,7 +20,7 @@ export default function UserNotRegisteredError() {
       userName = me.full_name || me.email;
     } catch { /* ignore */ }
 
-    const res = await base44.functions.invoke('selfJoin', {
+    const res = await base44.functions.invoke('family', { action: 'selfJoin',
       join_code: joinCode.trim().toUpperCase(),
       user_email: email.trim().toLowerCase(),
       user_name: userName,
