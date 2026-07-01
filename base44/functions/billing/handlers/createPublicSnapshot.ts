@@ -31,7 +31,7 @@ function randomSlug(): string {
  * - Family must own the request; this function does NOT use asServiceRole
  *   so RLS gates the create call.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -42,6 +42,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
       return Response.json({ error: 'no_family' }, { status: 400 });
     }
 
+    const body = await req.json().catch(() => ({}));
     const type = String(body?.type || '');
     const payload = body?.payload;
     const ttlDays = Number.isFinite(body?.ttl_days) ? Math.min(365, Math.max(1, Number(body.ttl_days))) : DEFAULT_TTL_DAYS;

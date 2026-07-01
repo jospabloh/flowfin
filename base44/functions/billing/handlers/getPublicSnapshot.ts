@@ -13,9 +13,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  * shareable snapshots. The fields we return are intentionally narrow —
  * family_id and created_by_user_id are never exposed to the public.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
     const slug = String(body?.slug || '').trim().toLowerCase();
 
     if (!slug || slug.length < 6 || slug.length > 24 || !/^[a-z0-9]+$/.test(slug)) {

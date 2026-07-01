@@ -50,11 +50,11 @@ async function fetchTotals(base44, familyId, start, end, type, personId) {
   return { total: { expense, income, balance: income - expense }, truncated: all.length >= 50000 };
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
 
-    // body is provided by the analytics dispatcher parameter
+    const body = await req.json();
     const { currentStart, currentEnd, previousStart, previousEnd, type = 'expense' } = body;
 
     let access;

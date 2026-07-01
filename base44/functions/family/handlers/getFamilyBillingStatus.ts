@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Admin-only function: returns all families with their billing/license info.
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -10,6 +10,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
     const ownerEmail = Deno.env.get('APP_OWNER_EMAIL');
     if (!ownerEmail || user.email !== ownerEmail) return Response.json({ error: 'Forbidden: requiere ser administrador de plataforma' }, { status: 403 });
 
+    const body = await req.json().catch(() => ({}));
     const { search } = body;
 
     let families = await base44.asServiceRole.entities.Family.list('-created_date', 200);

@@ -259,7 +259,7 @@ async function sendViaBase44(base44: { asServiceRole: { integrations: { Core: { 
   });
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
   if (!user) {

@@ -2,7 +2,7 @@ import { handle as joinWaitlist } from './joinWaitlist.ts';
 import { handle as listWaitlist } from './listWaitlist.ts';
 import { handle as markWaitlistInvited } from './markWaitlistInvited.ts';
 
-type Handler = (req: Request, body: any) => Promise<Response>;
+type Handler = (req: Request) => Promise<Response>;
 
 const HANDLERS: Record<string, Handler> = {
   joinWaitlist,

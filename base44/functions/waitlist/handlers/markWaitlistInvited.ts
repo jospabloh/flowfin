@@ -8,13 +8,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  * Sets invited_at = now() on each id that isn't already invited. Returns
  * per-row outcome so the admin UI can render skipped rows clearly.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const caller = await base44.auth.me();
     if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
+    const body = await req.json().catch(() => ({}));
     const ids: string[] = Array.isArray(body?.ids) ? body.ids.filter((id: unknown) => typeof id === 'string') : [];
     if (!ids.length) return Response.json({ error: 'no_ids' }, { status: 400 });
 

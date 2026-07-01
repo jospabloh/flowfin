@@ -11,7 +11,7 @@ function getWeekNumber(dateStr) {
   } catch { return 1; }
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
 
@@ -20,7 +20,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
     if (!user) return Response.json({ error: 'No autorizado' }, { status: 401 });
 
     // 2. Parse input
-    const input = body;
+    const input = await req.json();
     const { property_id, month, amount, paid_by_id, payment_method_id, date_paid, notes } = input;
 
     if (!property_id || !month || !amount || !date_paid) {

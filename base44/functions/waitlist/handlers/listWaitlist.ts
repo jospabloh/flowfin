@@ -10,13 +10,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  * Sorted by referrals_count desc, then created_date asc (older signups
  * break ties, mirroring how Robinhood-style waitlists work).
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const caller = await base44.auth.me();
     if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
+    const body = await req.json().catch(() => ({}));
     const limit = Math.min(1000, Math.max(1, Number(body?.limit) || 200));
     const onlyPending = body?.only_pending === true;
 

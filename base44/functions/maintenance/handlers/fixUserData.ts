@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // This function fixes the nested data.data.family_id issue for a user
 // by reading the raw stored data and writing back the flattened version
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const caller = await base44.auth.me();
@@ -10,7 +10,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { user_id, family_id } = body;
+    const { user_id, family_id } = await req.json();
     if (!user_id || !family_id) {
       return Response.json({ error: 'user_id and family_id required' }, { status: 400 });
     }

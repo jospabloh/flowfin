@@ -1,12 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { join_code, user_email, user_name, ref } = body;
+    const { join_code, user_email, user_name, ref } = await req.json();
 
     if (!join_code || !user_email) {
       return Response.json({ error: 'Missing parameters' }, { status: 400 });

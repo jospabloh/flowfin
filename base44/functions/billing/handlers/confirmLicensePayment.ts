@@ -144,7 +144,7 @@ async function sendAndRecordEmail(base44, { family_id, email_type, recipient_ema
   }
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -154,6 +154,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
       return Response.json({ error: 'Forbidden: solo administradores de plataforma pueden confirmar pagos' }, { status: 403 });
     }
 
+    const body = await req.json();
     const {
       family_id,
       license_plan,
