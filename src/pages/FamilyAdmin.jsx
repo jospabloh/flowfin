@@ -17,7 +17,7 @@ export default function FamilyAdmin() {
   const handleBackfill = async () => {
     setBackfilling(true);
     try {
-      const res = await base44.functions.invoke('backfillModulePermissions', {});
+      const res = await base44.functions.invoke('maintenance', { action: 'backfillModulePermissions',});
       const d = res?.data;
       toast({ title: 'Backfill completado', description: d?.message || `${d?.created ?? 0} permisos creados.` });
     } catch (err) {
@@ -49,7 +49,7 @@ export default function FamilyAdmin() {
 
   const linkPersonMutation = useMutation({
     mutationFn: async ({ membershipId, personId }) => {
-      const result = await base44.functions.invoke('linkPersonToMember', {
+      const result = await base44.functions.invoke('family', { action: 'linkPersonToMember',
         membership_id: membershipId,
         person_id: personId || null,
         family_id: familyId,
@@ -94,7 +94,7 @@ export default function FamilyAdmin() {
 
   // Approve membership mutation
   const approveMemberMutation = useMutation({
-    mutationFn: (m) => base44.functions.invoke('approveMember', {
+    mutationFn: (m) => base44.functions.invoke('family', { action: 'approveMember',
       membership_id: m.id,
       family_id: m.family_id,
       target_user_id: m.user_id,
@@ -144,7 +144,7 @@ export default function FamilyAdmin() {
 
   // Remove member mutation
   const removeMemberMutation = useMutation({
-    mutationFn: (m) => base44.functions.invoke('removeMember', {
+    mutationFn: (m) => base44.functions.invoke('family', { action: 'removeMember',
       membership_id: m.id,
       target_user_id: m.user_id,
     }),

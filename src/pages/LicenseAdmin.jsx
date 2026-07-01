@@ -176,14 +176,14 @@ export default function LicenseAdmin() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['familyBillingAdmin', search],
-    queryFn: () => base44.functions.invoke('getFamilyBillingStatus', { search }).then(r => r.data),
+    queryFn: () => base44.functions.invoke('family', { action: 'getFamilyBillingStatus', search }).then(r => r.data),
     enabled: isAppAdmin,
     staleTime: 20 * 1000,
   });
 
   // General license edit
   const activateMutation = useMutation({
-    mutationFn: (payload) => base44.functions.invoke('activateLicense', payload),
+    mutationFn: (payload) => base44.functions.invoke('billing', { action: 'activateLicense', ...payload }),
     onSuccess: () => {
       toast({ title: '✅ Licencia actualizada', duration: 4000 });
       queryClient.invalidateQueries({ queryKey: ['familyBillingAdmin'] });
@@ -196,7 +196,7 @@ export default function LicenseAdmin() {
 
   // Payment confirmation
   const confirmPaymentMutation = useMutation({
-    mutationFn: (payload) => base44.functions.invoke('confirmLicensePayment', payload),
+    mutationFn: (payload) => base44.functions.invoke('billing', { action: 'confirmLicensePayment', ...payload }),
     onSuccess: (res) => {
       const d = res?.data ?? res;
       toast({
@@ -215,7 +215,7 @@ export default function LicenseAdmin() {
   const handleSendTestEmails = async () => {
     setTestEmailSending(true);
     try {
-      const result = await base44.functions.invoke('sendTestEmails', {});
+      const result = await base44.functions.invoke('admin', { action: 'sendTestEmails',});
       const r = result?.data ?? result;
       toast({
         title: '✅ Correos de prueba enviados',

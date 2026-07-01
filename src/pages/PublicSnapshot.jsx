@@ -87,7 +87,7 @@ export default function PublicSnapshotPage() {
       return;
     }
     let cancelled = false;
-    base44.functions.invoke('getPublicSnapshot', { slug })
+    base44.functions.invoke('billing', { action: 'getPublicSnapshot', slug })
       .then((res) => {
         if (cancelled) return;
         const data = res?.data;

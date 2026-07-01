@@ -15,7 +15,7 @@ async function sendActivity() {
   if (now - lastSentGlobal < THROTTLE_MS) return;
   lastSentGlobal = now;
   try {
-    await base44.functions.invoke('trackActivity', {});
+    await base44.functions.invoke('session', { action: 'trackActivity',});
   } catch {
     // Silently ignore
   }

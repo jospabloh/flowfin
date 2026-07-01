@@ -80,7 +80,7 @@ export default function FamilySettings() {
 
   // Account deletion mutation
   const deleteAccountMutation = useMutation({
-    mutationFn: () => base44.functions.invoke('deleteAccount', {}),
+    mutationFn: () => base44.functions.invoke('admin', { action: 'deleteAccount',}),
     onError: (err) => {
       toast({
         title: 'Error al eliminar cuenta',

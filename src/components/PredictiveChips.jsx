@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function PredictiveChips({ familyId, onSelect }) {
   const { data } = useQuery({
     queryKey: ['predictiveChips', familyId],
-    queryFn: () => base44.functions.invoke('getPredictiveChips', { familyId }).then(r => r.data?.chips || []),
+    queryFn: () => base44.functions.invoke('analytics', { action: 'getPredictiveChips', familyId }).then(r => r.data?.chips || []),
     enabled: !!familyId,
     staleTime: 15 * 60 * 1000, // 15 minutes
     retry: false,

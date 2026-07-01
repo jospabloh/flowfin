@@ -51,7 +51,7 @@ export default function Landing() {
     setStatus('loading');
     setError('');
     try {
-      const res = await base44.functions.invoke('joinWaitlist', {
+      const res = await base44.functions.invoke('waitlist', { action: 'joinWaitlist',
         email: trimmed,
         source: params.source || 'organic',
         ...(params.ref ? { referrer_code: params.ref } : {}),

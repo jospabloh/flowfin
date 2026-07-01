@@ -16,7 +16,7 @@ export default function SavingsDashboard() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['savings_opportunities', familyId],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getSavingsOpportunities', { familyId });
+      const res = await base44.functions.invoke('analytics', { action: 'getSavingsOpportunities', familyId });
       return res.data;
     },
     enabled: !!familyId && canView,

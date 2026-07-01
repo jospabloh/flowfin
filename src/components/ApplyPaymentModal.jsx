@@ -39,7 +39,7 @@ export default function ApplyPaymentModal({ transaction, familyId, onClose, onSu
 
   const linkMutation = useMutation({
     mutationFn: async () => {
-      return await base44.functions.invoke('linkTransactionToPayment', {
+      return await base44.functions.invoke('payments', { action: 'linkTransactionToPayment',
         transaction_id: transaction.id,
         payment_type: paymentType,
         payment_id: selectedPaymentId,

@@ -27,7 +27,7 @@ export default function Budget() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['budget_suggestion', familyId, months],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getBudgetSuggestion', { familyId, months });
+      const res = await base44.functions.invoke('analytics', { action: 'getBudgetSuggestion', familyId, months });
       return res.data;
     },
     enabled: !!familyId,

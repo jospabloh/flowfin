@@ -19,7 +19,7 @@ export function snapshotUrl(slug) {
  * `payload` is stored as-is — callers must drop any PII before calling.
  */
 export async function createSnapshot({ type, payload, ttl_days }) {
-  const res = await base44.functions.invoke('createPublicSnapshot', {
+  const res = await base44.functions.invoke('billing', { action: 'createPublicSnapshot',
     type,
     payload,
     ...(ttl_days ? { ttl_days } : {}),
