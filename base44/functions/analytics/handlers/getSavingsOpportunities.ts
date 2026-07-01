@@ -16,13 +16,13 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // body is provided by the analytics dispatcher parameter
+    const body = await req.json().catch(() => ({}));
     const familyId = body.familyId;
     if (!familyId) return Response.json({ error: 'familyId required' }, { status: 400 });
 

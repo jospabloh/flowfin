@@ -10,10 +10,10 @@ async function assertFamilyMember(base44, familyId) {
   return { user, membership: memberships[0] };
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const { familyId } = body;
+    const { familyId } = await req.json();
     if (!familyId) return Response.json({ chips: [] });
 
     // Reject access to a family the caller isn't a member of (returns empty,

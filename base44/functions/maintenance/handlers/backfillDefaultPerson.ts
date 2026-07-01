@@ -21,13 +21,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  *
  * Returns: { success, processed, updated, skipped, errors }
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const caller = await base44.auth.me();
     if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
+    const body = await req.json().catch(() => ({}));
     const dryRun = body?.dry_run === true;
     const onlyFamilyId: string | undefined = body?.family_id;
 

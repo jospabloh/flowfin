@@ -37,9 +37,10 @@ function normaliseSource(raw: unknown): string {
  * - All writes go through asServiceRole because the public landing has
  *   no session.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
+    const body = await req.json().catch(() => ({}));
     const rawEmail = String(body?.email || '').trim().toLowerCase();
     if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
       return Response.json({ error: 'invalid_email' }, { status: 400 });

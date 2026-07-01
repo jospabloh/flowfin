@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Repairs user data by calling auth.updateMe AS the user (user-scoped token)
 // This is the only reliable way to write family_id at the correct level
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();

@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Admin-only function: manually activates or modifies a family license.
 // Only callable by app-level admins (user.role === 'admin').
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -20,7 +20,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
       activation_notes,
       license_expires_at,
       auto_renewal,
-    } = body;
+    } = await req.json();
 
     if (!family_id) return Response.json({ error: 'family_id requerido' }, { status: 400 });
 

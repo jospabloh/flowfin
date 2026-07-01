@@ -47,11 +47,11 @@ function quantile(sorted, q) {
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
 
-    // body is provided by the analytics dispatcher parameter
+    const body = await req.json();
     const { categoryId, start, end, type = 'expense' } = body;
 
     let access;

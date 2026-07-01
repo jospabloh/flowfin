@@ -24,7 +24,7 @@ async function fetchAll(filterFn: (limit: number, skip: number) => Promise<any[]
   return all;
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -33,7 +33,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
     }
 
     const sr = base44.asServiceRole.entities;
-    const dryRun = !!body?.dryRun;
+    const dryRun = await req.json().then((b) => !!b?.dryRun).catch(() => false);
 
     // Parent → family_id maps
     const investments = await fetchAll((l, s) => sr.Investment.filter({}, '-created_date', l, s));

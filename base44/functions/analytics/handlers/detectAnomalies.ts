@@ -19,13 +19,13 @@ function getISOWeekKey(date: Date): string {
   return `${d.getUTCFullYear()}-${String(week).padStart(2, '0')}`;
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({}, { status: 401 });
 
-    const { familyId } = body;
+    const { familyId } = await req.json();
     if (!familyId) return Response.json({});
 
     // Authorization: the caller passes familyId in the body, so verify they

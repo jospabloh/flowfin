@@ -22,13 +22,13 @@ function median(arr: number[]): number {
     : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ candidates: [] }, { status: 401 });
 
-    const { familyId } = body;
+    const { familyId } = await req.json();
     if (!familyId) return Response.json({ candidates: [] });
 
     // Authorization: the caller passes familyId in the body, so verify they

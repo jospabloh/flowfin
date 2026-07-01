@@ -9,7 +9,7 @@ function getErrorMessage(error: unknown): string {
 // view_only_since anchor. This gives each of them a fresh 15-day window before
 // checkAccountLifecycle transitions them to archived.
 // Admin-only endpoint.
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();

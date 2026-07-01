@@ -5,7 +5,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  * Returns normalized license state for the authenticated user's family.
  * Enforces that user can only access their own family's license info.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();

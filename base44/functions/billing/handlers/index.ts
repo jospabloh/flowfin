@@ -3,7 +3,7 @@ import { handle as confirmLicensePayment } from './confirmLicensePayment.ts';
 import { handle as createPublicSnapshot } from './createPublicSnapshot.ts';
 import { handle as getPublicSnapshot } from './getPublicSnapshot.ts';
 
-type Handler = (req: Request, body: any) => Promise<Response>;
+type Handler = (req: Request) => Promise<Response>;
 
 const HANDLERS: Record<string, Handler> = {
   activateLicense,

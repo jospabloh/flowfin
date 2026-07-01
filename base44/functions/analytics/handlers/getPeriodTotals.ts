@@ -38,11 +38,11 @@ function errorResponse(err) {
   return Response.json({ error: message }, { status });
 }
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
 
-    // body is provided by the analytics dispatcher parameter
+    const body = await req.json();
     const { start, end, type = 'all', categoryId, paymentMethodId } = body;
 
     let access;

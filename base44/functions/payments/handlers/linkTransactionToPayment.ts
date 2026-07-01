@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Keeps user-level auth, adds family_id ownership validation to prevent
 // cross-family data access (a user can only link transactions and payments
 // that belong to their own family).
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
 
@@ -14,7 +14,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { transaction_id, payment_type, payment_id } = body;
+    const { transaction_id, payment_type, payment_id } = await req.json();
 
     if (!transaction_id || !payment_type || !payment_id) {
       return Response.json({ error: 'Missing required fields: transaction_id, payment_type, payment_id' }, { status: 400 });

@@ -4,7 +4,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 // This function is intentionally left minimal as it was used for a specific data migration.
 // To re-use, call via dashboard with the appropriate parameters in the request body.
 
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
   if (user?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });

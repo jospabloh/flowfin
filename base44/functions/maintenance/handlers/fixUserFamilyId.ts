@@ -2,14 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 // Admin-only utility: fixes users whose data.family_id got nested incorrectly
 // Uses direct REST PUT to avoid SDK deep-merge bug
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const caller = await base44.auth.me();
     if (!caller) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (caller.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { user_id, family_id: override_family_id } = body;
+    const { user_id, family_id: override_family_id } = await req.json();
     if (!user_id) return Response.json({ error: 'user_id required' }, { status: 400 });
 
     // Fetch user via serviceRole

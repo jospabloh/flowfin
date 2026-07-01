@@ -5,10 +5,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
  * ✅ APP_VERSION en código = BD (AppVersion entity)
  * ✅ Changelog tiene entrada para la versión
  * ✅ Manual de usuario (UserManual) tiene actualizaciones
- *
+ * 
  * Retorna un reporte con PASS/FAIL para cada validación.
  */
-export async function handle(req: Request, body: any): Promise<Response> {
+export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -30,7 +30,7 @@ export async function handle(req: Request, body: any): Promise<Response> {
     };
 
     // ✅ CHECK 1: Obtener versión actual del código (se pasa como parámetro)
-    const payload = body;
+    const payload = await req.json().catch(() => ({}));
     const codeVersion = payload.codeVersion; // Ej: "2.5.0"
 
     if (!codeVersion) {
