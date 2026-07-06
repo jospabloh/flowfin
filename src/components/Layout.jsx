@@ -247,6 +247,11 @@ export default function Layout() {
   const canViewAbout           = useCanView('module.About');
   const canViewReleaseNotes    = useCanView('module.ReleaseNotes');
   const canViewSupportTickets  = useCanView('module.SupportTickets');
+  // module.Trips and module.Goals have DB-backed RolePermission records (seeded by
+  // createFamily and backfilled by backfillModulePermissions). Reading them here lets
+  // admins control nav visibility via the PermissionAdmin panel instead of hardcoding.
+  const canViewTrips           = useCanView('module.Trips');
+  const canViewGoals           = useCanView('module.Goals');
 
   // Map route → can_view so we can filter nav items
   const moduleVisibility = useMemo(() => ({
@@ -256,10 +261,10 @@ export default function Layout() {
     '/Reports':         canViewReports,
     '/Assistant':       canViewAssistant,
     '/Budget':          canViewBudget,
-    '/SavingsDashboard': true,
-    '/Goals':           true,
-    '/Trips':           true,
-    '/Messages':        true,
+    '/SavingsDashboard': true, // no module-level DB record seeded; always visible
+    '/Goals':           canViewGoals,
+    '/Trips':           canViewTrips,
+    '/Messages':        true, // no module-level DB record seeded; always visible
     '/SupportTickets':  canViewSupportTickets,
     '/ScheduledPayments': canViewScheduled,
     '/Investments':     canViewInvestments,
@@ -278,7 +283,7 @@ export default function Layout() {
        canViewScheduled, canViewInvestments, canViewMSI, canViewRentals, canViewCatalogs,
        canViewFamilySettings, canViewAccountSettings, canViewFamilyAdmin, canViewPermAdmin,
        canViewLicenseAdmin, canViewUserManual, canViewAbout, canViewReleaseNotes,
-       canViewSupportTickets]);
+       canViewSupportTickets, canViewTrips, canViewGoals]);
 
   function canShowItem(item) {
     // adminOnly items are shown if isAdmin OR the permission matrix allows it

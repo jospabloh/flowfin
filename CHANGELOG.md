@@ -12,6 +12,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.20.0] - 2026-07-06
+
+### 🔒 Security & Permissions
+
+- **MEDIUM → FIXED**: `module.Trips` and `module.Goals` navigation visibility was hardcoded to `true` in `Layout.jsx`, bypassing the DB-backed permission system. An admin who revoked these module permissions in the Permission Admin panel saw no effect — the nav item persisted for all members. Fixed: `Layout.jsx` now reads `useCanView('module.Trips')` and `useCanView('module.Goals')`, respecting the `RolePermission` records seeded by `createFamily` and backfilled by `backfillModulePermissions`. Default member access unchanged (both are `can_view: true` from the DB seed).
+
+- **HIGH → FIXED (PRs #159/160)**: RLS for `Trip` and `SupportTicketMessage` entities now scopes reads by declared owner field (`created_by_id`), closing a path where members of one family could query rows belonging to another family. Audit gate: `npm run validate:rls` — 36 entities OK.
+
+### ✨ Features
+
+- **Active Session Tracking (PR #166)** — new `AppSession` entity tracks each browser login with one row per session. `SessionHeartbeat.jsx` (mounted app-wide) creates the session row on login and sends heartbeats every 60 s, updating `last_active_at`. On each heartbeat the client checks its own row: if ACACIA Mission Control sets `revoked_at`, the user is logged out immediately. RLS: authenticated users can only create/read/update their own rows (`created_by_id`); the `acaciaControl` bridge running as service role can list and revoke any session for Mission Control operators.
+
+- **Mission Control push for Support Tickets (PR #161/162)** — when a support ticket is created, FlowFin sends a fire-and-forget HTTP POST to the ACACIA Mission Control ingest endpoint carrying only the ticket ID. Mission Control reads the full ticket through the authenticated `acaciaControl` bridge, avoiding a new Base44 function (Base44 caps apps at 50 functions; FlowFin had reached the limit).
+
+- **Backend function consolidation (PRs #163/164)** — backend functions reorganised from 94 individual endpoints into 48 endpoints under 8 router functions, fitting within Base44's 50-function-per-app limit. All existing API surface preserved. Routers: `analytics`, `family`, `maintenance`, `catalog`, `acaciaControl`, `trips`, `support`, `sessions`.
+
+### 📝 Docs
+
+- **CLAUDE.md** (PR #165) — deploy reminder added to the repo: merging a PR to `main` redeploys only the frontend; functions under `base44/functions/` must be deployed separately with `npx base44 functions deploy --app-id <APP_ID> --force`.
+
+### 🔧 Maintenance
+
+- **Lint fix (PR #167)** — removed unused `UserPlus` import from `src/pages/Register.jsx`.
+- **Base44 packages** — `@base44/vite-plugin` updated to 1.0.25.
+
+### 🔖 Version
+- Bumped `package.json` from `2.19.0` → `2.20.0`.
+- Permission snapshot regenerated: `module.Trips` and `module.Goals` now correctly read from the DB-backed permission system in `Layout.jsx`.
+- Security audit report updated to v2.20.0.
+
+### ⚠️ Known Open Issues (Carry-Forward)
+- **INFO**: `xlsx` LOW residual risk (parse path unused, write-only export). No upstream fix — accepted.
+- **INFO**: Test coverage <30% — deferred, no React component test framework yet.
+
+---
+
 ## [2.19.0] - 2026-06-29
 
 ### ✨ Features
