@@ -6,9 +6,17 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
-    version: '2.20.0',
+    version: '2.20.1',
     date: '2026-07-06',
     label: 'Actual',
+    changes: [
+      'Seguridad: las funciones de mantenimiento de depuración y prueba (debugFiniaData, testAgentMultiFamilySupport) ahora requieren rol de administrador — antes cualquier usuario autenticado podía ejecutarlas y ver la configuración de su familia (conteo de categorías, personas, transacciones, miembros y moneda)',
+    ],
+  },
+  {
+    version: '2.20.0',
+    date: '2026-07-06',
+    label: '',
     changes: [
       'Corrección de permisos: los módulos Viajes y Metas ahora respetan los permisos configurados por el administrador en el panel de Permisos — antes la visibilidad del menú estaba fija en "siempre visible" para todos los miembros, ignorando el registro en base de datos',
       'Seguridad RLS: entidades Viaje y Mensaje de Ticket de Soporte ahora están acotadas por campo de propietario declarado — previene acceso cruzado entre familias a nivel de base de datos',

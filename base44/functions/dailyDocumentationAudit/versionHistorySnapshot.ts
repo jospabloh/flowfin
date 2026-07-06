@@ -3,9 +3,10 @@
 // Last synced: 2026-07-06
 // Sources: src/pages/About.jsx + src/pages/UserManual.jsx
 
-export const CURRENT_VERSION_IN_CODE = '2.20.0';
+export const CURRENT_VERSION_IN_CODE = '2.20.1';
 
 export const VERSION_HISTORY_SNAPSHOT: Array<{ version: string; date: string }> = [
+  { version: '2.20.1', date: '2026-07-06' },
   { version: '2.20.0', date: '2026-07-06' },
   { version: '2.19.0', date: '2026-06-29' },
   { version: '2.18.0', date: '2026-06-22' },
@@ -47,7 +48,10 @@ export const USER_MANUAL_SECTIONS_COUNT = 25;
 export const USER_MANUAL_LAST_REVIEWED = '2026-06-22';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `f50d650 Update base44 packages
+export const GIT_LOG_SNAPSHOT = `b7fdeff fix(soporte): desactiva los chips de sugerencia de turnos anteriores
+4707e70 security(audit): v2.20.0 — close Trips/Goals nav permission bypass + full release
+d0c9ef8 feat(soporte): entrevista IA (BA/PO) para tickets de funcionalidad e incidencia
+f50d650 Update base44 packages
 f4273b6 fix(lint): quitar import 'UserPlus' sin usar en Register.jsx
 8e15ec6 feat(sesiones): AppSession + latido con force-logout + bridge sessions.list/revoke
 d33a86c docs: add CLAUDE.md with Base44 functions deploy reminder
@@ -65,6 +69,4 @@ e86513d File changes
 2d1a113 Apply RLS security recommendations
 09a7aaf File changes
 c31107f Update base44 packages
-7a1bdb8 security(permissions): close SupportTickets gate + release v2.19.0 (#157)
-e117975 refactor(config): mueve el app id público de Base44 a su propio módulo
-8ec80fc feat(auth): tarjeta de un clic 'Continue as' estilo Uber Eats en el login`;
+7a1bdb8 security(permissions): close SupportTickets gate + release v2.19.0 (#157)`;

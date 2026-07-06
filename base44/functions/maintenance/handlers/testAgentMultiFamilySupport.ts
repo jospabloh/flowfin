@@ -8,6 +8,9 @@ export async function handle(req: Request): Promise<Response> {
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     console.log('testAgentMultiFamilySupport: Testing agent with user =', user.email);
 
