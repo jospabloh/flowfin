@@ -8,7 +8,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, ArrowLeft, LifeBuoy, Send } from 'lucide-react';
+import { Plus, ArrowLeft, LifeBuoy, Send, Sparkles } from 'lucide-react';
+import { composeTicketBody } from '@/lib/aiIntake';
+import AiIntakeChat from '@/components/support/AiIntakeChat';
+
+// Categorías donde entra el asistente BA/PO experto: "Sugerencia" (nueva
+// funcionalidad → feature) y "Técnico" (incidencia → bug). El resto
+// (facturación, cuenta, otro) conserva el envío directo — no levanta requisitos.
+const AI_CATEGORY_KIND = { feature_request: 'feature', technical: 'bug' };
 
 const STATUS_LABEL = {
   open: 'Abierto', in_progress: 'En proceso', waiting_customer: 'Esperando tu respuesta',
@@ -72,22 +79,44 @@ export default function SupportTickets() {
     } catch (e) { toast({ title: 'Soporte', description: e.message, variant: 'destructive' }); setMessages([]); }
   }
 
-  async function createTicket() {
+  // Valida y arranca: para categorías con IA (feature/bug) primero entrevistamos
+  // al usuario; el resto se envía directo.
+  function startNewTicket() {
+    if (!form.subject.trim() || !form.description.trim()) { toast({ title: 'Faltan datos', description: 'Asunto y descripción son obligatorios.', variant: 'destructive' }); return; }
+    if (AI_CATEGORY_KIND[form.category]) { setView('ai'); return; }
+    createTicket();
+  }
+
+  /**
+   * Crea el ticket. Si viene un `brief` de la IA, el cuerpo (description + primer
+   * mensaje) se enriquece con la especificación en Markdown para que llegue a
+   * soporte/Mission Control aunque el campo estructurado `ai_brief` no esté aún
+   * desplegado en el backend, y además se adjunta `ai_brief` para render
+   * enriquecido. FlowFin crea el ticket client-side (no puede alojar una función
+   * nueva por el tope de 50), así que el brief viaja aquí mismo en el create.
+   *
+   * @param {import('@/lib/aiIntake').IntakeBrief | null} [brief]
+   */
+  async function createTicket(brief) {
     if (!form.subject.trim() || !form.description.trim()) { toast({ title: 'Faltan datos', description: 'Asunto y descripción son obligatorios.', variant: 'destructive' }); return; }
     setBusy(true);
     const now = new Date().toISOString();
+    const body = brief ? composeTicketBody(form.description.trim(), brief) : form.description.trim();
     try {
-      const ticket = await base44.entities.SupportTicket.create({
-        family_id: familyId, subject: form.subject.trim(), description: form.description.trim(),
+      /** @type {Record<string, any>} */
+      const ticketPayload = {
+        family_id: familyId, subject: form.subject.trim(), description: body,
         category: form.category, priority: form.priority, status: 'open',
         created_by_id: currentUser?.id, created_by_email: currentUser?.email,
         unread_for_owner: true, unread_for_tenant: false,
         last_message_at: now, last_message_by_role: 'tenant', messages_count: 1,
-      });
+      };
+      if (brief) ticketPayload.ai_brief = brief;
+      const ticket = await base44.entities.SupportTicket.create(ticketPayload);
       await base44.entities.SupportTicketMessage.create({
         ticket_id: ticket.id, family_id: familyId,
         author_id: currentUser?.id, author_email: currentUser?.email, author_name: currentUser?.full_name || currentUser?.email,
-        author_role: 'tenant', body: form.description.trim(), is_internal_note: false,
+        author_role: 'tenant', body, is_internal_note: false,
       });
       // Push en tiempo real a ACACIA Mission Control (no bloquea la UI). FlowFin
       // no puede alojar una función nueva (tope de 50 funciones de Base44), así que
@@ -128,6 +157,27 @@ export default function SupportTickets() {
     <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[s] || 'bg-muted text-muted-foreground'}`}>{STATUS_LABEL[s] || s}</span>
   );
 
+  if (view === 'ai') {
+    const kind = AI_CATEGORY_KIND[form.category] === 'bug' ? 'bug' : 'feature';
+    return (
+      <div>
+        <PageHeader title={kind === 'bug' ? 'Reporte de incidencia' : 'Nueva funcionalidad'} subtitle="Un asistente experto te hará unas preguntas para dejar tu solicitud lista para el equipo." />
+        <div className="max-w-2xl mx-auto px-4 space-y-4">
+          <Card className="p-5">
+            <AiIntakeChat
+              kind={kind}
+              subject={form.subject}
+              description={form.description}
+              saving={busy}
+              onBack={() => setView('new')}
+              onComplete={(brief) => createTicket(brief)}
+            />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'new') {
     return (
       <div>
@@ -149,7 +199,19 @@ export default function SupportTickets() {
               </div>
             </div>
             <div><label className="text-sm font-medium">Descripción</label><Textarea rows={5} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Cuéntanos qué ocurre…" /></div>
-            <div className="flex justify-end"><Button onClick={createTicket} disabled={busy}>{busy ? 'Enviando…' : 'Enviar ticket'}</Button></div>
+            {AI_CATEGORY_KIND[form.category] && (
+              <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" />
+                Un asistente experto te hará unas preguntas para dejar tu solicitud lista para el equipo.
+              </p>
+            )}
+            <div className="flex justify-end">
+              <Button onClick={startNewTicket} disabled={busy} className="gap-2">
+                {AI_CATEGORY_KIND[form.category]
+                  ? <><Sparkles className="h-4 w-4" /> Continuar con el asistente</>
+                  : (busy ? 'Enviando…' : 'Enviar ticket')}
+              </Button>
+            </div>
           </Card>
         </div>
       </div>

@@ -112,6 +112,10 @@
     "metadata": {
       "type": "object",
       "description": "Datos adicionales"
+    },
+    "ai_brief": {
+      "type": "object",
+      "description": "Brief estructurado generado por el asistente BA/PO cuando el ticket es de tipo nueva funcionalidad (feature) o incidencia (bug): historia de usuario, criterios de aceptación, alcance, pasos de reproducción, severidad, impacto, etc. Aditivo: el mismo contenido también viaja en Markdown dentro de description."
     }
   },
   "required": [
