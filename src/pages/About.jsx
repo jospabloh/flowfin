@@ -6,9 +6,17 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
-    version: '2.20.1',
+    version: '2.20.2',
     date: '2026-07-06',
     label: 'Actual',
+    changes: [
+      'Seguridad: el webhook de Mercado Pago ahora valida que el ID de pago recibido sea puramente numérico antes de usarlo en la solicitud saliente a la API de Mercado Pago — cierra un riesgo de SSRF por manipulación del identificador',
+    ],
+  },
+  {
+    version: '2.20.1',
+    date: '2026-07-06',
+    label: '',
     changes: [
       'Seguridad: las funciones de mantenimiento de depuración y prueba (debugFiniaData, testAgentMultiFamilySupport) ahora requieren rol de administrador — antes cualquier usuario autenticado podía ejecutarlas y ver la configuración de su familia (conteo de categorías, personas, transacciones, miembros y moneda)',
     ],

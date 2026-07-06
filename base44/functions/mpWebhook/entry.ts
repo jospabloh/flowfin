@@ -152,6 +152,10 @@ Deno.serve(async (req) => {
     if (!dataId) {
       return Response.json({ ok: false, error: 'missing_data_id' }, { status: 400 });
     }
+    if (!/^\d+$/.test(dataId)) {
+      console.warn(`[mpWebhook] rejected — non-numeric data.id=${dataId}`);
+      return Response.json({ ok: false, error: 'invalid_data_id' }, { status: 400 });
+    }
 
     // Step 1: signature verification (skip in unit tests by setting
     // MERCADOPAGO_WEBHOOK_SECRET to an empty value — by default the

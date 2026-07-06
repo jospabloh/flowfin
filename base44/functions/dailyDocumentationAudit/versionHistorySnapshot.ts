@@ -3,9 +3,10 @@
 // Last synced: 2026-07-06
 // Sources: src/pages/About.jsx + src/pages/UserManual.jsx
 
-export const CURRENT_VERSION_IN_CODE = '2.20.1';
+export const CURRENT_VERSION_IN_CODE = '2.20.2';
 
 export const VERSION_HISTORY_SNAPSHOT: Array<{ version: string; date: string }> = [
+  { version: '2.20.2', date: '2026-07-06' },
   { version: '2.20.1', date: '2026-07-06' },
   { version: '2.20.0', date: '2026-07-06' },
   { version: '2.19.0', date: '2026-06-29' },
@@ -48,7 +49,10 @@ export const USER_MANUAL_SECTIONS_COUNT = 25;
 export const USER_MANUAL_LAST_REVIEWED = '2026-06-22';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `b7fdeff fix(soporte): desactiva los chips de sugerencia de turnos anteriores
+export const GIT_LOG_SNAPSHOT = `bc44f9f security(webhook): validate MP payment id is numeric before outbound fetch (v2.20.2)
+d87c2c0 security(functions): gate debug/test maintenance handlers to admin-only (v2.20.1)
+6855a70 Update base44 packages
+b7fdeff fix(soporte): desactiva los chips de sugerencia de turnos anteriores
 4707e70 security(audit): v2.20.0 — close Trips/Goals nav permission bypass + full release
 d0c9ef8 feat(soporte): entrevista IA (BA/PO) para tickets de funcionalidad e incidencia
 f50d650 Update base44 packages
@@ -66,7 +70,4 @@ df41db2 security(rls): add owner branch to Trip + SupportTicketMessage RLS
 555cfc5 File changes
 e86513d File changes
 0b0b6f3 Apply RLS security recommendations
-2d1a113 Apply RLS security recommendations
-09a7aaf File changes
-c31107f Update base44 packages
-7a1bdb8 security(permissions): close SupportTickets gate + release v2.19.0 (#157)`;
+2d1a113 Apply RLS security recommendations`;
