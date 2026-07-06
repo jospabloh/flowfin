@@ -12,6 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.20.1] - 2026-07-06
+
+### 🔒 Security
+
+- **HIGH → FIXED**: Two maintenance handlers exposed under the `maintenance`
+  router — `debugFiniaData` and `testAgentMultiFamilySupport` — only checked
+  that the caller was authenticated, so **any signed-in user** could invoke them
+  and read their family's configuration (category/person/transaction counts,
+  member names, currency) assembled via `asServiceRole`. Both now require
+  `role === 'admin'` and return `403 Forbidden` otherwise, matching the guard
+  already used by the sibling `backfill*`/`fix*`/`migrate*` handlers. The
+  self-service `repairUserData` handler is intentionally left open — it only
+  repairs the **caller's own** `family_id` via `auth.updateMe()` and leaks no
+  cross-tenant data.
+
+> ⚠️ Base44 backend functions do **not** auto-deploy from GitHub. This fix only
+> takes effect at runtime after `npx base44 functions deploy --app-id
+> 69b97ea9c9a713486b5a01fd --force` (see `CLAUDE.md`).
+
 ## [2.20.0] - 2026-07-06
 
 ### 🔒 Security & Permissions
