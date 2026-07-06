@@ -1,14 +1,14 @@
 # FlowFin User Manual
 
-**Version**: 2.19.0
-**Last Updated**: June 29, 2026
+**Version**: 2.20.0
+**Last Updated**: July 6, 2026
 **Status**: BETA (Development Stage)
 
 ---
 
 ## ⚠️ Important Notice
 
-FlowFin is currently in **BETA development stage (v2.19.0)**. This release adds **Support Tickets**, a **persistent cross-tab session**, the **"Continue as" login card**, and closes a permissions gap in the new Support module. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
+FlowFin is currently in **BETA development stage (v2.20.0)**. This release fixes a permissions gap where the Viajes and Metas modules ignored admin-configured permissions, adds active session tracking with remote force-logout, and includes RLS security hardening for Trips and Support Ticket Messages. For the latest security information, see [SECURITY_AUDIT_REPORT.md](./SECURITY_AUDIT_REPORT.md).
 
 ---
 
@@ -23,7 +23,7 @@ FlowFin is currently in **BETA development stage (v2.19.0)**. This release adds 
 7. [Advanced Features](#advanced-features)
 8. [New Features (v0.2.0)](#new-features-v020)
 9. [Troubleshooting](#troubleshooting)
-10. [Latest Updates (v2.19.0)](#latest-updates-v2190-release-notes)
+10. [Latest Updates (v2.20.0)](#latest-updates-v2200-release-notes)
 11. [Previous Releases](#previous-releases)
 
 ---
@@ -601,6 +601,44 @@ Export your financial data.
 - **Email**: support@flowfin.app
 - **In-App**: Settings → Help → Contact Support
 - **Documentation**: https://docs.flowfin.app
+
+---
+
+## Latest Updates (v2.20.0 Release Notes)
+
+### New in v2.20.0 (July 6, 2026)
+
+#### 🔒 Permissions fix — Viajes and Metas now respect admin settings
+
+**What changed:** The **Viajes** (Trips) and **Metas** (Goals) modules now correctly respect the permissions configured by the family admin in the **Permisos** panel.
+
+Previously, the sidebar navigation always showed these modules to every family member, regardless of what the admin had set. This meant an admin who removed access to Viajes or Metas would see the setting saved in Permisos, but the nav item would still appear for members.
+
+**What this means for you:**
+- If the admin has enabled Viajes or Metas for your role, they appear as before — nothing changes.
+- If the admin has revoked access to one of these modules, the nav item is now correctly hidden for members without access.
+- Default member access is unchanged: members can view both Viajes and Metas by default, and the admin must explicitly revoke access to restrict them.
+
+#### 📡 Active Session Tracking and Force Logout
+
+**What changed:** FlowFin now tracks each browser login as a session. A background heartbeat updates the session's last-active timestamp every minute.
+
+**What this means for you:**
+- The ACACIA support team can see which sessions are active for your family and can remotely log out a session if needed (for example, if a device is lost or compromised).
+- If your session is revoked remotely, you will be logged out automatically the next time the heartbeat runs (within 60 seconds).
+- Each browser tab has its own session record; logging out clears it.
+
+This feature is operated by ACACIA and requires no action from family members or admins.
+
+#### 🔒 Security: RLS hardening for Trips and Support Ticket Messages
+
+The database-level access rules for **Trip** and **SupportTicketMessage** records now scope reads strictly to the owning family. This was already enforced at the application layer; this update adds an additional guard at the database layer to prevent cross-family data access even in edge cases.
+
+#### What's Next
+- Expand test coverage toward 80%+ target
+- Advanced reporting analytics and mobile optimizations
+
+> The previous **v2.19.0** release (Support Tickets, cross-tab session, "Continue as" login) remains in effect — see Previous Releases below.
 
 ---
 

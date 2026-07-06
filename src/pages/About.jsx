@@ -6,9 +6,23 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.20.0',
+    date: '2026-07-06',
+    label: 'Actual',
+    changes: [
+      'Corrección de permisos: los módulos Viajes y Metas ahora respetan los permisos configurados por el administrador en el panel de Permisos — antes la visibilidad del menú estaba fija en "siempre visible" para todos los miembros, ignorando el registro en base de datos',
+      'Seguridad RLS: entidades Viaje y Mensaje de Ticket de Soporte ahora están acotadas por campo de propietario declarado — previene acceso cruzado entre familias a nivel de base de datos',
+      'Seguimiento de sesiones activas: la app registra un renglón AppSession por inicio de sesión y envía latidos cada 60 s; Mission Control puede forzar el cierre de sesión de forma remota',
+      'Notificaciones de tickets en tiempo real: al crear un ticket, la app avisa a Mission Control vía HTTP (solo el ID); Mission Control lee el ticket completo por el puente autenticado acaciaControl',
+      'Consolidación de funciones: las funciones del backend pasaron de 94 a 48 endpoints bajo 8 routers, dentro del límite de 50 funciones de Base44',
+      'Actualización de paquetes Base44 (@base44/vite-plugin 1.0.25)',
+      'Documentación sincronizada: manual de usuario, changelog, notas de versión y reporte de auditoría actualizados a 2.20.0',
+    ],
+  },
+  {
     version: '2.19.0',
     date: '2026-06-29',
-    label: 'Actual',
+    label: '',
     changes: [
       'Tickets de soporte: nuevo módulo Soporte en la barra lateral — abre tickets, revisa respuestas del equipo ACACIA y replica desde la app; tickets aislados por familia (RLS)',
       'Sesión compartida entre pestañas: al abrir una nueva pestaña ya no es necesario volver a iniciar sesión — la sesión ahora persiste en localStorage (misma experiencia que el resto del portafolio ACACIA)',

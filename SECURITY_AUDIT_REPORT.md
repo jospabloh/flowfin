@@ -1,23 +1,41 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: June 29, 2026 (Updated — v2.19.0 Audit)
-**Version Audited**: 2.19.0
+**Date**: July 6, 2026 (Updated — v2.20.0 Audit)
+**Version Audited**: 2.20.0
 **Auditor**: Claude Code Automated Security Review
-**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active (incl. `validate:rls`); auth tokens in localStorage (cross-tab session, security trade-off documented); RLS enforced across all 35 entities; AI-response inputs validated; permission deny-by-default enforced; SupportTickets module permission gap closed in v2.19.0.
+**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active (incl. `validate:rls`); auth tokens in localStorage (cross-tab session, security trade-off documented); RLS enforced across all 36 entities; AI-response inputs validated; permission deny-by-default enforced; `module.Trips`/`module.Goals` nav permission gap closed in v2.20.0.
 
 ---
 
 ## Executive Summary
 
-This report reflects the cumulative audit status through **v2.19.0**. The v0.7.0 release closed 15 dependency vulnerabilities; `npm audit` continues to return **0 vulnerabilities** at all severity levels. **v2.18.0** hardened AI-response validation, PublicSnapshot RLS, and added the Command Palette. **v2.19.0** (this release) closes a HIGH-severity permission gap in the new Support Tickets module and documents the security trade-off for the localStorage session migration.
+This report reflects the cumulative audit status through **v2.20.0**. The v0.7.0 release closed 15 dependency vulnerabilities; `npm audit` continues to return **0 vulnerabilities** at all severity levels. **v2.18.0** hardened AI-response validation and PublicSnapshot RLS. **v2.19.0** closed a HIGH-severity permission gap in the Support Tickets module. **v2.20.0** (this release) closes a MEDIUM-severity navigation permission bypass for the Trips and Goals modules, adds RLS hardening for Trip and SupportTicketMessage entities, adds AppSession tracking with force-logout capability, and consolidates backend functions within the 50-function limit.
 
 **npm audit**: ✅ **0 vulnerabilities** — 0 critical, 0 high, 0 moderate, 0 low.
-**validate:rls**: ✅ **35 entities OK** — all Base44 entity schemas pass static RLS checks.
+**validate:rls**: ✅ **36 entities OK** — all Base44 entity schemas pass static RLS checks (AppSession added).
+**permissions:check**: ✅ **215 declared keys, 0 missing** — all permission keys valid.
+**ESLint**: ✅ **0 errors** — lint clean.
 
 **Status**: ✅ **PRODUCTION-READY** — All dependency vulnerabilities resolved. All critical, high, and medium security issues are resolved or formally accepted with documented rationale. No user-facing security risk remains.
 
 ---
 
 ## What Changed Since v0.1.0
+
+### ✅ Fixed in v2.20.0 (July 6, 2026)
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | `module.Trips` and `module.Goals` nav visibility hardcoded to `true` in `Layout.jsx` — admin revocations had no effect on sidebar visibility | `src/components/Layout.jsx` (added `useCanView('module.Trips')` and `useCanView('module.Goals')`) | MEDIUM |
+| 2 | `Trip` and `SupportTicketMessage` RLS did not scope by declared owner field — cross-family data access possible at DB layer | `base44/entities/Trip.jsonc`, `base44/entities/SupportTicketMessage.jsonc` (PRs #159/160) | HIGH |
+
+**AppSession security review (new entity, v2.20.0):**
+- RLS: end-users only touch their own rows (scoped by `created_by_id`); service role (admin) has full access for Mission Control list/revoke operations. ✅ SAFE
+- `user_email` / `user_name` are written client-side (display-only fields — Mission Control authenticates via the Base44 token, not these values). ✅ INFO — no authentication bypass risk.
+- `device` label derived from `navigator.userAgent` — display-only, cannot elevate privilege. ✅ SAFE
+- Heartbeat is best-effort (errors swallowed) — session tracking never blocks app functionality. ✅ SAFE
+
+**Mission Control push notification (INFO):**
+- `SupportTickets.jsx` sends a fire-and-forget POST to `https://control.acaciaco.com.mx/api/ingest/ticket-pull` with only the ticket ID (no PII, no auth token). Mission Control authenticates the follow-up read via the separate `acaciaControl` bridge. URL is visible in client bundle — this is by design (not a credential). ✅ ACCEPTED
 
 ### ✅ Fixed in v2.19.0 (June 29, 2026)
 
@@ -309,7 +327,7 @@ No blocking items remain. `npm audit` reports 0 vulnerabilities. All critical, h
 
 ---
 
-**Report Generated**: June 22, 2026 (v0.7.0)
-**Previous Report**: June 15, 2026 (v0.6.0)
-**Next Review**: July 22, 2026 (recommended)
+**Report Generated**: July 6, 2026 (v2.20.0)
+**Previous Report**: June 29, 2026 (v2.19.0)
+**Next Review**: August 6, 2026 (recommended)
 **Audit Scope**: Full codebase, permissions, dependencies, CI/CD, documentation
