@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.20.2] - 2026-07-06
+
+### 🔒 Security
+
+- **MEDIUM → FIXED**: SSRF hardening in the Mercado Pago webhook
+  (`mpWebhook/entry.ts`). The inbound `data.id` / `id` field was interpolated
+  directly into the outbound `fetch` to `https://api.mercadopago.com/v1/payments/<id>`
+  without format validation. It is now rejected with `400 invalid_data_id`
+  unless it matches `/^\d+$/`, before signature verification or the outbound
+  call. Note: the value is already part of the HMAC-signed payload
+  (`id:<data.id>;request-id:...;ts:...`), so exploiting this required a valid
+  webhook signature — this change is defense-in-depth, not a closure of an
+  unauthenticated path.
+
 ## [2.20.1] - 2026-07-06
 
 ### 🔒 Security
