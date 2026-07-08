@@ -134,6 +134,12 @@
         },
         {
           "data.admin_user_id": "{{user.id}}"
+        },
+        {
+          "id": "{{user.data.family_id}}"
+        },
+        {
+          "id": "{{user.data.data.family_id}}"
         }
       ]
     },
