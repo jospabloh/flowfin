@@ -80,10 +80,14 @@ export async function handle(req: Request): Promise<Response> {
       ...(defaultPersonId ? { person_id: defaultPersonId } : {}),
     });
 
-    // Update user's family_id in their profile and promote to admin
+    // Update user's family_id in their profile. Note: this does NOT set the
+    // platform-wide User.role to 'admin' — that field is reserved for ACACIA
+    // platform staff (see user.role === 'admin' checks across base44/functions
+    // and src/pages/WaitlistAdmin.jsx). Family-scoped admin permissions are
+    // granted via FamilyMembership.role: 'admin' below (see useFamily().isAdmin).
     const userData = { ...(user.data || {}), family_id: family.id };
     delete userData.data;
-    await base44.asServiceRole.entities.User.update(user.id, { data: userData, role: 'admin' });
+    await base44.asServiceRole.entities.User.update(user.id, { data: userData });
 
     // Seed categories
     if (default_categories?.length) {
