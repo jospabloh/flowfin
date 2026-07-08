@@ -8,7 +8,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Nombre de la categor\u00eda (Rubro)"
+      "description": "Nombre de la categoría (Rubro)"
     },
     "icon": {
       "type": "string",
@@ -17,7 +17,7 @@
     "color": {
       "type": "string",
       "default": "#059669",
-      "description": "Color hex para visualizaci\u00f3n"
+      "description": "Color hex para visualización"
     },
     "type": {
       "type": "string",
@@ -32,7 +32,7 @@
     "exclude_from_totals": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, las transacciones de esta categor\u00eda no se suman en totales ni reportes (ej: Pago TDC)"
+      "description": "Si es true, las transacciones de esta categoría no se suman en totales ni reportes (ej: Pago TDC)"
     }
   },
   "required": [
@@ -40,24 +40,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

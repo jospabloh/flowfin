@@ -9,7 +9,7 @@
   "properties": {
     "cache_read": {
       "default": 0,
-      "description": "Tokens le\u00eddos desde cach\u00e9 (cache_read_input_tokens)",
+      "description": "Tokens leídos desde caché (cache_read_input_tokens)",
       "type": "number"
     },
     "cost_usd": {
@@ -17,7 +17,7 @@
       "type": "number"
     },
     "created_at": {
-      "description": "Timestamp de la operaci\u00f3n (ISO 8601)",
+      "description": "Timestamp de la operación (ISO 8601)",
       "format": "date-time",
       "type": "string"
     },
@@ -35,7 +35,7 @@
     },
     "operation": {
       "default": "receipt_scan",
-      "description": "Tipo de operaci\u00f3n de IA",
+      "description": "Tipo de operación de IA",
       "enum": [
         "receipt_scan",
         "chat_reply"
@@ -43,7 +43,7 @@
       "type": "string"
     },
     "person_id": {
-      "description": "ID de la persona que realiz\u00f3 el escaneo (nullable)",
+      "description": "ID de la persona que realizó el escaneo (nullable)",
       "type": "string"
     },
     "tokens_in": {
@@ -62,21 +62,41 @@
   ],
   "rls": {
     "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
+    },
+    "delete": {
       "user_condition": {
         "role": "admin"
       }
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
-    },
-    "delete": {
       "user_condition": {
         "role": "admin"
       }
