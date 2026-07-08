@@ -95,6 +95,12 @@
         },
         {
           "data.user_email": "{{user.email}}"
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
