@@ -12,7 +12,7 @@
     },
     "concept": {
       "type": "string",
-      "description": "Descripci\u00f3n de la compra"
+      "description": "Descripción de la compra"
     },
     "total_amount": {
       "type": "number",
@@ -33,7 +33,7 @@
     },
     "billing_day": {
       "type": "number",
-      "description": "D\u00eda de cobro mensual"
+      "description": "Día de cobro mensual"
     },
     "notes": {
       "type": "string"
@@ -52,24 +52,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

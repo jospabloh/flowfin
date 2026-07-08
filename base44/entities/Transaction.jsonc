@@ -9,7 +9,7 @@
     "date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de la transacci\u00f3n"
+      "description": "Fecha de la transacción"
     },
     "type": {
       "type": "string",
@@ -22,19 +22,19 @@
     },
     "amount": {
       "type": "number",
-      "description": "Monto de la transacci\u00f3n"
+      "description": "Monto de la transacción"
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n o concepto"
+      "description": "Descripción o concepto"
     },
     "category_id": {
       "type": "string",
-      "description": "ID de categor\u00eda (Rubro)"
+      "description": "ID de categoría (Rubro)"
     },
     "subcategory_id": {
       "type": "string",
-      "description": "ID de subcategor\u00eda (SubRubro)"
+      "description": "ID de subcategoría (SubRubro)"
     },
     "person_id": {
       "type": "string",
@@ -42,7 +42,7 @@
     },
     "payment_method_id": {
       "type": "string",
-      "description": "ID del m\u00e9todo de pago"
+      "description": "ID del método de pago"
     },
     "required_type": {
       "type": "string",
@@ -50,7 +50,7 @@
         "Necesario",
         "Gusto",
         "Urgente",
-        "Inversi\u00f3n",
+        "Inversión",
         "Otro"
       ],
       "default": "Necesario"
@@ -129,24 +129,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

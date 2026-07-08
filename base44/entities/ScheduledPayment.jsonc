@@ -8,11 +8,11 @@
     },
     "name": {
       "type": "string",
-      "description": "Nombre del pago (ej: Luz, Tel\u00e9fono, Colegiatura)"
+      "description": "Nombre del pago (ej: Luz, Teléfono, Colegiatura)"
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n adicional"
+      "description": "Descripción adicional"
     },
     "amount": {
       "type": "number",
@@ -20,11 +20,11 @@
     },
     "due_day": {
       "type": "number",
-      "description": "D\u00eda del mes en que vence (1-28)"
+      "description": "Día del mes en que vence (1-28)"
     },
     "category_id": {
       "type": "string",
-      "description": "ID de la categor\u00eda"
+      "description": "ID de la categoría"
     },
     "payment_method_id": {
       "type": "string",
@@ -41,12 +41,12 @@
         "income"
       ],
       "default": "expense",
-      "description": "Tipo de movimiento programado: egreso (domiciliado/pago) o ingreso (cobro recurrente, n\u00f3mina)"
+      "description": "Tipo de movimiento programado: egreso (domiciliado/pago) o ingreso (cobro recurrente, nómina)"
     },
     "icon": {
       "type": "string",
       "description": "Emoji representativo",
-      "default": "\ud83d\udcb0"
+      "default": "💰"
     },
     "is_active": {
       "type": "boolean",
@@ -59,21 +59,21 @@
         "auto"
       ],
       "default": "manual",
-      "description": "manual = el usuario marca como pagado; auto = el sistema lo registra autom\u00e1ticamente cerca del d\u00eda de vencimiento"
+      "description": "manual = el usuario marca como pagado; auto = el sistema lo registra automáticamente cerca del día de vencimiento"
     },
     "autopost_enabled": {
       "type": "boolean",
       "default": false,
-      "description": "Habilita el autopost diario para este movimiento (s\u00f3lo si automation_mode='auto')"
+      "description": "Habilita el autopost diario para este movimiento (sólo si automation_mode='auto')"
     },
     "autopost_day_tolerance": {
       "type": "number",
       "default": 0,
-      "description": "D\u00edas de anticipaci\u00f3n tolerados respecto al due_day para hacer el autopost (0-3)"
+      "description": "Días de anticipación tolerados respecto al due_day para hacer el autopost (0-3)"
     },
     "match_hint": {
       "type": "string",
-      "description": "Texto auxiliar para conciliaci\u00f3n posterior con extractos bancarios"
+      "description": "Texto auxiliar para conciliación posterior con extractos bancarios"
     }
   },
   "required": [
@@ -83,24 +83,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

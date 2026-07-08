@@ -8,7 +8,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Nombre de la inversi\u00f3n"
+      "description": "Nombre de la inversión"
     },
     "type": {
       "type": "string",
@@ -16,11 +16,11 @@
     },
     "total_amount": {
       "type": "number",
-      "description": "Monto total de la inversi\u00f3n"
+      "description": "Monto total de la inversión"
     },
     "total_payments": {
       "type": "number",
-      "description": "N\u00famero total de pagos/mensualidades"
+      "description": "Número total de pagos/mensualidades"
     },
     "payment_amount": {
       "type": "number",
@@ -33,7 +33,7 @@
     },
     "payment_day": {
       "type": "number",
-      "description": "D\u00eda del mes para el pago (1-28)"
+      "description": "Día del mes para el pago (1-28)"
     },
     "notes": {
       "type": "string"
@@ -50,24 +50,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

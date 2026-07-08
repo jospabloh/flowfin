@@ -13,7 +13,7 @@
     "locale": {
       "type": "string",
       "default": "es-MX",
-      "description": "Idioma y regi\u00f3n (ej: es-MX, en-US)"
+      "description": "Idioma y región (ej: es-MX, en-US)"
     },
     "currency": {
       "type": "string",
@@ -50,31 +50,71 @@
     },
     "smart_rules": {
       "type": "object",
-      "description": "Reglas y asociaciones aprendidas por la familia (sin cr\u00e9ditos IA)",
+      "description": "Reglas y asociaciones aprendidas por la familia (sin créditos IA)",
       "additionalProperties": true
     }
   },
   "required": [],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

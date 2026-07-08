@@ -19,27 +19,27 @@
         "transfer"
       ],
       "default": "cash",
-      "description": "Tipo de m\u00e9todo de pago"
+      "description": "Tipo de método de pago"
     },
     "bank": {
       "type": "string",
-      "description": "Banco o instituci\u00f3n"
+      "description": "Banco o institución"
     },
     "identifier": {
       "type": "string",
-      "description": "\u00daltimos 4 d\u00edgitos u otro identificador"
+      "description": "Últimos 4 dígitos u otro identificador"
     },
     "cut_day": {
       "type": "integer",
       "minimum": 1,
       "maximum": 31,
-      "description": "D\u00eda del mes en que cierra el ciclo de facturaci\u00f3n (fecha de corte)"
+      "description": "Día del mes en que cierra el ciclo de facturación (fecha de corte)"
     },
     "payment_day": {
       "type": "integer",
       "minimum": 1,
       "maximum": 31,
-      "description": "D\u00eda del mes en que vence el pago (fecha l\u00edmite de pago)"
+      "description": "Día del mes en que vence el pago (fecha límite de pago)"
     }
   },
   "required": [
@@ -47,24 +47,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }

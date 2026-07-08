@@ -12,7 +12,7 @@
     },
     "description": {
       "type": "string",
-      "description": "Descripci\u00f3n opcional de la meta"
+      "description": "Descripción opcional de la meta"
     },
     "target_amount": {
       "type": "number",
@@ -21,31 +21,31 @@
     "deadline": {
       "type": "string",
       "format": "date",
-      "description": "Fecha l\u00edmite para alcanzar la meta"
+      "description": "Fecha límite para alcanzar la meta"
     },
     "icon": {
       "type": "string",
       "description": "Emoji representativo",
-      "default": "\ud83c\udfaf"
+      "default": "🎯"
     },
     "color": {
       "type": "string",
-      "description": "Color hex para identificaci\u00f3n visual",
+      "description": "Color hex para identificación visual",
       "default": "#059669"
     },
     "category_id": {
       "type": "string",
-      "description": "Categor\u00eda de transacciones vinculada a esta meta (opcional)"
+      "description": "Categoría de transacciones vinculada a esta meta (opcional)"
     },
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Si la meta est\u00e1 activa"
+      "description": "Si la meta está activa"
     },
     "manual_saved": {
       "type": "number",
       "default": 0,
-      "description": "Monto guardado manualmente (adem\u00e1s del calculado autom\u00e1ticamente)"
+      "description": "Monto guardado manualmente (además del calculado automáticamente)"
     }
   },
   "required": [
@@ -55,24 +55,64 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "read": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "update": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     },
     "delete": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "data.family_id": "{{user.data.family_id}}"
+        },
+        {
+          "data.family_id": "{{user.data.data.family_id}}"
+        }
+      ]
     }
   }
 }
