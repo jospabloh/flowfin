@@ -30,3 +30,4 @@ dist-ssr
 .env
 .vite
 .github_pat
+base44/.app.jsonc
