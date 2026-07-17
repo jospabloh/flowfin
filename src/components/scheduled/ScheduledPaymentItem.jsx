@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, Circle, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Circle, Pencil, Trash2, Zap } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
@@ -62,6 +62,11 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
             <p className={`text-sm font-bold ${item.is_active === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.name}</p>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotMap[color]}`} />
             <span className={badge.cls}>{badge.label}</span>
+            {item.automation_mode === 'auto' && badge.label !== 'Auto' && (
+              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5" /> Domiciliado
+              </span>
+            )}
             {!isPaid && item.is_active !== false && color === 'red' && <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Vencido</span>}
             {!isPaid && item.is_active !== false && color === 'amber' && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Vence pronto</span>}
           </div>
