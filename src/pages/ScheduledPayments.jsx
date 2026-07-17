@@ -4,8 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
-import { Plus } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { Plus, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 import { useToast } from '@/components/ui/use-toast';
 import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
@@ -51,6 +51,7 @@ export default function ScheduledPayments() {
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
   const [activeView, setActiveView] = useState('active');
+  const [showPaid, setShowPaid] = useState(false);
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -70,6 +71,8 @@ export default function ScheduledPayments() {
   const archivedPayments = useMemo(() => payments.filter(p => p.is_active === false), [payments]);
   const pending = activePayments.filter(p => !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
   const sorted = [...(activeView === 'archived' ? archivedPayments : activePayments)].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
+  const unpaidSorted = activeView === 'archived' ? sorted : sorted.filter(item => !paidThisMonth.has(item.id));
+  const paidSorted = activeView === 'archived' ? [] : sorted.filter(item => paidThisMonth.has(item.id));
 
   const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
   const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
@@ -218,12 +221,18 @@ export default function ScheduledPayments() {
             <p className="text-xs text-muted-foreground mt-1">{activeView === 'archived' ? 'Los pagos archivados aparecerán aquí.' : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}</p>
           </div>
         )}
-        {sorted.map(item => {
-          const isPaid = paidThisMonth.has(item.id);
+        {sorted.length > 0 && unpaidSorted.length === 0 && paidSorted.length > 0 && (
+          <div className="text-center py-8 bg-card border border-border rounded-2xl">
+            <CheckCircle2 className="w-7 h-7 text-green-500 mx-auto mb-1.5" />
+            <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
+            <p className="text-xs text-muted-foreground mt-1">Ya marcaste todos los pagos de este mes.</p>
+          </div>
+        )}
+        {unpaidSorted.map(item => {
           const cat = categories.find(c => c.id === item.category_id);
           const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
           return (
-            <ScheduledPaymentItem key={item.id} item={item} isPaid={isPaid} record={record} cat={cat}
+            <ScheduledPaymentItem key={item.id} item={item} isPaid={false} record={record} cat={cat}
               isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
               isPaused={isTemporarilyPaused(item)}
               onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
@@ -234,6 +243,43 @@ export default function ScheduledPayments() {
               onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
           );
         })}
+
+        {paidSorted.length > 0 && (
+          <div className="pt-1">
+            <button onClick={() => setShowPaid(v => !v)} aria-expanded={showPaid}
+              className="w-full flex items-center justify-between px-1 py-2 group/ph">
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70 group-hover/ph:text-muted-foreground transition-colors">
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                Pagados este mes ({paidSorted.length})
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-200 ${showPaid ? '' : '-rotate-90'}`} aria-hidden="true" />
+            </button>
+            <AnimatePresence initial={false}>
+              {showPaid && (
+                <motion.div key="paid-items" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18, ease: 'easeInOut' }} className="overflow-hidden">
+                  <div className="space-y-3 pt-2">
+                    {paidSorted.map(item => {
+                      const cat = categories.find(c => c.id === item.category_id);
+                      const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
+                      return (
+                        <ScheduledPaymentItem key={item.id} item={item} isPaid record={record} cat={cat}
+                          isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
+                          isPaused={isTemporarilyPaused(item)}
+                          onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
+                          onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                          onPauseOneMonth={handlePauseOneMonth}
+                          onPauseUntil={handlePauseUntil}
+                          onResume={handleResume}
+                          onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
 
       <ScheduledPaymentMarkPaidSheet payingItem={payingItem} payAmount={payAmount} setPayAmount={setPayAmount}
