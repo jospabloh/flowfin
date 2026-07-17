@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
-import { Plus, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Plus, ChevronDown, CheckCircle2, Zap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 import { useToast } from '@/components/ui/use-toast';
@@ -69,8 +69,10 @@ export default function ScheduledPayments() {
   const skippedThisMonth = useMemo(() => new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id)), [monthRecords]);
   const activePayments = useMemo(() => payments.filter(p => p.is_active !== false), [payments]);
   const archivedPayments = useMemo(() => payments.filter(p => p.is_active === false), [payments]);
+  const automatedPayments = useMemo(() => activePayments.filter(p => p.automation_mode === 'auto'), [activePayments]);
   const pending = activePayments.filter(p => !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
-  const sorted = [...(activeView === 'archived' ? archivedPayments : activePayments)].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
+  const viewList = activeView === 'archived' ? archivedPayments : activeView === 'auto' ? automatedPayments : activePayments;
+  const sorted = [...viewList].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
   const unpaidSorted = activeView === 'archived' ? sorted : sorted.filter(item => !paidThisMonth.has(item.id));
   const paidSorted = activeView === 'archived' ? [] : sorted.filter(item => paidThisMonth.has(item.id));
 
@@ -206,9 +208,12 @@ export default function ScheduledPayments() {
         )} />
 
       <div className="px-4 space-y-3">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => setActiveView('active')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'active' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             Activos ({activePayments.length})
+          </button>
+          <button onClick={() => setActiveView('auto')} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'auto' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <Zap className="w-3 h-3" /> Automáticos ({automatedPayments.length})
           </button>
           <button onClick={() => setActiveView('archived')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'archived' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             Archivados ({archivedPayments.length})
@@ -216,9 +221,17 @@ export default function ScheduledPayments() {
         </div>
         {sorted.length === 0 && (
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
-            <p className="text-3xl mb-2">📅</p>
-            <p className="text-sm font-semibold text-foreground">{activeView === 'archived' ? 'Sin pagos archivados' : 'Sin pagos programados'}</p>
-            <p className="text-xs text-muted-foreground mt-1">{activeView === 'archived' ? 'Los pagos archivados aparecerán aquí.' : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}</p>
+            <p className="text-3xl mb-2">{activeView === 'auto' ? '⚡' : '📅'}</p>
+            <p className="text-sm font-semibold text-foreground">
+              {activeView === 'archived' ? 'Sin pagos archivados' : activeView === 'auto' ? 'Sin domiciliados automáticos' : 'Sin pagos programados'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeView === 'archived'
+                ? 'Los pagos archivados aparecerán aquí.'
+                : activeView === 'auto'
+                ? (isAdmin ? "Edita un pago y activa \"Domiciliado automático\" para que se registre solo." : 'El administrador aún no ha activado pagos automáticos.')
+                : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}
+            </p>
           </div>
         )}
         {sorted.length > 0 && unpaidSorted.length === 0 && paidSorted.length > 0 && (
