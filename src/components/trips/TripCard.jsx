@@ -3,6 +3,7 @@ import { MapPin, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { useFamily } from '@/lib/FamilyContext';
 import { computeTripSpent } from '@/lib/tripBudget';
+import StatusBadge from '@/components/StatusBadge';
 
 function daysRemaining(endDate) {
   const today = new Date();
@@ -96,13 +97,9 @@ export default function TripCard({ trip, transactions = [], persons = [], onClic
             </div>
           )}
         </div>
-        <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-          trip.status === 'closed'
-            ? 'bg-muted text-muted-foreground'
-            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-        }`}>
+        <StatusBadge variant={trip.status === 'closed' ? 'neutral' : 'success'} className="flex-shrink-0">
           {trip.status === 'closed' ? 'Cerrado' : 'Activo'}
-        </span>
+        </StatusBadge>
       </div>
 
       {/* Date + days */}

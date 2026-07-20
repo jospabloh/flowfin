@@ -7,6 +7,7 @@ import Spinner from '@/components/Spinner';
 import { Download, AlertTriangle, MessageCircle } from 'lucide-react';
 import writeXlsxFile from 'write-excel-file/browser';
 import PageHeader from '@/components/PageHeader';
+import { Alert } from '@/components/ui/alert';
 import EmptyState from '@/components/EmptyState';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
@@ -154,16 +155,18 @@ export default function Transactions() {
       )}
 
       {canViewPendingBanner && pending.length > 0 && (
-        <div className="mx-4 mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-2xl flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">{pending.length} movimiento{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de revisar</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">Falta asignar persona o categoría.</p>
+        <Alert variant="warning" className="mx-4 mb-3 rounded-2xl">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">{pending.length} movimiento{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de revisar</p>
+              <p className="text-xs mt-0.5 opacity-90">Falta asignar persona o categoría.</p>
+            </div>
+            <Link to="/Assistant" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-warning text-warning-foreground text-xs font-semibold flex-shrink-0 hover:bg-warning/90 transition-colors">
+              <MessageCircle className="w-3.5 h-3.5" /> Asistente
+            </Link>
           </div>
-          <Link to="/Assistant" className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold flex-shrink-0 hover:bg-amber-600 transition-colors">
-            <MessageCircle className="w-3.5 h-3.5" /> Asistente
-          </Link>
-        </div>
+        </Alert>
       )}
 
       {isLoading ? (

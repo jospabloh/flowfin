@@ -1,5 +1,6 @@
 import { Loader2, CheckCircle2, Circle, Pencil, Trash2, Zap } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
+import StatusBadge from '@/components/StatusBadge';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
@@ -9,19 +10,19 @@ const TODAY = new Date();
 
 function statusColor(dueDay) {
   const diff = dueDay - TODAY.getDate();
-  if (diff < 0) return 'red';
-  if (diff <= 3) return 'amber';
-  return 'green';
+  if (diff < 0) return 'danger';
+  if (diff <= 3) return 'warning';
+  return 'success';
 }
 
 const colorMap = {
-  green: 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800',
-  amber: 'bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-700',
-  red: 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800',
+  success: 'bg-success/5 border-success/25 dark:bg-success/10',
+  warning: 'bg-warning/5 border-warning/25 dark:bg-warning/10',
+  danger: 'bg-destructive/5 border-destructive/25 dark:bg-destructive/10',
   gray: 'bg-muted/50 border-border',
 };
 const dotMap = {
-  green: 'bg-green-500', amber: 'bg-amber-400', red: 'bg-red-500', gray: 'bg-muted-foreground/30',
+  success: 'bg-success', warning: 'bg-warning', danger: 'bg-destructive', gray: 'bg-muted-foreground/30',
 };
 
 function getRecordStatus(record) {
@@ -29,20 +30,24 @@ function getRecordStatus(record) {
   return record.status || 'reconciled';
 }
 
-function statusBadge(record, item) {
+// Single badge per card — a payment is either reconciled/auto-posted/paused,
+// or still pending with an urgency level (due-soon/overdue), never both at once.
+function statusBadge(record, item, dueColor) {
   const status = getRecordStatus(record);
-  if (status === 'reconciled') return { label: 'Conciliado', cls: 'text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full' };
-  if (status === 'posted') return { label: 'Auto', cls: 'text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full' };
-  if (status === 'skipped' || item.is_active === false) return { label: 'Pausado', cls: 'text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full' };
-  return { label: 'Pendiente', cls: 'text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full' };
+  if (status === 'reconciled') return { label: 'Conciliado', variant: 'success' };
+  if (status === 'posted') return { label: 'Auto', variant: 'info' };
+  if (status === 'skipped' || item.is_active === false) return { label: 'Pausado', variant: 'neutral' };
+  if (dueColor === 'danger') return { label: 'Vencido', variant: 'danger' };
+  if (dueColor === 'warning') return { label: 'Vence pronto', variant: 'warning' };
+  return { label: 'Pendiente', variant: 'warning' };
 }
 
 export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, onMarkPaid, onUnmark, onEdit, onDelete, onPauseOneMonth, onPauseUntil, onResume }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
-  const color = isPaid ? 'green' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
-  const badge = statusBadge(record, item);
+  const color = isPaid ? 'success' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
+  const badge = statusBadge(record, item, isPaid ? null : color);
 
   const { can_write: canMark }    = usePermission('scheduled.mark.action');
   const { can_modify: canEdit }   = usePermission('scheduled.manage.edit');
@@ -61,14 +66,10 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
           <div className="flex items-center gap-2 flex-wrap">
             <p className={`text-sm font-bold ${item.is_active === false ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.name}</p>
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotMap[color]}`} />
-            <span className={badge.cls}>{badge.label}</span>
+            <StatusBadge variant={badge.variant}>{badge.label}</StatusBadge>
             {item.automation_mode === 'auto' && badge.label !== 'Auto' && (
-              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                <Zap className="w-2.5 h-2.5" /> Domiciliado
-              </span>
+              <StatusBadge variant="info" icon={Zap}>Domiciliado</StatusBadge>
             )}
-            {!isPaid && item.is_active !== false && color === 'red' && <span className="text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-full">Vencido</span>}
-            {!isPaid && item.is_active !== false && color === 'amber' && <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">Vence pronto</span>}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-xs text-muted-foreground">Día {item.due_day} de cada mes</p>
@@ -87,7 +88,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
         {item.is_active !== false && canMark && (
           isPaid ? (
             <button onClick={() => onUnmark(item)} disabled={isUnmarking}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-success/15 text-success text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
               {isUnmarking ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar</>}
             </button>
           ) : (

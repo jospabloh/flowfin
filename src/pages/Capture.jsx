@@ -7,6 +7,7 @@ import { useCreateTransaction } from '@/hooks/useCreateTransaction';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users, CalendarDays, Calculator } from 'lucide-react';
 import CalculatorWidget from '@/components/CalculatorWidget';
 import { Switch } from '@/components/ui/switch';
+import { Alert } from '@/components/ui/alert';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import { computeTripSpent } from '@/lib/tripBudget';
 import NativeSelect from '@/components/NativeSelect';
@@ -533,7 +534,7 @@ export default function Capture() {
             <span className="text-2xl font-light text-muted-foreground">{currencySymbol}</span>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0.00" inputMode="decimal"
-              className="flex-1 text-4xl font-black bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
+              className="flex-1 font-display text-4xl font-black tracking-tight nums-money bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
           </div>
           {showCalculator && (
             <CalculatorWidget
@@ -547,7 +548,7 @@ export default function Capture() {
       {/* F2.6 — Atypical amount warning */}
       {atypicalWarning && (
         <div className="px-4 mt-1">
-          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+          <p className="text-xs text-warning flex items-center gap-1">
             <AlertTriangle className="w-3 h-3 flex-shrink-0" />
             {atypicalWarning} ¿Continuar?
           </p>
@@ -688,7 +689,7 @@ export default function Capture() {
             {/* F3.5 — AI extraction button: visible when description is long and category is not yet matched */}
             {description.length > 10 && !categoryId && (
               <button onClick={handleAiExtract} disabled={aiExtracting} aria-label="Entender con IA"
-                className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all touch-target disabled:opacity-60">
+                className="p-2 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary/20 transition-all touch-target disabled:opacity-60">
                 {aiExtracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               </button>
             )}
@@ -731,7 +732,7 @@ export default function Capture() {
               {/* F2.8 — Auto-subcategory proactive hint */}
               {autoSubcategoryHint && (
                 <button onClick={() => handleAddSubcategory(autoSubcategoryHint)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/25 hover:bg-secondary/20 transition-colors">
                   ✨ Guardar "{autoSubcategoryHint}" como subrubro
                 </button>
               )}
@@ -754,15 +755,15 @@ export default function Capture() {
       {smartSuggestions.suggestedCategories.length > 0 && (
         <div className="px-4 mt-3">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <p className="text-xs font-semibold text-foreground">Rubros frecuentes</p>
+            <Sparkles className="w-3.5 h-3.5 text-secondary" />
+            <p className="text-xs font-semibold text-secondary">Rubros frecuentes</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {smartSuggestions.suggestedCategories.map((cat, i) => (
               <button
                 key={i}
                 onClick={() => { setCategoryId(cat.id); setSubcategoryId(''); }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/25 hover:bg-secondary/20 transition-colors"
               >
                 {cat.icon} {cat.name}
               </button>
@@ -795,8 +796,8 @@ export default function Capture() {
       {smartSuggestions.suggestedPersons.length > 0 && (
         <div className="px-4 mt-3">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <p className="text-xs font-semibold text-foreground">Personas frecuentes</p>
+            <Sparkles className="w-3.5 h-3.5 text-secondary" />
+            <p className="text-xs font-semibold text-secondary">Personas frecuentes</p>
           </div>
           <div className="flex gap-2 overflow-x-auto hide-scrollbar">
             {smartSuggestions.suggestedPersons.map(p => (
@@ -807,7 +808,7 @@ export default function Capture() {
                   // F2.4 — auto-select preferred payment method for this person
                   if (p.preferredMethodId && !paymentMethodId) setPaymentMethodId(p.preferredMethodId);
                 }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border border-secondary/25 bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
               >
                 <PersonAvatar person={p} size="xs" />
                 {p.name}
@@ -848,8 +849,8 @@ export default function Capture() {
       {smartSuggestions.suggestedPaymentMethods.length > 0 && (
         <div className="px-4 mt-3">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <p className="text-xs font-semibold text-foreground">Formas de pago frecuentes</p>
+            <Sparkles className="w-3.5 h-3.5 text-secondary" />
+            <p className="text-xs font-semibold text-secondary">Formas de pago frecuentes</p>
           </div>
           <div className="flex gap-2 overflow-x-auto hide-scrollbar">
             {smartSuggestions.suggestedPaymentMethods.map(m => (
@@ -859,7 +860,7 @@ export default function Capture() {
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border whitespace-nowrap transition-all ${
                   paymentMethodId === m.id
                     ? 'bg-secondary text-secondary-foreground border-secondary'
-                    : 'border-primary/20 bg-primary/10 text-primary hover:bg-primary/20'
+                    : 'border-secondary/25 bg-secondary/10 text-secondary hover:bg-secondary/20'
                 }`}
               >
                 {m.name}
@@ -931,8 +932,8 @@ export default function Capture() {
       {/* Saldo pendiente TDC — shown only for categories marked exclude_from_totals */}
       {selectedCategory?.exclude_from_totals && (
         <div className="px-4 mt-2">
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-2xl space-y-2">
-            <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">💳 Pago TDC — solo informativo, no suma al gasto</p>
+          <Alert variant="info" className="rounded-2xl space-y-2">
+            <p className="text-xs font-semibold">💳 Pago TDC — solo informativo, no suma al gasto</p>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Saldo pendiente después de este pago (opcional)</label>
               <div className="flex items-baseline gap-1 bg-card border border-border rounded-xl px-3 py-2.5">
@@ -947,7 +948,7 @@ export default function Capture() {
                 />
               </div>
             </div>
-          </div>
+          </Alert>
         </div>
       )}
 
