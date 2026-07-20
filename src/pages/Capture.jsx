@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 import { useCreateTransaction } from '@/hooks/useCreateTransaction';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users, CalendarDays, Calculator } from 'lucide-react';
 import CalculatorWidget from '@/components/CalculatorWidget';
+import { Switch } from '@/components/ui/switch';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import { computeTripSpent } from '@/lib/tripBudget';
 import NativeSelect from '@/components/NativeSelect';
@@ -907,24 +908,23 @@ export default function Capture() {
         )}
       </div>
 
-      {/* Invoice toggle (expense only, advanced) */}
-      {type === 'expense' && canUseAdvanced && (
-        <div className="px-4 mt-2">
-          <button onClick={() => setHasInvoice(!hasInvoice)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all
-              ${hasInvoice ? 'bg-primary/10 border-primary text-primary' : 'border-border text-muted-foreground'}`}>
-            <Receipt className="w-3.5 h-3.5" />
-            Con factura
-          </button>
-        </div>
-      )}
-
-      {/* Notes (advanced) */}
+      {/* Invoice toggle + notes (advanced), grouped into one card */}
       {canUseAdvanced && (
         <div className="px-4 mt-2">
-          <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
-            placeholder="Notas (opcional)"
-            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          <div className="rounded-2xl border border-border bg-card p-3 space-y-3">
+            {type === 'expense' && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Con factura</span>
+                </div>
+                <Switch checked={hasInvoice} onCheckedChange={setHasInvoice} />
+              </div>
+            )}
+            <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="Notas (opcional)"
+              className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
         </div>
       )}
 

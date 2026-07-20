@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Delete } from 'lucide-react';
 
 const BUTTONS = [
@@ -14,6 +14,13 @@ export default function CalculatorWidget({ onCalculate, onClose }) {
   const [operator, setOperator] = useState(null);
   const [prev, setPrev] = useState(null);
   const [overwrite, setOverwrite] = useState(true);
+  const containerRef = useRef(null);
+
+  // Focus the widget so physical-keyboard digits/operators feed the calculator
+  // instead of leaking into other inputs (e.g. Notas) while it's open.
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, []);
 
   const handleDigit = (d) => {
     if (d === '.' && display.includes('.')) return;
@@ -98,6 +105,20 @@ export default function CalculatorWidget({ onCalculate, onClose }) {
     handleDigit(btn);
   };
 
+  const handleKeyDown = (e) => {
+    const { key } = e;
+    if (/^[0-9]$/.test(key) || key === '.' || ['+', '-', '*', '/'].includes(key)) {
+      e.preventDefault();
+      handleButton(key);
+    } else if (key === 'Backspace') {
+      e.preventDefault();
+      handleButton('⌫');
+    } else if (key === 'Enter' || key === '=') {
+      e.preventDefault();
+      handleButton('=');
+    }
+  };
+
   const btnStyle = (btn) => {
     if (btn === '=') return 'bg-primary text-primary-foreground font-bold';
     if (['+', '-', '*', '/'].includes(btn)) return 'bg-primary/15 text-primary font-semibold';
@@ -113,7 +134,12 @@ export default function CalculatorWidget({ onCalculate, onClose }) {
     : '';
 
   return (
-    <div className="mt-2 rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      className="mt-2 rounded-2xl border border-border bg-card shadow-lg overflow-hidden outline-none"
+    >
       {/* Display */}
       <div className="px-4 py-3 bg-muted/50 text-right">
         {displayLabel && (

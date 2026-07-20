@@ -17,7 +17,6 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
   const [icon, setIcon] = useState(item?.icon || '💰');
   const [isActive, setIsActive] = useState(item?.is_active !== false);
   const [automationMode, setAutomationMode] = useState(item?.automation_mode || 'manual');
-  const [autopostEnabled, setAutopostEnabled] = useState(item?.autopost_enabled === true);
   const [autopostDayTolerance, setAutopostDayTolerance] = useState(String(item?.autopost_day_tolerance ?? 0));
   const [autopostAmountTolerance, setAutopostAmountTolerance] = useState(String(item?.autopost_amount_tolerance ?? 0));
   const [matchHint, setMatchHint] = useState(item?.match_hint || '');
@@ -39,7 +38,7 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
       icon,
       is_active: isActive,
       automation_mode: automationMode,
-      autopost_enabled: autopostEnabled,
+      autopost_enabled: isAuto,
       autopost_day_tolerance: Math.max(0, Math.min(3, parseInt(autopostDayTolerance) || 0)),
       autopost_amount_tolerance: Math.max(0, parseFloat(autopostAmountTolerance) || 0),
       match_hint: matchHint.trim() || undefined,
@@ -102,12 +101,6 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
             <NativeSelect value={automationMode} onChange={e => setAutomationMode(e.target.value)}
               options={[{ value: 'manual', label: 'Manual' }, { value: 'auto', label: 'Domiciliado automático' }]}
               className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm" />
-            <button type="button" onClick={() => setAutopostEnabled(v => !v)} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all w-full justify-between min-h-[44px] ${autopostEnabled ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground bg-muted'}`}>
-              <span>{autopostEnabled ? 'Domiciliado automático activo' : 'Domiciliado automático inactivo'}</span>
-              <div className={`w-8 h-4 rounded-full transition-colors ${autopostEnabled ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                <div className={`w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5 ${autopostEnabled ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Tolerancia fecha (0-3 días)</p>
