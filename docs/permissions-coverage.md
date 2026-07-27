@@ -1,10 +1,10 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-06-29T16:36:46.446Z
+Generated: 2026-07-27T07:10:12.780Z
 
 **Total declared keys:** 215  
 **Total action keys:** 143  
-**Used keys:** 87  
+**Used keys:** 89  
 **Missing (ERROR):** 0  
 **Orphans (WARN):** 76  
 
@@ -73,19 +73,19 @@ Generated: 2026-06-29T16:36:46.446Z
 | `scheduled.view.list` | Listar Pagos Programados | RV | RV | _orphan_ |
 | `scheduled.view.calendar` | Vista Calendario | RV | RV | _orphan_ |
 | `scheduled.create.form` | Nuevo Pago Programado | RWMDV | R | `src/pages/ScheduledPayments.jsx:40` |
-| `scheduled.mark.action` | Registrar como Pagado | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:47` |
-| `scheduled.manage.edit` | Editar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:48` |
-| `scheduled.manage.delete` | Eliminar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:49` |
+| `scheduled.mark.action` | Registrar como Pagado | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:52` |
+| `scheduled.manage.edit` | Editar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:53` |
+| `scheduled.manage.delete` | Eliminar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:54` |
 
 ## Movimientos (`module.Transactions`)
 
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
-| `transaction.view.list` | Listar Movimientos | RV | RV | `src/pages/Transactions.jsx:39` |
-| `transaction.view.filter` | Filtrar y Buscar | RV | RV | `src/pages/Transactions.jsx:40` |
-| `transaction.view.export` | Exportar a Excel | RV | RV | `src/pages/Transactions.jsx:43` |
-| `transaction.view.search` | Búsqueda | RV | RV | `src/pages/Transactions.jsx:41` |
-| `transaction.view.pending_banner` | Banner de pendientes | RV | RV | `src/pages/Transactions.jsx:42` |
+| `transaction.view.list` | Listar Movimientos | RV | RV | `src/pages/Transactions.jsx:40` |
+| `transaction.view.filter` | Filtrar y Buscar | RV | RV | `src/pages/Transactions.jsx:41` |
+| `transaction.view.export` | Exportar a Excel | RV | RV | `src/pages/Transactions.jsx:44` |
+| `transaction.view.search` | Búsqueda | RV | RV | `src/pages/Transactions.jsx:42` |
+| `transaction.view.pending_banner` | Banner de pendientes | RV | RV | `src/pages/Transactions.jsx:43` |
 | `transaction.create.manual` | Entrada Manual | RWMDV | RWV | _orphan_ |
 | `transaction.create.voice` | Entrada por Voz | RWMDV | RWV | _orphan_ |
 | `transaction.create.receipt` | Escanear Ticket | RWMDV | RWV | _orphan_ |
@@ -129,8 +129,8 @@ Generated: 2026-06-29T16:36:46.446Z
 | Key | Label | Admin | Member | Used In |
 |-----|-------|-------|--------|---------|
 | `capture.form.basic` | Campos Básicos | RWMDV | RWV | _orphan_ |
-| `capture.form.advanced` | Opciones Avanzadas | RWMDV | R | `src/pages/Capture.jsx:53` |
-| `capture.ai_assist.suggestions` | Sugerencias Automáticas | RV | RV | `src/pages/Capture.jsx:54` |
+| `capture.form.advanced` | Opciones Avanzadas | RWMDV | R | `src/pages/Capture.jsx:55` |
+| `capture.ai_assist.suggestions` | Sugerencias Automáticas | RV | RV | `src/pages/Capture.jsx:56` |
 
 ## Catálogos (`module.Catalogs`)
 
@@ -253,7 +253,7 @@ _No action keys._
 |-----|-------|-------|--------|---------|
 | `support.view.list` | Listar Tickets | RV | RV | _orphan_ |
 | `support.view.thread` | Ver Conversación | RV | RV | _orphan_ |
-| `support.ticket.create` | Abrir Ticket | RWV | RWV | `src/pages/SupportTickets.jsx:38` |
+| `support.ticket.create` | Abrir Ticket | RWV | RWV | `src/pages/SupportTickets.jsx:45` |
 | `support.ticket.reply` | Responder | RWV | RWV | _orphan_ |
 
 ## Viajes (`module.Trips`)

@@ -1,25 +1,69 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: July 6, 2026 (Updated — v2.20.0 Audit)
-**Version Audited**: 2.20.0
+**Date**: July 27, 2026 (Updated — v2.20.3 Audit)
+**Version Audited**: 2.20.3
 **Auditor**: Claude Code Automated Security Review
-**Overall Risk Level**: **MINIMAL** — `npm audit` reports **0 vulnerabilities** (0 critical, 0 high, 0 moderate, 0 low). All prior accepted-risk items are resolved. CSP deployed; CI gate active (incl. `validate:rls`); auth tokens in localStorage (cross-tab session, security trade-off documented); RLS enforced across all 36 entities; AI-response inputs validated; permission deny-by-default enforced; `module.Trips`/`module.Goals` nav permission gap closed in v2.20.0.
+**Overall Risk Level**: **LOW** — a CRITICAL unauthenticated cross-family data
+exposure was found and fixed in this audit cycle (see below); code fix is
+merged but **requires a manual `base44 functions deploy` to take effect** —
+see `CLAUDE.md` and the release PR for the exact command. `npm audit`
+reports 2 known non-critical issues, both deferred with documented
+rationale (dev-toolchain-only ReDoS; a moderate open-redirect requiring a
+major-version migration). CSP deployed; CI gate active (incl.
+`validate:rls`); RLS enforced across all 36 entities; permission
+deny-by-default enforced.
 
 ---
 
 ## Executive Summary
 
-This report reflects the cumulative audit status through **v2.20.0**. The v0.7.0 release closed 15 dependency vulnerabilities; `npm audit` continues to return **0 vulnerabilities** at all severity levels. **v2.18.0** hardened AI-response validation and PublicSnapshot RLS. **v2.19.0** closed a HIGH-severity permission gap in the Support Tickets module. **v2.20.0** (this release) closes a MEDIUM-severity navigation permission bypass for the Trips and Goals modules, adds RLS hardening for Trip and SupportTicketMessage entities, adds AppSession tracking with force-logout capability, and consolidates backend functions within the 50-function limit.
+This report reflects the cumulative audit status through **v2.20.3**.
+**v2.20.3** (this release) closes a **CRITICAL** unauthenticated cross-family
+data exposure in 7 `analytics` router handlers (client-supplied `family_id`
+trusted with no session), a **MEDIUM** authorization gap in
+`family/findFamilyByCode` (client-supplied `user_id` instead of the
+authenticated caller), and applies 3 non-breaking dependency security patches
+(dompurify, js-yaml, postcss). The v0.7.0 release closed 15 dependency
+vulnerabilities. **v2.18.0** hardened AI-response validation and
+PublicSnapshot RLS. **v2.19.0** closed a HIGH-severity permission gap in the
+Support Tickets module. **v2.20.0** closed a MEDIUM-severity navigation
+permission bypass for the Trips and Goals modules and added RLS hardening
+for Trip and SupportTicketMessage entities.
 
-**npm audit**: ✅ **0 vulnerabilities** — 0 critical, 0 high, 0 moderate, 0 low.
-**validate:rls**: ✅ **36 entities OK** — all Base44 entity schemas pass static RLS checks (AppSession added).
+**npm audit**: ⚠️ **2 known issues** (1 high, 1 moderate) — both deferred,
+see "Dependency Vulnerabilities" below; 0 critical (CI gate:
+`--audit-level=critical`, unaffected).
+**validate:rls**: ✅ **36 entities OK** — all Base44 entity schemas pass static RLS checks.
 **permissions:check**: ✅ **215 declared keys, 0 missing** — all permission keys valid.
 **ESLint**: ✅ **0 errors** — lint clean.
+**Build**: ✅ passes (`npm run build`).
+**Backend auth audit (this cycle)**: all 91 `asServiceRole`-using handlers
+under `base44/functions/**` reviewed for tenant-isolation and auth-bypass
+risk; 2 confirmed issues found and fixed (see below), no others found.
 
-**Status**: ✅ **PRODUCTION-READY** — All dependency vulnerabilities resolved. All critical, high, and medium security issues are resolved or formally accepted with documented rationale. No user-facing security risk remains.
+**Status**: ⚠️ **CODE FIXED, DEPLOY PENDING** — the critical finding above is
+fixed in this PR's diff and verified statically (build/lint/RLS/permissions
+checks all pass), but it lives under `base44/functions/`, which this
+repository's own deployment model does **not** redeploy on merge to `main`
+— it requires a separate, manual `base44 functions deploy --app-id
+69b97ea9c9a713486b5a01fd --force` run by someone with Base44 CLI access.
+**This is the single highest-priority owner action from this audit.**
 
 ---
 
 ## What Changed Since v0.1.0
+
+### ✅ Fixed in v2.20.3 (July 27, 2026)
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | 7 `analytics` router handlers trusted a client-supplied `family_id` with no authentication check when no session was present, allowing any unauthenticated caller to read another family's transaction breakdowns/totals via the service-role client (bypasses RLS) | `base44/functions/analytics/handlers/{getBreakdownByPaymentMethod,getBreakdownByPerson,getCategoryStats,getPeriodComparison,getPeriodTotals,getTimeSeries,getTopTransactions}.ts` | **CRITICAL** |
+| 2 | `family/findFamilyByCode` used a client-supplied `user_id` (instead of the authenticated caller's own id) to check membership, letting an authenticated user probe an arbitrary user_id's membership status for a family they know the join code for | `base44/functions/family/handlers/findFamilyByCode.ts` | MEDIUM |
+| 3 | 3 dependency vulnerabilities patched (non-breaking): `dompurify` (custom-element sanitization bypass), `js-yaml` (quadratic CPU via merge-key chains), `postcss` (source-map path traversal) | `package.json`, `package-lock.json` | LOW/HIGH* (*build-tooling exposure, not shipped to end users) |
+
+**Deferred (not fixed this release, documented rationale):**
+- `brace-expansion` (HIGH, ReDoS) — reachable only via the `eslint`/`eslint-plugin-react` dev toolchain, not bundled to users. Fix requires an `eslint` 9→10 major bump; deferred to a dedicated, manually-tested dependency-upgrade PR.
+- `react-router`/`react-router-dom` (MODERATE — open redirect via backslash in `<Link>`/`useNavigate`; SSR-hydration constructor injection does not apply, FlowFin is a client-rendered SPA) — fix requires a 6→7 major-version migration; deferred to a dedicated PR with route-by-route regression testing.
+- Neither reaches `critical` severity, matching this project's existing accepted-risk convention (see the `xlsx` entry below).
 
 ### ✅ Fixed in v2.20.0 (July 6, 2026)
 

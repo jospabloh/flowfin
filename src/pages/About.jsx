@@ -6,9 +6,19 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.20.3',
+    date: '2026-07-27',
+    label: 'Actual',
+    changes: [
+      'Seguridad crítica: se cerró una exposición de datos entre familias en el router de analítica — 7 endpoints aceptaban un family_id enviado por el cliente sin verificar sesión; ahora requieren autenticación siempre',
+      'Seguridad: la búsqueda de familia por código de invitación ya no acepta un user_id enviado por el cliente para consultar membresías — usa siempre el usuario autenticado',
+      'Seguridad: actualización de dependencias — corrige vulnerabilidades conocidas en dompurify (bypass de sanitización en elementos personalizados), js-yaml (consumo excesivo de CPU con claves de fusión encadenadas) y postcss (divulgación de archivos .map por path traversal); sin cambios de comportamiento visibles',
+    ],
+  },
+  {
     version: '2.20.2',
     date: '2026-07-06',
-    label: 'Actual',
+    label: '',
     changes: [
       'Seguridad: el webhook de Mercado Pago ahora valida que el ID de pago recibido sea puramente numérico antes de usarlo en la solicitud saliente a la API de Mercado Pago — cierra un riesgo de SSRF por manipulación del identificador',
     ],
