@@ -12,6 +12,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.20.3] - 2026-07-27
+
+### 🔒 Security
+
+- **CRITICAL → FIXED**: Unauthenticated cross-family financial data exposure in
+  the `analytics` router. Seven handlers (`getBreakdownByPaymentMethod`,
+  `getBreakdownByPerson`, `getCategoryStats`, `getPeriodComparison`,
+  `getPeriodTotals`, `getTimeSeries`, `getTopTransactions`) had an
+  authorization fallback that, when no session was present, trusted a
+  client-supplied `family_id` with **no verification** before querying
+  transactions via the service-role client (which bypasses RLS). Any
+  unauthenticated caller could request another family's transaction
+  breakdowns, totals, and top transactions by guessing/enumerating a
+  `family_id`. Fixed by requiring authentication unconditionally, matching
+  the safe pattern already used by the sibling `getAverages` /
+  `getBreakdownByCategory` handlers in the same router — no legitimate
+  caller relied on the unauthenticated path (unused by the web client;
+  no trusted webhook identity signal exists yet per `_agentGuard.ts`).
+  **⚠️ This is a backend (`base44/functions/`) fix — it requires a manual
+  `base44 functions deploy` to take effect. See rollback/deploy notes in
+  the PR.**
+- **MEDIUM → FIXED**: `family/findFamilyByCode` looked up an existing
+  family membership using a client-supplied `user_id` instead of the
+  authenticated caller's own id, letting any authenticated user probe
+  whether an arbitrary user_id already belongs to a family they know the
+  join code for. Now always uses the authenticated caller's id.
+- **Dependency patch update** — resolved 3 known vulnerabilities via `npm audit fix`
+  (non-breaking, patch-level only):
+  - `dompurify` ≤3.4.11 → patched: `CUSTOM_ELEMENT_HANDLING` bypassed
+    `afterSanitizeElements` for allowed custom elements (low severity).
+  - `js-yaml` 4.0.0–4.2.0 → patched: YAML merge-key chains could force
+    quadratic CPU consumption (high severity, build-tooling only —
+    not shipped to users).
+  - `postcss` ≤8.5.17 → patched: path traversal in source-map auto-loading
+    could disclose arbitrary `.map` files (high severity, build-tooling only).
+  - No application behavior changed; `npm run build`, `npm run lint`,
+    `npm run validate:rls`, and `npm run permissions:check` all pass
+    unchanged after the update.
+
+### 📋 Audit notes (deferred, not fixed this release)
+
+- `brace-expansion` (high, ReDoS) — reachable only via the `eslint`/
+  `eslint-plugin-react` dev-toolchain (not bundled to users). A fix
+  requires an `eslint` 9→10 major bump; deferred to a dedicated,
+  manually-tested dependency-upgrade PR.
+- `react-router` / `react-router-dom` (moderate — open redirect via
+  backslash in `<Link>`/`useNavigate`, and arbitrary constructor
+  injection in SSR hydration deserialization) — FlowFin is a
+  client-rendered SPA (no SSR), so the hydration-injection advisory does
+  not apply to this deployment; the open-redirect advisory is real but
+  requires a 6→7 major-version migration to fix. Deferred to a dedicated
+  PR with full route-by-route regression testing rather than an
+  unattended dependency bump.
+- Neither item reaches `critical` severity, so neither blocks CI
+  (`npm audit --audit-level=critical`, matching this project's existing
+  accepted-risk convention for the `xlsx` write-only advisory below).
+
 ## [2.20.2] - 2026-07-06
 
 ### 🔒 Security

@@ -20,8 +20,7 @@ async function resolveAccess(base44, requestedFamilyId) {
     }
     return { user, familyId: membership.family_id, selfPersonId: membership.person_id ?? null, membership };
   }
-  if (!requestedFamilyId) { const err = new Error('whatsapp_session_expired'); err.httpStatus = 401; err.code = 'not_linked'; throw err; }
-  return { user: null, familyId: requestedFamilyId, selfPersonId: null, membership: null };
+  const err = new Error('unauthorized'); err.httpStatus = 401; throw err;
 }
 
 function errorResponse(err) {

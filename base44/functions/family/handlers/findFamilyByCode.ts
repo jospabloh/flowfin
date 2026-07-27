@@ -6,7 +6,7 @@ export async function handle(req: Request): Promise<Response> {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { join_code, user_id } = await req.json();
+    const { join_code } = await req.json();
 
     // Search family by code using service role (bypasses RLS)
     const families = await base44.asServiceRole.entities.Family.filter({ join_code: join_code.trim().toUpperCase() });
@@ -16,10 +16,10 @@ export async function handle(req: Request): Promise<Response> {
 
     const family = families[0];
 
-    // Check existing membership for this user
-    const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ 
-      family_id: family.id, 
-      user_id: user_id 
+    // Check existing membership for the authenticated caller (never trust a client-supplied user_id)
+    const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
+      family_id: family.id,
+      user_id: user.id
     });
 
     return Response.json({ 
