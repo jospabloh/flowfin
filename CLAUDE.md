@@ -1,5 +1,26 @@
 # FlowFin — Project Notes
 
+## License lifecycle is owned by Mission Control (2026-08-03)
+
+FlowFin has **no native license-lifecycle automation**. `checkAccountLifecycle`,
+`checkTrialExpiration`, `processMonthlyRenewal`, `queueBillingReminders`,
+`processTrialReactivationEmails`, `sendLifecycleEmails`, and `deliverEmails`
+were removed — Mission Control's `api/cron/license-lifecycle.js`
+(`runUnifiedLifecycleForApp`) already ran the same trial/active/view_only/
+suspended transitions and reminder emails against `Family.billing_status` in
+parallel, an unreviewed duplicate-authority risk the platform owner ruled
+out. Do not re-add a FlowFin-native cron for license status transitions or
+lifecycle reminder emails — that logic belongs in Mission Control now.
+
+Confirmed before removal: none of the seven had a caller in `src/` or in any
+other `entry.ts` except each other (`checkTrialExpiration` → `checkAccountLifecycle`,
+both removed together). `acaciaControl` (Mission Control's HMAC write bridge)
+and the manual `confirmLicensePayment` flow reference none of them — kept
+untouched. Deploying this change requires `npx base44 functions deploy
+--app-id 69b97ea9c9a713486b5a01fd --force` (committing alone does not remove
+the deployed functions or any cron schedule already registered in the Base44
+dashboard — check the scheduler panel too).
+
 ## Base44 — las funciones NO se auto-deployan desde GitHub
 
 **Mergear un PR a `main` NO deploya las funciones de Base44.** Al mergear se
