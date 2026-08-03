@@ -12,6 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.20.4] - 2026-08-03
+
+### 🔒 Security
+
+- **Dependency patch update** — resolved the `brace-expansion` (high, ReDoS
+  via unbounded expansion length) advisory via `npm audit fix`
+  (non-breaking, patch-level only: `1.1.16` → `1.1.18`). Reachable only
+  through the `eslint`/`eslint-plugin-react` dev-toolchain — not bundled to
+  users; no application behavior changed.
+
+### 🧪 CI/CD
+
+- `ci.yml`'s `npm-audit` job now also runs `npm run lint` and
+  `npm run permissions:check`, in addition to the existing `validate:rls`
+  and `npm audit --audit-level=critical` steps. Previously those two checks
+  only ran manually before a release; a lint or permission-key regression
+  landing on `main` between releases would not have failed CI.
+
+### 📋 Audit notes (periodic review, no new findings)
+
+- Reviewed security, RLS (36 entities), granular permissions (215 declared
+  keys, 0 missing), and dependencies since v2.20.3 — no new critical or
+  high application-level finding. `react-router`/`react-router-dom`
+  (moderate, open redirect) remains deferred pending a 6→7 major-version
+  migration, unchanged from the prior audit's documented rationale. See
+  `SECURITY_AUDIT_REPORT.md` for the full cycle notes, including one
+  operational item requiring manual verification outside this repo.
+
 ## [2.20.3] - 2026-07-27
 
 ### 🔒 Security

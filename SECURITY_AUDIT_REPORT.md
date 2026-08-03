@@ -1,18 +1,74 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: July 27, 2026 (Updated — v2.20.3 Audit)
-**Version Audited**: 2.20.3
+**Date**: August 3, 2026 (Updated — v2.20.4 Audit)
+**Version Audited**: 2.20.4
 **Auditor**: Claude Code Automated Security Review
-**Overall Risk Level**: **LOW** — a CRITICAL unauthenticated cross-family data
-exposure was found and fixed in this audit cycle (see below); code fix is
-merged but **requires a manual `base44 functions deploy` to take effect** —
-see `CLAUDE.md` and the release PR for the exact command. `npm audit`
-reports 2 known non-critical issues, both deferred with documented
-rationale (dev-toolchain-only ReDoS; a moderate open-redirect requiring a
-major-version migration). CSP deployed; CI gate active (incl.
-`validate:rls`); RLS enforced across all 36 entities; permission
-deny-by-default enforced.
+**Overall Risk Level**: **LOW** — periodic review found no new critical or
+high application-level finding since v2.20.3. One dependency advisory
+(`brace-expansion`, high, dev-toolchain-only) was patched this cycle; the
+other (`react-router`, moderate) remains deferred pending a major-version
+migration, unchanged. CSP deployed; CI gate active (`validate:rls`, and as
+of this cycle also `lint` + `permissions:check`); RLS enforced across all
+36 entities; permission deny-by-default enforced.
+
+**Open operational item carried over from v2.20.3 (not verifiable from this
+repository alone)**: the CRITICAL analytics/family cross-family-exposure fix
+merged in v2.20.3 lives under `base44/functions/`, which does not
+auto-deploy on merge to `main` (see `CLAUDE.md`). This audit cycle could not
+confirm from GitHub whether `base44 functions deploy --app-id
+69b97ea9c9a713486b5a01fd --force` has actually been run since 2026-07-27.
+**If it has not, that CRITICAL vulnerability is still live in production
+despite being fixed in code.** Verifying and, if needed, running that
+deploy is the single highest-priority owner action arising from this audit.
 
 ---
+
+## v2.20.4 Audit Cycle (2026-08-03)
+
+Scope: security, RLS, granular permissions, dependencies, CI/CD health.
+Reviewed all commits landed since the v2.20.3 audit (2026-07-27) — one
+substantive commit (the v2.20.3 fix itself) plus routine `base44-builder[bot]`
+package-sync commits; no other application code changed in the interim.
+
+- **Security**: no hardcoded secrets found (searched for common key/token
+  patterns across the repo). No new unauthenticated or cross-family data
+  paths identified. `SECURITY.md`'s existing disclosure process unchanged.
+- **RLS**: re-verified `validate:rls` (36/36 entities OK) and manually
+  spot-checked `Transaction`, `Category`, `Person`, and `FamilyMembership`
+  — all retain the family-member `read` branch (`data.family_id ==
+  {{user.data.family_id}}` or equivalent) alongside the admin branch. The
+  2026-06-29 admin-only-read regression pattern documented in `CLAUDE.md`
+  has **not** recurred.
+- **Permissions**: `permissions:check` passes — 215 declared keys, 89 used,
+  **0 missing** (every key referenced in code is declared). 76 declared
+  keys are unused ("orphans") — these are pre-existing reserved keys for
+  modules not yet exposed in the UI (e.g. `investment.*`, `rental.*`
+  detail/edit actions); not a regression, and orphans fail-open safely
+  (undeclared code paths are what `permissions:check` blocks, not unused
+  declarations). No action taken — flagged for awareness only, since
+  removing declared-but-reserved keys is a product decision, not a
+  security fix.
+- **Dependencies**: `npm audit` showed 3 issues (1 high, 2 moderate).
+  `brace-expansion` (high) fixed via `npm audit fix` (non-breaking). The two
+  `react-router`/`react-router-dom` advisories (moderate) remain deferred —
+  same documented rationale as v2.20.3 (SPA, no SSR; fix requires a 6→7
+  major migration warranting its own dedicated, regression-tested PR).
+  `npm audit --audit-level=critical`: 0 critical, CI gate unaffected.
+- **CI/CD**: `ci.yml`'s `npm-audit` job ran `npm ci`, `validate:rls`, and
+  `npm audit --audit-level=critical` but **not** `lint` or
+  `permissions:check` — a lint or permission-key regression on `main`
+  between releases would not have failed CI. Added both as CI steps this
+  cycle (see CHANGELOG). No test suite exists in this project
+  (`package.json` has no `test` script); `npm run build` was run locally
+  as part of this audit and passed.
+- **Stale artifacts**: two branches left over from prior audit cycles,
+  `claude/flowfin-audit-release-6akkr8` and
+  `claude/flowfin-audit-security-7dki8p`, were confirmed fully merged into
+  `main` (via PRs #170/#171 and #159/#160 respectively) with no unique
+  unmerged work, and deleted.
+- **Verified locally before opening the PR**: `npm run lint` ✅,
+  `npm run validate:rls` ✅ (36 entities), `npm run permissions:check` ✅
+  (0 missing), `npm run build` ✅, `npm audit --audit-level=critical` ✅
+  (0 critical).
 
 ## Executive Summary
 
