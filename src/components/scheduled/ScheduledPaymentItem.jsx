@@ -74,6 +74,9 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-xs text-muted-foreground">Día {item.due_day} de cada mes</p>
             {cat && <span className="text-xs text-muted-foreground">· {cat.icon} {cat.name}</span>}
+            {!cat && !isPaid && item.is_active !== false && (
+              <span className="text-xs text-destructive">· Sin categoría (no se registrará en Movimientos)</span>
+            )}
             {item.amount > 0 && <span className="text-xs font-semibold text-foreground">· <AmountDisplay amount={item.amount} type="expense" size="sm" showSign={false} /></span>}
           </div>
           {isPaid && record && (
