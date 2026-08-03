@@ -20,6 +20,22 @@ confirm from GitHub whether `base44 functions deploy --app-id
 despite being fixed in code.** Verifying and, if needed, running that
 deploy is the single highest-priority owner action arising from this audit.
 
+**Correction, added after initial review (2026-08-03)**: v2.20.4 itself also
+touches `base44/functions/` — specifically the auto-synced snapshot files
+`base44/functions/dailyDocumentationAudit/versionHistorySnapshot.ts` and
+`base44/functions/dailyPermissionAudit/permissionManifests.ts`, which now
+bundle `CURRENT_VERSION_IN_CODE = '2.20.4'` and the refreshed permission
+manifest respectively. An earlier draft of this PR incorrectly stated it
+touched no functions and needed no redeploy. Per `CLAUDE.md`, both
+`dailyDocumentationAudit` and `dailyPermissionAudit` need their own
+`base44 functions deploy` after this merge — otherwise the deployed
+`dailyDocumentationAudit` function keeps running with the stale bundled
+`CURRENT_VERSION_IN_CODE` and, per `entry.ts`'s version-sync check, may
+reconcile/report the `AppVersion` DB record against that stale value
+instead of 2.20.4. This has **no security impact** (it's an internal
+housekeeping function, not an auth/data-exposure path), but is a real
+correctness gap if left undeployed indefinitely.
+
 ---
 
 ## v2.20.4 Audit Cycle (2026-08-03)
@@ -72,41 +88,67 @@ package-sync commits; no other application code changed in the interim.
 
 ## Executive Summary
 
-This report reflects the cumulative audit status through **v2.20.3**.
-**v2.20.3** (this release) closes a **CRITICAL** unauthenticated cross-family
-data exposure in 7 `analytics` router handlers (client-supplied `family_id`
-trusted with no session), a **MEDIUM** authorization gap in
-`family/findFamilyByCode` (client-supplied `user_id` instead of the
-authenticated caller), and applies 3 non-breaking dependency security patches
-(dompurify, js-yaml, postcss). The v0.7.0 release closed 15 dependency
-vulnerabilities. **v2.18.0** hardened AI-response validation and
+This report reflects the cumulative audit status through **v2.20.4**
+(current release). **v2.20.4** patches a **HIGH** dependency advisory
+(`brace-expansion`, ReDoS, dev-toolchain-only) and hardens CI to enforce
+`lint` + `permissions:check` on every push/PR (previously only
+`validate:rls` + `npm audit` were CI-enforced); no application code or
+permission-model behavior changed. **v2.20.3** closed a **CRITICAL**
+unauthenticated cross-family data exposure in 7 `analytics` router handlers
+(client-supplied `family_id` trusted with no session), a **MEDIUM**
+authorization gap in `family/findFamilyByCode` (client-supplied `user_id`
+instead of the authenticated caller), and applied 3 non-breaking dependency
+security patches (dompurify, js-yaml, postcss). The v0.7.0 release closed 15
+dependency vulnerabilities. **v2.18.0** hardened AI-response validation and
 PublicSnapshot RLS. **v2.19.0** closed a HIGH-severity permission gap in the
 Support Tickets module. **v2.20.0** closed a MEDIUM-severity navigation
 permission bypass for the Trips and Goals modules and added RLS hardening
 for Trip and SupportTicketMessage entities.
 
-**npm audit**: ⚠️ **2 known issues** (1 high, 1 moderate) — both deferred,
-see "Dependency Vulnerabilities" below; 0 critical (CI gate:
-`--audit-level=critical`, unaffected).
+**npm audit**: ⚠️ **1 known issue** (moderate: `react-router`/
+`react-router-dom`, deferred — see "Dependency Vulnerabilities" below);
+0 critical, 0 high (`brace-expansion` fixed in v2.20.4). CI gate
+(`--audit-level=critical`) unaffected either way.
 **validate:rls**: ✅ **36 entities OK** — all Base44 entity schemas pass static RLS checks.
 **permissions:check**: ✅ **215 declared keys, 0 missing** — all permission keys valid.
 **ESLint**: ✅ **0 errors** — lint clean.
 **Build**: ✅ passes (`npm run build`).
-**Backend auth audit (this cycle)**: all 91 `asServiceRole`-using handlers
+**Backend auth audit (v2.20.3 cycle)**: all 91 `asServiceRole`-using handlers
 under `base44/functions/**` reviewed for tenant-isolation and auth-bypass
-risk; 2 confirmed issues found and fixed (see below), no others found.
+risk; 2 confirmed issues found and fixed (see below), no others found. Not
+re-run in the v2.20.4 cycle since no handler logic changed (only
+version/permission *snapshot* files under `base44/functions/`, see status
+note below).
 
-**Status**: ⚠️ **CODE FIXED, DEPLOY PENDING** — the critical finding above is
-fixed in this PR's diff and verified statically (build/lint/RLS/permissions
-checks all pass), but it lives under `base44/functions/`, which this
-repository's own deployment model does **not** redeploy on merge to `main`
-— it requires a separate, manual `base44 functions deploy --app-id
-69b97ea9c9a713486b5a01fd --force` run by someone with Base44 CLI access.
-**This is the single highest-priority owner action from this audit.**
+**Status**: ⚠️ **CODE FIXED, DEPLOY PENDING (two separate items)**:
+1. The v2.20.3 CRITICAL finding above is fixed in code and verified
+   statically, but lives under `base44/functions/`, which this repository's
+   deployment model does **not** redeploy on merge to `main` — it requires
+   a manual `base44 functions deploy --app-id 69b97ea9c9a713486b5a01fd
+   --force`. **This audit cannot confirm from GitHub whether that deploy has
+   run since 2026-07-27 — this remains the single highest-priority owner
+   action.**
+2. v2.20.4 also touches `base44/functions/dailyDocumentationAudit/` and
+   `base44/functions/dailyPermissionAudit/` (auto-synced version/permission
+   snapshots only, no logic change) — these two functions likewise need a
+   `base44 functions deploy` after this merge so their bundled version
+   string and permission manifest reflect 2.20.4. No security impact if
+   delayed, but real correctness drift (see "v2.20.4 Audit Cycle" above).
 
 ---
 
 ## What Changed Since v0.1.0
+
+### ✅ Fixed in v2.20.4 (August 3, 2026)
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | `brace-expansion` ReDoS advisory (dev-toolchain only, not shipped to users) | `package.json`, `package-lock.json` (non-breaking `npm audit fix`, 1.1.16 → 1.1.18) | HIGH |
+| 2 | CI did not enforce `lint` or `permissions:check` on every push/PR — only `validate:rls` + `npm audit` — so a regression in either could land on `main` undetected between releases | `.github/workflows/ci.yml` | LOW (process gap, not a live vulnerability) |
+
+No application code, RLS, or permission-model behavior changed this cycle.
+`react-router`/`react-router-dom` (MODERATE) remains deferred, unchanged
+from the v2.20.3 rationale below.
 
 ### ✅ Fixed in v2.20.3 (July 27, 2026)
 
@@ -116,8 +158,8 @@ repository's own deployment model does **not** redeploy on merge to `main`
 | 2 | `family/findFamilyByCode` used a client-supplied `user_id` (instead of the authenticated caller's own id) to check membership, letting an authenticated user probe an arbitrary user_id's membership status for a family they know the join code for | `base44/functions/family/handlers/findFamilyByCode.ts` | MEDIUM |
 | 3 | 3 dependency vulnerabilities patched (non-breaking): `dompurify` (custom-element sanitization bypass), `js-yaml` (quadratic CPU via merge-key chains), `postcss` (source-map path traversal) | `package.json`, `package-lock.json` | LOW/HIGH* (*build-tooling exposure, not shipped to end users) |
 
-**Deferred (not fixed this release, documented rationale):**
-- `brace-expansion` (HIGH, ReDoS) — reachable only via the `eslint`/`eslint-plugin-react` dev toolchain, not bundled to users. Fix requires an `eslint` 9→10 major bump; deferred to a dedicated, manually-tested dependency-upgrade PR.
+**Deferred as of v2.20.3 (documented rationale at the time):**
+- `brace-expansion` (HIGH, ReDoS) — reachable only via the `eslint`/`eslint-plugin-react` dev toolchain, not bundled to users. **Fixed in v2.20.4** via non-breaking `npm audit fix` (no major bump was actually needed — see "Fixed in v2.20.4" above).
 - `react-router`/`react-router-dom` (MODERATE — open redirect via backslash in `<Link>`/`useNavigate`; SSR-hydration constructor injection does not apply, FlowFin is a client-rendered SPA) — fix requires a 6→7 major-version migration; deferred to a dedicated PR with route-by-route regression testing.
 - Neither reaches `critical` severity, matching this project's existing accepted-risk convention (see the `xlsx` entry below).
 

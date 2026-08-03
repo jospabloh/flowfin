@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `npm audit --audit-level=critical` steps. Previously those two checks
   only ran manually before a release; a lint or permission-key regression
   landing on `main` between releases would not have failed CI.
+- **⚠️ Deploy note**: this release's auto-synced snapshot files live under
+  `base44/functions/dailyDocumentationAudit/` and
+  `base44/functions/dailyPermissionAudit/` (version/permission-manifest
+  constants only — no handler logic changed). Per `CLAUDE.md`, both
+  functions need their own `base44 functions deploy` after this merge so
+  the deployed functions read 2.20.4 instead of the previously-bundled
+  2.20.3. No security impact if delayed.
 
 ### 📋 Audit notes (periodic review, no new findings)
 
