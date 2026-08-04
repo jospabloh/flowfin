@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import { base44 } from '@/api/base44Client';
-import { Plus, X } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import { useFamily } from '@/lib/FamilyContext';
@@ -34,6 +36,8 @@ export default function Investments() {
   const [showForm, setShowForm] = useState(false);
   const [showPayForm, setShowPayForm] = useState(false);
   const [showPayFormSuccess, setShowPayFormSuccess] = useState(false);
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  const [payError, setPayError] = useState('');
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPayForm, setEditPayForm] = useState({ amount: '', date: '', notes: '' });
   const [form, setForm] = useState(EMPTY_FORM);
@@ -84,8 +88,16 @@ export default function Investments() {
     setShowForm(false); setForm(EMPTY_FORM);
   };
 
+  const closePayForm = () => {
+    if (isSavingPayment) return;
+    setShowPayForm(false);
+    setPayError('');
+  };
+
   const handlePayment = async () => {
-    if (!payForm.amount || !selected) return;
+    if (!payForm.amount || !selected || isSavingPayment) return;
+    setIsSavingPayment(true);
+    setPayError('');
     const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
     const payData = { investment_id: selected.id, family_id: selected.family_id || familyId, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
     let savedPayment;
@@ -122,18 +134,21 @@ export default function Investments() {
       // that shows as registered in Historial de pagos with nothing in Movimientos —
       // the entity hook backstop (createTransactionFromInvestmentPayment) can't help
       // here either, since InvestmentPayment doesn't store category_id/person_id for
-      // it to resolve. Roll back the payment and surface the failure instead.
+      // it to resolve. Roll back the payment and surface the failure inline instead.
       if (savedPayment?.id) {
         try { await base44.entities.InvestmentPayment.delete(savedPayment.id); } catch { /* best-effort rollback */ }
       }
-      toast({ title: 'Error al registrar pago', description: error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.', variant: 'destructive' });
+      setPayError(error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.');
+      setIsSavingPayment(false);
       return;
     }
     queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
     queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+    setIsSavingPayment(false);
     setShowPayForm(false); setShowPayFormSuccess(true);
-    setTimeout(() => setShowPayFormSuccess(false), 3000);
+    confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 }, colors: ['#059669', '#10B981', '#6EE7B7'] });
+    setTimeout(() => setShowPayFormSuccess(false), 1800);
     setPayForm({ amount: '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' });
   };
 
@@ -156,20 +171,19 @@ export default function Investments() {
 
   return (
     <div className="pb-4">
-      {showPayFormSuccess && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full shadow-xl">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-income/10 flex items-center justify-center"><span className="text-lg">✓</span></div>
-                <h3 className="font-semibold text-foreground">Pago registrado ✓</h3>
-              </div>
-              <button onClick={() => setShowPayFormSuccess(false)} className="p-1 hover:bg-muted rounded-lg transition-colors" aria-label="Cerrar"><X className="w-5 h-5 text-muted-foreground" /></button>
-            </div>
-            <p className="text-sm text-muted-foreground">El pago se ha registrado correctamente.</p>
-          </div>
-        </div>
-      )}
+      {/* Success overlay — same confetti + spring-scaled checkmark as Capture's "money moment" */}
+      <AnimatePresence>
+        {showPayFormSuccess && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+              transition={{ type: 'spring', damping: 15, stiffness: 300 }}
+              className="w-24 h-24 rounded-full bg-income flex items-center justify-center shadow-2xl">
+              <Check className="w-12 h-12 text-white" strokeWidth={3} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <PageHeader title="Inversiones" subtitle="Seguimiento de pagos"
         action={canCreate ? <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold"><Plus className="w-3.5 h-3.5" /> Nueva</button> : null} />
@@ -182,24 +196,26 @@ export default function Investments() {
         <div className="px-4 space-y-3">
           {investments.map(inv => (
             <InvestmentCard key={inv.id} inv={inv} allPayments={allPayments} onSelect={setSelected}
-              onQuickPay={(inv, _paid) => { setSelected(inv); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' }); setShowPayForm(true); }} />
+              onQuickPay={(inv, _paid) => { setSelected(inv); setPayError(''); setPayForm({ amount: inv.payment_amount?.toString() || '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' }); setShowPayForm(true); }} />
           ))}
         </div>
       )}
 
       <InvestmentDetailSheet selected={selected} allPayments={allPayments} onClose={() => setSelected(null)}
-        onPay={() => setShowPayForm(true)}
+        onPay={() => { setPayError(''); setShowPayForm(true); }}
         onEditPayment={(p) => { setEditingPayment(p); setEditPayForm({ amount: p.amount.toString(), date: p.date, notes: p.notes || '' }); }}
         onDeletePayment={(id) => deletePaymentMutation.mutate(id)} />
 
       <InvestmentPayFormModal show={!!editingPayment} title="Editar Pago" form={editPayForm} setForm={setEditPayForm}
+        isSaving={updatePaymentMutation.isPending}
         onSave={() => { updatePaymentMutation.mutate({ id: editingPayment.id, data: { amount: +editPayForm.amount, date: editPayForm.date, notes: editPayForm.notes } }); setEditingPayment(null); }}
         onClose={() => setEditingPayment(null)} />
 
       <InvestmentPayFormModal show={showPayForm} title="Registrar Pago" form={payForm} setForm={setPayForm}
-        onSave={handlePayment} onClose={() => setShowPayForm(false)}
+        onSave={handlePayment} onClose={closePayForm} error={payError} isSaving={isSavingPayment}
         investmentName={selected?.name}
         paymentNumber={selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO)).length + 1 : undefined}
+        totalPayments={selected?.total_payments}
         persons={persons} categories={categories} paymentMethods={paymentMethods} />
 
       <InvestmentFormSheet show={showForm} form={form} setForm={setForm} onCreate={handleCreate} onClose={() => setShowForm(false)} />
