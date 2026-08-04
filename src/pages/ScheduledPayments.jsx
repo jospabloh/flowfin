@@ -103,7 +103,17 @@ export default function ScheduledPayments() {
         base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId, scheduled_payment_id: item.id }),
         base44.entities.Transaction.filter({ family_id: familyId, scheduled_payment_id: item.id }),
       ]);
-      if (linkedRecords.length > 0 || linkedTransactions.length > 0) {
+      const hasHistory = linkedRecords.length > 0 || linkedTransactions.length > 0;
+      // An item with payment history that's already archived can't go any
+      // further: re-running the same is_active:false update produced no
+      // visible change at all — "Eliminar" looked completely broken on
+      // anything in the Archivados tab with linked records. Preserving
+      // financial history is correct (no hard-delete), but say so instead
+      // of silently no-op'ing.
+      if (hasHistory && item.is_active === false) {
+        throw new Error(`"${item.name}" tiene historial de pagos vinculado — ya está archivado y no se puede eliminar del todo sin borrar ese historial.`);
+      }
+      if (hasHistory) {
         return base44.entities.ScheduledPayment.update(item.id, {
           is_active: false,
           archived_at: new Date().toISOString(),
@@ -113,7 +123,7 @@ export default function ScheduledPayments() {
       return base44.entities.ScheduledPayment.delete(item.id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
-    onError: (err) => toast({ title: 'Error al eliminar', description: err?.message || 'No se pudo eliminar el pago programado.', variant: 'destructive' }),
+    onError: (err) => toast({ title: 'No se pudo eliminar', description: err?.message || 'No se pudo eliminar el pago programado.', variant: 'destructive' }),
   });
 
   const addAuditEvent = (item, action, reason) => ([
