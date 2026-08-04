@@ -19,8 +19,12 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci
+      - name: Lint
+        run: npm run lint
       - name: Validate RLS
         run: npm run validate:rls
+      - name: Permission keys check
+        run: npm run permissions:check
       - name: Security audit
         # xlsx has a HIGH vuln with no upstream fix (GHSA-4r6h-8v6p-xvw6); gate on critical only
         run: npm audit --audit-level=critical

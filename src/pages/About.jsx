@@ -6,9 +6,19 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.20.4',
+    date: '2026-08-03',
+    label: 'Actual',
+    changes: [
+      'Seguridad: se corrigió una vulnerabilidad de dependencia (brace-expansion, alta severidad, herramientas de desarrollo) mediante actualización no disruptiva',
+      'CI/CD: el pipeline ahora también corre lint y la verificación de permisos (permissions:check) en cada push/PR, además de validate:rls y npm audit — antes esas dos verificaciones solo se corrían manualmente antes de cada release',
+      'Auditoría periódica: se revisaron seguridad, RLS, permisos y dependencias sin encontrar hallazgos críticos o altos nuevos a nivel de aplicación (ver SECURITY_AUDIT_REPORT.md)',
+    ],
+  },
+  {
     version: '2.20.3',
     date: '2026-07-27',
-    label: 'Actual',
+    label: '',
     changes: [
       'Seguridad crítica: se cerró una exposición de datos entre familias en el router de analítica — 7 endpoints aceptaban un family_id enviado por el cliente sin verificar sesión; ahora requieren autenticación siempre',
       'Seguridad: la búsqueda de familia por código de invitación ya no acepta un user_id enviado por el cliente para consultar membresías — usa siempre el usuario autenticado',

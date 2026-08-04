@@ -1,56 +1,154 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: July 27, 2026 (Updated — v2.20.3 Audit)
-**Version Audited**: 2.20.3
+**Date**: August 3, 2026 (Updated — v2.20.4 Audit)
+**Version Audited**: 2.20.4
 **Auditor**: Claude Code Automated Security Review
-**Overall Risk Level**: **LOW** — a CRITICAL unauthenticated cross-family data
-exposure was found and fixed in this audit cycle (see below); code fix is
-merged but **requires a manual `base44 functions deploy` to take effect** —
-see `CLAUDE.md` and the release PR for the exact command. `npm audit`
-reports 2 known non-critical issues, both deferred with documented
-rationale (dev-toolchain-only ReDoS; a moderate open-redirect requiring a
-major-version migration). CSP deployed; CI gate active (incl.
-`validate:rls`); RLS enforced across all 36 entities; permission
-deny-by-default enforced.
+**Overall Risk Level**: **LOW** — periodic review found no new critical or
+high application-level finding since v2.20.3. One dependency advisory
+(`brace-expansion`, high, dev-toolchain-only) was patched this cycle; the
+other (`react-router`, moderate) remains deferred pending a major-version
+migration, unchanged. CSP deployed; CI gate active (`validate:rls`, and as
+of this cycle also `lint` + `permissions:check`); RLS enforced across all
+36 entities; permission deny-by-default enforced.
+
+**Open operational item carried over from v2.20.3 (not verifiable from this
+repository alone)**: the CRITICAL analytics/family cross-family-exposure fix
+merged in v2.20.3 lives under `base44/functions/`, which does not
+auto-deploy on merge to `main` (see `CLAUDE.md`). This audit cycle could not
+confirm from GitHub whether `base44 functions deploy --app-id
+69b97ea9c9a713486b5a01fd --force` has actually been run since 2026-07-27.
+**If it has not, that CRITICAL vulnerability is still live in production
+despite being fixed in code.** Verifying and, if needed, running that
+deploy is the single highest-priority owner action arising from this audit.
+
+**Correction, added after initial review (2026-08-03)**: v2.20.4 itself also
+touches `base44/functions/` — specifically the auto-synced snapshot files
+`base44/functions/dailyDocumentationAudit/versionHistorySnapshot.ts` and
+`base44/functions/dailyPermissionAudit/permissionManifests.ts`, which now
+bundle `CURRENT_VERSION_IN_CODE = '2.20.4'` and the refreshed permission
+manifest respectively. An earlier draft of this PR incorrectly stated it
+touched no functions and needed no redeploy. Per `CLAUDE.md`, both
+`dailyDocumentationAudit` and `dailyPermissionAudit` need their own
+`base44 functions deploy` after this merge — otherwise the deployed
+`dailyDocumentationAudit` function keeps running with the stale bundled
+`CURRENT_VERSION_IN_CODE` and, per `entry.ts`'s version-sync check, may
+reconcile/report the `AppVersion` DB record against that stale value
+instead of 2.20.4. This has **no security impact** (it's an internal
+housekeeping function, not an auth/data-exposure path), but is a real
+correctness gap if left undeployed indefinitely.
 
 ---
 
+## v2.20.4 Audit Cycle (2026-08-03)
+
+Scope: security, RLS, granular permissions, dependencies, CI/CD health.
+Reviewed all commits landed since the v2.20.3 audit (2026-07-27) — one
+substantive commit (the v2.20.3 fix itself) plus routine `base44-builder[bot]`
+package-sync commits; no other application code changed in the interim.
+
+- **Security**: no hardcoded secrets found (searched for common key/token
+  patterns across the repo). No new unauthenticated or cross-family data
+  paths identified. `SECURITY.md`'s existing disclosure process unchanged.
+- **RLS**: re-verified `validate:rls` (36/36 entities OK) and manually
+  spot-checked `Transaction`, `Category`, `Person`, and `FamilyMembership`
+  — all retain the family-member `read` branch (`data.family_id ==
+  {{user.data.family_id}}` or equivalent) alongside the admin branch. The
+  2026-06-29 admin-only-read regression pattern documented in `CLAUDE.md`
+  has **not** recurred.
+- **Permissions**: `permissions:check` passes — 215 declared keys, 89 used,
+  **0 missing** (every key referenced in code is declared). 76 declared
+  keys are unused ("orphans") — these are pre-existing reserved keys for
+  modules not yet exposed in the UI (e.g. `investment.*`, `rental.*`
+  detail/edit actions); not a regression, and orphans fail-open safely
+  (undeclared code paths are what `permissions:check` blocks, not unused
+  declarations). No action taken — flagged for awareness only, since
+  removing declared-but-reserved keys is a product decision, not a
+  security fix.
+- **Dependencies**: `npm audit` showed 3 issues (1 high, 2 moderate).
+  `brace-expansion` (high) fixed via `npm audit fix` (non-breaking). The two
+  `react-router`/`react-router-dom` advisories (moderate) remain deferred —
+  same documented rationale as v2.20.3 (SPA, no SSR; fix requires a 6→7
+  major migration warranting its own dedicated, regression-tested PR).
+  `npm audit --audit-level=critical`: 0 critical, CI gate unaffected.
+- **CI/CD**: `ci.yml`'s `npm-audit` job ran `npm ci`, `validate:rls`, and
+  `npm audit --audit-level=critical` but **not** `lint` or
+  `permissions:check` — a lint or permission-key regression on `main`
+  between releases would not have failed CI. Added both as CI steps this
+  cycle (see CHANGELOG). No test suite exists in this project
+  (`package.json` has no `test` script); `npm run build` was run locally
+  as part of this audit and passed.
+- **Stale artifacts**: two branches left over from prior audit cycles,
+  `claude/flowfin-audit-release-6akkr8` and
+  `claude/flowfin-audit-security-7dki8p`, were confirmed fully merged into
+  `main` (via PRs #170/#171 and #159/#160 respectively) with no unique
+  unmerged work, and deleted.
+- **Verified locally before opening the PR**: `npm run lint` ✅,
+  `npm run validate:rls` ✅ (36 entities), `npm run permissions:check` ✅
+  (0 missing), `npm run build` ✅, `npm audit --audit-level=critical` ✅
+  (0 critical).
+
 ## Executive Summary
 
-This report reflects the cumulative audit status through **v2.20.3**.
-**v2.20.3** (this release) closes a **CRITICAL** unauthenticated cross-family
-data exposure in 7 `analytics` router handlers (client-supplied `family_id`
-trusted with no session), a **MEDIUM** authorization gap in
-`family/findFamilyByCode` (client-supplied `user_id` instead of the
-authenticated caller), and applies 3 non-breaking dependency security patches
-(dompurify, js-yaml, postcss). The v0.7.0 release closed 15 dependency
-vulnerabilities. **v2.18.0** hardened AI-response validation and
+This report reflects the cumulative audit status through **v2.20.4**
+(current release). **v2.20.4** patches a **HIGH** dependency advisory
+(`brace-expansion`, ReDoS, dev-toolchain-only) and hardens CI to enforce
+`lint` + `permissions:check` on every push/PR (previously only
+`validate:rls` + `npm audit` were CI-enforced); no application code or
+permission-model behavior changed. **v2.20.3** closed a **CRITICAL**
+unauthenticated cross-family data exposure in 7 `analytics` router handlers
+(client-supplied `family_id` trusted with no session), a **MEDIUM**
+authorization gap in `family/findFamilyByCode` (client-supplied `user_id`
+instead of the authenticated caller), and applied 3 non-breaking dependency
+security patches (dompurify, js-yaml, postcss). The v0.7.0 release closed 15
+dependency vulnerabilities. **v2.18.0** hardened AI-response validation and
 PublicSnapshot RLS. **v2.19.0** closed a HIGH-severity permission gap in the
 Support Tickets module. **v2.20.0** closed a MEDIUM-severity navigation
 permission bypass for the Trips and Goals modules and added RLS hardening
 for Trip and SupportTicketMessage entities.
 
-**npm audit**: ⚠️ **2 known issues** (1 high, 1 moderate) — both deferred,
-see "Dependency Vulnerabilities" below; 0 critical (CI gate:
-`--audit-level=critical`, unaffected).
+**npm audit**: ⚠️ **1 known issue** (moderate: `react-router`/
+`react-router-dom`, deferred — see "Dependency Vulnerabilities" below);
+0 critical, 0 high (`brace-expansion` fixed in v2.20.4). CI gate
+(`--audit-level=critical`) unaffected either way.
 **validate:rls**: ✅ **36 entities OK** — all Base44 entity schemas pass static RLS checks.
 **permissions:check**: ✅ **215 declared keys, 0 missing** — all permission keys valid.
 **ESLint**: ✅ **0 errors** — lint clean.
 **Build**: ✅ passes (`npm run build`).
-**Backend auth audit (this cycle)**: all 91 `asServiceRole`-using handlers
+**Backend auth audit (v2.20.3 cycle)**: all 91 `asServiceRole`-using handlers
 under `base44/functions/**` reviewed for tenant-isolation and auth-bypass
-risk; 2 confirmed issues found and fixed (see below), no others found.
+risk; 2 confirmed issues found and fixed (see below), no others found. Not
+re-run in the v2.20.4 cycle since no handler logic changed (only
+version/permission *snapshot* files under `base44/functions/`, see status
+note below).
 
-**Status**: ⚠️ **CODE FIXED, DEPLOY PENDING** — the critical finding above is
-fixed in this PR's diff and verified statically (build/lint/RLS/permissions
-checks all pass), but it lives under `base44/functions/`, which this
-repository's own deployment model does **not** redeploy on merge to `main`
-— it requires a separate, manual `base44 functions deploy --app-id
-69b97ea9c9a713486b5a01fd --force` run by someone with Base44 CLI access.
-**This is the single highest-priority owner action from this audit.**
+**Status**: ⚠️ **CODE FIXED, DEPLOY PENDING (two separate items)**:
+1. The v2.20.3 CRITICAL finding above is fixed in code and verified
+   statically, but lives under `base44/functions/`, which this repository's
+   deployment model does **not** redeploy on merge to `main` — it requires
+   a manual `base44 functions deploy --app-id 69b97ea9c9a713486b5a01fd
+   --force`. **This audit cannot confirm from GitHub whether that deploy has
+   run since 2026-07-27 — this remains the single highest-priority owner
+   action.**
+2. v2.20.4 also touches `base44/functions/dailyDocumentationAudit/` and
+   `base44/functions/dailyPermissionAudit/` (auto-synced version/permission
+   snapshots only, no logic change) — these two functions likewise need a
+   `base44 functions deploy` after this merge so their bundled version
+   string and permission manifest reflect 2.20.4. No security impact if
+   delayed, but real correctness drift (see "v2.20.4 Audit Cycle" above).
 
 ---
 
 ## What Changed Since v0.1.0
+
+### ✅ Fixed in v2.20.4 (August 3, 2026)
+
+| # | Issue | File(s) | Severity |
+|---|-------|---------|----------|
+| 1 | `brace-expansion` ReDoS advisory (dev-toolchain only, not shipped to users) | `package.json`, `package-lock.json` (non-breaking `npm audit fix`, 1.1.16 → 1.1.18) | HIGH |
+| 2 | CI did not enforce `lint` or `permissions:check` on every push/PR — only `validate:rls` + `npm audit` — so a regression in either could land on `main` undetected between releases | `.github/workflows/ci.yml` | LOW (process gap, not a live vulnerability) |
+
+No application code, RLS, or permission-model behavior changed this cycle.
+`react-router`/`react-router-dom` (MODERATE) remains deferred, unchanged
+from the v2.20.3 rationale below.
 
 ### ✅ Fixed in v2.20.3 (July 27, 2026)
 
@@ -60,8 +158,8 @@ repository's own deployment model does **not** redeploy on merge to `main`
 | 2 | `family/findFamilyByCode` used a client-supplied `user_id` (instead of the authenticated caller's own id) to check membership, letting an authenticated user probe an arbitrary user_id's membership status for a family they know the join code for | `base44/functions/family/handlers/findFamilyByCode.ts` | MEDIUM |
 | 3 | 3 dependency vulnerabilities patched (non-breaking): `dompurify` (custom-element sanitization bypass), `js-yaml` (quadratic CPU via merge-key chains), `postcss` (source-map path traversal) | `package.json`, `package-lock.json` | LOW/HIGH* (*build-tooling exposure, not shipped to end users) |
 
-**Deferred (not fixed this release, documented rationale):**
-- `brace-expansion` (HIGH, ReDoS) — reachable only via the `eslint`/`eslint-plugin-react` dev toolchain, not bundled to users. Fix requires an `eslint` 9→10 major bump; deferred to a dedicated, manually-tested dependency-upgrade PR.
+**Deferred as of v2.20.3 (documented rationale at the time):**
+- `brace-expansion` (HIGH, ReDoS) — reachable only via the `eslint`/`eslint-plugin-react` dev toolchain, not bundled to users. **Fixed in v2.20.4** via non-breaking `npm audit fix` (no major bump was actually needed — see "Fixed in v2.20.4" above).
 - `react-router`/`react-router-dom` (MODERATE — open redirect via backslash in `<Link>`/`useNavigate`; SSR-hydration constructor injection does not apply, FlowFin is a client-rendered SPA) — fix requires a 6→7 major-version migration; deferred to a dedicated PR with route-by-route regression testing.
 - Neither reaches `critical` severity, matching this project's existing accepted-risk convention (see the `xlsx` entry below).
 
