@@ -1,8 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Converts natural language to a transaction draft using AI.
+// Converts natural language (and/or an attached bill/invoice photo) into a
+// ScheduledPayment draft — a recurring monthly charge (rent, subscription,
+// utility, payroll, etc.), NOT a one-off Transaction. See
+// finiaPrepareTransactionDraft for the one-off equivalent; the two are
+// intentionally separate tools so Finia can't confuse "pagué 850 en el
+// súper" (one-off) with "quiero domiciliar mi recibo de luz" (recurring).
 // DOES NOT SAVE ANYTHING. Only prepares a draft for user review.
-// Resolves catalogs server-side for matching. Never trusts client-sent IDs.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -24,21 +28,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { text } = body;
-    // file_urls: receipt/ticket photos uploaded via the composer's attach/paste
-    // flow. Previously this function only ever read `text`, so an attached
-    // image was silently ignored no matter what the agent's chat turn "saw" —
-    // this is the one place that actually asks the model to look at the image.
     const file_urls = Array.isArray(body.file_urls) ? body.file_urls.filter(u => typeof u === 'string' && u) : [];
     const hasText = typeof text === 'string' && text.trim().length > 0;
     if (!hasText && !file_urls.length) {
       return Response.json({ error: 'text or file_urls is required' }, { status: 400 });
     }
 
-    // Load catalogs server-side (user-scoped to respect RLS)
-    const [persons, categories, subcategories, paymentMethods] = await Promise.all([
+    const [persons, categories, paymentMethods] = await Promise.all([
       userEntities.Person.filter({ family_id: familyId }),
       userEntities.Category.filter({ family_id: familyId }),
-      userEntities.Subcategory.filter({ family_id: familyId }),
       userEntities.PaymentMethod.filter({ family_id: familyId }),
     ]);
 
@@ -49,55 +47,51 @@ Deno.serve(async (req) => {
     const catalogsContext = JSON.stringify({
       persons: (persons || []).map(p => ({ id: p.id, name: p.name })),
       categories: (categories || []).map(c => ({ id: c.id, name: c.name, type: c.type })),
-      subcategories: (subcategories || []).map(s => ({ id: s.id, name: s.name, category_id: s.category_id })),
       payment_methods: (paymentMethods || []).map(m => ({ id: m.id, name: m.name, type: m.type })),
       self_person: selfPerson ? { id: selfPerson.id, name: selfPerson.name } : null,
       today,
     });
 
     const imageInstructions = file_urls.length
-      ? `\nSe adjuntó una imagen (recibo, ticket o comprobante). Analiza la imagen adjunta para extraer los mismos campos: busca el monto total, la fecha, el comercio/concepto y cualquier dato que ayude a inferir la categoría. Si además hay texto del usuario, úsalo como contexto adicional (puede aclarar quién pagó o con qué forma de pago) — el monto y la fecha del comprobante tienen prioridad sobre lo que diga el texto si hay conflicto.\n`
+      ? `\nSe adjuntó una imagen (factura, recibo domiciliado o comprobante de suscripción). Analiza la imagen para extraer el nombre del servicio/proveedor, el monto a pagar y — muy importante — el día del mes en que vence o se cobra (due_day). Si el comprobante trae una fecha completa (ej. "vence el 15 de agosto"), usa el día (15) como due_day. Si además hay texto del usuario, úsalo como contexto adicional.\n`
       : '';
 
-    const prompt = `Eres un parser de transacciones financieras en español mexicano.
+    const prompt = `Eres un parser de PAGOS PROGRAMADOS (cargos recurrentes mensuales) en español mexicano para una app financiera familiar.
 
-Analiza ${file_urls.length ? 'la imagen adjunta y el' : 'el'} siguiente texto y extrae los campos de una transacción.
+Un pago programado es un cargo o cobro que se repite CADA MES: renta, colegiatura, suscripciones (streaming, gym), servicios (luz, agua, internet, teléfono), seguros, nómina recurrente, etc. NO es una compra puntual.
+
+Analiza ${file_urls.length ? 'la imagen adjunta y el' : 'el'} siguiente texto y extrae los campos de un pago programado.
 Responde ÚNICAMENTE con un JSON válido, sin explicaciones.
 ${imageInstructions}
 CATÁLOGOS DISPONIBLES:
 ${catalogsContext}
 
 REGLAS:
-- Si el usuario no menciona fecha, usa today (${today}).
-- "ayer" = un día antes de ${today}.
-- Si no se menciona tipo, asume "expense" (gasto).
-- Para person_id: si el usuario no menciona persona, usa self_person.id si existe.
-- INFERENCIA DE CATEGORÍA (CRÍTICO): Usa razonamiento semántico, NO matching exacto de texto.
-  * El usuario puede decir "comida", "alimento", "comer", "restaurant", "súper", "mercado" → busca en el catálogo la categoría que semánticamente representa eso (ej. "Alimentación", "Comida", "Alimentos").
-  * El usuario puede decir "gasolina", "nafta", "tanque" → busca "Transporte", "Auto", "Gasolina" en el catálogo.
-  * El usuario puede decir "doctor", "farmacia", "medicina" → busca "Salud", "Médico" en el catálogo.
-  * El usuario puede decir "ropa", "zapatos", "regalos" → busca "Vestimenta", "Ropa", "Personal" en el catálogo.
-  * Razona: ¿qué categoría del catálogo representa mejor lo que dijo el usuario? Elige siempre la más cercana.
-  * NUNCA pongas category_id null si hay alguna categoría en el catálogo que pueda aplicar.
-  * Si ninguna categoría aplica claramente, pon la más genérica disponible (ej. "Otros", "General").
-- Busca coincidencias por nombre normalizado (sin acentos, minúsculas, singular/plural).
-- confidence: 0.0 a 1.0 (qué tan seguro estás del borrador completo).
-- missing_fields: lista de campos requeridos que faltan.
+- name: nombre corto del servicio/proveedor (ej. "Luz CFE", "Netflix", "Renta departamento"). Requerido.
+- due_day: día del mes (1-28) en que vence o se cobra. Si el usuario dice "cada quincena" o dos fechas, usa la primera. Requerido — si no se puede determinar con confianza, ponlo en missing_fields y usa null.
+- amount: monto estimado del cargo. Puede ser null si es variable (ej. "mi recibo de luz varía cada mes"), pero intenta dar un estimado si el usuario o el comprobante lo mencionan.
+- type: "expense" (domiciliado que se paga) o "income" (cobro recurrente, ej. nómina). Por default "expense".
+- INFERENCIA DE CATEGORÍA: mismo criterio semántico que para transacciones — "luz", "agua", "gas" → Servicios/Hogar; "renta" → Hogar; "colegiatura" → Educación; streaming/gym → Entretenimiento/Personal. Elige la más cercana del catálogo, nunca null si alguna aplica.
+- Para person_id: si el usuario no menciona persona responsable, usa self_person.id si existe.
+- icon: UN emoji representativo del servicio (ej. 💡 luz, 💧 agua, 📶 internet, 🏠 renta, 🎬 streaming, 🎓 colegiatura). Default "💰".
+- confidence: 0.0 a 1.0.
+- missing_fields: lista de campos requeridos que faltan (name, due_day).
+- warnings: avisos relevantes (ej. "el monto puede variar cada mes").
 
 FORMATO DE RESPUESTA (JSON):
 {
+  "name": string | null,
+  "description": string | null,
   "amount": number | null,
+  "due_day": number | null,
   "type": "expense" | "income",
-  "date": "YYYY-MM-DD",
-  "description": string,
   "category_id": string | null,
   "category_name": string | null,
-  "subcategory_id": string | null,
-  "subcategory_name": string | null,
   "payment_method_id": string | null,
   "payment_method_name": string | null,
   "person_id": string | null,
   "person_name": string | null,
+  "icon": string,
   "confidence": number,
   "missing_fields": string[],
   "warnings": string[]
@@ -112,18 +106,18 @@ TEXTO DEL USUARIO:
       response_json_schema: {
         type: 'object',
         properties: {
-          amount: { type: 'number' },
-          type: { type: 'string' },
-          date: { type: 'string' },
+          name: { type: 'string' },
           description: { type: 'string' },
+          amount: { type: 'number' },
+          due_day: { type: 'number' },
+          type: { type: 'string' },
           category_id: { type: 'string' },
           category_name: { type: 'string' },
-          subcategory_id: { type: 'string' },
-          subcategory_name: { type: 'string' },
           payment_method_id: { type: 'string' },
           payment_method_name: { type: 'string' },
           person_id: { type: 'string' },
           person_name: { type: 'string' },
+          icon: { type: 'string' },
           confidence: { type: 'number' },
           missing_fields: { type: 'array', items: { type: 'string' } },
           warnings: { type: 'array', items: { type: 'string' } },
@@ -136,17 +130,13 @@ TEXTO DEL USUARIO:
     // Normalize string for fuzzy matching: remove accents, lowercase, trim
     const norm = (s) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
-    // Fuzzy match: find catalog item whose name is most similar to the given name
     const fuzzyFind = (list, name) => {
       if (!name) return null;
       const n = norm(name);
-      // Exact match first
       let match = list.find(x => norm(x.name) === n);
       if (match) return match;
-      // Contains match
       match = list.find(x => norm(x.name).includes(n) || n.includes(norm(x.name)));
       if (match) return match;
-      // Partial word match (any word in common)
       const words = n.split(/\s+/).filter(w => w.length > 2);
       match = list.find(x => words.some(w => norm(x.name).includes(w)));
       return match ?? null;
@@ -154,63 +144,38 @@ TEXTO DEL USUARIO:
 
     const catIds = new Set((categories || []).map(c => c.id));
     const personIds = new Set((persons || []).map(p => p.id));
-    const subIds = new Set((subcategories || []).map(s => s.id));
     const pmIds = new Set((paymentMethods || []).map(m => m.id));
 
-    // If LLM returned invalid category_id, try to recover via name fuzzy match
     if (draft.category_id && !catIds.has(draft.category_id)) {
       const recovered = fuzzyFind(categories || [], draft.category_name);
-      if (recovered) {
-        draft.category_id = recovered.id;
-        draft.category_name = recovered.name;
-      } else {
-        draft.category_id = null;
-        draft.category_name = null;
-      }
+      if (recovered) { draft.category_id = recovered.id; draft.category_name = recovered.name; }
+      else { draft.category_id = null; draft.category_name = null; }
     }
-    // If category_id is still null but we have a name hint, try to infer from name
     if (!draft.category_id && draft.category_name) {
       const recovered = fuzzyFind(categories || [], draft.category_name);
-      if (recovered) {
-        draft.category_id = recovered.id;
-        draft.category_name = recovered.name;
-      }
+      if (recovered) { draft.category_id = recovered.id; draft.category_name = recovered.name; }
     }
-
     if (draft.person_id && !personIds.has(draft.person_id)) {
       const recovered = fuzzyFind(persons || [], draft.person_name);
-      if (recovered) {
-        draft.person_id = recovered.id;
-        draft.person_name = recovered.name;
-      } else {
-        draft.person_id = selfPersonId;
-        draft.person_name = selfPerson?.name ?? null;
-      }
-    }
-    if (draft.subcategory_id && !subIds.has(draft.subcategory_id)) {
-      const recovered = fuzzyFind(subcategories || [], draft.subcategory_name);
-      if (recovered) {
-        draft.subcategory_id = recovered.id;
-        draft.subcategory_name = recovered.name;
-      } else {
-        draft.subcategory_id = null;
-        draft.subcategory_name = null;
-      }
+      if (recovered) { draft.person_id = recovered.id; draft.person_name = recovered.name; }
+      else { draft.person_id = selfPersonId; draft.person_name = selfPerson?.name ?? null; }
     }
     if (draft.payment_method_id && !pmIds.has(draft.payment_method_id)) {
       const recovered = fuzzyFind(paymentMethods || [], draft.payment_method_name);
-      if (recovered) {
-        draft.payment_method_id = recovered.id;
-        draft.payment_method_name = recovered.name;
-      } else {
-        draft.payment_method_id = null;
-        draft.payment_method_name = null;
-      }
+      if (recovered) { draft.payment_method_id = recovered.id; draft.payment_method_name = recovered.name; }
+      else { draft.payment_method_id = null; draft.payment_method_name = null; }
     }
+    if (!draft.due_day || draft.due_day < 1 || draft.due_day > 28) {
+      const missing = new Set(draft.missing_fields || []);
+      missing.add('due_day');
+      draft.missing_fields = [...missing];
+      draft.due_day = null;
+    }
+    if (!draft.icon) draft.icon = '💰';
 
     return Response.json({ draft, is_draft: true });
   } catch (error) {
-    console.error('finiaPrepareTransactionDraft error:', error);
+    console.error('finiaPrepareScheduledPaymentDraft error:', error);
     return Response.json({ error: 'internal' }, { status: 500 });
   }
 });

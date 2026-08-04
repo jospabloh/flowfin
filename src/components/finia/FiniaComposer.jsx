@@ -243,7 +243,11 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     await uploadFiles(files);
   };
 
-  // Paste handler — extract image(s) from clipboard
+  // Paste handler — extract image(s) from clipboard. Wired ONLY through the
+  // window-level listener below (paste events bubble up from the textarea
+  // to window), never also as the textarea's own onPaste — attaching both
+  // fired this same handler twice for one physical paste and silently
+  // double-uploaded the pasted image.
   const handlePaste = useCallback((e) => {
     if (disabled || uploading) return;
     const items = e.clipboardData?.items;
@@ -424,7 +428,6 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             value={input}
             onChange={e => { setInput(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
             disabled={disabled}
             placeholder="Escribe, habla o adjunta archivos…"
             className="w-full bg-muted/60 border border-border focus:border-primary/40 rounded-2xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/15 resize-none leading-relaxed transition-all disabled:opacity-50"
