@@ -150,10 +150,25 @@ export default function ScheduledPayments() {
 
   const handleMarkPaid = async () => {
     if (!payingItem || isSavingPayment) return;
-    setIsSavingPayment(true);
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
     let primaryPersonId = payPersonId || payingItem.person_id || undefined;
     if (!primaryPersonId && persons.length > 0) primaryPersonId = persons[0].id;
+    // registerPayment only creates the matching Transaction when category_id AND
+    // person_id are present (same requirement enforced server-side by the
+    // createTransactionFromScheduledPaymentRecord entity hook). Without this guard,
+    // the ScheduledPaymentRecord still saves as "reconciled" and the item shows as
+    // paid even though nothing was created in Movimientos — silently orphaning the
+    // payment. Block here, before any write, instead of reporting false success.
+    if (!payingItem.category_id || !primaryPersonId) {
+      toast({
+        title: 'Faltan datos para registrar el movimiento',
+        description: `"${payingItem.name}" no tiene ${!payingItem.category_id ? 'categoría' : 'persona'} asignada. Edítalo y complétalo antes de marcarlo como pagado — si no, el pago quedaría marcado como pagado sin reflejarse en Movimientos.`,
+        variant: 'destructive',
+        duration: 7000,
+      });
+      return;
+    }
+    setIsSavingPayment(true);
     const selectedPerson = persons.find(p => p.id === primaryPersonId);
     const recordData = { scheduled_payment_id: payingItem.id, family_id: familyId, month: CURRENT_MONTH, paid_date: payDate, amount_paid: amount, notes: payNotes, paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario', status: 'reconciled', origin: 'manual' };
     try {
