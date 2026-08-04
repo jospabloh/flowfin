@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
 import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
 import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
+import PauseUntilSheet from '@/components/scheduled/PauseUntilSheet';
 import { todayISO } from '@/lib/formatters';
 import { usePermission } from '@/lib/permissions/usePermission';
 
@@ -52,6 +53,7 @@ export default function ScheduledPayments() {
   const [unmarkingId, setUnmarkingId] = useState(null);
   const [activeView, setActiveView] = useState('active');
   const [showPaid, setShowPaid] = useState(false);
+  const [pausingItem, setPausingItem] = useState(null);
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -76,8 +78,21 @@ export default function ScheduledPayments() {
   const unpaidSorted = activeView === 'archived' ? sorted : sorted.filter(item => !paidThisMonth.has(item.id));
   const paidSorted = activeView === 'archived' ? [] : sorted.filter(item => paidThisMonth.has(item.id));
 
-  const createMutation = useMutation({ mutationFn: (data) => base44.entities.ScheduledPayment.create(data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
-  const updateMutation = useMutation({ mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }) });
+  // updateMutation covers pause/resume/edit — none of these had an onError
+  // handler before, so a rejected write (schema mismatch, RLS, network) failed
+  // completely silently: the button click just appeared to do nothing, which
+  // is exactly what was happening to "Pausar 1 mes" (paused_until/pause_reason/
+  // audit_events were never declared on the ScheduledPayment entity schema).
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.ScheduledPayment.create(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
+    onError: (err) => toast({ title: 'Error al guardar', description: err?.message || 'No se pudo crear el pago programado.', variant: 'destructive' }),
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
+    onError: (err) => toast({ title: 'Error al guardar', description: err?.message || 'No se pudo actualizar el pago programado.', variant: 'destructive' }),
+  });
   const deleteMutation = useMutation({
     mutationFn: async (item) => {
       const [linkedRecords, linkedTransactions] = await Promise.all([
@@ -94,6 +109,7 @@ export default function ScheduledPayments() {
       return base44.entities.ScheduledPayment.delete(item.id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
+    onError: (err) => toast({ title: 'Error al eliminar', description: err?.message || 'No se pudo eliminar el pago programado.', variant: 'destructive' }),
   });
 
   const addAuditEvent = (item, action, reason) => ([
@@ -107,33 +123,21 @@ export default function ScheduledPayments() {
     },
   ]);
 
-  const handlePauseOneMonth = (item) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 1);
-    const pausedUntil = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  // Opens PauseUntilSheet — replaces the old globalThis.prompt() flow (a bare
+  // browser dialog with no validation) with a sheet consistent with the rest
+  // of the app, offering both the "1 mes" quick option and a custom month.
+  const handleConfirmPause = (pausedUntil, reason) => {
+    if (!pausingItem) return;
     updateMutation.mutate({
-      id: item.id,
+      id: pausingItem.id,
       data: {
         paused_until: pausedUntil,
-        pause_reason: 'Pausa 1 mes',
+        pause_reason: reason,
         is_active: true,
-        audit_events: addAuditEvent(item, 'pause', `1 mes hasta ${pausedUntil}`),
+        audit_events: addAuditEvent(pausingItem, 'pause', `${reason} — hasta ${pausedUntil}`),
       },
     });
-  };
-
-  const handlePauseUntil = (item) => {
-    const pausedUntil = globalThis.prompt('Pausar hasta (YYYY-MM o YYYY-MM-DD):', item.paused_until || '');
-    if (!pausedUntil) return;
-    updateMutation.mutate({
-      id: item.id,
-      data: {
-        paused_until: pausedUntil.trim(),
-        pause_reason: 'Pausa temporal',
-        is_active: true,
-        audit_events: addAuditEvent(item, 'pause', `Hasta ${pausedUntil.trim()}`),
-      },
-    });
+    setPausingItem(null);
   };
 
   const handleResume = (item) => {
@@ -265,8 +269,7 @@ export default function ScheduledPayments() {
               isPaused={isTemporarilyPaused(item)}
               onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
               onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-              onPauseOneMonth={handlePauseOneMonth}
-              onPauseUntil={handlePauseUntil}
+              onPauseUntil={setPausingItem}
               onResume={handleResume}
               onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
           );
@@ -296,8 +299,7 @@ export default function ScheduledPayments() {
                           isPaused={isTemporarilyPaused(item)}
                           onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
                           onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-                          onPauseOneMonth={handlePauseOneMonth}
-                          onPauseUntil={handlePauseUntil}
+                          onPauseUntil={setPausingItem}
                           onResume={handleResume}
                           onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
                       );
@@ -315,6 +317,8 @@ export default function ScheduledPayments() {
         payPaymentMethodId={payPaymentMethodId} setPayPaymentMethodId={setPayPaymentMethodId}
         payNotes={payNotes} setPayNotes={setPayNotes} isSaving={isSavingPayment}
         persons={persons} paymentMethods={paymentMethods} onConfirm={handleMarkPaid} onClose={() => setPayingItem(null)} />
+
+      <PauseUntilSheet item={pausingItem} onConfirm={handleConfirmPause} onClose={() => setPausingItem(null)} />
 
       <AnimatePresence>
         {showForm && (
