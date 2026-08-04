@@ -193,7 +193,12 @@ export function stripLabeledFieldLines(content) {
     })
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')
-    .trim();
+    .trim()
+    // The draft/duplicate cards already carry their own icon for this signal
+    // (✅/⚠️/❌/💡) — drop a redundant leading marker so it isn't shown twice.
+    // ️ is the variation selector "⚠️" needs to render as emoji at all;
+    // left unconsumed here it survives as an invisible leftover character.
+    .replace(/^[✅⚠️❌💡]️?\s*/u, '');
 }
 
 // ─── Message classification (success / warning / error / suggestion) ──────

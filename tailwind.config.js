@@ -7,6 +7,10 @@ module.exports = {
       fontFamily: {
         inter: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         display: ['"Bricolage Grotesque"', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        // Scoped to the Finia draft "receipt" card ledger — a ticket-printer
+        // face the rest of the app doesn't use, kept out of Tailwind's `mono`
+        // key so it never leaks into markdown code blocks or CSV previews.
+        receipt: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
         lg: 'var(--radius)',

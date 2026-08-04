@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -48,6 +48,18 @@
     --sidebar-accent-foreground: 161 94% 22%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 161 94% 30%;
+
+    /* Finia draft-card "receipt" tokens — deliberately theme-invariant.
+       The card renders as a physical ticket stub regardless of light/dark
+       mode, so it reads as the one artifact in the chat that's about to
+       become a real record, not just another themed bubble. See
+       src/components/finia/cards/FiniaTransactionDraftCard.jsx. */
+    --receipt-paper: 42 40% 95%;
+    --receipt-ink: 222 35% 14%;
+    --receipt-ink-muted: 222 15% 40%;
+    --receipt-perf: 30 15% 78%;
+    --receipt-expense: 6 62% 36%;
+    --receipt-income: 158 70% 24%;
   }
 
   .dark {
@@ -121,6 +133,31 @@
   .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   .mb-nav { margin-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
   .overscroll-none { overscroll-behavior-y: none; }
+
+  /* Finia draft-card "receipt" motif — a ticket torn from a roll, punched
+     out of whichever background sits behind it (light or dark chat). */
+  .finia-ticket {
+    position: relative;
+    background: hsl(var(--receipt-paper));
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.5) inset, 0 18px 34px -14px hsl(0 0% 0% / 0.5), 0 2px 6px hsl(0 0% 0% / 0.22);
+  }
+  .finia-ticket::before, .finia-ticket::after {
+    content: '';
+    position: absolute;
+    top: -7.5px;
+    width: 15px;
+    height: 15px;
+    border-radius: 9999px;
+    background: hsl(var(--background));
+  }
+  .finia-ticket::before { left: 14px; }
+  .finia-ticket::after { right: 14px; }
+  .finia-ledger-leader {
+    flex: 1 1 auto;
+    min-width: 8px;
+    border-bottom: 1px dotted hsl(var(--receipt-perf));
+    transform: translateY(-3px);
+  }
   .touch-target { min-width: 44px; min-height: 44px; }
 }
 
