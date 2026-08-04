@@ -134,16 +134,11 @@ export default function ScheduledPaymentForm({ item, familyId: _familyId, catego
                 <div className={`w-3 h-3 rounded-full bg-white shadow transition-transform mt-0.5 ${isActive ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'}`} />
               </div>
             </button>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Pausa hasta (YYYY-MM o fecha)</p>
-              <input value={pausedUntil} onChange={e => setPausedUntil(e.target.value)} placeholder="2026-06 o 2026-06-15"
-                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Motivo de pausa</p>
-              <input value={pauseReason} onChange={e => setPauseReason(e.target.value)} placeholder="Vacaciones, flujo, etc."
-                className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
+            {pausedUntil && (
+              <p className="text-xs text-muted-foreground px-1">
+                Pausado hasta {pausedUntil}{pauseReason ? ` · ${pauseReason}` : ''} — usa el botón de pausa en la tarjeta para cambiarlo.
+              </p>
+            )}
             </>
           )}
           {isPaymentMethodRequiredMissing && (

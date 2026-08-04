@@ -1,4 +1,4 @@
-import { Loader2, CheckCircle2, Circle, Pencil, Trash2, Zap } from 'lucide-react';
+import { Loader2, CheckCircle2, Circle, Pencil, Trash2, Zap, PauseCircle, PlayCircle } from 'lucide-react';
 import AmountDisplay from '@/components/AmountDisplay';
 import StatusBadge from '@/components/StatusBadge';
 import { useFamily } from '@/lib/FamilyContext';
@@ -30,24 +30,38 @@ function getRecordStatus(record) {
   return record.status || 'reconciled';
 }
 
+function formatPausedUntil(value) {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    const [y, m] = value.split('-').map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  }
+  return value;
+}
+
 // Single badge per card — a payment is either reconciled/auto-posted/paused,
-// or still pending with an urgency level (due-soon/overdue), never both at once.
-function statusBadge(record, item, dueColor) {
+// or still pending with an urgency level (due-soon/overdue), never both at
+// once. isPaused takes priority over the due-date urgency calculation: while
+// paused, the badge/color must NOT flash "Vencido" just because due_day
+// already passed this month — the moment the pause lifts (auto-expires or
+// someone hits Reanudar), it recalculates fresh from due_day vs today, since
+// nothing here is a stored "next date" — it's derived every render.
+function statusBadge(record, item, dueColor, isPaused) {
   const status = getRecordStatus(record);
   if (status === 'reconciled') return { label: 'Conciliado', variant: 'success' };
   if (status === 'posted') return { label: 'Auto', variant: 'info' };
-  if (status === 'skipped' || item.is_active === false) return { label: 'Pausado', variant: 'neutral' };
+  if (isPaused || status === 'skipped' || item.is_active === false) return { label: 'Pausado', variant: 'neutral' };
   if (dueColor === 'danger') return { label: 'Vencido', variant: 'danger' };
   if (dueColor === 'warning') return { label: 'Vence pronto', variant: 'warning' };
   return { label: 'Pendiente', variant: 'warning' };
 }
 
-export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, onMarkPaid, onUnmark, onEdit, onDelete, onPauseOneMonth, onPauseUntil, onResume }) {
+export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, onMarkPaid, onUnmark, onEdit, onDelete, onPauseUntil, onResume }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
-  const color = isPaid ? 'success' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
-  const badge = statusBadge(record, item, isPaid ? null : color);
+  const color = isPaid ? 'success' : isPaused ? 'gray' : (item.is_active === false ? 'gray' : statusColor(item.due_day));
+  const badge = statusBadge(record, item, isPaid ? null : color, isPaused && !isPaid);
 
   const { can_write: canMark }    = usePermission('scheduled.mark.action');
   const { can_modify: canEdit }   = usePermission('scheduled.manage.edit');
@@ -84,50 +98,51 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
               Pagado el {record.paid_date}{record.paid_by ? ` por ${record.paid_by}` : ''}{record.amount_paid ? ` · ${formatCurrency(record.amount_paid, { locale, currency })}` : ''}
             </p>
           )}
+          {isPaused && !isPaid && item.paused_until && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Pausado hasta {formatPausedUntil(item.paused_until)}{item.pause_reason ? ` · ${item.pause_reason}` : ''}
+            </p>
+          )}
           {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
         </div>
       </div>
-      <div className="flex gap-2 mt-3 flex-wrap">
-        {item.is_active !== false && canMark && (
+      <div className="flex items-center gap-2 mt-3">
+        {item.is_active !== false && canMark && !isPaused && (
           isPaid ? (
             <button onClick={() => onUnmark(item)} disabled={isUnmarking}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-success/15 text-success text-xs font-semibold min-h-[44px] min-w-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-success/15 text-success text-xs font-semibold min-h-[44px] disabled:opacity-60 transition-opacity active:opacity-70">
               {isUnmarking ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Desmarcando...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Desmarcar</>}
             </button>
           ) : (
             <button onClick={() => onMarkPaid(item)}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] min-w-[44px] active:opacity-80 transition-opacity">
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm min-h-[44px] active:opacity-80 transition-opacity">
               <Circle className="w-3.5 h-3.5" /> Marcar como pagado
             </button>
           )
         )}
-        {(isAdmin || canEdit) && (
-          <>
-            <button onClick={() => onEdit(item)} className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
-              <Pencil className="w-4 h-4" />
-            </button>
-            {!isPaused ? (
-              <>
-                <button onClick={() => onPauseOneMonth(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
-                  Pausar 1 mes
-                </button>
-                <button onClick={() => onPauseUntil(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
-                  Pausar hasta…
-                </button>
-              </>
-            ) : (
-              <button onClick={() => onResume(item)} className="px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] active:opacity-70 transition-opacity">
-                Reanudar
-              </button>
-            )}
-          </>
-        )}
-        {(isAdmin || canDelete) && (
-          <button onClick={handleDelete} aria-label="Eliminar compromiso"
-            className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-muted text-muted-foreground text-xs font-medium min-h-[44px] min-w-[44px] active:opacity-70 transition-opacity">
-            <Trash2 className="w-4 h-4" />
+        {item.is_active !== false && isPaused && (isAdmin || canEdit) && (
+          <button onClick={() => onResume(item)}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary border border-primary/30 text-xs font-semibold min-h-[44px] active:opacity-70 transition-opacity">
+            <PlayCircle className="w-3.5 h-3.5" /> Reanudar
           </button>
         )}
+        <div className="flex items-center gap-2">
+          {(isAdmin || canEdit) && (
+            <button onClick={() => onEdit(item)} aria-label="Editar" className="flex items-center justify-center w-11 h-11 rounded-xl bg-muted text-muted-foreground active:opacity-70 transition-opacity">
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+          {(isAdmin || canEdit) && !isPaused && (
+            <button onClick={() => onPauseUntil(item)} aria-label="Pausar" className="flex items-center justify-center w-11 h-11 rounded-xl bg-muted text-muted-foreground active:opacity-70 transition-opacity">
+              <PauseCircle className="w-4 h-4" />
+            </button>
+          )}
+          {(isAdmin || canDelete) && (
+            <button onClick={handleDelete} aria-label="Eliminar compromiso" className="flex items-center justify-center w-11 h-11 rounded-xl bg-muted text-muted-foreground active:opacity-70 transition-opacity">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

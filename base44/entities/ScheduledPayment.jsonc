@@ -74,6 +74,21 @@
     "match_hint": {
       "type": "string",
       "description": "Texto auxiliar para conciliación posterior con extractos bancarios"
+    },
+    "paused_until": {
+      "type": "string",
+      "description": "Pausado hasta este mes (YYYY-MM) o fecha (YYYY-MM-DD) — mientras no haya pasado, el pago no cuenta como pendiente/vencido"
+    },
+    "pause_reason": {
+      "type": "string",
+      "description": "Motivo de la pausa (ej: Pausa 1 mes, vacaciones, etc.)"
+    },
+    "audit_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Historial de acciones sobre este pago (pausar, reanudar, etc.): { action, at, by, by_user_id, reason }"
     }
   },
   "required": [
