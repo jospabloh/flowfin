@@ -1,13 +1,22 @@
 import { X, Pencil, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, addMonths, parseISO } from 'date-fns';
+import { format, addMonths, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import ProgressBar from '@/components/ProgressBar';
 import AmountDisplay from '@/components/AmountDisplay';
+import StatusBadge from '@/components/StatusBadge';
+import InvestmentTimeline from '@/components/investments/InvestmentTimeline';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
+
+function relativeDay(dateStr) {
+  const days = differenceInCalendarDays(new Date(), parseISO(dateStr));
+  if (days === 0) return 'Hoy';
+  if (days === 1) return 'Ayer';
+  if (days < 7) return `Hace ${days}d`;
+  return format(parseISO(dateStr), "dd 'de' MMM", { locale: es });
+}
 
 function getNextPayment(inv, paymentsMade) {
   const n = paymentsMade.length;
@@ -49,45 +58,62 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
               <button onClick={onClose} className="p-2 rounded-xl bg-muted"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-4">
-              <ProgressBar value={selectedPayments.length} max={selected.total_payments} className="mb-3 h-3" />
+              {/* Hero: paid vs pending, the two figures that matter most */}
               <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-muted rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground">Pagos realizados</p>
-                  <p className="text-xl font-bold text-foreground">{selectedPayments.length} <span className="text-sm font-normal text-muted-foreground">/ {selected.total_payments}</span></p>
+                <div className="bg-income/10 rounded-2xl p-3.5">
+                  <p className="text-xs text-muted-foreground mb-0.5">Pagado</p>
+                  <AmountDisplay amount={selectedPayments.reduce((s, p) => s + p.amount, 0)} type="income" size="lg" showSign={false} />
                 </div>
-                <div className="bg-muted rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground">Restantes</p>
-                  <p className="text-xl font-bold text-foreground">{selected.total_payments - selectedPayments.length}</p>
+                <div className="bg-expense/10 rounded-2xl p-3.5">
+                  <p className="text-xs text-muted-foreground mb-0.5">Pendiente</p>
+                  <AmountDisplay amount={selected.total_amount - selectedPayments.reduce((s, p) => s + p.amount, 0)} type="expense" size="lg" showSign={false} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-income/10 rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground">Monto total</p>
-                  <p className="text-lg font-bold text-income">{fmtMXN(selected.total_amount)}</p>
+
+              {/* Cuota timeline — the same signature strip as the card, full-size and tappable */}
+              <div className="mb-4">
+                <div className="flex items-baseline justify-between mb-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    {selectedPayments.length} <span className="font-normal text-muted-foreground">de {selected.total_payments} cuotas</span>
+                  </p>
+                  {selectedPayments.length >= selected.total_payments && <StatusBadge variant="success">Completado</StatusBadge>}
                 </div>
-                <div className="bg-expense/10 rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground">Monto pendiente</p>
-                  <p className="text-lg font-bold text-expense">{fmtMXN(selected.total_amount - selectedPayments.reduce((s, p) => s + p.amount, 0))}</p>
-                </div>
+                <InvestmentTimeline
+                  total={selected.total_payments}
+                  paidCount={selectedPayments.length}
+                  overdue={!!nextPayment && nextPayment.diff < 0}
+                  onNextClick={nextPayment ? onPay : undefined}
+                />
               </div>
+
               {nextPayment && (
-                <div className={`rounded-xl p-3 mb-4 ${nextPayment.diff < 0 ? 'bg-expense/10' : nextPayment.diff <= 7 ? 'bg-yellow-500/10' : 'bg-income/10'}`}>
-                  <p className="text-xs font-semibold text-foreground">Próximo pago #{nextPayment.number}</p>
-                  <p className="text-sm text-muted-foreground">{format(nextPayment.date, "dd 'de' MMMM yyyy", { locale: es })}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{nextPayment.diff < 0 ? `¡${Math.abs(nextPayment.diff)} días vencido!` : nextPayment.diff === 0 ? '¡Hoy!' : `En ${nextPayment.diff} días`}</p>
+                <div className={`rounded-2xl p-3.5 mb-4 border ${nextPayment.diff < 0 ? 'bg-expense/10 border-expense/20' : nextPayment.diff <= 7 ? 'bg-warning/10 border-warning/20' : 'bg-muted border-border'}`}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-foreground">Próxima cuota #{nextPayment.number}</p>
+                    <StatusBadge variant={nextPayment.diff < 0 ? 'danger' : nextPayment.diff <= 7 ? 'warning' : 'neutral'}>
+                      {nextPayment.diff < 0 ? `Vencida hace ${Math.abs(nextPayment.diff)}d` : nextPayment.diff === 0 ? 'Hoy' : `En ${nextPayment.diff}d`}
+                    </StatusBadge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{format(nextPayment.date, "dd 'de' MMMM yyyy", { locale: es })}</p>
                 </div>
               )}
-              <button onClick={onPay} className="w-full py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-4">Registrar Pago</button>
+
+              {nextPayment && (
+                <button onClick={onPay} className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm mb-5 shadow-sm active:opacity-80 transition-opacity">
+                  Registrar cuota #{nextPayment.number}
+                </button>
+              )}
+
               <h4 className="text-sm font-semibold text-foreground mb-2">Historial de pagos</h4>
-              <div className="space-y-2">
-                {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
-                  : selectedPayments.map(p => (
-                    <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                      <div className="flex-1">
-                        <p className="text-sm text-foreground">Pago #{p.payment_number}</p>
-                        <p className="text-xs text-muted-foreground">{p.date}</p>
+              <div className="space-y-1">
+                {selectedPayments.length === 0 ? <p className="text-sm text-muted-foreground py-2">Sin pagos registrados todavía</p>
+                  : [...selectedPayments].reverse().map(p => (
+                    <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground font-medium">Cuota #{p.payment_number}</p>
+                        <p className="text-xs text-muted-foreground">{relativeDay(p.date)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <AmountDisplay amount={p.amount} type="expense" size="sm" showSign={false} />
                         <button onClick={() => onEditPayment(p)} aria-label="Editar pago" className="p-1.5 min-h-[44px] min-w-[44px] hover:bg-muted rounded-lg transition-colors flex items-center justify-center">
                           <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
