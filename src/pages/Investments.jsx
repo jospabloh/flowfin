@@ -88,31 +88,46 @@ export default function Investments() {
     if (!payForm.amount || !selected) return;
     const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
     const payData = { investment_id: selected.id, family_id: selected.family_id || familyId, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
-    const savedPayment = await base44.entities.InvestmentPayment.create(payData);
-    if (payForm.category_id && payForm.person_id) {
-      const week = (() => {
-        try {
-          const date = new Date(payForm.date + 'T12:00:00');
-          const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-          const dayNum = d.getUTCDay() || 7;
-          d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-          const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-          return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        } catch { return 1; }
-      })();
-      await base44.entities.Transaction.create({
-        family_id: familyId,
-        date: payForm.date,
-        type: 'expense',
-        amount: +payForm.amount,
-        description: `Inversión: ${selected.name} — Pago #${selectedPayments.length + 1}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
-        category_id: payForm.category_id,
-        payment_method_id: payForm.payment_method_id || undefined,
-        person_id: payForm.person_id,
-        required_type: 'Inversión',
-        week,
-        investment_payment_id: savedPayment.id,
-      });
+    let savedPayment;
+    try {
+      savedPayment = await base44.entities.InvestmentPayment.create(payData);
+      if (payForm.category_id && payForm.person_id) {
+        const week = (() => {
+          try {
+            const date = new Date(payForm.date + 'T12:00:00');
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+          } catch { return 1; }
+        })();
+        await base44.entities.Transaction.create({
+          family_id: familyId,
+          date: payForm.date,
+          type: 'expense',
+          amount: +payForm.amount,
+          description: `Inversión: ${selected.name} — Pago #${selectedPayments.length + 1}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
+          category_id: payForm.category_id,
+          payment_method_id: payForm.payment_method_id || undefined,
+          person_id: payForm.person_id,
+          required_type: 'Inversión',
+          week,
+          investment_payment_id: savedPayment.id,
+        });
+      }
+    } catch (error) {
+      // InvestmentPayment.create can succeed while the follow-up Transaction.create
+      // throws (network blip, RLS rejection). Left alone, that orphans a payment
+      // that shows as registered in Historial de pagos with nothing in Movimientos —
+      // the entity hook backstop (createTransactionFromInvestmentPayment) can't help
+      // here either, since InvestmentPayment doesn't store category_id/person_id for
+      // it to resolve. Roll back the payment and surface the failure instead.
+      if (savedPayment?.id) {
+        try { await base44.entities.InvestmentPayment.delete(savedPayment.id); } catch { /* best-effort rollback */ }
+      }
+      toast({ title: 'Error al registrar pago', description: error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.', variant: 'destructive' });
+      return;
     }
     queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
