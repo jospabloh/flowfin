@@ -166,53 +166,48 @@ export default function TutorialOverlay({
         </div>
 
         <div
-          className="shrink-0 p-4 border-t border-border bg-card flex flex-wrap gap-2"
+          className="shrink-0 p-4 border-t border-border bg-card flex flex-col gap-2"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
-          {!step.isFinal && (
-            <label className="flex items-center gap-2 w-full cursor-pointer select-none pb-1">
-              <input
-                type="checkbox"
-                className="w-4 h-4 accent-primary rounded"
-                onChange={(e) => { if (e.target.checked) onSkip(); }}
-              />
-              <span className="text-sm text-muted-foreground">No mostrar más</span>
-            </label>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {canGoBack && (
+              <button
+                onClick={onBack}
+                className="flex-1 min-w-[100px] px-4 py-3 rounded-xl bg-muted text-muted-foreground text-sm font-semibold"
+              >
+                Atrás
+              </button>
+            )}
 
-          {canGoBack && (
-            <button
-              onClick={onBack}
-              className="flex-1 min-w-[120px] px-4 py-3 rounded-xl bg-muted text-muted-foreground text-sm font-semibold"
-            >
-              Atrás
-            </button>
-          )}
-
-          {!step.isFinal && (
-            <>
+            {!step.isFinal && (
               <button
                 onClick={onLater}
                 className="flex-1 min-w-[120px] px-4 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
               >
                 Después
               </button>
+            )}
 
-              <button
-                onClick={onSkip}
-                className="flex-1 min-w-[120px] px-4 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground"
-              >
-                Omitir
-              </button>
-            </>
+            <button
+              onClick={onNext}
+              className="flex-[2] min-w-[140px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+            >
+              {step.nextLabel || 'Siguiente'}
+            </button>
+          </div>
+
+          {/* Deliberately smaller and quieter than the buttons above: unlike
+              "Después" (reappears next session), this is a permanent opt-out, so
+              it shouldn't share equal visual weight with a temporary action —
+              that made the two easy to mix up. */}
+          {!step.isFinal && (
+            <button
+              onClick={onSkip}
+              className="text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground underline underline-offset-2 self-center py-1"
+            >
+              Omitir el tutorial por completo
+            </button>
           )}
-
-          <button
-            onClick={onNext}
-            className="flex-1 min-w-[140px] px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
-          >
-            {step.nextLabel || 'Siguiente'}
-          </button>
         </div>
       </div>
     </div>,

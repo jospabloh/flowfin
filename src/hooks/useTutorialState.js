@@ -82,21 +82,44 @@ function writeFallbackTutorialState(userId, state) {
 // Simple, reliable dismiss flag keyed on membership.id (always available when the
 // tutorial is active). Independent of the backend persist — written synchronously
 // so it survives page refreshes even when the API call fails.
+//
+// Stores the actual terminal status (COMPLETED/SKIPPED), not just a boolean. That's
+// what lets the hook self-heal: if the FamilyMembership.update() that should have
+// persisted this to the backend failed silently (see drainPersistQueue below — a
+// dropped write is never retried on its own), the next time this device hydrates it
+// can tell the backend still disagrees and re-issue the write. A plain boolean flag
+// can only stop the tutorial from reopening on *this* browser; it can't fix the
+// backend record, so any other browser/device for the same admin would keep seeing
+// the tutorial forever even though the user already dismissed it here.
 const TUTORIAL_DONE_PREFIX = 'ff:td:';
 
-function isTutorialDone(membershipId) {
-  if (!membershipId) return false;
+function readLocalTerminalStatus(membershipId) {
+  if (!membershipId) return null;
   try {
-    return localStorage.getItem(TUTORIAL_DONE_PREFIX + membershipId) === '1';
+    const raw = localStorage.getItem(TUTORIAL_DONE_PREFIX + membershipId);
+    if (!raw) return null;
+    // Back-compat: builds before this fix stored the literal string '1'. Treat any
+    // pre-existing flag as SKIPPED (the safer "don't reopen" interpretation) rather
+    // than dropping it and letting the tutorial reappear for people who already
+    // dismissed it under the old scheme.
+    if (raw === '1') return FLOWFIN_TUTORIAL_STATUS.SKIPPED;
+    return raw;
   } catch {
-    return false;
+    return null;
   }
 }
 
-export function markTutorialDone(membershipId) {
+function isTutorialDone(membershipId) {
+  return !!readLocalTerminalStatus(membershipId);
+}
+
+export function markTutorialDone(membershipId, status) {
   if (!membershipId) return;
   try {
-    localStorage.setItem(TUTORIAL_DONE_PREFIX + membershipId, '1');
+    localStorage.setItem(
+      TUTORIAL_DONE_PREFIX + membershipId,
+      status || FLOWFIN_TUTORIAL_STATUS.SKIPPED
+    );
   } catch {
     // Ignore localStorage write failures; tutorial can still proceed.
   }
@@ -221,6 +244,27 @@ export function useTutorialState() {
 
     return enqueuePersist(nextState);
   }, [currentUser?.id, enqueuePersist, membership?.id]);
+
+  // Self-heal: this device already knows the tutorial was dismissed (the local
+  // terminal-status flag is set), but the backend record hasn't caught up — most
+  // likely a previous skip/complete's persist attempt failed and was never retried
+  // (drainPersistQueue intentionally doesn't requeue on failure, see its comment).
+  // Re-issue that write now so the backend — and every other device/browser for
+  // this admin — converges on the same "done" state instead of relying forever on
+  // this one browser's localStorage.
+  useEffect(() => {
+    if (!isHydrated || !membership?.id) return;
+
+    const localTerminalStatus = readLocalTerminalStatus(membership.id);
+    if (!localTerminalStatus) return;
+    if (membership?.tutorial_state?.status === localTerminalStatus) return;
+
+    void applyTutorialUpdate((prev) => ({
+      ...prev,
+      status: localTerminalStatus,
+      updated_at: new Date().toISOString(),
+    }));
+  }, [isHydrated, membership?.id, membership?.tutorial_state?.status, applyTutorialUpdate]);
 
   const shouldAutoOpen = useMemo(() => {
     if (membership === undefined) return false; // Still loading

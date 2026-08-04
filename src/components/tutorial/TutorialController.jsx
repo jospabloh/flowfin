@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useFamily } from '@/lib/FamilyContext';
 import { useTutorialState, markTutorialDone } from '@/hooks/useTutorialState';
+import { FLOWFIN_TUTORIAL_STATUS } from '@/lib/tutorial/tutorialConstants';
 import {
   FLOWFIN_TUTORIAL_STEPS,
   getTutorialStepIndex,
@@ -271,7 +272,9 @@ export default function TutorialController() {
 
   const handleNext = () => {
     if (step.isFinal) {
-      markTutorialDone(membership?.id); // Sync write — survives refresh regardless of API
+      // Sync write — survives refresh regardless of API, and lets useTutorialState's
+      // self-heal effect retry the backend persist on the next load if this one fails.
+      markTutorialDone(membership?.id, FLOWFIN_TUTORIAL_STATUS.COMPLETED);
       sessionDismissedRef.current = true;
       setIsOpen(false);
       void markCompleted(); // Fire-and-forget backend persist
@@ -295,7 +298,9 @@ export default function TutorialController() {
   };
 
   const handleSkip = () => {
-    markTutorialDone(membership?.id); // Sync write — survives refresh regardless of API
+    // Sync write — survives refresh regardless of API, and lets useTutorialState's
+    // self-heal effect retry the backend persist on the next load if this one fails.
+    markTutorialDone(membership?.id, FLOWFIN_TUTORIAL_STATUS.SKIPPED);
     sessionDismissedRef.current = true;
     setIsOpen(false);
 
@@ -320,7 +325,12 @@ export default function TutorialController() {
       onNext={handleNext}
       onLater={handleLater}
       onSkip={handleSkip}
-      onClose={handleSkip}
+      // The header "X" is the universal "just close this" affordance — it should
+      // match onLater's temporary-dismiss meaning (reappears next session), not
+      // silently perform the same permanent opt-out as the explicit "Omitir"
+      // button. Reusing handleSkip here previously made X irreversible with no
+      // visible difference from Omitir, which is surprising for a close icon.
+      onClose={handleLater}
     />
   );
 }
