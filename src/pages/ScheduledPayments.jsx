@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
-import { Plus, ChevronDown, CheckCircle2, Zap } from 'lucide-react';
+import { Plus, ChevronDown, CheckCircle2, Zap, PauseCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 import { useToast } from '@/components/ui/use-toast';
@@ -72,8 +72,12 @@ export default function ScheduledPayments() {
   const activePayments = useMemo(() => payments.filter(p => p.is_active !== false), [payments]);
   const archivedPayments = useMemo(() => payments.filter(p => p.is_active === false), [payments]);
   const automatedPayments = useMemo(() => activePayments.filter(p => p.automation_mode === 'auto'), [activePayments]);
+  const pausedPayments = useMemo(() => activePayments.filter(isTemporarilyPaused), [activePayments]);
   const pending = activePayments.filter(p => !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
-  const viewList = activeView === 'archived' ? archivedPayments : activeView === 'auto' ? automatedPayments : activePayments;
+  const viewList = activeView === 'archived' ? archivedPayments
+    : activeView === 'auto' ? automatedPayments
+    : activeView === 'paused' ? pausedPayments
+    : activePayments;
   const sorted = [...viewList].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
   const unpaidSorted = activeView === 'archived' ? sorted : sorted.filter(item => !paidThisMonth.has(item.id));
   const paidSorted = activeView === 'archived' ? [] : sorted.filter(item => paidThisMonth.has(item.id));
@@ -234,21 +238,26 @@ export default function ScheduledPayments() {
           <button onClick={() => setActiveView('auto')} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'auto' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             <Zap className="w-3 h-3" /> Automáticos ({automatedPayments.length})
           </button>
+          <button onClick={() => setActiveView('paused')} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'paused' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            <PauseCircle className="w-3 h-3" /> Pausados ({pausedPayments.length})
+          </button>
           <button onClick={() => setActiveView('archived')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'archived' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             Archivados ({archivedPayments.length})
           </button>
         </div>
         {sorted.length === 0 && (
           <div className="text-center py-12 bg-card border border-border rounded-2xl">
-            <p className="text-3xl mb-2">{activeView === 'auto' ? '⚡' : '📅'}</p>
+            <p className="text-3xl mb-2">{activeView === 'auto' ? '⚡' : activeView === 'paused' ? '⏸️' : '📅'}</p>
             <p className="text-sm font-semibold text-foreground">
-              {activeView === 'archived' ? 'Sin pagos archivados' : activeView === 'auto' ? 'Sin domiciliados automáticos' : 'Sin pagos programados'}
+              {activeView === 'archived' ? 'Sin pagos archivados' : activeView === 'auto' ? 'Sin domiciliados automáticos' : activeView === 'paused' ? 'Nada pausado' : 'Sin pagos programados'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {activeView === 'archived'
                 ? 'Los pagos archivados aparecerán aquí.'
                 : activeView === 'auto'
                 ? (isAdmin ? "Edita un pago y activa \"Domiciliado automático\" para que se registre solo." : 'El administrador aún no ha activado pagos automáticos.')
+                : activeView === 'paused'
+                ? 'Los pagos que pauses aparecen acá mientras dure la pausa.'
                 : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}
             </p>
           </div>
