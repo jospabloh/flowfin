@@ -346,7 +346,7 @@ export default function Assistant() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                   >
-                    <FiniaMessageBubble message={msg} />
+                    <FiniaMessageBubble message={msg} onAction={sendMessage} disabled={sending} />
                   </motion.div>
                 ))}
               </AnimatePresence>

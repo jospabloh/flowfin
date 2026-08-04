@@ -1,5 +1,42 @@
 # FlowFin — Project Notes
 
+## Finia chat "smart cards" — structured field parsing, not prose guessing (2026-08-04)
+
+Finia's chat replies (`src/pages/Assistant.jsx` + `src/components/finia/`) are
+free text from a Base44 agent (`base44/agents/finia.jsonc`) — there is no
+structured payload the frontend can read from the conversation stream, only
+`message.content` markdown. Two concrete bugs came from treating that text as
+if it were reliable:
+
+1. **Draft/duplicate tables rendered as garbled pipe soup.** `react-markdown`
+   v9 only implements CommonMark by default — pipe-table syntax is a GFM
+   extension. Without `remark-gfm`, consecutive table-row lines (no blank
+   line between them) get merged by the CommonMark paragraph rule into one
+   run-on paragraph, so a transaction-draft table showed up as
+   `| 💰 **Monto** | $104.50 | | ✉️ **Tipo** | Gasto | ...` on one line
+   instead of a table. Fixed by adding `remark-gfm` and passing it via
+   `remarkPlugins` everywhere `ReactMarkdown` renders Finia's replies.
+2. **Quick-reply chips picked the wrong intent.** `FiniaQuickChips`' old
+   `detectIntent` ran regexes like `/de quién|de quien/` against the whole
+   last assistant message. When Finia listed **all** the fields it still
+   needed (`**Monto** (¿cuánto?)`, `**Persona** (¿de quién fue?)`, ...), that
+   regex matched on the `Persona` bullet alone and showed person-name chips
+   instead of nothing useful — a six-field checklist got read as one
+   yes/no question.
+
+**Fix:** `src/lib/finiaCardParser.js` extracts a `{ field: value }` map from
+known field labels (Monto, Tipo, Concepto, Rubro, Subrubro, Persona, Forma de
+pago, Fecha) regardless of whether Finia formatted them as a bullet list or a
+markdown table, and only treats a message as a real transaction-draft/
+duplicate-warning moment once enough fields are actually present with values
+(not just mentioned). `FiniaMessageBubble` renders those moments as real
+interactive cards (`components/finia/cards/`) with Confirm/Cancel/Edit
+buttons instead of a plain colored bubble; `FiniaQuickChips` reuses the same
+parser so the chips shown never disagree with the card shown. If you touch
+`finia.jsonc`'s draft/duplicate reply format, update the label patterns in
+`finiaCardParser.js` — do not add more raw-substring checks against
+`message.content` elsewhere, that's exactly what broke.
+
 ## License lifecycle is owned by Mission Control (2026-08-03)
 
 FlowFin has **no native license-lifecycle automation**. `checkAccountLifecycle`,

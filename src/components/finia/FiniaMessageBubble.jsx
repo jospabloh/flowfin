@@ -1,16 +1,10 @@
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
-
-// Detect special message types from content patterns
-function detectMessageType(content) {
-  if (!content) return 'normal';
-  const lower = content.toLowerCase();
-  if (lower.includes('✅') || lower.includes('guardado') || lower.includes('registrado correctamente')) return 'success';
-  if (lower.includes('⚠️') || lower.includes('posible duplicado') || lower.includes('similar')) return 'warning';
-  if (lower.includes('❌') || lower.includes('error') || lower.includes('no pude verificar') || lower.includes('algo salió mal')) return 'error';
-  if (lower.includes('💡') || lower.includes('sugerencia') || lower.includes('oportunidad')) return 'suggestion';
-  return 'normal';
-}
+import { parseTransactionDraft, parseDuplicateWarning, stripLabeledFieldLines, classifyMessage } from '@/lib/finiaCardParser';
+import { PROSE_CLASSNAME } from './markdownProse';
+import FiniaTransactionDraftCard from './cards/FiniaTransactionDraftCard';
+import FiniaDuplicateAlertCard from './cards/FiniaDuplicateAlertCard';
 
 const typeConfig = {
   normal: { border: 'border-border', bg: 'bg-card', icon: null },
@@ -20,7 +14,7 @@ const typeConfig = {
   suggestion: { border: 'border-secondary/30', bg: 'bg-secondary/5', icon: <Sparkles className="w-3.5 h-3.5 text-secondary flex-shrink-0 mt-0.5" /> },
 };
 
-export default function FiniaMessageBubble({ message }) {
+export default function FiniaMessageBubble({ message, onAction, disabled }) {
   const isUser = message.role === 'user';
   const content = (message.content || '').trim();
 
@@ -30,7 +24,29 @@ export default function FiniaMessageBubble({ message }) {
   const visibleChars = content.replace(/[\p{Emoji}\p{P}\s]/gu, '');
   if (visibleChars.length < 2) return null;
 
-  const msgType = isUser ? 'normal' : detectMessageType(content);
+  // Structured moments (transaction draft, duplicate warning) get a real
+  // interactive card instead of raw markdown — see finiaCardParser.js for
+  // why field-label parsing replaced guessing off arbitrary prose.
+  const draft = !isUser && onAction ? parseTransactionDraft(content) : null;
+  const duplicate = !draft && !isUser && onAction ? parseDuplicateWarning(content) : null;
+
+  if (draft || duplicate) {
+    const note = stripLabeledFieldLines(content);
+    return (
+      <div className="flex gap-2.5 justify-start items-end">
+        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-sm shadow-sm ring-1 ring-primary/10">
+          💚
+        </div>
+        <div className="max-w-[85%] w-full">
+          {draft
+            ? <FiniaTransactionDraftCard fields={draft.fields} note={note} onAction={onAction} disabled={disabled} />
+            : <FiniaDuplicateAlertCard fields={duplicate.fields} note={note} onAction={onAction} disabled={disabled} />}
+        </div>
+      </div>
+    );
+  }
+
+  const msgType = isUser ? 'normal' : classifyMessage(content);
   const config = typeConfig[msgType] || typeConfig.normal;
 
   return (
@@ -60,21 +76,7 @@ export default function FiniaMessageBubble({ message }) {
         {isUser ? (
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
         ) : (
-          <ReactMarkdown
-            className="prose prose-sm max-w-none dark:prose-invert
-              [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
-              prose-p:my-1 prose-p:leading-relaxed
-              prose-ul:my-1 prose-ul:ml-4
-              prose-ol:my-1 prose-ol:ml-4
-              prose-li:my-0.5
-              prose-strong:font-semibold prose-strong:text-foreground
-              prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:bg-muted prose-code:text-xs
-              prose-h1:text-base prose-h1:font-bold prose-h1:my-2
-              prose-h2:text-sm prose-h2:font-semibold prose-h2:my-1.5
-              prose-h3:text-sm prose-h3:font-medium prose-h3:my-1
-              prose-blockquote:border-l-2 prose-blockquote:border-primary/30 prose-blockquote:pl-3 prose-blockquote:text-muted-foreground prose-blockquote:my-2
-              prose-hr:border-border prose-hr:my-2"
-          >
+          <ReactMarkdown remarkPlugins={[remarkGfm]} className={PROSE_CLASSNAME}>
             {content}
           </ReactMarkdown>
         )}

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
+import { parseTransactionDraft, parseDuplicateWarning, countKnownFieldLabelMentions } from '@/lib/finiaCardParser';
 
 // ─── Static chip sets ────────────────────────────────────────────────────────
 
@@ -13,20 +14,6 @@ const DEFAULT_CHIPS = [
   { emoji: '🎯', label: 'Presupuestos', text: '¿Cómo van mis presupuestos este mes?' },
   { emoji: '🔍', label: 'Buscar duplicados', text: 'Revisa si tengo movimientos duplicados recientes' },
   { emoji: '💡', label: 'Ahorrar más', text: '¿Cómo puedo ahorrar más este mes?' },
-];
-
-const DRAFT_CHIPS = [
-  { emoji: '✅', label: 'Confirmar', text: 'Sí, confírmalo y guárdalo' },
-  { emoji: '❌', label: 'Cancelar', text: 'Cancela, no lo guardes' },
-  { emoji: '✏️', label: 'Cambiar monto', text: 'Quiero cambiar el monto' },
-  { emoji: '🏷️', label: 'Cambiar rubro', text: 'Quiero cambiar el rubro' },
-  { emoji: '👤', label: 'Cambiar persona', text: 'Quiero cambiar la persona' },
-];
-
-const DUPLICATE_CHIPS = [
-  { emoji: '✅', label: 'Guardar de todos modos', text: 'Sí, guárdalo de todos modos' },
-  { emoji: '❌', label: 'No guardar', text: 'No, no lo guardes' },
-  { emoji: '👀', label: 'Ver duplicado', text: 'Muéstrame el movimiento similar' },
 ];
 
 const SUMMARY_CHIPS = [
@@ -59,15 +46,28 @@ function detectIntent(msg) {
   if (!msg) return 'default';
   const c = msg.toLowerCase();
 
-  // Catalog questions — must check BEFORE generic keyword matches
-  if (/¿?(quién|quien|a nombre de quién|a nombre de quien|para quién|para quien|qué persona|que persona|de qué integrante|de que integrante|de quién|de quien)/.test(c)) return 'ask_person';
-  if (/¿?(con (qué|que) (pagaste|forma de pago|método|metodo|tarjeta|efectivo)|cómo (pagaste|lo pagaste))/.test(c) || /método de pago|forma de pago|payment method/.test(c)) return 'ask_payment_method';
-  if (/¿?(en (qué|que) (rubro|categoría|categoria)|a (qué|que) (rubro|categoría|categoria)|tipo de gasto|tipo de egreso|clasificar)/.test(c)) return 'ask_category';
+  // Structured moments — parsed with the exact same field-based logic that
+  // decides whether the message bubble renders a draft/duplicate card (see
+  // finiaCardParser.js), so the chips shown below never disagree with the
+  // card shown above. Those cards already carry their own Confirmar/
+  // Cancelar/etc. buttons, so no chips are needed here.
+  if (parseTransactionDraft(msg)) return 'draft';
+  if (parseDuplicateWarning(msg)) return 'duplicate';
 
-  // Draft / confirmation
-  if (c.includes('borrador') || c.includes('¿confirmas') || c.includes('confirmas que guarde') || c.includes('¿lo guardo')) return 'draft';
-  // Duplicate
-  if (c.includes('duplicado') || c.includes('similar reciente') || c.includes('movimiento similar')) return 'duplicate';
+  // A message that calls out several draft fields at once — e.g. Finia
+  // asking "**Monto** (¿cuánto?) / **Concepto** (¿en qué fue?) / **Persona**
+  // (¿de quién fue?) ..." — is a multi-field checklist, not a single
+  // yes/no question. Must be checked before the single-field ask_*
+  // detectors below, or a bolded "**Persona** (¿de quién fue?)" bullet
+  // buried in a six-field list gets misread as the whole question and
+  // shows person-name chips instead of nothing useful.
+  if (countKnownFieldLabelMentions(msg) < 3) {
+    // Catalog questions — must check BEFORE generic keyword matches
+    if (/¿?(quién|quien|a nombre de quién|a nombre de quien|para quién|para quien|qué persona|que persona|de qué integrante|de que integrante|de quién|de quien)/.test(c)) return 'ask_person';
+    if (/¿?(con (qué|que) (pagaste|forma de pago|método|metodo|tarjeta|efectivo)|cómo (pagaste|lo pagaste))/.test(c) || /método de pago|forma de pago|payment method/.test(c)) return 'ask_payment_method';
+    if (/¿?(en (qué|que) (rubro|categoría|categoria)|a (qué|que) (rubro|categoría|categoria)|tipo de gasto|tipo de egreso|clasificar)/.test(c)) return 'ask_category';
+  }
+
   // Financial summary
   if (c.includes('ingresos') && c.includes('gastos') && (c.includes('balance') || c.includes('mes'))) return 'summary';
   // Upcoming payments
@@ -141,8 +141,9 @@ export default function FiniaQuickChips({ onAction, disabled, lastAssistantMessa
     if (intent === 'ask_person' || intent === 'ask_category' || intent === 'ask_payment_method') {
       return catalogChips ?? [];
     }
-    if (intent === 'draft') return DRAFT_CHIPS;
-    if (intent === 'duplicate') return DUPLICATE_CHIPS;
+    // 'draft'/'duplicate': the message card above already carries its own
+    // action buttons — no chips needed here.
+    if (intent === 'draft' || intent === 'duplicate') return [];
     if (intent === 'summary') return SUMMARY_CHIPS;
     if (intent === 'payments') return PAYMENTS_CHIPS;
     if (intent === 'budget') return BUDGET_CHIPS;
