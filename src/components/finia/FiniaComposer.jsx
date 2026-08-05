@@ -41,14 +41,17 @@ const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'h
 // the code that would have shown one no longer exists.
 //
 // We can't stop the browser from doing this, but we can make it visible
-// instead of silent: right before opening any picker we drop a timestamped
-// flag (+ the draft text) into sessionStorage, which — unlike React state —
-// survives a reload. A `visibilitychange` listener clears that flag the
-// moment this same JS instance is still alive to see the tab come back to
-// the foreground, whether the user picked a file or cancelled. So if the
-// flag is still there on the next mount, this can't be that page's first
-// visit — it's the *same tab* coming back from a reload we didn't ask for,
-// and there's no scenario left in which the flag survives that isn't one.
+// instead of silent: right before opening the Fotos or Archivos picker we
+// drop a timestamped flag (+ the draft text) into sessionStorage, which —
+// unlike React state — survives a reload. A `visibilitychange` listener
+// clears that flag the moment this same JS instance is still alive to see
+// the tab come back to the foreground, whether the user picked a file or
+// cancelled. So if the flag is still there on the next mount, this can't
+// be that page's first visit — it's the *same tab* coming back from a
+// reload we didn't ask for, and there's no scenario left in which the flag
+// survives that isn't one. Cámara doesn't go through this anymore — it
+// captures in-page via getUserMedia (see openCameraCapture below) and
+// never leaves Finia, so it can't hit this particular failure mode.
 const PENDING_ATTACH_KEY = 'finia-composer-pending-attach';
 const DRAFT_KEY = 'finia-composer-draft';
 const PENDING_ATTACH_MAX_AGE_MS = 5 * 60 * 1000; // ignore a flag left over from an abandoned tab
@@ -94,11 +97,15 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   const [uploadError, setUploadError] = useState(null);
   const [showAttachSheet, setShowAttachSheet] = useState(false);
   const [reloadNotice, setReloadNotice] = useState(false);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
+  const [capturingPhoto, setCapturingPhoto] = useState(false);
   const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
   const cameraInputRef = useRef(null);
   const photoInputRef = useRef(null);
   const docInputRef = useRef(null);
+  const cameraVideoRef = useRef(null);
+  const cameraStreamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
@@ -108,6 +115,20 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  };
+
+  // Show a transient error, then clear it. Every error banner below (voice,
+  // upload) followed this same show-then-timeout shape by hand, with the
+  // clear() call occasionally forgotten (voiceSupported's check used to
+  // leave its message stuck with no timeout at all) — one helper per banner
+  // means that can't happen again.
+  const flashVoiceError = (msg, ms = 3000) => {
+    setVoiceError(msg);
+    setTimeout(() => setVoiceError(null), ms);
+  };
+  const flashUploadError = (msg, ms = 3500) => {
+    setUploadError(msg);
+    setTimeout(() => setUploadError(null), ms);
   };
 
   // Runs once per real mount. If a pending-attach flag from a previous
@@ -221,7 +242,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   const startVoice = async () => {
     setVoiceError(null);
     if (!voiceSupported) {
-      setVoiceError('Tu navegador no soporta grabación de audio.');
+      flashVoiceError('Tu navegador no soporta grabación de audio.');
       return;
     }
     try {
@@ -243,8 +264,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
         const blob = new Blob(chunks, { type: usedMime });
         if (blob.size < 1000) {
           setIsRecording(false);
-          setVoiceError('La grabación fue muy corta. Intenta de nuevo.');
-          setTimeout(() => setVoiceError(null), 3000);
+          flashVoiceError('La grabación fue muy corta. Intenta de nuevo.');
           return;
         }
         const ext = extFromMime(usedMime);
@@ -259,12 +279,10 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             setInput(prev => (prev ? `${prev} ${text.trim()}` : text.trim()));
             setTimeout(adjustHeight, 0);
           } else {
-            setVoiceError('No pude entender el audio. Intenta de nuevo.');
-            setTimeout(() => setVoiceError(null), 3000);
+            flashVoiceError('No pude entender el audio. Intenta de nuevo.');
           }
         } catch (err) {
-          setVoiceError('Error al transcribir. Intenta de nuevo.');
-          setTimeout(() => setVoiceError(null), 3000);
+          flashVoiceError('Error al transcribir. Intenta de nuevo.');
         } finally {
           setIsTranscribing(false);
         }
@@ -277,13 +295,12 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
       cleanupStream();
       setIsRecording(false);
       if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
-        setVoiceError('Permiso de micrófono denegado. Habilítalo en los ajustes del navegador.');
+        flashVoiceError('Permiso de micrófono denegado. Habilítalo en los ajustes del navegador.', 4000);
       } else if (err?.name === 'NotFoundError') {
-        setVoiceError('No se encontró ningún micrófono.');
+        flashVoiceError('No se encontró ningún micrófono.', 4000);
       } else {
-        setVoiceError('No se pudo iniciar la grabación.');
+        flashVoiceError('No se pudo iniciar la grabación.', 4000);
       }
-      setTimeout(() => setVoiceError(null), 4000);
     }
   };
 
@@ -318,8 +335,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
       }));
       setUploadPreviews(prev => [...prev, ...uploaded]);
     } catch {
-      setUploadError('No se pudo subir el archivo. Intenta de nuevo.');
-      setTimeout(() => setUploadError(null), 3500);
+      flashUploadError('No se pudo subir el archivo. Intenta de nuevo.');
     } finally {
       setUploading(false);
     }
@@ -327,11 +343,12 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
 
   const removePreview = (url) => setUploadPreviews(prev => prev.filter(p => p.url !== url));
 
-  // Opens one of the three dedicated pickers (Cámara / Fotos / Archivos).
-  // Called synchronously from the sheet's onClick so the .click() still
-  // counts as a direct response to the user's tap — required for the file
-  // picker to open on iOS Safari. Drops the pending-attach flag (+ draft)
-  // right before handing off to the OS — see the constants above.
+  // Opens one of the two remaining OS pickers (Fotos / Archivos). Called
+  // synchronously from the sheet's onClick so the .click() still counts as
+  // a direct response to the user's tap — required for the file picker to
+  // open on iOS Safari. Drops the pending-attach flag (+ draft) right
+  // before handing off to the OS — see the constants above. Cámara no
+  // longer goes through this path; see openCameraCapture below.
   const openPicker = (ref) => {
     setShowAttachSheet(false);
     try {
@@ -340,6 +357,90 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     } catch { /* sessionStorage unavailable — the OS picker still opens fine */ }
     ref.current?.click();
   };
+
+  const stopCameraStream = () => {
+    try { cameraStreamRef.current?.getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
+    cameraStreamRef.current = null;
+  };
+
+  // Cámara — captures in-page via getUserMedia instead of handing off to
+  // the OS camera app through <input capture>. Three screen recordings
+  // traced Cámara/Fotos/Archivos failures on this phone's Samsung Internet
+  // back to the same root cause: the browser handing control to a native
+  // Activity (the camera app, or its own file-picker resolver) and then
+  // not reliably handing the result back to the page — a bug in that
+  // Activity round-trip, not in anything an accept/capture attribute
+  // controls. getUserMedia sidesteps the round-trip entirely: the camera
+  // stream renders straight into this page's own <video> element and the
+  // shot is grabbed with a <canvas>, so there is no OS Activity switch for
+  // a result to ever get lost from. This also makes Cámara work the same
+  // way on any device with a camera and a browser — phone or desktop,
+  // Samsung Internet or not — instead of depending on a mobile-only OS
+  // picker contract. `facingMode: 'ideal'` asks for the rear camera on a
+  // phone but doesn't require one, so a laptop's single front-facing
+  // webcam is used without erroring.
+  const openCameraCapture = async () => {
+    setShowAttachSheet(false);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      // No API support (very old browser) — fall back to the OS picker,
+      // which is at least as likely to work as it always did there.
+      openPicker(cameraInputRef);
+      return;
+    }
+    setShowCameraCapture(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        await cameraVideoRef.current.play().catch(() => { /* autoplay quirks — ignore */ });
+      }
+    } catch (err) {
+      stopCameraStream();
+      setShowCameraCapture(false);
+      if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+        flashUploadError('Permiso de cámara denegado. Habilítalo en los ajustes del navegador, o usá "Pegar".', 4500);
+      } else if (err?.name === 'NotFoundError') {
+        flashUploadError('No se encontró ninguna cámara en este dispositivo.', 4500);
+      } else {
+        flashUploadError('No se pudo abrir la cámara. Probá "Pegar" en su lugar.', 4500);
+      }
+    }
+  };
+
+  const closeCameraCapture = () => {
+    stopCameraStream();
+    setShowCameraCapture(false);
+  };
+
+  const capturePhoto = async () => {
+    const video = cameraVideoRef.current;
+    if (!video || !video.videoWidth) return;
+    setCapturingPhoto(true);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+      closeCameraCapture();
+      if (blob) {
+        await uploadFiles([blob], `foto-${Date.now()}.jpg`);
+      } else {
+        flashUploadError('No se pudo capturar la foto. Intenta de nuevo.');
+      }
+    } finally {
+      setCapturingPhoto(false);
+    }
+  };
+
+  // Release the camera the moment the composer itself goes away, not just
+  // when the modal closes normally — otherwise navigating off the
+  // Assistant page mid-capture would leave the camera light on.
+  useEffect(() => stopCameraStream, []);
 
   // Pegar — reads an image straight from the clipboard via the async
   // Clipboard API, bypassing <input type=file> and its native OS picker
@@ -355,8 +456,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   const pasteFromClipboard = async () => {
     setShowAttachSheet(false);
     if (!navigator.clipboard?.read) {
-      setUploadError('Tu navegador no soporta este botón — mantén presionado el cuadro de texto y elegí "Pegar".');
-      setTimeout(() => setUploadError(null), 4500);
+      flashUploadError('Tu navegador no soporta este botón — mantén presionado el cuadro de texto y elegí "Pegar".', 4500);
       return;
     }
     try {
@@ -369,12 +469,10 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
       if (images.length) {
         await uploadFiles(images, `pegado-${Date.now()}.png`);
       } else {
-        setUploadError('No hay ninguna imagen copiada. Copiá una foto desde tu galería primero.');
-        setTimeout(() => setUploadError(null), 4500);
+        flashUploadError('No hay ninguna imagen copiada. Copiá una foto desde tu galería primero.', 4500);
       }
     } catch {
-      setUploadError('No se pudo leer el portapapeles. Probá mantener presionado el cuadro de texto y "Pegar".');
-      setTimeout(() => setUploadError(null), 4500);
+      flashUploadError('No se pudo leer el portapapeles. Probá mantener presionado el cuadro de texto y "Pegar".', 4500);
     }
   };
 
@@ -492,8 +590,10 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
         )}
       </AnimatePresence>
 
-      {/* Reload notice — shown when the page comes back from Cámara/Fotos
-          having lost the in-flight attachment (see PENDING_ATTACH_KEY) */}
+      {/* Reload notice — shown when the page comes back from Fotos/Archivos
+          having lost the in-flight attachment (see PENDING_ATTACH_KEY).
+          Cámara can no longer trigger this: it captures in-page via
+          getUserMedia and never leaves Finia to begin with. */}
       <AnimatePresence>
         {reloadNotice && (
           <motion.div
@@ -503,7 +603,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             className="mx-4 mb-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2"
           >
             <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex-1">
-              El navegador cerró Finia al abrir la cámara/galería y el adjunto se perdió. Tu mensaje se recuperó — probá adjuntar de nuevo.
+              El navegador cerró Finia al abrir Fotos/Archivos y el adjunto se perdió. Tu mensaje se recuperó — probá adjuntar de nuevo.
             </p>
             <button
               onClick={() => setReloadNotice(false)}
@@ -586,10 +686,10 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
               : <Paperclip className="w-[18px] h-[18px]" />
             }
           </button>
-          {/* Camera — `capture="environment"` asks the browser to hand the
-              shot directly back to this input via its own capture contract,
-              instead of Samsung's own ambiguous "Cámara" resolver shortcut
-              (which the old single combined input relied on implicitly). */}
+          {/* Camera fallback — only used by openCameraCapture when the
+              browser has no getUserMedia support at all (very old/unusual
+              browsers). The Cámara button in the sheet no longer clicks
+              this directly; see openCameraCapture above. */}
           <input ref={cameraInputRef} type="file" accept={IMAGE_ACCEPT} capture="environment" className="hidden" onChange={handleFileSelect} />
           {/* Fotos — plain image accept, no capture. On some browsers this
               reaches a dedicated Photos picker that bypasses the general
@@ -691,7 +791,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => openPicker(cameraInputRef)}
+                  onClick={openCameraCapture}
                   className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-border hover:bg-muted active:scale-[0.97] transition-all"
                 >
                   <Camera className="w-5 h-5 text-muted-foreground" />
@@ -720,10 +820,50 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
                 </button>
               </div>
               <p className="text-[11px] text-muted-foreground text-center mt-3">
-                ¿Cámara, Fotos o Archivos no funcionan? Mantén presionada la foto en tu galería, tocá <strong>Copiar</strong> y después <strong>Pegar</strong> acá arriba.
+                ¿Fotos o Archivos no funcionan? Mantén presionada la foto en tu galería, tocá <strong>Copiar</strong> y después <strong>Pegar</strong> acá arriba.
               </p>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Cámara — in-page capture (see openCameraCapture above for why).
+          Uses the same theme tokens as the rest of the app (bg-background,
+          text-foreground, border-border) instead of a hardcoded dark
+          camera-app look, so it follows the user's light/dark setting. */}
+      <AnimatePresence>
+        {showCameraCapture && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-background flex flex-col"
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+              <button
+                onClick={closeCameraCapture}
+                className="w-9 h-9 rounded-full bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <p className="text-sm font-semibold text-foreground">Tomar foto</p>
+              <div className="w-9" />
+            </div>
+            <div className="flex-1 overflow-hidden bg-muted/40">
+              <video ref={cameraVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            </div>
+            <div
+              className="flex items-center justify-center p-6 flex-shrink-0"
+              style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
+            >
+              <button
+                onClick={capturePhoto}
+                disabled={capturingPhoto}
+                className="w-16 h-16 rounded-full bg-primary border-4 border-primary/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center shadow-lg"
+                title="Tomar foto"
+              >
+                {capturingPhoto && <Loader2 className="w-6 h-6 text-primary-foreground animate-spin" />}
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
