@@ -83,6 +83,34 @@ reportes no mostraban datos).
 > Detalle completo del patrón de routers y la recuperación del cap de 50
 > funciones en `docs/BACKEND_FUNCTION_LIMIT_REORG.md`.
 
+### ⚠️ Antes de deployar: `CRON_SECRET` tiene que existir (2026-08-05)
+
+`_internalGuard.ts` es **fail-closed**: si `CRON_SECRET` no está configurado
+en los secrets de Base44, el guard devuelve `403` y **desactiva por completo**
+las funciones que lo usan — hoy `dailyDocumentationAudit`,
+`dailyPermissionAudit` y `purgeExpiredConversations`.
+
+Antes era fail-open justamente para que deployar no pudiera romper un
+scheduler ya andando. Ese seguro ya no existe: lo cambió `fa11358`, un push
+directo a `main` de `base44-builder[bot]` (sin PR, sin review — el mismo
+patrón del incidente de RLS del 2026-06-29). **Deployar sin el secreto puesto
+apaga los tres crons en silencio**, incluidos los dos crons de auditoría que
+justamente existen para avisar de este tipo de regresión. Ningún chequeo de
+CI lo detecta: sólo se ve en runtime, como crons que dejan de reportar.
+
+Orden correcto:
+
+1. Verificar/crear `CRON_SECRET` en el panel de secrets de Base44.
+2. Agregar el header `x-cron-secret` a la configuración de cada automation
+   (si no, el scheduler queda fuera aunque el secreto exista).
+3. Recién ahí correr `npx base44 functions deploy ... --force`.
+4. Confirmar en el panel de scheduler que los tres jobs siguen corriendo.
+
+Cada función que usa el guard tiene su **propia copia colocada** de
+`_internalGuard.ts` (no hay un módulo compartido: la copia suelta en la raíz
+de `base44/functions/` era código muerto y se eliminó en 2.21.0). Si cambiás
+la semántica del guard, cambiala en **todas** las copias o quedan divergentes.
+
 ## Base44 — cambios de RLS en `base44/entities/*.jsonc` pueden romper producción en silencio
 
 El 2026-06-29, un commit automático de `base44-builder[bot]` ("Apply RLS

@@ -6,9 +6,25 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.21.0',
+    date: '2026-08-05',
+    label: 'Actual',
+    changes: [
+      'Finia ya puede leer imágenes: sacá o subí una foto del recibo y Finia arma el borrador del movimiento; también propone cargos recurrentes',
+      'Finia: se corrigió que las imágenes elegidas desde el celular se perdieran en silencio — ahora el adjunto se separa en Cámara, Fotos y Archivos, la cámara captura dentro de la app, hay un botón para pegar desde el portapapeles y, si algo falla, te avisa en vez de quedarse callado',
+      'Finia: las tarjetas del chat leen los datos del borrador campo por campo, así que lo que muestra la tarjeta y los botones de respuesta rápida ya no se contradicen',
+      'Programados: nueva pestaña Pausados y reorganización en tres pestañas por etapa, con filtro por estado',
+      'Programados: pausar y reanudar ahora se guarda de verdad; se rediseñó la tarjeta y la experiencia de pausa',
+      'Programados: "Eliminar" ya funciona sobre un elemento archivado, y "marcar como pagado" se bloquea si no puede crear el movimiento correspondiente',
+      'Inversiones: se rediseñó el registro de pagos y la vista de avance; una cuota pagada ya no queda huérfana si falla el guardado del movimiento',
+      'Tutorial: el tutorial inicial ya no vuelve a aparecer después de saltarlo o completarlo',
+      'Seguridad: se corrigió una vulnerabilidad de alta severidad (socket.io-parser, agotamiento de memoria) mediante una actualización no disruptiva; sin cambios de comportamiento visibles',
+    ],
+  },
+  {
     version: '2.20.4',
     date: '2026-08-03',
-    label: 'Actual',
+    label: '',
     changes: [
       'Seguridad: se corrigió una vulnerabilidad de dependencia (brace-expansion, alta severidad, herramientas de desarrollo) mediante actualización no disruptiva',
       'CI/CD: el pipeline ahora también corre lint y la verificación de permisos (permissions:check) en cada push/PR, además de validate:rls y npm audit — antes esas dos verificaciones solo se corrían manualmente antes de cada release',

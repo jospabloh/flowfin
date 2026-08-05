@@ -12,6 +12,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.21.0] - 2026-08-05
+
+### ⚠️ Deploy prerequisite — read before deploying backend functions
+
+- **`CRON_SECRET` must be set in Base44 secrets *before* the next
+  `base44 functions deploy`.** Commit `fa11358` (pushed directly to `main`
+  by `base44-builder[bot]`, no PR) flipped `_internalGuard.ts` in
+  `dailyDocumentationAudit`, `dailyPermissionAudit` and
+  `purgeExpiredConversations` from **fail-open to fail-closed**: when
+  `CRON_SECRET` is absent the guard now returns `403` instead of allowing
+  the call through. The original fail-open branch existed specifically so
+  that *"simply deploying it changes nothing and cannot break existing
+  schedulers"* — that safety property is gone. Deploying without the secret
+  configured silently disables all three scheduled jobs, including the two
+  audit crons that are meant to surface exactly this kind of regression.
+  Nothing in CI detects it; it only shows up at runtime as crons that stop
+  reporting. Verify the secret first, deploy second, then confirm the three
+  jobs still fire in the Base44 scheduler panel.
+
+### ✨ Added
+
+- **Finia — image intake actually works**, plus recurring-charge drafts:
+  Finia can now read a photographed/uploaded receipt and turn it into a
+  transaction draft, and can propose recurring-charge drafts.
+- **Finia — in-page camera capture** via `getUserMedia` instead of handing
+  off to the OS camera app, which on several Android builds returned to the
+  page with the capture lost.
+- **Finia — clipboard-paste attach button**, routing around Samsung
+  Internet's broken file picker.
+- **Programados — `Pausados` tab** and a reorganization into three lifecycle
+  tabs plus a status filter.
+
+### 🐛 Fixed
+
+- **Finia attach — the silent-drop family of bugs.** Five separate defects
+  caused a picked image to vanish with no error: the picked `FileList` was
+  emptied before the upload read it (the root cause); images chosen from the
+  phone's *Files* app were dropped; Android's file picker could reload the
+  page mid-attach with no recovery; the single combined picker mis-routed on
+  Android (now split into *Cámara* / *Fotos* / *Archivos*); and the failure
+  path stayed silent instead of reporting.
+- **Finia — chat smart cards** now parse structured fields instead of
+  guessing from prose, so the rendered card and the quick-reply chips can no
+  longer disagree (see `CLAUDE.md` for the parser contract).
+- **Programados — pause/resume now persists** instead of reverting on
+  reload; the card and pause UX were redesigned around it.
+- **Programados — `Eliminar` no longer no-ops** on an already-archived item.
+- **Programados — manual "marcar como pagado" is blocked** when the
+  corresponding movimiento cannot be created, instead of marking the item
+  paid with no movimiento behind it.
+- **Inversiones — a paid installment is no longer orphaned** when saving the
+  movimiento fails; the pay-registration flow and progress UI were
+  overhauled alongside it.
+- **Tutorial — the setup tutorial no longer reappears** after being skipped
+  or completed.
+
+### 🔒 Security
+
+- **HIGH → FIXED: `socket.io-parser` zero-attachment memory exhaustion**
+  ([GHSA-2m8v-j782-fhvr](https://github.com/advisories/GHSA-2m8v-j782-fhvr)),
+  `4.2.6` → `4.2.7`. New advisory since 2.20.4. Unlike the dev-toolchain-only
+  advisories of recent cycles this one **is shipped to users** — it reaches
+  the bundle transitively via `@base44/sdk` → `socket.io-client`. Resolved
+  with a patch-level, lockfile-only `npm audit fix`: no `package.json`
+  dependency range changed and no major/minor bump was involved.
+- `react-router` / `react-router-dom` (moderate, open redirect) — still
+  **deferred**, rationale unchanged from v2.20.3: it needs a 6→7 major
+  migration, and the SSR-hydration half of the advisory does not apply to a
+  client-rendered SPA. `npm audit --audit-level=critical` stays green.
+- **`SupportTicket` RLS `create` widened** (commit `9769441`,
+  `base44-builder[bot]`, direct to `main`): previously admin-only, it now
+  also allows `created_by_id == {{user.id}}`, so a non-admin can file their
+  own ticket. This *widens* access rather than restricting it, so it is not
+  a repeat of the 2026-06-29 incident; `validate:rls` passes and no read
+  path was narrowed. Reviewed and kept.
+- **Removed dead `base44/functions/_internalGuard.ts`** — an unimported
+  leftover copy of the shared guard (each consuming function carries its own
+  colocated `_internalGuard.ts`). It still documented and implemented the
+  old fail-open behavior, contradicting every live copy. Verified zero
+  importers before removal; not a deployed function (no `entry.ts`).
+
+### 📋 Release notes
+
+- This release exists because **17 user-facing commits had accumulated on
+  `main` since 2.20.4 with no version bump and no changelog entry** — the
+  in-app *Acerca de* history, `package.json` and this file had all drifted
+  behind shipped behavior. Version references are re-synchronized as of this
+  entry.
+- Backend functions touched since the last confirmed deploy now include the
+  v2.20.3 **critical** cross-family analytics fix, the license-lifecycle
+  retirement (needs `--force` to prune), the v2.20.4 snapshots, Finia's
+  image intake, and the guard change above. Function count is 44/50.
+
 ## [2.20.4] - 2026-08-03
 
 ### 🔒 Security
