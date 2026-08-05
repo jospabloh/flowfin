@@ -1,22 +1,28 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Send, Mic, MicOff, Paperclip, X, Loader2 } from 'lucide-react';
+import { Send, Mic, MicOff, Paperclip, X, Loader2, Camera, Image, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
 
-// Accepted attachment types: images plus common document formats.
-// Explicit .heic/.heif extensions are load-bearing, not decorative: the
-// `image/*` MIME wildcard alone matches on the file's *reported* MIME type,
-// but HEIC — the default photo format on iPhone — frequently comes back
-// with an empty or generic type (e.g. application/octet-stream) when picked
-// through a phone's general "Files"/document-provider UI instead of the
-// native Camera/Photos picker. When that happens, mobile browsers filter it
-// out of the selection *before* our onChange handler ever runs — the picker
-// "succeeds" but the resulting FileList is empty, so nothing gets attached
-// and there is no error to show (nothing in our JS ran). Listing the
-// extensions directly gives the OS a second way to match the file that
-// doesn't depend on its (unreliable) reported MIME type.
-const ATTACHMENT_ACCEPT = 'image/*,.heic,.heif,.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
+// Two separate file inputs (Fotos / Archivos) instead of one combined
+// picker — confirmed via a screen recording of the actual failure, not
+// guessed. On Android, tapping the paperclip used to open one input whose
+// `accept` mixed `image/*` with document extensions; the OS routed that
+// through the phone's general-purpose "Files" app. That app's "Archivos
+// recientes" shortcut list opens a tapped item with "Abrir con" (open-with)
+// instead of returning it to the page — the picker visibly "succeeds" but
+// our onChange handler never fires, so nothing gets attached and there's no
+// error to show (nothing in our own code ran). The dedicated Photos picker
+// that phones offer as its own option doesn't have that bug — it always
+// returns the selection. Splitting into Cámara / Fotos / Archivos (the same
+// three-way split most chat apps use) routes the common case — attaching a
+// photo — through the picker that actually works, and keeps "Archivos" for
+// the document types that have no Photos-picker equivalent anyway.
+// `.heic`/`.heif` stay explicit alongside `image/*` as a second, MIME-
+// independent match for iPhone photos, whose reported MIME type isn't
+// always reliable either.
+const IMAGE_ACCEPT = 'image/*,.heic,.heif';
+const DOCUMENT_ACCEPT = '.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'];
 
 // Categorize a file into a kind/label/emoji for the preview UI and message text.
@@ -51,9 +57,12 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   const [uploading, setUploading] = useState(false);
   const [uploadPreviews, setUploadPreviews] = useState([]);
   const [uploadError, setUploadError] = useState(null);
+  const [showAttachSheet, setShowAttachSheet] = useState(false);
   const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const photoInputRef = useRef(null);
+  const docInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
@@ -250,6 +259,15 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
 
   const removePreview = (url) => setUploadPreviews(prev => prev.filter(p => p.url !== url));
 
+  // Opens one of the three dedicated pickers (Cámara / Fotos / Archivos).
+  // Called synchronously from the sheet's onClick so the .click() still
+  // counts as a direct response to the user's tap — required for the file
+  // picker to open on iOS Safari.
+  const openPicker = (ref) => {
+    setShowAttachSheet(false);
+    ref.current?.click();
+  };
+
   // File upload from file picker (supports selecting multiple files at once)
   const handleFileSelect = async (e) => {
     const files = e.target.files;
@@ -422,17 +440,29 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
         {/* Attach buttons */}
         <div className="flex gap-1 flex-shrink-0 pb-1">
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setShowAttachSheet(true)}
             disabled={disabled || uploading}
             className="w-10 h-10 rounded-2xl flex items-center justify-center bg-muted text-muted-foreground hover:text-foreground hover:bg-accent transition-all active:scale-95 disabled:opacity-40"
-            title="Adjuntar imágenes o documentos (txt, md, csv, doc, xls)"
+            title="Adjuntar imágenes o documentos"
           >
             {uploading
               ? <div className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
               : <Paperclip className="w-[18px] h-[18px]" />
             }
           </button>
-          <input ref={fileInputRef} type="file" accept={ATTACHMENT_ACCEPT} multiple className="hidden" onChange={handleFileSelect} />
+          {/* Camera — `capture="environment"` asks the browser to hand the
+              shot directly back to this input via its own capture contract,
+              instead of Samsung's own ambiguous "Cámara" resolver shortcut
+              (which the old single combined input relied on implicitly). */}
+          <input ref={cameraInputRef} type="file" accept={IMAGE_ACCEPT} capture="environment" className="hidden" onChange={handleFileSelect} />
+          {/* Fotos — plain image accept, no capture: this is what makes
+              mobile browsers offer the dedicated Photos picker instead of
+              routing through the general Files app. */}
+          <input ref={photoInputRef} type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={handleFileSelect} />
+          {/* Archivos — documents only, kept separate from image/* so this
+              is the only path that still goes through the general Files
+              app (which has no better alternative for these formats). */}
+          <input ref={docInputRef} type="file" accept={DOCUMENT_ACCEPT} multiple className="hidden" onChange={handleFileSelect} />
         </div>
 
         {/* Text input */}
@@ -491,6 +521,59 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
           🔒 Finia solo accede a los datos de tu familia
         </p>
       </div>
+
+      {/* Attach sheet — Cámara / Fotos / Archivos as three distinct pickers */}
+      <AnimatePresence>
+        {showAttachSheet && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+              onClick={() => setShowAttachSheet(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl border-t border-border p-5"
+              style={{ paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}
+            >
+              <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-4" />
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-foreground">Adjuntar</p>
+                <button
+                  onClick={() => setShowAttachSheet(false)}
+                  className="p-1 rounded-lg hover:bg-muted text-muted-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => openPicker(cameraInputRef)}
+                  className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-border hover:bg-muted active:scale-[0.97] transition-all"
+                >
+                  <Camera className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Cámara</span>
+                </button>
+                <button
+                  onClick={() => openPicker(photoInputRef)}
+                  className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-border hover:bg-muted active:scale-[0.97] transition-all"
+                >
+                  <Image className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Fotos</span>
+                </button>
+                <button
+                  onClick={() => openPicker(docInputRef)}
+                  className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-border hover:bg-muted active:scale-[0.97] transition-all"
+                >
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Archivos</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
