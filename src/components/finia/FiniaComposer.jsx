@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { Send, Mic, MicOff, Paperclip, X, Loader2, Camera, Image, FileText } from 'lucide-react';
+import { Send, Mic, MicOff, Paperclip, X, Loader2, Camera, Image, FileText, ClipboardPaste } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
@@ -341,6 +341,43 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     ref.current?.click();
   };
 
+  // Pegar — reads an image straight from the clipboard via the async
+  // Clipboard API, bypassing <input type=file> and its native OS picker
+  // entirely. Confirmed via three separate screen recordings that on this
+  // phone's Samsung Internet, going through the native picker — Cámara,
+  // Fotos, or Archivos, in a real tab or a bookmarked shortcut, cancelled
+  // or genuinely completed with a confirmed selection — can silently never
+  // deliver the file to this page's <input>, with nothing left in our own
+  // code to catch or explain it: a bug in Samsung Internet's own bridging
+  // between its picker UI and the page, outside what any accept/capture
+  // tuning on our end can reach. This sidesteps that layer altogether:
+  // copy the photo in Galería (long-press → Copiar), then tap this button.
+  const pasteFromClipboard = async () => {
+    setShowAttachSheet(false);
+    if (!navigator.clipboard?.read) {
+      setUploadError('Tu navegador no soporta este botón — mantén presionado el cuadro de texto y elegí "Pegar".');
+      setTimeout(() => setUploadError(null), 4500);
+      return;
+    }
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const images = [];
+      for (const item of clipboardItems) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) images.push(await item.getType(imageType));
+      }
+      if (images.length) {
+        await uploadFiles(images, `pegado-${Date.now()}.png`);
+      } else {
+        setUploadError('No hay ninguna imagen copiada. Copiá una foto desde tu galería primero.');
+        setTimeout(() => setUploadError(null), 4500);
+      }
+    } catch {
+      setUploadError('No se pudo leer el portapapeles. Probá mantener presionado el cuadro de texto y "Pegar".');
+      setTimeout(() => setUploadError(null), 4500);
+    }
+  };
+
   // File upload from file picker (supports selecting multiple files at once)
   const handleFileSelect = async (e) => {
     // Reaching this line at all proves this instance survived — clear the
@@ -554,9 +591,15 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
               instead of Samsung's own ambiguous "Cámara" resolver shortcut
               (which the old single combined input relied on implicitly). */}
           <input ref={cameraInputRef} type="file" accept={IMAGE_ACCEPT} capture="environment" className="hidden" onChange={handleFileSelect} />
-          {/* Fotos — plain image accept, no capture: this is what makes
-              mobile browsers offer the dedicated Photos picker instead of
-              routing through the general Files app. */}
+          {/* Fotos — plain image accept, no capture. On some browsers this
+              reaches a dedicated Photos picker that bypasses the general
+              Files app's bugs; confirmed via screen recording that on this
+              Samsung Internet version it does not — it still opens
+              Samsung's own "Seleccionar una acción" resolver, whose result
+              can fail to reach this input at all (see pasteFromClipboard
+              below for the reliable fallback). Kept because it's still the
+              standards-correct way to ask for "an image, not a capture",
+              and may behave better on other devices/browsers. */}
           <input ref={photoInputRef} type="file" accept={IMAGE_ACCEPT} multiple className="hidden" onChange={handleFileSelect} />
           {/* Archivos — documents only, kept separate from image/* so this
               is the only path that still goes through the general Files
@@ -646,7 +689,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => openPicker(cameraInputRef)}
                   className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-border hover:bg-muted active:scale-[0.97] transition-all"
@@ -668,7 +711,17 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
                   <FileText className="w-5 h-5 text-muted-foreground" />
                   <span className="text-xs font-medium text-foreground">Archivos</span>
                 </button>
+                <button
+                  onClick={pasteFromClipboard}
+                  className="flex flex-col items-center gap-2 py-4 rounded-2xl border border-primary/30 bg-primary/5 hover:bg-primary/10 active:scale-[0.97] transition-all"
+                >
+                  <ClipboardPaste className="w-5 h-5 text-primary" />
+                  <span className="text-xs font-medium text-primary">Pegar</span>
+                </button>
               </div>
+              <p className="text-[11px] text-muted-foreground text-center mt-3">
+                ¿Cámara, Fotos o Archivos no funcionan? Mantén presionada la foto en tu galería, tocá <strong>Copiar</strong> y después <strong>Pegar</strong> acá arriba.
+              </p>
             </motion.div>
           </>
         )}
