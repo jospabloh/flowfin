@@ -1,9 +1,10 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
-import { parseTransactionDraft, parseDuplicateWarning, stripLabeledFieldLines, classifyMessage } from '@/lib/finiaCardParser';
+import { parseTransactionDraft, parseScheduledPaymentDraft, parseDuplicateWarning, stripLabeledFieldLines, classifyMessage } from '@/lib/finiaCardParser';
 import { PROSE_CLASSNAME } from './markdownProse';
 import FiniaTransactionDraftCard from './cards/FiniaTransactionDraftCard';
+import FiniaScheduledPaymentDraftCard from './cards/FiniaScheduledPaymentDraftCard';
 import FiniaDuplicateAlertCard from './cards/FiniaDuplicateAlertCard';
 
 const typeConfig = {
@@ -24,13 +25,19 @@ export default function FiniaMessageBubble({ message, onAction, disabled }) {
   const visibleChars = content.replace(/[\p{Emoji}\p{P}\s]/gu, '');
   if (visibleChars.length < 2) return null;
 
-  // Structured moments (transaction draft, duplicate warning) get a real
-  // interactive card instead of raw markdown — see finiaCardParser.js for
-  // why field-label parsing replaced guessing off arbitrary prose.
-  const draft = !isUser && onAction ? parseTransactionDraft(content) : null;
-  const duplicate = !draft && !isUser && onAction ? parseDuplicateWarning(content) : null;
+  // Structured moments (transaction draft, scheduled-payment draft,
+  // duplicate warning) get a real interactive card instead of raw markdown
+  // — see finiaCardParser.js for why field-label parsing replaced guessing
+  // off arbitrary prose. Scheduled-payment is checked first: it hinges on
+  // `dueDay`, a field only that flow uses, so it's the more specific match
+  // — a recurring-charge draft also happens to satisfy the transaction
+  // draft's looser `amount`-based check and would otherwise get misread as
+  // a one-off expense.
+  const scheduled = !isUser && onAction ? parseScheduledPaymentDraft(content) : null;
+  const draft = !scheduled && !isUser && onAction ? parseTransactionDraft(content) : null;
+  const duplicate = !scheduled && !draft && !isUser && onAction ? parseDuplicateWarning(content) : null;
 
-  if (draft || duplicate) {
+  if (scheduled || draft || duplicate) {
     const note = stripLabeledFieldLines(content);
     return (
       <div className="flex gap-2.5 justify-start items-end">
@@ -38,9 +45,9 @@ export default function FiniaMessageBubble({ message, onAction, disabled }) {
           💚
         </div>
         <div className="max-w-[85%] w-full">
-          {draft
-            ? <FiniaTransactionDraftCard fields={draft.fields} note={note} onAction={onAction} disabled={disabled} />
-            : <FiniaDuplicateAlertCard fields={duplicate.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {scheduled && <FiniaScheduledPaymentDraftCard fields={scheduled.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {!scheduled && draft && <FiniaTransactionDraftCard fields={draft.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {!scheduled && !draft && duplicate && <FiniaDuplicateAlertCard fields={duplicate.fields} note={note} onAction={onAction} disabled={disabled} />}
         </div>
       </div>
     );

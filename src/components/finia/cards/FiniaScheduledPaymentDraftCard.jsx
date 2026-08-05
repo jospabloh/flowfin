@@ -1,39 +1,36 @@
 import FiniaTicketCard from './FiniaTicketCard';
 
-// Finia lays out a draft the same way a receipt does: a total, an item, and
-// a ledger of line items underneath. Rendering it as an actual ticket stub
-// (see .finia-ticket / --receipt-* tokens in index.css, and FiniaTicketCard
-// for the shared shell) makes the one message in the whole chat that's
-// about to become a real record look like one — instead of blending into
-// another dark bubble.
+// Recurring-charge draft (rent, subscription, utility bill) — visually the
+// same "receipt" system as the one-off transaction draft (FiniaTicketCard),
+// distinguished by a "/mes" suffix on the amount instead of a second badge:
+// the recurrence is the one thing worth calling out, so it earns the
+// signature spot next to the number itself rather than competing for
+// attention with its own pill.
 const LEDGER_ROWS = [
+  { key: 'dueDay', label: 'Vence' },
   { key: 'category', label: 'Rubro' },
-  { key: 'subcategory', label: 'Subrubro' },
   { key: 'person', label: 'Persona' },
   { key: 'paymentMethod', label: 'Forma de pago' },
-  { key: 'date', label: 'Fecha' },
 ];
 
-// Same canned-reply phrasing the agent already expects back (see
-// finiaCardParser.js / the old DRAFT_CHIPS) — these are effectively typed
-// buttons, not free-text guesses.
 const EDIT_ACTIONS = [
   { key: 'amount', label: 'Cambiar monto', text: 'Quiero cambiar el monto' },
+  { key: 'dueDay', label: 'Cambiar día', text: 'Quiero cambiar el día de vencimiento' },
   { key: 'category', label: 'Cambiar rubro', text: 'Quiero cambiar el rubro' },
   { key: 'person', label: 'Cambiar persona', text: 'Quiero cambiar la persona' },
 ];
 
 function parseAmount(raw) {
-  if (!raw) return 0;
+  if (!raw) return null;
   const n = parseFloat(raw.replace(/[^\d.,-]/g, '').replace(/,/g, ''));
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? n : null;
 }
 
 function formatAmount(n) {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function FiniaTransactionDraftCard({ fields, note, onAction, disabled }) {
+export default function FiniaScheduledPaymentDraftCard({ fields, note, onAction, disabled }) {
   const isIncome = /ingreso/i.test(fields.type || '');
   const amount = parseAmount(fields.amount);
   const inkVar = isIncome ? 'hsl(var(--receipt-income))' : 'hsl(var(--receipt-expense))';
@@ -49,12 +46,17 @@ export default function FiniaTransactionDraftCard({ fields, note, onAction, disa
           className="text-[10px] font-bold uppercase tracking-[0.07em] px-2 py-0.5 rounded-full"
           style={{ color: inkVar, backgroundColor: `hsl(var(--receipt-${isIncome ? 'income' : 'expense'}) / 0.1)` }}
         >
-          {isIncome ? 'Ingreso' : 'Gasto'}
+          {isIncome ? 'Cobro recurrente' : 'Cargo recurrente'}
         </span>
       }
-      amountLabel={amount ? `$${formatAmount(amount)}` : fields.amount}
+      amountLabel={
+        <>
+          {amount != null ? `$${formatAmount(amount)}` : (fields.amount || '—')}
+          <span className="text-[15px] font-semibold align-baseline" style={{ color: 'hsl(var(--receipt-ink-muted))' }}> /mes</span>
+        </>
+      }
       amountColorVar={inkVar}
-      titleLine={fields.concept}
+      titleLine={fields.name}
       ledgerRows={ledgerRows}
       note={note}
       editActions={EDIT_ACTIONS}

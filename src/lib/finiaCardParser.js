@@ -33,6 +33,12 @@ const FIELD_PATTERNS = {
   person: /\b(persona|integrante)\b/i,
   paymentMethod: /forma de pago|m[eé]todo de pago/i,
   date: /\bfecha\b/i,
+  // Scheduled-payment (recurring charge) draft fields — distinct from the
+  // one-off transaction draft's `concept`/`date` so the two draft kinds
+  // never get confused parsing the same message (see
+  // parseScheduledPaymentDraft / parseTransactionDraft below).
+  name: /\bnombre\b/i,
+  dueDay: /d[ií]a de (vencimiento|pago|cobro)|d[ií]a del mes/i,
 };
 
 // Any codepoint that can appear as part of an emoji glyph or bullet marker:
@@ -151,6 +157,26 @@ export function parseTransactionDraft(content) {
   if (!asksToConfirm) return null;
 
   return { fields, kind: 'draft' };
+}
+
+/**
+ * Detects a scheduled-payment (recurring charge) draft moment: Finia laid
+ * out a recurring-charge draft — rent, subscription, utility bill — and is
+ * asking the user to confirm before saving. Distinct from
+ * parseTransactionDraft: this one hinges on `dueDay` ("Día de vencimiento"),
+ * a field only the recurring flow uses, so a message can't satisfy both.
+ */
+export function parseScheduledPaymentDraft(content) {
+  if (!content) return null;
+  const fields = extractLabeledFields(content);
+  if (!fields.dueDay) return null;
+  const fieldCount = Object.keys(fields).length;
+  if (fieldCount < MIN_FIELDS_FOR_STRUCTURED_MESSAGE) return null;
+
+  const asksToConfirm = /¿?confirmas?\b|¿lo guardo\??|confirmas que guarde/i.test(content);
+  if (!asksToConfirm) return null;
+
+  return { fields, kind: 'scheduled' };
 }
 
 /**
