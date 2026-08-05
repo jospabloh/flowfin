@@ -25,6 +25,41 @@ const IMAGE_ACCEPT = 'image/*,.heic,.heif';
 const DOCUMENT_ACCEPT = '.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'];
 
+// Confirmed via a second screen recording: even a *successful* native
+// picker round-trip (checkbox multi-select in "Mis archivos", "Aceptar" on
+// a fresh camera shot) still lands back on Finia's untouched welcome
+// screen — no preview, no error, nothing. That's not the "Abrir con"
+// picker bug from before; a genuinely completed selection can't hit that.
+// The only thing that explains total silence after a *working* picker
+// round-trip is the page itself getting re-created while the Cámara/
+// Galería app was in the foreground (Samsung Internet — and Android
+// browsers generally, under memory pressure — can reload or replace the
+// backgrounded tab instead of keeping it alive). If that happens, the
+// picked file arrives at a fresh FiniaComposer instance's `<input>` that
+// was never told to expect it, or doesn't arrive at all — either way
+// there's nothing left in memory that could show an upload error, because
+// the code that would have shown one no longer exists.
+//
+// We can't stop the browser from doing this, but we can make it visible
+// instead of silent: right before opening any picker we drop a timestamped
+// flag (+ the draft text) into sessionStorage, which — unlike React state —
+// survives a reload. A `visibilitychange` listener clears that flag the
+// moment this same JS instance is still alive to see the tab come back to
+// the foreground, whether the user picked a file or cancelled. So if the
+// flag is still there on the next mount, this can't be that page's first
+// visit — it's the *same tab* coming back from a reload we didn't ask for,
+// and there's no scenario left in which the flag survives that isn't one.
+const PENDING_ATTACH_KEY = 'finia-composer-pending-attach';
+const DRAFT_KEY = 'finia-composer-draft';
+const PENDING_ATTACH_MAX_AGE_MS = 5 * 60 * 1000; // ignore a flag left over from an abandoned tab
+
+function clearPendingAttach() {
+  try {
+    sessionStorage.removeItem(PENDING_ATTACH_KEY);
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch { /* sessionStorage unavailable (private mode, etc.) — non-fatal */ }
+}
+
 // Categorize a file into a kind/label/emoji for the preview UI and message text.
 function describeFile(file) {
   const name = file?.name || '';
@@ -58,6 +93,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   const [uploadPreviews, setUploadPreviews] = useState([]);
   const [uploadError, setUploadError] = useState(null);
   const [showAttachSheet, setShowAttachSheet] = useState(false);
+  const [reloadNotice, setReloadNotice] = useState(false);
   const lastEnterWasNewLine = useRef(false);
   const textareaRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -73,6 +109,38 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   };
+
+  // Runs once per real mount. If a pending-attach flag from a previous
+  // instance of this component is still in sessionStorage, this can't be
+  // this tab's first visit — see the constants above for why that only
+  // happens when the browser re-created the page out from under a picker.
+  // Recover the draft text and say what happened instead of staying silent.
+  useEffect(() => {
+    let pendingRaw = null;
+    try { pendingRaw = sessionStorage.getItem(PENDING_ATTACH_KEY); } catch { /* ignore */ }
+    if (pendingRaw) {
+      const age = Date.now() - Number(pendingRaw);
+      if (Number.isFinite(age) && age >= 0 && age < PENDING_ATTACH_MAX_AGE_MS) {
+        setReloadNotice(true);
+        let draft = null;
+        try { draft = sessionStorage.getItem(DRAFT_KEY); } catch { /* ignore */ }
+        if (draft) setInput(draft);
+      }
+      clearPendingAttach();
+    }
+  }, []);
+
+  // If this same JS instance is still alive to see the tab come back to
+  // the foreground, no reload happened — clear the flag immediately so a
+  // later, unrelated mount never misreads it as one. Covers cancelling the
+  // picker too (onChange may never fire in that case).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') clearPendingAttach();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // Unified submit: sends with or without attachments depending on state.
   const handleSubmit = useCallback((rawText) => {
@@ -262,14 +330,22 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
   // Opens one of the three dedicated pickers (Cámara / Fotos / Archivos).
   // Called synchronously from the sheet's onClick so the .click() still
   // counts as a direct response to the user's tap — required for the file
-  // picker to open on iOS Safari.
+  // picker to open on iOS Safari. Drops the pending-attach flag (+ draft)
+  // right before handing off to the OS — see the constants above.
   const openPicker = (ref) => {
     setShowAttachSheet(false);
+    try {
+      sessionStorage.setItem(PENDING_ATTACH_KEY, String(Date.now()));
+      if (input.trim()) sessionStorage.setItem(DRAFT_KEY, input);
+    } catch { /* sessionStorage unavailable — the OS picker still opens fine */ }
     ref.current?.click();
   };
 
   // File upload from file picker (supports selecting multiple files at once)
   const handleFileSelect = async (e) => {
+    // Reaching this line at all proves this instance survived — clear the
+    // flag regardless of whether a file actually came back.
+    clearPendingAttach();
     const files = e.target.files;
     if (!files?.length) return;
     e.target.value = '';
@@ -375,6 +451,29 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             className="mx-4 mb-2 flex items-center gap-2 bg-destructive/5 border border-destructive/20 rounded-xl px-3 py-2"
           >
             <p className="text-xs text-destructive font-medium flex-1">{uploadError}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reload notice — shown when the page comes back from Cámara/Fotos
+          having lost the in-flight attachment (see PENDING_ATTACH_KEY) */}
+      <AnimatePresence>
+        {reloadNotice && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mx-4 mb-2 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2"
+          >
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex-1">
+              El navegador cerró Finia al abrir la cámara/galería y el adjunto se perdió. Tu mensaje se recuperó — probá adjuntar de nuevo.
+            </p>
+            <button
+              onClick={() => setReloadNotice(false)}
+              className="p-1 rounded-lg hover:bg-muted text-muted-foreground flex-shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
