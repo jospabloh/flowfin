@@ -481,9 +481,19 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
     // Reaching this line at all proves this instance survived — clear the
     // flag regardless of whether a file actually came back.
     clearPendingAttach();
-    const files = e.target.files;
-    if (!files?.length) return;
+    // Copy the selection into a plain array BEFORE clearing the input.
+    // `e.target.files` is a LIVE FileList in Chromium (desktop Chrome/Edge,
+    // Samsung Internet, Android WebView alike): setting `value = ''` empties
+    // the list in place, including through any reference already captured.
+    // The old code cleared first and uploaded after — so uploadFiles always
+    // received 0 files and returned without doing anything, on EVERY
+    // platform and picker: THE silent attach failure reported repeatedly.
+    // Verified in a Playwright/Chromium repro: capture-then-clear yields
+    // length 0 at upload time; copy-then-clear yields the real files.
+    // Do not reorder these three lines.
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    if (!files.length) return;
     await uploadFiles(files);
   };
 
