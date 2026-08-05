@@ -115,7 +115,7 @@
     },
     "ai_brief": {
       "type": "object",
-      "description": "Brief estructurado generado por el asistente BA/PO cuando el ticket es de tipo nueva funcionalidad (feature) o incidencia (bug): historia de usuario, criterios de aceptación, alcance, pasos de reproducción, severidad, impacto, etc. Aditivo: el mismo contenido también viaja en Markdown dentro de description."
+      "description": "Brief estructurado generado por el asistente BA/PO cuando el ticket es de tipo nueva funcionalidad (feature) o incidencia (bug): historia de usuario, criterios de aceptaci\u00f3n, alcance, pasos de reproducci\u00f3n, severidad, impacto, etc. Aditivo: el mismo contenido tambi\u00e9n viaja en Markdown dentro de description."
     }
   },
   "required": [
@@ -124,9 +124,16 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": "admin"
-      }
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "created_by_id": "{{user.id}}"
+        }
+      ]
     },
     "read": {
       "$or": [
