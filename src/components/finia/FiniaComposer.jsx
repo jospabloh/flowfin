@@ -5,14 +5,29 @@ import { base44 } from '@/api/base44Client';
 import FiniaQuickChips from './FiniaQuickChips';
 
 // Accepted attachment types: images plus common document formats.
-const ATTACHMENT_ACCEPT = 'image/*,.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
+// Explicit .heic/.heif extensions are load-bearing, not decorative: the
+// `image/*` MIME wildcard alone matches on the file's *reported* MIME type,
+// but HEIC — the default photo format on iPhone — frequently comes back
+// with an empty or generic type (e.g. application/octet-stream) when picked
+// through a phone's general "Files"/document-provider UI instead of the
+// native Camera/Photos picker. When that happens, mobile browsers filter it
+// out of the selection *before* our onChange handler ever runs — the picker
+// "succeeds" but the resulting FileList is empty, so nothing gets attached
+// and there is no error to show (nothing in our JS ran). Listing the
+// extensions directly gives the OS a second way to match the file that
+// doesn't depend on its (unreliable) reported MIME type.
+const ATTACHMENT_ACCEPT = 'image/*,.heic,.heif,.txt,.md,.csv,.doc,.docx,.xls,.xlsx';
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic', 'heif'];
 
 // Categorize a file into a kind/label/emoji for the preview UI and message text.
 function describeFile(file) {
   const name = file?.name || '';
   const type = file?.type || '';
   const ext = name.split('.').pop()?.toLowerCase() || '';
-  if (type.startsWith('image/')) return { kind: 'image', label: 'Imagen', emoji: '🧾' };
+  // Fall back to the extension when `type` is empty/generic — the same
+  // unreliable-MIME phones/pickers described above also mislabel a real
+  // image as a plain "Archivo" here once it does get attached.
+  if (type.startsWith('image/') || IMAGE_EXTENSIONS.includes(ext)) return { kind: 'image', label: 'Imagen', emoji: '🧾' };
   if (ext === 'csv' || type === 'text/csv') return { kind: 'document', label: 'CSV', emoji: '📊' };
   if (ext === 'xls' || ext === 'xlsx' || type.includes('excel') || type.includes('spreadsheet'))
     return { kind: 'document', label: 'Excel', emoji: '📊' };
