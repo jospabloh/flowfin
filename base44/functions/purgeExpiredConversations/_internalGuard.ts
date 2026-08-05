@@ -4,9 +4,9 @@
 // dashboard) and must NOT require an end-user session, or the scheduler would
 // break. They also expose a public HTTP endpoint that anyone could POST to.
 //
-// This guard is FAIL-OPEN until the CRON_SECRET secret is configured, so simply
-// deploying it changes nothing and cannot break existing schedulers. Once
-// CRON_SECRET is set in Base44 secrets, callers must either:
+// This guard is FAIL-CLOSED: if the CRON_SECRET secret is not configured, the
+// internal endpoints are disabled entirely (403). Once CRON_SECRET is set in
+// Base44 secrets, callers must either:
 //   - send a matching `x-cron-secret` header (add it to the automation config), or
 //   - be an authenticated admin user (for manual runs from the panel/app).
 // Anything else gets 403.
@@ -15,7 +15,10 @@
 // deno-lint-ignore no-explicit-any
 export async function guardInternal(base44: any, req: Request): Promise<Response | null> {
   const secret = Deno.env.get('CRON_SECRET');
-  if (!secret) return null; // not configured yet → preserve current behavior
+  if (!secret) {
+    // Fail-closed: no secret configured → deny all internal invocations.
+    return Response.json({ error: 'internal endpoint not configured' }, { status: 403 });
+  }
 
   const provided = req.headers.get('x-cron-secret');
   if (provided && provided === secret) return null;
