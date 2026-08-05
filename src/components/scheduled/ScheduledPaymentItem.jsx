@@ -56,7 +56,7 @@ function statusBadge(record, item, dueColor, isPaused) {
   return { label: 'Pendiente', variant: 'warning' };
 }
 
-export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, onMarkPaid, onUnmark, onEdit, onDelete, onPauseUntil, onResume }) {
+export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnmarking, isAdmin, isPaused, hasHistory, onMarkPaid, onUnmark, onEdit, onDelete, onPauseUntil, onResume }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
@@ -103,6 +103,11 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
               Pausado hasta {formatPausedUntil(item.paused_until)}{item.pause_reason ? ` · ${item.pause_reason}` : ''}
             </p>
           )}
+          {item.is_active === false && hasHistory && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Con historial de pagos — se conserva por integridad de datos, no se puede eliminar del todo.
+            </p>
+          )}
           {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
         </div>
       </div>
@@ -137,7 +142,7 @@ export default function ScheduledPaymentItem({ item, isPaid, record, cat, isUnma
               <PauseCircle className="w-4 h-4" />
             </button>
           )}
-          {(isAdmin || canDelete) && (
+          {(isAdmin || canDelete) && !(item.is_active === false && hasHistory) && (
             <button onClick={handleDelete} aria-label="Eliminar compromiso" className="flex items-center justify-center w-11 h-11 rounded-xl bg-muted text-muted-foreground active:opacity-70 transition-opacity">
               <Trash2 className="w-4 h-4" />
             </button>

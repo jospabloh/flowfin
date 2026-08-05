@@ -4,8 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
-import { Plus, ChevronDown, CheckCircle2, Zap, PauseCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Plus, CheckCircle2, Zap, PauseCircle, Hand } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
 import { useToast } from '@/components/ui/use-toast';
 import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
@@ -32,6 +32,36 @@ function isTemporarilyPaused(item) {
   return !Number.isNaN(pauseEnd.getTime()) && TODAY <= pauseEnd;
 }
 
+// Activos / Pausados / Archivados are the three lifecycle states — mutually
+// exclusive, exactly one tab owns any given item. "Pendientes / Pagados este
+// mes / Automáticos / Manuales" are a second, independent filter that only
+// slices the Activos list — an automatic payment is still "Activos" whether
+// it's paid or pending this month, so that's a filter, not a fourth state.
+function getEmptyState({ activeView, activeFilter, isAdmin }) {
+  if (activeView === 'archived') {
+    return { icon: '📅', title: 'Sin pagos archivados', subtitle: 'Los pagos archivados aparecerán aquí.' };
+  }
+  if (activeView === 'paused') {
+    return { icon: '⏸️', title: 'Nada pausado', subtitle: 'Los pagos que pauses aparecen acá mientras dure la pausa.' };
+  }
+  if (activeFilter === 'paid') {
+    return { icon: '✅', title: 'Nada pagado todavía', subtitle: 'Los pagos que marques como pagados este mes van a aparecer acá.' };
+  }
+  if (activeFilter === 'auto') {
+    return {
+      icon: '⚡', title: 'Sin domiciliados automáticos',
+      subtitle: isAdmin ? 'Edita un pago y activa "Domiciliado automático" para que se registre solo.' : 'El administrador aún no ha activado pagos automáticos.',
+    };
+  }
+  if (activeFilter === 'manual') {
+    return { icon: '✋', title: 'Sin pagos manuales', subtitle: 'Todos tus pagos activos son domiciliados automáticos.' };
+  }
+  return {
+    icon: '📅', title: 'Sin pagos programados',
+    subtitle: isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.',
+  };
+}
+
 export default function ScheduledPayments() {
   const { familyId, isAdmin, currentUser } = useFamily();
   const { categories, paymentMethods, persons } = useCatalog(familyId);
@@ -51,8 +81,8 @@ export default function ScheduledPayments() {
   const [payPaymentMethodId, setPayPaymentMethodId] = useState('');
   const [isSavingPayment, setIsSavingPayment] = useState(false);
   const [unmarkingId, setUnmarkingId] = useState(null);
-  const [activeView, setActiveView] = useState('active');
-  const [showPaid, setShowPaid] = useState(false);
+  const [activeView, setActiveView] = useState('active'); // 'active' | 'paused' | 'archived'
+  const [activeFilter, setActiveFilter] = useState('pending'); // 'pending' | 'paid' | 'auto' | 'manual' — only applies within Activos
   const [pausingItem, setPausingItem] = useState(null);
 
   const { data: payments = [] } = useQuery({
@@ -69,18 +99,28 @@ export default function ScheduledPayments() {
   const monthRecords = useMemo(() => records.filter(r => r.month === CURRENT_MONTH), [records]);
   const paidThisMonth = useMemo(() => new Set(monthRecords.filter(r => ['posted', 'reconciled'].includes(r.status || 'reconciled')).map(r => r.scheduled_payment_id)), [monthRecords]);
   const skippedThisMonth = useMemo(() => new Set(monthRecords.filter(r => r.status === 'skipped').map(r => r.scheduled_payment_id)), [monthRecords]);
-  const activePayments = useMemo(() => payments.filter(p => p.is_active !== false), [payments]);
+  // Every ScheduledPaymentRecord this payment has EVER had (not just this
+  // month) — already fetched for the page, so checking it here for the
+  // Archivados delete-button decision costs no extra query.
+  const everHadHistory = useMemo(() => new Set(records.map(r => r.scheduled_payment_id)), [records]);
+
   const archivedPayments = useMemo(() => payments.filter(p => p.is_active === false), [payments]);
+  const nonArchived = useMemo(() => payments.filter(p => p.is_active !== false), [payments]);
+  const pausedPayments = useMemo(() => nonArchived.filter(isTemporarilyPaused), [nonArchived]);
+  const activePayments = useMemo(() => nonArchived.filter(p => !isTemporarilyPaused(p)), [nonArchived]);
   const automatedPayments = useMemo(() => activePayments.filter(p => p.automation_mode === 'auto'), [activePayments]);
-  const pausedPayments = useMemo(() => activePayments.filter(isTemporarilyPaused), [activePayments]);
-  const pending = activePayments.filter(p => !isTemporarilyPaused(p) && !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id));
+  const manualPayments = useMemo(() => activePayments.filter(p => p.automation_mode !== 'auto'), [activePayments]);
+  const paidPayments = useMemo(() => activePayments.filter(p => paidThisMonth.has(p.id)), [activePayments, paidThisMonth]);
+  const pendingPayments = useMemo(() => activePayments.filter(p => !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id)), [activePayments, paidThisMonth, skippedThisMonth]);
+
+  const filteredActive = activeFilter === 'paid' ? paidPayments
+    : activeFilter === 'auto' ? automatedPayments
+    : activeFilter === 'manual' ? manualPayments
+    : pendingPayments;
   const viewList = activeView === 'archived' ? archivedPayments
-    : activeView === 'auto' ? automatedPayments
     : activeView === 'paused' ? pausedPayments
-    : activePayments;
+    : filteredActive;
   const sorted = [...viewList].sort((a, b) => (a.due_day || 0) - (b.due_day || 0));
-  const unpaidSorted = activeView === 'archived' ? sorted : sorted.filter(item => !paidThisMonth.has(item.id));
-  const paidSorted = activeView === 'archived' ? [] : sorted.filter(item => paidThisMonth.has(item.id));
 
   // updateMutation covers pause/resume/edit — none of these had an onError
   // handler before, so a rejected write (schema mismatch, RLS, network) failed
@@ -233,7 +273,7 @@ export default function ScheduledPayments() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Pagos Programados" subtitle={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} este mes`}
+      <PageHeader title="Pagos Programados" subtitle={`${pendingPayments.length} pendiente${pendingPayments.length !== 1 ? 's' : ''} este mes`}
         action={(isAdmin || canCreate) && (
           <button onClick={() => { setEditingItem(null); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm">
             <Plus className="w-3.5 h-3.5" /> Agregar
@@ -241,12 +281,10 @@ export default function ScheduledPayments() {
         )} />
 
       <div className="px-4 space-y-3">
+        {/* Lifecycle state — mutually exclusive, one item lives in exactly one of these */}
         <div className="flex gap-2 flex-wrap">
           <button onClick={() => setActiveView('active')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'active' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             Activos ({activePayments.length})
-          </button>
-          <button onClick={() => setActiveView('auto')} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'auto' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-            <Zap className="w-3 h-3" /> Automáticos ({automatedPayments.length})
           </button>
           <button onClick={() => setActiveView('paused')} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${activeView === 'paused' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
             <PauseCircle className="w-3 h-3" /> Pausados ({pausedPayments.length})
@@ -255,79 +293,55 @@ export default function ScheduledPayments() {
             Archivados ({archivedPayments.length})
           </button>
         </div>
-        {sorted.length === 0 && (
-          <div className="text-center py-12 bg-card border border-border rounded-2xl">
-            <p className="text-3xl mb-2">{activeView === 'auto' ? '⚡' : activeView === 'paused' ? '⏸️' : '📅'}</p>
-            <p className="text-sm font-semibold text-foreground">
-              {activeView === 'archived' ? 'Sin pagos archivados' : activeView === 'auto' ? 'Sin domiciliados automáticos' : activeView === 'paused' ? 'Nada pausado' : 'Sin pagos programados'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {activeView === 'archived'
-                ? 'Los pagos archivados aparecerán aquí.'
-                : activeView === 'auto'
-                ? (isAdmin ? "Edita un pago y activa \"Domiciliado automático\" para que se registre solo." : 'El administrador aún no ha activado pagos automáticos.')
-                : activeView === 'paused'
-                ? 'Los pagos que pauses aparecen acá mientras dure la pausa.'
-                : (isAdmin ? 'Agrega los pagos recurrentes del mes.' : 'El administrador aún no ha agregado pagos.')}
-            </p>
-          </div>
-        )}
-        {sorted.length > 0 && unpaidSorted.length === 0 && paidSorted.length > 0 && (
-          <div className="text-center py-8 bg-card border border-border rounded-2xl">
-            <CheckCircle2 className="w-7 h-7 text-green-500 mx-auto mb-1.5" />
-            <p className="text-sm font-semibold text-foreground">¡Todo al día!</p>
-            <p className="text-xs text-muted-foreground mt-1">Ya marcaste todos los pagos de este mes.</p>
-          </div>
-        )}
-        {unpaidSorted.map(item => {
-          const cat = categories.find(c => c.id === item.category_id);
-          const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
-          return (
-            <ScheduledPaymentItem key={item.id} item={item} isPaid={false} record={record} cat={cat}
-              isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
-              isPaused={isTemporarilyPaused(item)}
-              onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
-              onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-              onPauseUntil={setPausingItem}
-              onResume={handleResume}
-              onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
-          );
-        })}
 
-        {paidSorted.length > 0 && (
-          <div className="pt-1">
-            <button onClick={() => setShowPaid(v => !v)} aria-expanded={showPaid}
-              className="w-full flex items-center justify-between px-1 py-2 group/ph">
-              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70 group-hover/ph:text-muted-foreground transition-colors">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                Pagados este mes ({paidSorted.length})
-              </span>
-              <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground/50 transition-transform duration-200 ${showPaid ? '' : '-rotate-90'}`} aria-hidden="true" />
-            </button>
-            <AnimatePresence initial={false}>
-              {showPaid && (
-                <motion.div key="paid-items" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18, ease: 'easeInOut' }} className="overflow-hidden">
-                  <div className="space-y-3 pt-2">
-                    {paidSorted.map(item => {
-                      const cat = categories.find(c => c.id === item.category_id);
-                      const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
-                      return (
-                        <ScheduledPaymentItem key={item.id} item={item} isPaid record={record} cat={cat}
-                          isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
-                          isPaused={isTemporarilyPaused(item)}
-                          onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
-                          onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
-                          onPauseUntil={setPausingItem}
-                          onResume={handleResume}
-                          onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+        {/* Secondary filter — only slices Activos, doesn't change lifecycle state */}
+        {activeView === 'active' && (
+          <div className="flex gap-1.5 flex-wrap">
+            {[
+              { key: 'pending', label: 'Pendientes', count: pendingPayments.length },
+              { key: 'paid', label: 'Pagados este mes', count: paidPayments.length, icon: CheckCircle2 },
+              { key: 'auto', label: 'Automáticos', count: automatedPayments.length, icon: Zap },
+              { key: 'manual', label: 'Manuales', count: manualPayments.length, icon: Hand },
+            ].map(f => {
+              const Icon = f.icon;
+              const selected = activeFilter === f.key;
+              return (
+                <button key={f.key} onClick={() => setActiveFilter(f.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${selected ? 'bg-primary/15 text-primary' : 'bg-transparent border border-border text-muted-foreground hover:bg-muted'}`}>
+                  {Icon && <Icon className="w-3 h-3" />} {f.label} ({f.count})
+                </button>
+              );
+            })}
           </div>
+        )}
+
+        {sorted.length === 0 ? (
+          (() => {
+            const empty = getEmptyState({ activeView, activeFilter, isAdmin });
+            return (
+              <div className="text-center py-12 bg-card border border-border rounded-2xl">
+                <p className="text-3xl mb-2">{empty.icon}</p>
+                <p className="text-sm font-semibold text-foreground">{empty.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{empty.subtitle}</p>
+              </div>
+            );
+          })()
+        ) : (
+          sorted.map(item => {
+            const cat = categories.find(c => c.id === item.category_id);
+            const record = monthRecords.find(r => r.scheduled_payment_id === item.id);
+            return (
+              <ScheduledPaymentItem key={item.id} item={item} isPaid={paidThisMonth.has(item.id)} record={record} cat={cat}
+                isUnmarking={unmarkingId === item.id} isAdmin={isAdmin}
+                isPaused={isTemporarilyPaused(item)}
+                hasHistory={everHadHistory.has(item.id)}
+                onMarkPaid={(item) => { setPayingItem(item); setPayAmount(item.amount ? String(item.amount) : ''); setPayPaymentMethodId(item.payment_method_id || ''); setPayPersonId(persons[0]?.id || ''); }}
+                onUnmark={handleUnmark} onEdit={(item) => { setEditingItem(item); setShowForm(true); }}
+                onPauseUntil={setPausingItem}
+                onResume={handleResume}
+                onDelete={(selectedItem) => deleteMutation.mutate(selectedItem)} />
+            );
+          })
         )}
       </div>
 
