@@ -6,7 +6,7 @@
   "description": "FlowFin: AI-powered financial management for families",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-permission-snapshot.mjs && node scripts/sync-docs-snapshot.mjs && node scripts/permissions-check.mjs && vite build",
+    "build": "node scripts/permissions-check.mjs && vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",

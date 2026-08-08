@@ -1,5 +1,35 @@
 # FlowFin — Project Notes
 
+## `npm run build` must not mutate committed files (2026-08-08)
+
+`scripts/sync-permission-snapshot.mjs` and `scripts/sync-docs-snapshot.mjs`
+regenerate two git-tracked files consumed only by the Base44 backend
+(`base44/functions/dailyPermissionAudit/permissionManifests.ts`,
+`base44/functions/dailyDocumentationAudit/versionHistorySnapshot.ts`) — never
+by the frontend. Both scripts embed a `// Last synced: <today>` stamp, and
+the docs one also embeds a `git log` snapshot, so re-running them changes the
+file even when nothing meaningful did.
+
+`build` used to run both scripts before `vite build`. Since the frontend
+never reads their output, that only ever produced local, uncommitted diffs
+on two files that also get regenerated (and legitimately committed) by
+`npm run release`. Any routine/repeated `npm run build` — including from
+external deploy tooling that does `git pull` → build → deploy — left those
+two files dirty locally, so the *next* `git pull` for this repo aborted with
+"Los cambios locales de los siguientes archivos serán sobrescritos al
+fusionar" the moment `main` had a newer copy of either file (e.g. from
+someone else's `npm run release`). CI never caught this because `ci.yml`
+never runs `npm run build` at all — it calls `permissions:check` and
+`validate:rls` directly.
+
+**Fix:** `build` now only runs `permissions-check.mjs` (validation, not
+generation) + `vite build`. The two sync scripts still exist and still run
+via `npm run release` and `npm run sync:snapshots` — run one of those by hand
+when you actually want to refresh the two generated files, then commit the
+result. Don't wire snapshot regeneration back into `build`; if a routine
+build needs to mutate a tracked file to stay "fresh," that file will keep
+producing exactly this class of pull conflict.
+
 ## Finia chat "smart cards" — structured field parsing, not prose guessing (2026-08-04)
 
 Finia's chat replies (`src/pages/Assistant.jsx` + `src/components/finia/`) are
