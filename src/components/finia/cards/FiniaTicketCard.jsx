@@ -14,6 +14,7 @@ export default function FiniaTicketCard({
   amountColorVar,
   titleLine,
   ledgerRows,
+  extra,
   note,
   confirmLabel = '✓ Confirmar y guardar',
   confirmText = 'Sí, confírmalo y guárdalo',
@@ -79,6 +80,8 @@ export default function FiniaTicketCard({
           </div>
         </>
       )}
+
+      {extra}
 
       {/* Leftover prose — usually just the confirmation question */}
       {note && (
