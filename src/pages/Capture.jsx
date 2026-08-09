@@ -94,9 +94,18 @@ export default function Capture() {
   const [originalAmount, setOriginalAmount] = useState('');
   const [exchangeRate, setExchangeRate] = useState(null);
   const [fetchingRate, setFetchingRate] = useState(false);
-  // Split state
+  // Split state (trip-only, always an even split — see is_split/split_with_person_ids on Transaction)
   const [isSplit, setIsSplit] = useState(false);
   const [splitWithPersonIds, setSplitWithPersonIds] = useState([]);
+
+  // Shared-expense state — one purchase, paid unevenly by 2+ family members
+  // (any transaction, not trip-only). Saves as N separate Transaction rows
+  // sharing a split_group_id, each with its own real amount/person_id — see
+  // finiaConfirmSplitExpense for the same pattern on Finia's side.
+  const [sharedExpense, setSharedExpense] = useState(false);
+  const [sharedPersonIds, setSharedPersonIds] = useState([]); // additional people, besides the main `personId`
+  const [sharedAmounts, setSharedAmounts] = useState({}); // { [personId]: '80.00' }
+  const [sharedAmountsEdited, setSharedAmountsEdited] = useState(false); // true once the user hand-edits a share
 
   const recognitionRef = useRef(null);
   const fileRef = useRef(null);
@@ -144,6 +153,40 @@ export default function Capture() {
       setAmount((val * exchangeRate).toFixed(2));
     }
   }, [originalAmount, exchangeRate, tripId]);
+
+  // Shared-expense participants: the already-selected `personId` plus
+  // whoever else is checked in the "Gasto compartido" picker. Requires a
+  // person to already be selected — reuses that selection as the first
+  // share instead of asking the user to pick everyone twice.
+  const sharedParticipantIds = personId ? [personId, ...sharedPersonIds.filter(id => id !== personId)] : [];
+
+  // Divides `total` evenly across `ids.length` people, 2-decimal amounts
+  // that sum EXACTLY to total (the last participant absorbs the rounding
+  // remainder rather than everyone being off by a cent).
+  const equalSplit = (ids, total) => {
+    if (!ids.length || !total) return {};
+    const each = Math.floor((total / ids.length) * 100) / 100;
+    const shares = {};
+    let assigned = 0;
+    ids.forEach((id, i) => {
+      shares[id] = i === ids.length - 1 ? (total - assigned).toFixed(2) : each.toFixed(2);
+      assigned += each;
+    });
+    return shares;
+  };
+
+  // Re-split evenly whenever the participant list or total changes — unless
+  // the user has already hand-edited a share, which freezes auto-splitting
+  // so their edits don't get silently overwritten.
+  useEffect(() => {
+    if (!sharedExpense || sharedAmountsEdited) return;
+    setSharedAmounts(equalSplit(sharedParticipantIds, parseFloat(amount) || 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedExpense, sharedAmountsEdited, sharedPersonIds, personId, amount]);
+
+  const sharedTotal = Object.values(sharedAmounts).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+  const sharedDiff = (parseFloat(amount) || 0) - sharedTotal;
+  const sharedTotalMatches = Math.abs(sharedDiff) < 0.01;
 
   // Fetch smart suggestions with debounce to avoid rate limiting
   useEffect(() => {
@@ -375,6 +418,49 @@ export default function Capture() {
     });
   };
 
+  // Saves a shared expense as N separate Transaction rows (one per person's
+  // share), sharing a split_group_id — same shape finiaConfirmSplitExpense
+  // writes from the Finia chat flow, so both paths produce identical data.
+  // Skips the duplicate-check handleSave does for a single transaction:
+  // that check assumes one amount/person and isn't meaningful here.
+  const doSaveShared = async () => {
+    setSaving(true);
+    const week = getWeekNumber(date);
+    const splitGroupId = crypto.randomUUID();
+    const totalAmount = parseFloat(amount);
+    const rows = sharedParticipantIds.map(pid => ({
+      date, type, description,
+      family_id: familyId,
+      category_id: categoryId || undefined,
+      subcategory_id: subcategoryId || undefined,
+      payment_method_id: paymentMethodId || undefined,
+      required_type: requiredType, has_invoice: hasInvoice, notes, week,
+      person_id: pid,
+      amount: parseFloat(sharedAmounts[pid]) || 0,
+      split_group_id: splitGroupId,
+      split_total_amount: totalAmount,
+    }));
+    try {
+      await Promise.all(rows.map(r => base44.entities.Transaction.create(r)));
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+      if (subcategoryId) increment(subcategoryId);
+      recordCapture({ description, categoryId, subcategoryId, personId, paymentMethodId, type });
+      setSaving(false);
+      setShowSuccess(true);
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 }, colors: ['#059669', '#10B981', '#6EE7B7'] });
+      setTimeout(() => {
+        setShowSuccess(false);
+        setAmount(''); setDescription(''); setCategoryId(''); setSubcategoryId('');
+        setNotes(''); setCreditCardBalance(''); setReceiptImage(null); setSuggestions([]);
+        setSharedExpense(false); setSharedPersonIds([]); setSharedAmounts({}); setSharedAmountsEdited(false);
+      }, 1500);
+    } catch (err) {
+      setSaving(false);
+      toast({ title: 'Error al guardar', description: err?.message || 'No se pudo guardar el gasto compartido', variant: 'destructive' });
+    }
+  };
+
   const validCategories = categories.filter(c => c.type === 'both' || c.type === type);
   const missingCategories = validCategories.length === 0;
   const missingPersons = persons.length === 0;
@@ -384,6 +470,11 @@ export default function Capture() {
     if (!amount || isNaN(parseFloat(amount))) return;
     if (!categoryId) return;
     if (!personId) return;
+    if (sharedExpense) {
+      if (sharedParticipantIds.length < 2 || !sharedTotalMatches) return;
+      doSaveShared();
+      return;
+    }
     setSaving(true);
     const week = getWeekNumber(date);
     const txData = {
@@ -845,6 +936,84 @@ export default function Capture() {
         </div>
       )}
 
+      {/* Gasto compartido — one purchase, paid unevenly by 2+ people */}
+      {personId && persons.length > 1 && (
+        <div className="px-4 mt-3">
+          <button
+            onClick={() => {
+              const next = !sharedExpense;
+              setSharedExpense(next);
+              if (!next) { setSharedPersonIds([]); setSharedAmounts({}); setSharedAmountsEdited(false); }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors touch-target"
+            style={sharedExpense
+              ? { borderColor: 'hsl(var(--primary))', backgroundColor: 'hsl(var(--primary) / 0.1)', color: 'hsl(var(--primary))' }
+              : undefined}
+          >
+            <Users className="w-3.5 h-3.5" />
+            Gasto compartido
+          </button>
+
+          {sharedExpense && (
+            <div className="mt-2 p-3 rounded-xl border border-border bg-muted/30 space-y-2">
+              <p className="text-xs text-muted-foreground">¿Con quién más se repartió este gasto?</p>
+              <div className="flex gap-2 flex-wrap">
+                {persons.filter(p => p.id !== personId).map(p => {
+                  const checked = sharedPersonIds.includes(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setSharedAmountsEdited(false);
+                        setSharedPersonIds(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id]);
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors touch-target"
+                      style={checked ? { backgroundColor: p.color, borderColor: p.color, color: '#fff' } : undefined}
+                    >
+                      <PersonAvatar person={p} size="xs" />
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {sharedParticipantIds.length > 1 && (
+                <div className="space-y-1.5 pt-1">
+                  {sharedParticipantIds.map(pid => {
+                    const p = persons.find(x => x.id === pid);
+                    return (
+                      <div key={pid} className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-foreground w-24 flex-shrink-0 truncate">
+                          <PersonAvatar person={p} size="xs" />{p?.name}
+                        </span>
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currencySymbol}</span>
+                          <input
+                            type="number" inputMode="decimal" value={sharedAmounts[pid] ?? ''}
+                            onChange={e => { setSharedAmountsEdited(true); setSharedAmounts(prev => ({ ...prev, [pid]: e.target.value })); }}
+                            className="w-full bg-card border border-border rounded-lg pl-6 pr-2 py-1.5 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between pt-0.5">
+                    <button onClick={() => setSharedAmountsEdited(false)} className="text-[11px] text-primary underline underline-offset-2 py-1">
+                      Dividir parejo
+                    </button>
+                    <p className={`text-[11px] font-medium ${sharedTotalMatches ? 'text-income' : 'text-expense'}`}>
+                      {sharedTotalMatches
+                        ? '✓ Cuadra con el total'
+                        : sharedDiff > 0 ? `Faltan ${fmtMXN(sharedDiff)}` : `Sobran ${fmtMXN(-sharedDiff)}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Smart suggestions for payment methods */}
       {smartSuggestions.suggestedPaymentMethods.length > 0 && (
         <div className="px-4 mt-3">
@@ -960,9 +1129,10 @@ export default function Capture() {
             🔓 Activar licencia para guardar
           </button>
         ) : (
-          <button onClick={handleSave} disabled={!amount || !categoryId || !personId || saving}
+          <button onClick={handleSave}
+            disabled={!amount || !categoryId || !personId || saving || (sharedExpense && (sharedParticipantIds.length < 2 || !sharedTotalMatches))}
             className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-all touch-target">
-            {saving ? 'Guardando...' : 'Guardar'}
+            {saving ? 'Guardando...' : sharedExpense ? `Guardar (${sharedParticipantIds.length} movimientos)` : 'Guardar'}
           </button>
         )}
       </div>
