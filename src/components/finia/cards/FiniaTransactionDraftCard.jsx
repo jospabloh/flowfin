@@ -1,4 +1,5 @@
 import FiniaTicketCard from './FiniaTicketCard';
+import { parseCardAmount, formatCardAmount } from '@/lib/finiaAmount';
 
 // Finia lays out a draft the same way a receipt does: a total, an item, and
 // a ledger of line items underneath. Rendering it as an actual ticket stub
@@ -23,19 +24,9 @@ const EDIT_ACTIONS = [
   { key: 'person', label: 'Cambiar persona', text: 'Quiero cambiar la persona' },
 ];
 
-function parseAmount(raw) {
-  if (!raw) return 0;
-  const n = parseFloat(raw.replace(/[^\d.,-]/g, '').replace(/,/g, ''));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function formatAmount(n) {
-  return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export default function FiniaTransactionDraftCard({ fields, note, onAction, disabled }) {
   const isIncome = /ingreso/i.test(fields.type || '');
-  const amount = parseAmount(fields.amount);
+  const amount = parseCardAmount(fields.amount);
   const inkVar = isIncome ? 'hsl(var(--receipt-income))' : 'hsl(var(--receipt-expense))';
   const ledgerRows = LEDGER_ROWS
     .filter(({ key }) => fields[key])
@@ -52,7 +43,7 @@ export default function FiniaTransactionDraftCard({ fields, note, onAction, disa
           {isIncome ? 'Ingreso' : 'Gasto'}
         </span>
       }
-      amountLabel={amount ? `$${formatAmount(amount)}` : fields.amount}
+      amountLabel={amount ? `$${formatCardAmount(amount)}` : fields.amount}
       amountColorVar={inkVar}
       titleLine={fields.concept}
       ledgerRows={ledgerRows}

@@ -1,8 +1,9 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AlertTriangle, CheckCircle2, XCircle, Sparkles } from 'lucide-react';
-import { parseTransactionDraft, parseScheduledPaymentDraft, parseDuplicateWarning, stripLabeledFieldLines, classifyMessage } from '@/lib/finiaCardParser';
+import { parseSplitExpenseDraft, parseTransactionDraft, parseScheduledPaymentDraft, parseDuplicateWarning, stripLabeledFieldLines, classifyMessage } from '@/lib/finiaCardParser';
 import { PROSE_CLASSNAME } from './markdownProse';
+import FiniaSplitExpenseDraftCard from './cards/FiniaSplitExpenseDraftCard';
 import FiniaTransactionDraftCard from './cards/FiniaTransactionDraftCard';
 import FiniaScheduledPaymentDraftCard from './cards/FiniaScheduledPaymentDraftCard';
 import FiniaDuplicateAlertCard from './cards/FiniaDuplicateAlertCard';
@@ -25,19 +26,20 @@ export default function FiniaMessageBubble({ message, onAction, disabled }) {
   const visibleChars = content.replace(/[\p{Emoji}\p{P}\s]/gu, '');
   if (visibleChars.length < 2) return null;
 
-  // Structured moments (transaction draft, scheduled-payment draft,
-  // duplicate warning) get a real interactive card instead of raw markdown
-  // — see finiaCardParser.js for why field-label parsing replaced guessing
-  // off arbitrary prose. Scheduled-payment is checked first: it hinges on
-  // `dueDay`, a field only that flow uses, so it's the more specific match
-  // — a recurring-charge draft also happens to satisfy the transaction
-  // draft's looser `amount`-based check and would otherwise get misread as
-  // a one-off expense.
-  const scheduled = !isUser && onAction ? parseScheduledPaymentDraft(content) : null;
-  const draft = !scheduled && !isUser && onAction ? parseTransactionDraft(content) : null;
-  const duplicate = !scheduled && !draft && !isUser && onAction ? parseDuplicateWarning(content) : null;
+  // Structured moments (split expense, transaction draft, scheduled-payment
+  // draft, duplicate warning) get a real interactive card instead of raw
+  // markdown — see finiaCardParser.js for why field-label parsing replaced
+  // guessing off arbitrary prose. Checked most-specific first, since a more
+  // specific draft also satisfies the looser checks below it: a split
+  // expense has both a "División" breakdown AND an `amount` field (would
+  // also pass parseTransactionDraft), and a scheduled payment has `dueDay`
+  // AND enough fields to pass the transaction check too.
+  const split = !isUser && onAction ? parseSplitExpenseDraft(content) : null;
+  const scheduled = !split && !isUser && onAction ? parseScheduledPaymentDraft(content) : null;
+  const draft = !split && !scheduled && !isUser && onAction ? parseTransactionDraft(content) : null;
+  const duplicate = !split && !scheduled && !draft && !isUser && onAction ? parseDuplicateWarning(content) : null;
 
-  if (scheduled || draft || duplicate) {
+  if (split || scheduled || draft || duplicate) {
     const note = stripLabeledFieldLines(content);
     return (
       <div className="flex gap-2.5 justify-start items-end">
@@ -45,9 +47,10 @@ export default function FiniaMessageBubble({ message, onAction, disabled }) {
           💚
         </div>
         <div className="max-w-[85%] w-full">
-          {scheduled && <FiniaScheduledPaymentDraftCard fields={scheduled.fields} note={note} onAction={onAction} disabled={disabled} />}
-          {!scheduled && draft && <FiniaTransactionDraftCard fields={draft.fields} note={note} onAction={onAction} disabled={disabled} />}
-          {!scheduled && !draft && duplicate && <FiniaDuplicateAlertCard fields={duplicate.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {split && <FiniaSplitExpenseDraftCard fields={split.fields} splits={split.splits} note={note} onAction={onAction} disabled={disabled} />}
+          {!split && scheduled && <FiniaScheduledPaymentDraftCard fields={scheduled.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {!split && !scheduled && draft && <FiniaTransactionDraftCard fields={draft.fields} note={note} onAction={onAction} disabled={disabled} />}
+          {!split && !scheduled && !draft && duplicate && <FiniaDuplicateAlertCard fields={duplicate.fields} note={note} onAction={onAction} disabled={disabled} />}
         </div>
       </div>
     );

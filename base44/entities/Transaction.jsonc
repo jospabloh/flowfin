@@ -117,6 +117,14 @@
         "type": "string"
       },
       "description": "Person IDs this expense was split with"
+    },
+    "split_group_id": {
+      "type": "string",
+      "description": "Groups the N Transaction rows created from one shared expense split across several people (e.g. $100 total, $80/$20). Distinct from is_split/split_with_person_ids, which is trip-only and always splits evenly — this supports any uneven split, not just trips. Each row keeps its own amount/person_id, so existing reports/budgets need no changes; rows sharing a split_group_id are purely a display grouping."
+    },
+    "split_total_amount": {
+      "type": "number",
+      "description": "The original shared total before splitting (e.g. 100, when this row's own amount is only 80). Only set on rows that have a split_group_id — lets the UI show 'tu parte: $80 de $100' without re-summing sibling rows."
     }
   },
   "required": [

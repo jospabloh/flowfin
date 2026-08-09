@@ -1,4 +1,5 @@
 import FiniaTicketCard from './FiniaTicketCard';
+import { parseCardAmount, formatCardAmount } from '@/lib/finiaAmount';
 
 // Recurring-charge draft (rent, subscription, utility bill) — visually the
 // same "receipt" system as the one-off transaction draft (FiniaTicketCard),
@@ -20,19 +21,9 @@ const EDIT_ACTIONS = [
   { key: 'person', label: 'Cambiar persona', text: 'Quiero cambiar la persona' },
 ];
 
-function parseAmount(raw) {
-  if (!raw) return null;
-  const n = parseFloat(raw.replace(/[^\d.,-]/g, '').replace(/,/g, ''));
-  return Number.isFinite(n) ? n : null;
-}
-
-function formatAmount(n) {
-  return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 export default function FiniaScheduledPaymentDraftCard({ fields, note, onAction, disabled }) {
   const isIncome = /ingreso/i.test(fields.type || '');
-  const amount = parseAmount(fields.amount);
+  const amount = parseCardAmount(fields.amount);
   const inkVar = isIncome ? 'hsl(var(--receipt-income))' : 'hsl(var(--receipt-expense))';
   const ledgerRows = LEDGER_ROWS
     .filter(({ key }) => fields[key])
@@ -51,7 +42,7 @@ export default function FiniaScheduledPaymentDraftCard({ fields, note, onAction,
       }
       amountLabel={
         <>
-          {amount != null ? `$${formatAmount(amount)}` : (fields.amount || '—')}
+          {amount != null ? `$${formatCardAmount(amount)}` : (fields.amount || '—')}
           <span className="text-[15px] font-semibold align-baseline" style={{ color: 'hsl(var(--receipt-ink-muted))' }}> /mes</span>
         </>
       }

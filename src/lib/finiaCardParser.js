@@ -179,6 +179,60 @@ export function parseScheduledPaymentDraft(content) {
   return { fields, kind: 'scheduled' };
 }
 
+// Marks the start of a split-expense's per-person breakdown, e.g.:
+//   División:
+//   • Pablo: $80.00
+//   • Silvia: $20.00
+// A person's name is never a known field label, so these lines are already
+// invisible to extractLabeledFields — this is a dedicated scan for exactly
+// this shape instead.
+const SPLIT_SECTION_MARKER = /divisi[oó]n\s*:?\s*$/i;
+const SPLIT_LINE = /^[-—•*]\s*([^:]+):\s*\$?\s*([\d,]+\.?\d*)/;
+
+/**
+ * Finds the "División:" block and returns { splits, startIndex, endIndex }
+ * (line indices, endIndex exclusive) so callers can both read the per-person
+ * amounts and know which lines to drop when stripping the raw message down
+ * to leftover prose. Returns null if there's no such block.
+ */
+function findSplitSection(lines) {
+  const startIndex = lines.findIndex(l => SPLIT_SECTION_MARKER.test(l.trim()));
+  if (startIndex === -1) return null;
+  const splits = [];
+  let endIndex = startIndex + 1;
+  for (; endIndex < lines.length; endIndex++) {
+    const trimmed = lines[endIndex].trim();
+    if (!trimmed) continue; // blank lines inside the block are fine
+    const m = trimmed.match(SPLIT_LINE);
+    if (!m) break; // first non-bullet line ends the block
+    const name = cleanLabel(m[1]);
+    if (name) splits.push({ name, amount: `$${m[2]}` });
+  }
+  return { splits, startIndex, endIndex };
+}
+
+/**
+ * Detects a shared-expense draft: one purchase, paid unevenly by 2+ people
+ * — Finia laid out a total plus a per-person "División" breakdown and is
+ * asking the user to confirm. Checked before parseTransactionDraft/
+ * parseScheduledPaymentDraft: a split draft also has an `amount` field and
+ * enough fields to satisfy those looser checks, but only this one has an
+ * actual "División" breakdown with 2+ names.
+ */
+export function parseSplitExpenseDraft(content) {
+  if (!content) return null;
+  const section = findSplitSection(content.split('\n'));
+  if (!section || section.splits.length < 2) return null;
+
+  const fields = extractLabeledFields(content);
+  if (!fields.amount) return null;
+
+  const asksToConfirm = /¿?confirmas?\b|¿lo guardo\??|confirmas que guarde/i.test(content);
+  if (!asksToConfirm) return null;
+
+  return { fields, splits: section.splits, kind: 'split' };
+}
+
 /**
  * Detects a duplicate-transaction warning: Finia found a similar recent
  * movement and is asking whether to save anyway.
@@ -202,9 +256,12 @@ export function parseDuplicateWarning(content) {
  */
 export function stripLabeledFieldLines(content) {
   if (!content) return '';
-  return content
-    .split('\n')
-    .filter((line) => {
+  const lines = content.split('\n');
+  const splitSection = findSplitSection(lines);
+
+  return lines
+    .filter((line, i) => {
+      if (splitSection && i >= splitSection.startIndex && i < splitSection.endIndex) return false;
       const trimmed = line.trim();
       if (!trimmed) return true;
       if (trimmed.includes('|')) return false;

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
-import { parseTransactionDraft, parseScheduledPaymentDraft, parseDuplicateWarning, countKnownFieldLabelMentions } from '@/lib/finiaCardParser';
+import { parseSplitExpenseDraft, parseTransactionDraft, parseScheduledPaymentDraft, parseDuplicateWarning, countKnownFieldLabelMentions } from '@/lib/finiaCardParser';
 
 // ─── Static chip sets ────────────────────────────────────────────────────────
 
@@ -12,6 +12,7 @@ const DEFAULT_CHIPS = [
   { emoji: '📊', label: 'Revisar este mes', text: 'Dame un resumen de mis finanzas de este mes' },
   { emoji: '📅', label: 'Pagos próximos', text: '¿Qué pagos tengo próximos?' },
   { emoji: '🔁', label: 'Domiciliar un cargo', text: 'Quiero crear un pago programado recurrente' },
+  { emoji: '🤝', label: 'Gasto compartido', text: 'Quiero registrar un gasto que pagamos entre varios' },
   { emoji: '🎯', label: 'Presupuestos', text: '¿Cómo van mis presupuestos este mes?' },
   { emoji: '🔍', label: 'Buscar duplicados', text: 'Revisa si tengo movimientos duplicados recientes' },
   { emoji: '💡', label: 'Ahorrar más', text: '¿Cómo puedo ahorrar más este mes?' },
@@ -52,7 +53,7 @@ function detectIntent(msg) {
   // finiaCardParser.js), so the chips shown below never disagree with the
   // card shown above. Those cards already carry their own Confirmar/
   // Cancelar/etc. buttons, so no chips are needed here.
-  if (parseScheduledPaymentDraft(msg) || parseTransactionDraft(msg)) return 'draft';
+  if (parseSplitExpenseDraft(msg) || parseScheduledPaymentDraft(msg) || parseTransactionDraft(msg)) return 'draft';
   if (parseDuplicateWarning(msg)) return 'duplicate';
 
   // A message that calls out several draft fields at once — e.g. Finia
