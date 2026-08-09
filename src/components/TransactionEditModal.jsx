@@ -164,7 +164,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
         {/* Header — sticky */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border flex-shrink-0">
           <h2 id="modal-title" className="text-base font-bold text-foreground">Editar movimiento</h2>
-          <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-xl hover:bg-muted transition-colors touch-target">
+          <button onClick={onClose} aria-label="Cerrar" className="flex items-center justify-center p-2 rounded-xl hover:bg-muted transition-colors touch-target">
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>

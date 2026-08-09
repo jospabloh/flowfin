@@ -167,7 +167,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
                 <p className="text-[11px] text-muted-foreground truncate">Crear movimiento recurrente</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
+            <button onClick={onClose} className="flex items-center justify-center p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
               <X className="w-4 h-4" />
             </button>
           </div>

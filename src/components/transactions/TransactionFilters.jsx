@@ -10,7 +10,7 @@ export default function TransactionFilters({ search, setSearch, showFilters, set
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
             className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 touch-target">
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center touch-target">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}

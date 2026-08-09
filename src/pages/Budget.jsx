@@ -47,7 +47,7 @@ export default function Budget() {
         subtitle="Sugerencia basada en tu historial"
         action={
           <button onClick={() => refetch()} disabled={isFetching}
-            className="p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground transition-colors touch-target">
+            className="flex items-center justify-center p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground transition-colors touch-target">
             <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
         }
