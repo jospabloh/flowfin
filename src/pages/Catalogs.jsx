@@ -388,12 +388,12 @@ export default function Catalogs() {
                     )}
                     <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                     {canEditCat && (
-                      <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
+                      <button onClick={() => setEditing(editing?.id === cat.id ? null : { entity: 'Category', id: cat.id })} className="flex items-center justify-center p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-target">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {canDeleteCat && (
-                      <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                      <button onClick={() => deleteItem('Category', cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="flex items-center justify-center p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors touch-target">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -459,12 +459,12 @@ export default function Catalogs() {
                           <div className="flex items-center justify-between px-3 py-2.5">
                             <p className="text-sm font-medium text-foreground flex-1">{sub.name}</p>
                             {canEditSub && (
-                              <button onClick={() => setEditing(editing?.id === sub.id ? null : { entity: 'Subcategory', id: sub.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                              <button onClick={() => setEditing(editing?.id === sub.id ? null : { entity: 'Subcategory', id: sub.id })} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                             )}
                             {canDeleteSub && (
-                              <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                              <button onClick={() => deleteItem('Subcategory', sub.id)} aria-label={`Eliminar subcategoría ${sub.name}`} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
@@ -535,12 +535,12 @@ export default function Catalogs() {
                     </div>
                     <p className="flex-1 text-sm font-medium text-foreground">{p.name}</p>
                     {canEditPer && (
-                      <button onClick={() => setEditing(editing?.id === p.id ? null : { entity: 'Person', id: p.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                      <button onClick={() => setEditing(editing?.id === p.id ? null : { entity: 'Person', id: p.id })} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {canDeletePer && (
-                      <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                      <button onClick={() => deleteItem('Person', p.id)} aria-label={`Eliminar persona ${p.name}`} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -603,12 +603,12 @@ export default function Catalogs() {
                         <p className="text-xs text-muted-foreground">{typeLabel}{m.bank ? ` · ${m.bank}` : ''}{m.identifier ? ` ···${m.identifier}` : ''}</p>
                       </div>
                       {canEditMet && (
-                        <button onClick={() => setEditing(editing?.id === m.id ? null : { entity: 'PaymentMethod', id: m.id })} className="p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
+                        <button onClick={() => setEditing(editing?.id === m.id ? null : { entity: 'PaymentMethod', id: m.id })} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-primary transition-colors touch-target">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       )}
                       {canDeleteMet && (
-                        <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
+                        <button onClick={() => deleteItem('PaymentMethod', m.id)} aria-label={`Eliminar forma de pago ${m.name}`} className="flex items-center justify-center p-1.5 text-muted-foreground hover:text-destructive transition-colors touch-target">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}

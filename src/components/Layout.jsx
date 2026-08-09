@@ -702,7 +702,7 @@ export default function Layout() {
 
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border">
                   <h3 id="more-options-title" className="font-semibold text-foreground">Más opciones</h3>
-                  <button onClick={() => setShowMore(false)} aria-label="Cerrar" className="p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
+                  <button onClick={() => setShowMore(false)} aria-label="Cerrar" className="flex items-center justify-center p-1.5 rounded-lg bg-muted text-muted-foreground touch-target">
                     <X className="w-4 h-4" />
                   </button>
                 </div>

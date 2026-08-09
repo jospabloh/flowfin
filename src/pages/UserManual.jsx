@@ -719,7 +719,7 @@ export default function UserManual() {
              <button
                onClick={() => setSearch('')}
                aria-label="Limpiar búsqueda"
-               className="absolute right-2 top-1/2 -translate-y-1/2 touch-target"
+               className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center touch-target"
              >
                <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
              </button>

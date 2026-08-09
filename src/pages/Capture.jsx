@@ -689,15 +689,15 @@ export default function Capture() {
             {/* F3.5 — AI extraction button: visible when description is long and category is not yet matched */}
             {description.length > 10 && !categoryId && (
               <button onClick={handleAiExtract} disabled={aiExtracting} aria-label="Entender con IA"
-                className="p-2 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary/20 transition-all touch-target disabled:opacity-60">
+                className="flex items-center justify-center p-2 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary/20 transition-all touch-target disabled:opacity-60">
                 {aiExtracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               </button>
             )}
             <button onClick={isListening ? stopVoice : startVoice}
-              className={`p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
+              className={`flex items-center justify-center p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
-            <button onClick={() => fileRef.current?.click()} className="p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
+            <button onClick={() => fileRef.current?.click()} className="flex items-center justify-center p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
               <Camera className="w-4 h-4" />
             </button>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
