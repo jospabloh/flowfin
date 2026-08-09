@@ -64,7 +64,12 @@ Opciones adicionales:
 • Micrófono 🎤 — Dicta el movimiento en voz: "gasolina BMW 800 pesos con débito". El sistema interpreta el monto y la descripción automáticamente.
 • Cámara 📷 — Toma foto del ticket. Escribe el monto manualmente (más confiable que OCR).
 • Requerido — Clasifica el gasto: Necesario, Gusto, Urgente, Inversión u Otro.
-• Factura — Marca si el gasto tiene factura fiscal.`
+• Factura — Marca si el gasto tiene factura fiscal.
+
+Gasto compartido 🤝 (una compra, pagada entre varias personas):
+Después de elegir la Persona principal, toca "Gasto compartido" para repartir el monto total entre 2 o más integrantes con montos distintos (ej: $100 total, $80 tuyos y $20 de tu pareja). Se crean automáticamente varios movimientos — uno por persona, cada uno con su propio monto — para que tus reportes por persona y presupuestos sigan siendo exactos. Puedes dividir parejo con un toque o escribir el monto exacto de cada quien; el botón Guardar se activa solo cuando los montos suman el total.
+También puedes pedírselo a Finia por chat (ej. "pagué 100, 80 fueron míos y 20 de Silvia") o mandarle una foto del recibo.
+⚠️ Importante: solo puedes repartir un gasto entre personas que ya existen en tu catálogo de Personas (Catálogos → Personas) — es decir, integrantes de tu propia familia. No es posible incluir a alguien externo a la familia; si necesitas repartir un gasto con alguien que no pertenece a tu familia, primero agrégalo como Persona en Catálogos.`
   },
   {
     id: 'dashboard', icon: '📊', title: 'Dashboard y filtros',

@@ -166,6 +166,10 @@ Deno.serve(async (req) => {
         {
           question: '¿Cómo escaneo un recibo?',
           answer: 'En la pantalla de Captura o en el chat con Finia, puedes adjuntar la foto de un recibo. Finia extraerá automáticamente el monto, la tienda y sugerirá la categoría.'
+        },
+        {
+          question: '¿Cómo registro un gasto compartido (pagado entre varias personas)?',
+          answer: 'En Captura, después de elegir la Persona principal, activa "Gasto compartido" y selecciona con quién más se repartió — se crean automáticamente varios movimientos, uno por persona, con el monto que le toca a cada quien. También puedes decírselo a Finia por chat (ej. "pagué 100, 80 fueron míos y 20 de Silvia") o mandarle una foto del recibo. Importante: solo puedes repartir un gasto entre personas que ya existen en tu catálogo de Personas (Catálogos → Personas) — es decir, integrantes de tu misma familia. No es posible incluir a alguien externo a la familia; si quieres repartir un gasto con alguien que no está en tu familia, primero agrégalo como Persona en Catálogos.'
         }
       ]
     };
