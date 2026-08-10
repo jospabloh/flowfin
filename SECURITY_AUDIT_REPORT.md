@@ -1,40 +1,159 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: August 3, 2026 (Updated — v2.20.4 Audit)
-**Version Audited**: 2.20.4
+**Date**: August 10, 2026 (Updated — v2.22.0 Audit)
+**Version Audited**: 2.22.0
 **Auditor**: Claude Code Automated Security Review
 **Overall Risk Level**: **LOW** — periodic review found no new critical or
-high application-level finding since v2.20.3. One dependency advisory
-(`brace-expansion`, high, dev-toolchain-only) was patched this cycle; the
-other (`react-router`, moderate) remains deferred pending a major-version
-migration, unchanged. CSP deployed; CI gate active (`validate:rls`, and as
-of this cycle also `lint` + `permissions:check`); RLS enforced across all
-36 entities; permission deny-by-default enforced.
+high application-level finding since v2.20.4. Three dependency advisories
+(`dompurify` moderate, `js-yaml` high, `nanoid` high — all transitive
+dev/build/PDF-export deps) were patched this cycle; `react-router`
+(moderate) remains deferred pending a major-version migration, unchanged
+since v2.20.3. CSP deployed; CI gate active (`lint`, `validate:rls`,
+`permissions:check`, `npm audit --audit-level=critical`); RLS enforced
+across all 36 entities; permission deny-by-default enforced.
 
-**Open operational item carried over from v2.20.3 (not verifiable from this
-repository alone)**: the CRITICAL analytics/family cross-family-exposure fix
-merged in v2.20.3 lives under `base44/functions/`, which does not
-auto-deploy on merge to `main` (see `CLAUDE.md`). This audit cycle could not
-confirm from GitHub whether `base44 functions deploy --app-id
-69b97ea9c9a713486b5a01fd --force` has actually been run since 2026-07-27.
-**If it has not, that CRITICAL vulnerability is still live in production
-despite being fixed in code.** Verifying and, if needed, running that
-deploy is the single highest-priority owner action arising from this audit.
+**Open operational items carried over, unverifiable from this repository
+alone (no Base44 deploy/secrets access from this environment):**
 
-**Correction, added after initial review (2026-08-03)**: v2.20.4 itself also
-touches `base44/functions/` — specifically the auto-synced snapshot files
-`base44/functions/dailyDocumentationAudit/versionHistorySnapshot.ts` and
-`base44/functions/dailyPermissionAudit/permissionManifests.ts`, which now
-bundle `CURRENT_VERSION_IN_CODE = '2.20.4'` and the refreshed permission
-manifest respectively. An earlier draft of this PR incorrectly stated it
-touched no functions and needed no redeploy. Per `CLAUDE.md`, both
-`dailyDocumentationAudit` and `dailyPermissionAudit` need their own
-`base44 functions deploy` after this merge — otherwise the deployed
-`dailyDocumentationAudit` function keeps running with the stale bundled
-`CURRENT_VERSION_IN_CODE` and, per `entry.ts`'s version-sync check, may
-reconcile/report the `AppVersion` DB record against that stale value
-instead of 2.20.4. This has **no security impact** (it's an internal
-housekeeping function, not an auth/data-exposure path), but is a real
-correctness gap if left undeployed indefinitely.
+1. **`CRON_SECRET` in Base44 secrets.** Commit `fa11358` (2026-08-03, pushed
+   directly to `main` by `base44-builder[bot]`, no PR) made `_internalGuard.ts`
+   fail-closed: if `CRON_SECRET` is unset, `dailyDocumentationAudit`,
+   `dailyPermissionAudit` and `purgeExpiredConversations` all return `403`
+   and are silently disabled. This audit cannot confirm from GitHub alone
+   whether the secret has been set and the three schedulers verified since
+   then (see `CLAUDE.md`, "Antes de deployar: CRON_SECRET tiene que
+   existir"). **Owner action**: confirm in the Base44 secrets panel and the
+   scheduler panel before the next `base44 functions deploy`.
+2. **Deploy status of `base44/functions/`.** Base44 functions do not
+   auto-deploy on merge to `main` (see `CLAUDE.md`). This audit cannot
+   confirm from GitHub whether `base44 functions deploy --app-id
+   69b97ea9c9a713486b5a01fd --force` has been run since the last confirmed
+   deploy. The v2.20.3 critical cross-family analytics fix and the
+   split-expense functions added in v2.21.0/2.22.0 all depend on that
+   deploy having actually happened — code being merged to `main` does not
+   by itself mean it is live. **Owner action**: verify via `npx base44
+   functions list --app-id 69b97ea9c9a713486b5a01fd` that the deployed
+   function set and behavior match `main`.
+
+Neither item was touched by this cycle's code changes (no
+`base44/functions/` files were added/modified in v2.22.0), so neither
+blocks this release's merge — both are pre-existing operational
+verification gaps, not regressions, and are repeated here only so they are
+not lost between audit cycles.
+
+---
+
+## v2.22.0 Audit Cycle (2026-08-10)
+
+Scope: security, tenant isolation, RLS, granular permissions, dependencies,
+CI/CD health, critical-flow spot checks. Reviewed all commits landed since
+the v2.21.0 release (`4a8fc6c`, 2026-08-05): `15d0bcb` (build script fix),
+`ebec323`/`ff4ae33` (shared/split-expense feature, Finia + manual UI),
+`d55521d` (icon centering).
+
+- **Security — new split-expense code.** Reviewed both new backend
+  functions, `finiaPrepareSplitExpenseDraft` and `finiaConfirmSplitExpense`,
+  and the new manual-entry path in `src/pages/Capture.jsx`. All three
+  derive `family_id` from the caller's own `FamilyMembership` record,
+  looked up server-side by `user.id`/`user.email` — never trust a
+  client-supplied family id. `finiaConfirmSplitExpense` writes through
+  `userEntities` (RLS-enforced, not the service role), re-resolves every
+  `person_id`/`category_id` against that family's actual catalog before
+  writing (rejecting a stale/guessed id from the AI-parsed draft rather
+  than creating an orphaned row), and rejects any split whose amounts don't
+  sum to the stated total. The new `Transaction.split_group_id` /
+  `split_total_amount` fields carry no new RLS surface — `Transaction`'s
+  existing `create`/`read`/update`/`delete` rules (family-id match or
+  platform-admin) apply unchanged. No cross-family exposure path found.
+- **Secrets scan**: grepped `src/`, `base44/`, `scripts/` for hardcoded
+  key/token/password/secret patterns — none found beyond documented
+  `process.env`/`import.meta.env` references.
+- **RLS**: `validate:rls` — 36/36 entities OK.
+- **Permissions**: `permissions:check` — 215 declared keys, 89 used, 0
+  missing. 76 orphans (declared-but-unused keys), unchanged from v2.20.4 —
+  pre-existing reserved keys for modules not yet exposed in the UI; orphans
+  fail open safely (an *unused* declaration isn't what `permissions:check`
+  guards against — an *undeclared, used* key is). The new "Gasto
+  compartido" UI in Capture.jsx reuses the existing (already-orphaned,
+  RLS-enforced) transaction-creation path and adds no new permission key —
+  consistent with the product model that any family member can log a
+  transaction; that access is gated at the database layer, not by a
+  per-action permission key, same as before this cycle. `docs/permissions-
+  coverage.md` regenerated (see PR diff) — table content unchanged, only
+  source line references shifted where files moved lines.
+- **Dependencies**: `npm audit` showed 5 issues (2 high, 3 moderate).
+  `npm audit fix` (no `--force`) resolved 3: `dompurify` 3.4.12→3.4.13
+  (moderate — detached-subtree XSS via `IN_PLACE` hook removal; transitive
+  via `jspdf` and `posthog-js`), `js-yaml` 4.3.0→4.3.1 (high — quadratic
+  CPU in `!!omap` resolution; transitive via eslint's `@eslint/eslintrc`,
+  dev-only), `nanoid` 3.3.16→3.3.18 (high — infinite loop with a
+  zero-size custom generator; transitive via `postcss`, build-time only).
+  All three are patch-level, non-breaking; `npm run build` re-verified
+  green after the bump. `react-router`/`react-router-dom` (moderate — open
+  redirect via backslash in `<Link>`/`useNavigate`, plus an SSR-hydration
+  path this SPA doesn't use) has no fix within the current `^6.26.0` range
+  — the advisory's patched version is `7.18.0+`, a major bump. Deferred
+  again with the same rationale as v2.20.3/v2.20.4: this SPA has no SSR, so
+  the SSR-hydration half of the advisory doesn't apply, and the migration
+  warrants its own dedicated, regression-tested PR rather than being folded
+  into a routine audit cycle. `npm audit --audit-level=critical`: 0
+  critical, CI gate unaffected.
+- **CI/CD**: `ci.yml`'s `npm-audit` job already runs `lint`,
+  `validate:rls`, `permissions:check`, and `npm audit --audit-level=critical`
+  (added in v2.20.4) — no change needed this cycle. `npm run lint`, `npm
+  run build` (which runs `permissions-check.mjs` then `vite build`), `npm
+  run validate:rls`, and `npm run permissions:check` were all re-run
+  locally as part of this audit and passed. There is still no frontend test
+  suite (`package.json` has no `test` script) — `deno test base44/
+  functions/` covers the Deno backend functions separately in CI's `test`
+  job.
+- **Critical-flow spot check**: exercised the new shared-expense flow's
+  server-side validation logic by code review (amount/type/date shape
+  checks, split-sum check, person/category re-resolution, missing-fields
+  response) rather than a live UI run — this environment has no way to
+  authenticate as a FlowFin family user end-to-end. No regression found in
+  adjacent flows touched this cycle (icon-centering CSS-only change; build
+  script change is Node-tooling-only, doesn't touch `src/`).
+- **Documentation**: this file had gone one cycle (v2.21.0, 2026-08-05)
+  without an audit-cycle entry — that release's CHANGELOG entry documented
+  the CRON_SECRET fail-closed change and a dependency patch
+  (`socket.io-parser`) but this report was not updated to match. Backfilled
+  below as the "v2.21.0 Audit Cycle" section so the audit-cycle history
+  stays contiguous; carried the CRON_SECRET item forward into the open
+  items list above since it was never marked resolved.
+
+**Findings this cycle**: 0 critical, 0 high, 0 medium (application-level).
+3 dependency advisories (2 high, 1 moderate) — **Fixed**. 1 dependency
+advisory (moderate, `react-router`) — **Accepted risk, deferred**, reason
+above. 2 operational items (CRON_SECRET, Base44 functions deploy status) —
+**Blocked**, exact owner action above; not caused by and not blocking this
+cycle's changes.
+
+---
+
+## v2.21.0 Audit Cycle (2026-08-05) — backfilled 2026-08-10
+
+Reconstructed from the v2.21.0 CHANGELOG entry and commit `4a8fc6c`; this
+report was not updated at release time (see note above).
+
+- **Security**: patched a high-severity `socket.io-parser` memory-exhaustion
+  advisory via a non-disruptive dependency update; no behavior change.
+- **Operational**: flagged that commit `fa11358` (2026-08-03,
+  `base44-builder[bot]`, direct push to `main`, no PR) flipped
+  `_internalGuard.ts` from fail-open to fail-closed for
+  `dailyDocumentationAudit`, `dailyPermissionAudit` and
+  `purgeExpiredConversations` — deploying without `CRON_SECRET` set in
+  Base44 secrets silently disables all three schedulers. Documented in
+  `CLAUDE.md` and the v2.21.0 CHANGELOG entry as a pre-deploy prerequisite;
+  status not independently verifiable from this repository (see open items
+  above).
+- **Application code**: Finia image intake (receipt photo → transaction
+  draft, recurring-charge drafts), in-page camera capture, clipboard-paste
+  attach, and several silent-drop attach bugs fixed; `Programados` gained a
+  `Pausados` tab and a three-tab reorg; investment payment registration UI
+  redesigned with an orphaned-installment fix; the setup tutorial no longer
+  reappears after skip/complete. No security-relevant regression identified
+  in any of these at the time of the v2.22.0 review (spot-checked via diff
+  against v2.20.4 baseline).
 
 ---
 

@@ -239,6 +239,35 @@ The dashboard main view shows:
 - **Export**: Export to CSV/Excel
 - **Print**: Print transaction list
 
+### Shared / Split Expenses ("Gasto Compartido")
+
+Use this when one purchase was actually paid unevenly by two or more family
+members — for example, a $100 dinner where $80 was yours and $20 was
+someone else's. This is different from a Trip's even split: shared-expense
+amounts can be anything, not just an equal share, and it works for any
+transaction, not only trip expenses.
+
+**From the manual capture form:**
+1. Select a person and enter the total amount as usual.
+2. Tap **"Gasto compartido"** below the form.
+3. Check off who else the expense was split with.
+4. FlowFin proposes an even split by default — edit any person's amount and
+   the rest adjust automatically until the shares add up to the total
+   (tap **"Dividir parejo"** to reset to an even split at any time).
+5. Save — this creates one transaction per person for their own share, all
+   linked together so reports show "your part: $80 of $100."
+
+**From Finia (chat):** describe it in one message, e.g. *"pagué 100 en la
+cena, 80 fueron míos y 20 de Silvia"*. Finia proposes the same kind of
+draft; confirming it saves the same way as the manual form. If you don't
+give per-person amounts and instead say "dividido entre 3" or "a la
+mitad," Finia splits it evenly among the people you mention.
+
+Each person's share is validated against your family's actual catalog of
+people and categories before saving — you cannot end up with a transaction
+assigned to someone who isn't actually in your family, and the shares must
+always add up to the stated total.
+
 ---
 
 ## AI Assistant (Finia)
@@ -604,6 +633,54 @@ Export your financial data.
 
 ---
 
+## Latest Updates (v2.22.0 Release Notes)
+
+### New in v2.22.0 (August 10, 2026)
+
+#### 🤝 Shared / split expenses ("Gasto compartido")
+
+You can now split a single purchase unevenly between two or more family
+members directly from the manual capture form, not only by asking Finia in
+chat. See **Transaction Management → Shared / Split Expenses** above for
+how to use it. Each person's share is checked against your family's own
+catalog of people and categories on save, so a split can never be assigned
+to someone outside your family.
+
+#### 🔒 Permission model — no change this release
+
+The admin/member permission model and defaults (see **Roles & Permissions**
+above) are unchanged in this release. The new shared-expense feature uses
+the same "create a transaction" access every family member already has by
+default — an admin does not need to grant anything new for members to use
+it, and it is subject to the same family-only data boundary as every other
+transaction.
+
+#### Since v2.20.0 — a quick recap
+
+Several releases landed between v2.20.0 and v2.22.0 without their own
+"Latest Updates" entry here; the highlights that affect what you see day to
+day:
+
+- **Finia can now read a photographed or uploaded receipt** and turn it
+  into a transaction draft, and can propose recurring-charge (scheduled
+  payment) drafts.
+- **Attaching a photo to Finia got a lot more reliable**: in-page camera
+  capture, a clipboard-paste option, and fixes for several ways a picked
+  image could silently vanish on mobile.
+- **Programados (Scheduled Payments)** was reorganized into three
+  lifecycle tabs plus a **Pausados** tab, and pause/resume now actually
+  persists.
+- **Security**: a critical issue that let the analytics endpoints be
+  queried across families without a verified session was closed (v2.20.3);
+  several dependency-only security patches shipped with no visible
+  behavior change.
+
+#### What's Next
+- Expand test coverage toward 80%+ target
+- Advanced reporting analytics and mobile optimizations
+
+---
+
 ## Latest Updates (v2.20.0 Release Notes)
 
 ### New in v2.20.0 (July 6, 2026)
@@ -913,6 +990,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.22.0 | 2026-08-10 | Added v2.22.0 release notes (shared/split expenses); added a "Shared / Split Expenses" how-to under Transaction Management; recapped user-facing changes since v2.20.0. Note: this table's 0.8.0–2.21.0 rows were never backfilled at release time — out of scope for this cycle, see [CHANGELOG.md](./CHANGELOG.md) for the complete history in the meantime. |
 | 0.7.0 | 2026-06-22 | Added v0.7.0 release notes: full dependency security sweep, 0 vulnerabilities; moved v0.6.0 to Previous Releases |
 | 0.6.0 | 2026-06-15 | Added v0.6.0 release notes: xlsx replaced, date picker UX improvement, esbuild advisory accepted; moved v0.5.0 to Previous Releases |
 | 0.5.0 | 2026-06-08 | Added v0.5.0 release notes: SavingsDashboard gate, deny-by-default permissions, RLS hardening |
@@ -921,7 +999,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 ---
 
-**Last Updated**: June 22, 2026
-**Next Update**: July 22, 2026 (v0.8.0 — test coverage sprint, advanced analytics)
+**Last Updated**: August 10, 2026
+**Next Update**: alongside the next release that changes user-facing behavior, permissions, or licensing
 
 For the latest updates, visit [CHANGELOG.md](./CHANGELOG.md)

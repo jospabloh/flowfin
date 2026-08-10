@@ -1,6 +1,6 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-07-27T07:10:12.780Z
+Generated: 2026-08-10T07:12:25.840Z
 
 **Total declared keys:** 215  
 **Total action keys:** 143  
@@ -28,10 +28,10 @@ Generated: 2026-07-27T07:10:12.780Z
 | `investment.view.list` | Listar Inversiones | RV | RV | _orphan_ |
 | `investment.view.detail` | Detalles de Inversión | RV | RV | _orphan_ |
 | `investment.view.detail_sheet` | Hoja de detalle | RV | RV | _orphan_ |
-| `investment.crud.create` | Crear Inversión | RWMDV | none | `src/pages/Investments.jsx:30` |
+| `investment.crud.create` | Crear Inversión | RWMDV | none | `src/pages/Investments.jsx:32` |
 | `investment.crud.edit` | Editar Inversión | RWMDV | none | _orphan_ |
 | `investment.crud.delete` | Eliminar Inversión | RWMDV | none | _orphan_ |
-| `investment.payments.add` | Registrar Pago | RWMDV | none | `src/components/investments/InvestmentCard.jsx:37` |
+| `investment.payments.add` | Registrar Pago | RWMDV | none | `src/components/investments/InvestmentCard.jsx:40` |
 | `investment.payments.history` | Historial de Pagos | RV | none | _orphan_ |
 
 ## Rentas (`module.Rentals`)
@@ -72,10 +72,10 @@ Generated: 2026-07-27T07:10:12.780Z
 |-----|-------|-------|--------|---------|
 | `scheduled.view.list` | Listar Pagos Programados | RV | RV | _orphan_ |
 | `scheduled.view.calendar` | Vista Calendario | RV | RV | _orphan_ |
-| `scheduled.create.form` | Nuevo Pago Programado | RWMDV | R | `src/pages/ScheduledPayments.jsx:40` |
-| `scheduled.mark.action` | Registrar como Pagado | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:52` |
-| `scheduled.manage.edit` | Editar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:53` |
-| `scheduled.manage.delete` | Eliminar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:54` |
+| `scheduled.create.form` | Nuevo Pago Programado | RWMDV | R | `src/pages/ScheduledPayments.jsx:71` |
+| `scheduled.mark.action` | Registrar como Pagado | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:66` |
+| `scheduled.manage.edit` | Editar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:67` |
+| `scheduled.manage.delete` | Eliminar Pago | RWMDV | R | `src/components/scheduled/ScheduledPaymentItem.jsx:68` |
 
 ## Movimientos (`module.Transactions`)
 

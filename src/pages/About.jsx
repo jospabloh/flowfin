@@ -6,9 +6,22 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.0',
+    date: '2026-08-10',
+    label: 'Actual',
+    changes: [
+      'Captura: nueva opción "Gasto compartido" para dividir una sola compra de forma desigual entre 2+ personas de la familia (ej. $100 de cena, $80 tuyos y $20 de otra persona) — antes solo Finia lo soportaba por chat, ahora también desde el formulario manual',
+      'Finia: puede armar y confirmar el mismo tipo de gasto compartido por chat, con el mismo reparto validado en el servidor',
+      'Diseño: los íconos de los botones de acción rápida (IA, voz, cámara) en Captura ahora quedan centrados en todos los navegadores',
+      'Build: `npm run build` ya no deja archivos generados sin commitear (ver CLAUDE.md) — evita que el siguiente `git pull` se bloquee por cambios locales',
+      'Seguridad: se corrigieron 3 vulnerabilidades de dependencias (dompurify, js-yaml, nanoid — moderada/alta, sin cambios de comportamiento) mediante actualización no disruptiva; react-router permanece diferido (requiere migración de versión mayor, ver SECURITY_AUDIT_REPORT.md)',
+      'Auditoría periódica: se revisaron seguridad, aislamiento entre familias, RLS, permisos y dependencias — sin hallazgos críticos o altos nuevos a nivel de aplicación (ver SECURITY_AUDIT_REPORT.md)',
+    ],
+  },
+  {
     version: '2.21.0',
     date: '2026-08-05',
-    label: 'Actual',
+    label: '',
     changes: [
       'Finia ya puede leer imágenes: sacá o subí una foto del recibo y Finia arma el borrador del movimiento; también propone cargos recurrentes',
       'Finia: se corrigió que las imágenes elegidas desde el celular se perdieran en silencio — ahora el adjunto se separa en Cámara, Fotos y Archivos, la cámara captura dentro de la app, hay un botón para pegar desde el portapapeles y, si algo falla, te avisa en vez de quedarse callado',
