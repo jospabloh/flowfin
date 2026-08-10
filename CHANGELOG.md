@@ -12,6 +12,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.0] - 2026-08-10
+
+### ✨ Added
+
+- **Captura — manual "Gasto compartido" UI.** One purchase can now be split
+  unevenly between 2+ family members directly from the manual capture form
+  (e.g. $100 total, $80/$20), not only via the Finia chat flow. Saves as N
+  `Transaction` rows sharing a `split_group_id`/`split_total_amount`, the
+  same shape the existing `finiaConfirmSplitExpense` function already wrote
+  — both entry points produce identical data.
+- **Finia — shared-expense chat flow** (`finiaPrepareSplitExpenseDraft` /
+  `finiaConfirmSplitExpense`): parses "pagué 100, 80 míos y 20 de X" style
+  requests into a draft, resolves each person/category against the real
+  family catalog server-side before writing (a stale/guessed id from the
+  draft cannot create an orphaned row), and rejects splits that don't sum
+  to the stated total.
+
+### 🐛 Fixed
+
+- **Icon centering** on touch-target action buttons (AI, voice, camera) in
+  Captura — icons were vertically/horizontally off-center on some browsers.
+- **`npm run build` no longer mutates committed snapshot files** — see
+  `CLAUDE.md`; this was leaving local diffs on two Base44-only generated
+  files after every routine build, which could block the next `git pull`.
+
+### 🔒 Security
+
+- **Dependency patch**: `dompurify` (moderate — detached-subtree XSS via
+  `IN_PLACE` hook removal), `js-yaml` (high — quadratic CPU on `!!omap`
+  resolution) and `nanoid` (high — infinite loop with a zero-size custom
+  generator) updated via `npm audit fix`. All three are transitive
+  dev/build-time or PDF/analytics dependencies (`jspdf`, `posthog-js`,
+  `eslint`'s `@eslint/eslintrc`, `postcss`), non-breaking, no behavior
+  change.
+- **`react-router`/`react-router-dom`** (moderate — open-redirect via
+  backslash in `<Link>`/`useNavigate`, plus an SSR-hydration constructor
+  issue this SPA doesn't use) remains **deferred**, same rationale as prior
+  cycles: the fix requires a 6→7 major-version migration, which needs its
+  own dedicated, regression-tested PR rather than being folded into a
+  routine audit cycle.
+- **Periodic audit**: reviewed the new split-expense backend functions for
+  tenant isolation and auth (both derive `family_id` from the caller's own,
+  server-verified `FamilyMembership` — never from client input — and write
+  through `userEntities`, i.e. under normal RLS, not the service role); no
+  hardcoded secrets found; `validate:rls` 36/36 entities OK;
+  `permissions:check` 0 missing keys. No new critical/high finding. See
+  `SECURITY_AUDIT_REPORT.md` for the full v2.22.0 cycle.
+
 ## [2.21.0] - 2026-08-05
 
 ### ⚠️ Deploy prerequisite — read before deploying backend functions
