@@ -113,6 +113,9 @@
         },
         {
           "data.sender_user_id": "{{user.id}}"
+        },
+        {
+          "data.recipient_user_id": "{{user.id}}"
         }
       ]
     },
