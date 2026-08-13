@@ -54,6 +54,15 @@ export default function MessagePopup() {
     }
   }, [messages.length]);
 
+  const advance = () => {
+    const next = currentIndex + 1;
+    if (next < messages.length) {
+      setCurrentIndex(next);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
   const markReadMutation = useMutation({
     mutationFn: (id) =>
       base44.entities.Message.update(id, {
@@ -63,12 +72,15 @@ export default function MessagePopup() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['unread-messages-popup', familyId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ['messages-received', familyId, user?.id] });
-      const next = currentIndex + 1;
-      if (next < messages.length) {
-        setCurrentIndex(next);
-      } else {
-        setIsOpen(false);
-      }
+      advance();
+    },
+    onError: (error) => {
+      // Never trap the user behind an unclosable dialog: if marking the
+      // message read fails (RLS, network, ...) still let them dismiss it
+      // locally. It will reappear on the next refetch until the write
+      // actually succeeds, but it won't block the rest of the app.
+      console.error('No se pudo marcar el mensaje como leído', error);
+      advance();
     },
   });
 
