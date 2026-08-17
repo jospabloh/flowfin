@@ -12,6 +12,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.1] - 2026-08-17
+
+### 🐛 Fixed
+
+- **Mensajes**: el destinatario de un `Message` ahora puede marcar su propio
+  mensaje como leído. La regla `update` de RLS solo permitía al remitente (o
+  a un admin) escribir la fila, así que el botón "OK" del popup de mensajes
+  — que actualiza `read_at`/`status` como el *destinatario* — era rechazado
+  en silencio por RLS: la mutación nunca se confirmaba, el diálogo (que
+  bloquea a propósito Escape/click-afuera) quedaba abierto para siempre,
+  incluso después de recargar. Se agregó el destinatario al `$or` de la
+  regla `update`, y un `onError` de respaldo en `MessagePopup` para que
+  cualquier falla futura de escritura (RLS, red, …) igual permita cerrar el
+  diálogo localmente en vez de volver a atrapar al usuario. Ya aplicado en
+  vivo sobre el schema de Base44 para desbloquear a la usuaria afectada;
+  este release deja el schema versionado en el repo sincronizado con eso.
+
+### 📋 Audit notes (periodic review, no new findings)
+
+- Reviewed all commits since the v2.22.0 cycle (`4a8fc6c`..`HEAD`): one
+  commit landed (`e78d7d5`, the recipient read-receipt RLS fix above,
+  already deployed live before this cycle). No new critical or high
+  application-level finding.
+- `npm run lint`: 0 errors. `npm run validate:rls`: 36/36 entities OK.
+  `npm run permissions:check`: 215 declared keys, 89 used, 0 missing, 76
+  orphans (unchanged — pre-existing reserved keys for modules not yet
+  exposed in the UI). `npm run build`: green, no committed files mutated.
+  Secrets scan of `src/`, `base44/`, `scripts/`: none found.
+- `npm audit`: 2 moderate (`react-router`/`react-router-dom`, no fix within
+  the current `^6.26.0` range — same open-redirect/SSR-hydration advisory
+  deferred since v2.20.3, unchanged rationale: this SPA has no SSR, and the
+  6→7 migration warrants its own dedicated PR). 0 critical — CI gate
+  (`npm audit --audit-level=critical`) unaffected.
+- `deno lint`/`deno test` on `base44/functions/` could not be run from this
+  review environment (no `deno` binary available here) — CI's `test` job
+  still runs and gates both on every push/PR; this cycle relied on that
+  gate rather than a local run.
+- Two operational items remain open and unverifiable from this repository
+  alone (unchanged since v2.21.0/v2.22.0 — repeated here so they aren't
+  lost between cycles): (1) confirm `CRON_SECRET` is set in Base44 secrets
+  and the three guarded schedulers (`dailyDocumentationAudit`,
+  `dailyPermissionAudit`, `purgeExpiredConversations`) are still firing;
+  (2) confirm `base44 functions deploy --app-id 69b97ea9c9a713486b5a01fd
+  --force` has actually been run since the last confirmed deploy, so the
+  deployed function set matches `main`. See `SECURITY_AUDIT_REPORT.md`.
+
 ## [2.22.0] - 2026-08-10
 
 ### ✨ Added

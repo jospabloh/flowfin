@@ -1,15 +1,15 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: August 10, 2026 (Updated — v2.22.0 Audit)
-**Version Audited**: 2.22.0
+**Date**: August 17, 2026 (Updated — v2.22.1 Audit)
+**Version Audited**: 2.22.1
 **Auditor**: Claude Code Automated Security Review
 **Overall Risk Level**: **LOW** — periodic review found no new critical or
-high application-level finding since v2.20.4. Three dependency advisories
-(`dompurify` moderate, `js-yaml` high, `nanoid` high — all transitive
-dev/build/PDF-export deps) were patched this cycle; `react-router`
-(moderate) remains deferred pending a major-version migration, unchanged
-since v2.20.3. CSP deployed; CI gate active (`lint`, `validate:rls`,
-`permissions:check`, `npm audit --audit-level=critical`); RLS enforced
-across all 36 entities; permission deny-by-default enforced.
+high application-level finding since v2.22.0. One application-level bug
+(recipient unable to mark a `Message` read, RLS too narrow) was fixed and
+deployed live this cycle. `react-router` (moderate) remains deferred
+pending a major-version migration, unchanged since v2.20.3. CSP deployed;
+CI gate active (`lint`, `validate:rls`, `permissions:check`, `npm audit
+--audit-level=critical`); RLS enforced across all 36 entities; permission
+deny-by-default enforced.
 
 **Open operational items carried over, unverifiable from this repository
 alone (no Base44 deploy/secrets access from this environment):**
@@ -34,11 +34,90 @@ alone (no Base44 deploy/secrets access from this environment):**
    functions list --app-id 69b97ea9c9a713486b5a01fd` that the deployed
    function set and behavior match `main`.
 
-Neither item was touched by this cycle's code changes (no
-`base44/functions/` files were added/modified in v2.22.0), so neither
-blocks this release's merge — both are pre-existing operational
-verification gaps, not regressions, and are repeated here only so they are
-not lost between audit cycles.
+Neither item was touched by this cycle's code changes (the recipient
+read-receipt RLS fix below is an entity-schema change, not a
+`base44/functions/` change), so neither blocks this release's merge — both
+are pre-existing operational verification gaps, not regressions, and are
+repeated here only so they are not lost between audit cycles.
+
+---
+
+## v2.22.1 Audit Cycle (2026-08-17)
+
+Scope: security, tenant isolation, RLS, granular permissions, dependencies,
+CI/CD health, critical-flow spot checks. Reviewed all commits landed since
+the v2.22.0 release (`4a8fc6c`..`HEAD`, i.e. `7b026cc`..`28aaf67`): one
+substantive commit, `e78d7d5` ("allow recipients to mark their own messages
+as read"), plus its merge commit.
+
+- **Security — `e78d7d5`**: `Message.jsonc`'s `update` RLS previously
+  allowed only the sender or a platform-admin to write a row. `MessagePopup.jsx`
+  updates `read_at`/`status` as the *recipient* when the user dismisses a
+  message, so every recipient dismissal was silently rejected by RLS — the
+  mutation never committed, `onSuccess` never fired, and the modal (which
+  intentionally blocks Escape/outside-click) stayed open indefinitely,
+  including across reloads. Fix adds `"data.recipient_user_id":
+  "{{user.id}}"` to the `update` rule's `$or` — reviewed the full updated
+  rule: it still requires the caller's own id to match either
+  `sender_user_id` or `recipient_user_id` (or platform-admin), so a caller
+  still cannot update a message that is neither sent nor addressed to them;
+  no cross-family or cross-user write path opened. Also reviewed the new
+  `onError` fallback in `MessagePopup.jsx` — on any write failure it still
+  advances/closes the dialog locally (with a `console.error`, no PII
+  logged: only the generic error object) rather than leaving the user
+  trapped; the message reappears on next refetch until the write actually
+  succeeds, which is the correct fail-safe direction (availability over a
+  false "read" state). Per the commit message this fix was already applied
+  directly to the live Base44 entity schema to unblock the affected user
+  before the commit landed — this cycle's review confirms the checked-in
+  `base44/entities/Message.jsonc` now matches that live change.
+- **Secrets scan**: grepped `src/`, `base44/`, `scripts/` for hardcoded
+  key/token/password/secret patterns — none found beyond documented
+  `process.env`/`import.meta.env` references.
+- **RLS**: `validate:rls` — 36/36 entities OK.
+- **Permissions**: `permissions:check` — 215 declared keys, 89 used, 0
+  missing, 76 orphans (unchanged from v2.22.0 — pre-existing reserved keys
+  for modules not yet exposed in the UI). `docs/permissions-coverage.md`
+  regenerated — only the `Generated:` timestamp changed, no content drift.
+- **Dependencies**: `npm audit` — 2 moderate (`react-router` /
+  `react-router-dom`), 0 high, 0 critical. Confirmed via `npm audit fix
+  --dry-run` that no patch-level fix exists within the current `^6.26.0`
+  range (the advisory's fix is `7.18.0+`, a major bump) — deferred again,
+  same rationale as v2.20.3/v2.20.4/v2.21.0/v2.22.0: this SPA has no SSR,
+  so the SSR-hydration half of the advisory doesn't apply, and the
+  migration warrants its own dedicated, regression-tested PR.
+  `npm audit --audit-level=critical`: 0 critical, CI gate unaffected.
+- **CI/CD**: `ci.yml`'s jobs unchanged and re-verified locally where
+  possible: `npm run lint` (0 errors), `npm run validate:rls`, `npm run
+  permissions:check`, `npm run build` (green, confirmed it does not mutate
+  any committed file — re-checked `git status` clean immediately after,
+  per the `CLAUDE.md` build-mutation fix from v2.20.4/v2.22.0). The `deno
+  lint`/`deno test` job (`base44/functions/`) could **not** be run from
+  this review environment — no `deno` binary was available here. This is a
+  gap in local verification, not a CI gap: `ci.yml`'s `test` job still runs
+  and gates that job on every push/PR as before; no `base44/functions/`
+  source changed this cycle (only the checked-in `Message.jsonc` entity
+  schema, which the Deno job does not cover), so the risk of an
+  undetected regression there this cycle is low, but it is flagged here so
+  it isn't silently assumed "checked."
+- **Critical-flow spot check**: exercised the fixed flow by code review
+  (RLS rule diff, `MessagePopup.jsx` mutation/`onError` diff) rather than a
+  live UI run — this environment has no way to authenticate as a FlowFin
+  family user end-to-end. No regression found in adjacent flows; no other
+  file changed this cycle.
+- **No new code-level issues found.** The pre-existing MEDIUM/LOW
+  application-level items documented in the "Known Issues" section below
+  (inadequate error-log PII scrubbing, unencrypted `localStorage` values,
+  missing AI-call rate limiting, etc.) are unchanged since v0.1.0 and were
+  re-confirmed still present but out of scope for this cycle — each needs
+  its own dedicated PR per the same policy already applied to the
+  `react-router` migration, not a drive-by fix folded into a routine audit.
+
+**Findings this cycle**: 0 critical, 0 high, 0 medium (application-level),
+1 low-risk application bug — **Fixed and deployed live** (`e78d7d5`, see
+above). 0 new dependency advisories. 2 operational items (CRON_SECRET,
+Base44 functions deploy status) — **Blocked**, exact owner action above;
+not caused by and not blocking this cycle's changes.
 
 ---
 

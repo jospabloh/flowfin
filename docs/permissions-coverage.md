@@ -1,6 +1,6 @@
 # FlowFin Permissions Coverage
 
-Generated: 2026-08-10T07:12:25.840Z
+Generated: 2026-08-17T07:19:35.562Z
 
 **Total declared keys:** 215  
 **Total action keys:** 143  
