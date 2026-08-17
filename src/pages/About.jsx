@@ -6,9 +6,18 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.1',
+    date: '2026-08-17',
+    label: 'Actual',
+    changes: [
+      'Mensajes: se corrigió que el destinatario de un mensaje no pudiera marcarlo como leído (RLS solo lo permitía al remitente) — el popup de mensajes quedaba abierto para siempre; ya aplicado en vivo y ahora también en el schema versionado',
+      'Auditoría periódica: se revisaron los cambios de la última semana, seguridad, RLS, permisos y dependencias — sin hallazgos críticos o altos nuevos (ver SECURITY_AUDIT_REPORT.md)',
+    ],
+  },
+  {
     version: '2.22.0',
     date: '2026-08-10',
-    label: 'Actual',
+    label: '',
     changes: [
       'Captura: nueva opción "Gasto compartido" para dividir una sola compra de forma desigual entre 2+ personas de la familia (ej. $100 de cena, $80 tuyos y $20 de otra persona) — antes solo Finia lo soportaba por chat, ahora también desde el formulario manual',
       'Finia: puede armar y confirmar el mismo tipo de gasto compartido por chat, con el mismo reparto validado en el servidor',
