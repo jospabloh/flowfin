@@ -10,11 +10,22 @@ import { useToast } from '@/components/ui/use-toast';
  */
 export function useCreateTransaction({ onError } = {}) {
   const queryClient = useQueryClient();
-  const { familyId } = useFamily();
+  const { familyId, isReadOnly } = useFamily();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data) => base44.entities.Transaction.create(data),
+    mutationFn: (data) => {
+      // Client-side mirror of validateMutationAllowed's read-only-mode gate.
+      // Not the whole fix — Transaction's RLS can't itself check
+      // Family.billing_status (no join support), so this only blocks the
+      // UI's own paths, not a direct SDK call. Real server-side enforcement
+      // needs a Safe-function conversion for Transaction writes, tracked as
+      // a separate initiative in CLAUDE.md (module 3, part 2).
+      if (isReadOnly) {
+        return Promise.reject(new Error('Tu cuenta está en modo solo lectura; no puedes registrar movimientos ahora.'));
+      }
+      return base44.entities.Transaction.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });

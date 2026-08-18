@@ -20,6 +20,21 @@ async function assertRefInFamily(userEntities, entity, id, familyId, label) {
   }
 }
 
+// Mirrors _agentGuard.ts's assertBillingAllowed (inlined — see resolveFamily
+// above). Was missing entirely: an AI-assistant transaction edit used to
+// bypass validateMutationAllowed's read-only-mode gate outright.
+async function assertBillingAllowed(base44, familyId, user) {
+  if (user.role === 'admin') return;
+  const fam = await base44.asServiceRole.entities.Family.get(familyId).catch(() => null);
+  const status = fam?.billing_status ?? 'active';
+  if (status === 'view_only' || status === 'suspended') {
+    throw Object.assign(
+      new Error('Tu suscripción está en modo solo lectura; no puedo registrar cambios ahora.'),
+      { httpStatus: 403 },
+    );
+  }
+}
+
 const WRITE_FIELDS = new Set([
   'amount', 'type', 'date', 'description', 'category_id',
   'subcategory_id', 'person_id', 'payment_method_id', 'notes', 'required_type',
@@ -35,6 +50,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { familyId } = await resolveFamily(base44, user);
+    await assertBillingAllowed(base44, familyId, user);
     const ue = base44.entities;
 
     const body = await req.json().catch(() => ({}));
