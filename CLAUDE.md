@@ -176,3 +176,30 @@ Base44):**
 3. Si necesitás que una entidad sea legítimamente admin-only pese a tener
    `family_id`, agregala a `ADMIN_ONLY_READ_ALLOWLIST` en
    `validate-rls.mjs` con una razón — no borres el chequeo.
+
+## Self-service data export (added 2026-08-18)
+
+A portfolio-standard audit (`jospabloh/acacia-app-standard`, module 7 —
+cuenta y zona de peligro) found `AccountSettings.jsx` had a full
+delete-account danger-zone flow but no way for a user to download their own
+data first — `Reports.jsx`'s "export" only produces PDF/PNG chart images,
+not raw data. New `exportFamilyData` handler
+(`base44/functions/admin/handlers/exportFamilyData.ts`) runs on the caller's
+own client (not `asServiceRole`, same as `deleteAccount.ts`'s own pattern —
+RLS itself does the family scoping) and returns every row the family owns
+across `Transaction`, `Category`, `Subcategory`, `CategoryBudget`, `Person`,
+`PaymentMethod`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`,
+`MSIPayment`, `RentalProperty`, `RentalPayment`, `ScheduledPayment`,
+`ScheduledPaymentRecord`, `Trip` as one JSON payload; a failure on any single
+entity doesn't fail the whole export. `AccountSettings.jsx` turns the
+response into a client-side download (`Blob` + a throwaway `<a download>`,
+no server-side file storage needed), gated on `account.profile.view`'s
+`can_read` (the same "can see your own account data" permission the rest of
+the page already reads, not the narrower `account.profile.delete`).
+
+Note: `Login.jsx` does **not** need billing-status awareness — billing
+status is a per-family concept only known after authentication, and the app
+already surfaces it globally post-login via `TrialBanner.jsx`
+(`Layout.jsx`) and `DowngradeNotice.jsx` (`App.jsx`), both of which already
+handle `view_only`/`suspended` with upgrade/support links. An earlier
+audit pass flagged this as a gap before checking for that; it isn't one.
