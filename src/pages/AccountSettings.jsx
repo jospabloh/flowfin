@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { AlertTriangle, LogOut, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, LogOut, Clock, AlertCircle, CheckCircle2, Download } from 'lucide-react';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatDate } from '@/lib/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +17,7 @@ export default function AccountSettings() {
   const navigate = useNavigate();
   const { billingStatus, trialDaysLeft, licensePlan, licensedMemberLimit, activeMemberCount, trialStartAt, trialEndAt, licenseActivatedAt, licenseExpiresAt, isReadOnly, familyConfig, currentUser } = useFamily();
   const { can_write: canDeleteAccount } = usePermission('account.profile.delete');
+  const { can_read: canExportData } = usePermission('account.profile.view');
   const locale = familyConfig?.locale || 'es-MX';
   const [showDeleteFlow, setShowDeleteFlow] = useState(false);
   const [step, setStep] = useState(0);
@@ -70,6 +71,39 @@ export default function AccountSettings() {
       toast({
         title: 'Error al eliminar cuenta',
         description: err?.message || 'No se pudo eliminar tu cuenta.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Export family data mutation — module 7 requires a self-service data
+  // export independent of the delete-account flow (see exportFamilyData.ts).
+  const exportDataMutation = useMutation({
+    mutationFn: () => base44.functions.invoke('admin', { action: 'exportFamilyData' }),
+    onSuccess: (response) => {
+      if (!response?.data?.success) {
+        toast({
+          title: 'Error al exportar',
+          description: response?.data?.error || 'No se pudieron exportar tus datos.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `flowfin-datos-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: 'Datos exportados ✓', description: 'La descarga comenzó en tu navegador.' });
+    },
+    onError: (err) => {
+      toast({
+        title: 'Error al exportar',
+        description: err?.message || 'No se pudieron exportar tus datos.',
         variant: 'destructive',
       });
     },
@@ -207,6 +241,25 @@ export default function AccountSettings() {
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Data Export */}
+        {canExportData && (
+          <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-1">Tus datos</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Descarga una copia de todos tus datos familiares (transacciones, categorías, personas, y más) en formato JSON.
+            </p>
+            <button
+              onClick={() => exportDataMutation.mutate()}
+              disabled={exportDataMutation.isPending}
+              aria-label="Descargar mis datos"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-muted text-foreground text-sm font-semibold hover:bg-border disabled:opacity-50 transition-colors touch-target"
+            >
+              <Download className="w-4 h-4" />
+              {exportDataMutation.isPending ? 'Exportando...' : 'Descargar mis datos'}
+            </button>
           </div>
         )}
 
