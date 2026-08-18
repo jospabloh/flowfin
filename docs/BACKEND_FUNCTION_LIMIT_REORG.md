@@ -66,11 +66,27 @@ requires reconfiguring the caller (Base44 dashboard / external service):
 - **Webhook**: `mpWebhook` (Mercado Pago posts to its URL).
 - **Mission Control bridge**: `acaciaControl` (ACACIA Mission Control HMAC channel).
 - **Scheduled/cron** (configured in the Base44 dashboard by name):
-  `autoPostScheduledPayments`, `checkAccountLifecycle`, `checkTrialExpiration`,
-  `processMonthlyRenewal`, `dailyDocumentationAudit`, `dailyPermissionAudit`,
-  `processTrialReactivationEmails`, `purgeExpiredConversations`,
-  `queueBillingReminders`, `sendLifecycleEmails`, `deliverEmails`,
+  `autoPostScheduledPayments`, `dailyDocumentationAudit`,
+  `dailyPermissionAudit`, `purgeExpiredConversations`,
   `sendPendingEmailsNow`.
+  > **Removed since this reorg, not just "deliberately left untouched":**
+  > `checkAccountLifecycle`, `checkTrialExpiration`, `processMonthlyRenewal`,
+  > `queueBillingReminders`, `processTrialReactivationEmails` (later
+  > reinstated as a distinct, non-lifecycle feature — see below),
+  > `sendLifecycleEmails`, and `deliverEmails` no longer exist in
+  > `base44/functions/` at all — see CLAUDE.md's "License lifecycle is owned
+  > by Mission Control" section. This list used to include them as still-live
+  > crons requiring dashboard awareness; it didn't get updated when they were
+  > deleted, and a 2026-08-18 portfolio audit correctly flagged that
+  > staleness as unverifiable evidence of a live parallel cron. The code
+  > itself is confirmed gone (no `base44/functions/<name>/` directory for any
+  > of the six) — what's still unverified from a code-only environment,
+  > per CLAUDE.md's own removal note, is whether the Base44 dashboard's
+  > scheduler panel still has a cron *entry* pointing at each now-deleted
+  > endpoint. `--force` prunes the deployed function, but a dashboard-side
+  > schedule record is a separate thing that isn't automatically cleaned up
+  > by that prune — someone with scheduler-panel access needs to check and
+  > remove any of these six still listed there.
 - **Entity-automation candidates** (payment-record → transaction):
   `createTransactionFromInvestmentPayment`, `createTransactionFromMSIPayment`,
   `createTransactionFromRentalPayment`, `createTransactionFromScheduledPaymentRecord`.

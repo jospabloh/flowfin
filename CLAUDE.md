@@ -204,6 +204,19 @@ already surfaces it globally post-login via `TrialBanner.jsx`
 handle `view_only`/`suspended` with upgrade/support links. An earlier
 audit pass flagged this as a gap before checking for that; it isn't one.
 
+**Re-flagged again in the 2026-08-18 portfolio audit** (same claim,
+independently re-derived from code rather than from this file — that audit's
+own stated methodology is "evidence from code, not from what each CLAUDE.md
+documents," so re-flagging isn't itself a mistake). Re-verified: `grep` on
+`billingStatus === 'view_only' || billingStatus === 'suspended'` in
+`TrialBanner.jsx` confirms both statuses are still handled exactly where
+this note says. The architectural reason still holds — a login screen shown
+to an unauthenticated visitor cannot know which family (if any) they belong
+to, so it structurally cannot carry a billing-status banner; the correct
+place for that state is the very first authenticated screen, which is
+already where it lives. Closing this out as verified-not-a-gap rather than
+building a login-screen state that has nothing to key off of.
+
 ## Read-only billing gate: AI-assistant gap fixed 2026-08-18, direct-entity-write gap closed 2026-08-18 (same day, follow-up pass)
 
 `validateMutationAllowed`/`_agentGuard.ts`'s `assertBillingAllowed` exist to
