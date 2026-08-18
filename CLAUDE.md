@@ -203,3 +203,48 @@ already surfaces it globally post-login via `TrialBanner.jsx`
 (`Layout.jsx`) and `DowngradeNotice.jsx` (`App.jsx`), both of which already
 handle `view_only`/`suspended` with upgrade/support links. An earlier
 audit pass flagged this as a gap before checking for that; it isn't one.
+
+## Read-only billing gate: closed the AI-assistant gap, direct-entity-write gap tracked separately (2026-08-18)
+
+`validateMutationAllowed`/`_agentGuard.ts`'s `assertBillingAllowed` exist to
+block writes once a family's `billing_status` is `view_only`/`suspended`,
+but neither was actually wired everywhere a write can originate:
+
+- **Fixed:** `agentCreateTransaction`, `agentUpdateTransaction`,
+  `agentDeleteTransaction` (the Finia AI-assistant transaction tools) had
+  **no billing check at all** — Finia could create/edit/delete transactions
+  for a suspended family with zero gate, even though `_agentGuard.ts`'s
+  `assertBillingAllowed` exists precisely for this. Each of the three now
+  has its own inlined copy (matching the file's existing "no local imports
+  in Deno deploy" convention — see `resolveFamily`/`assertRefInFamily`,
+  already duplicated the same way) that checks `Family.billing_status` via
+  `asServiceRole` before any write, mirroring `_agentGuard.ts`'s own logic.
+- **Partially mitigated, not closed:** the web UI's own direct
+  `base44.entities.Transaction/Category/.../create/update/delete()` calls
+  (~81 call sites across `src/hooks/`, `src/pages/`, `src/components/` —
+  `Catalogs.jsx`, `Transactions.jsx`, `Capture.jsx`, and more) still write
+  straight to the entity with no billing check, client- or server-side.
+  `useCreateTransaction.js` (the shared hook behind `Capture.jsx` and
+  `QuickCaptureSheet.jsx`, the two highest-traffic creation paths) now
+  rejects client-side when `useFamily().isReadOnly` is true — real UX
+  improvement (no more silently-accepted writes that later 404 or vanish),
+  **but not real enforcement**: it only blocks the UI's own code path, not
+  a direct SDK call from devtools or a script.
+- **Why this isn't fully closed:** true server-side enforcement needs
+  either (a) converting each of those ~81 call sites into a Safe-function
+  write (the same `asServiceRole` + billing-gate pattern this section's
+  fixed items and the wider portfolio's Safe-function convention already
+  use — see `jospabloh/stockflow`'s `CLAUDE.md` for the reference pattern),
+  or (b) a per-entity RLS write gate — not expressible today, since Base44's
+  RLS rule language has no join/lookup: it can only match a field on the
+  entity itself or the caller's own `user.data.*`, and `billing_status`
+  lives on `Family`, not on `User` or on each row. (a) is the correct fix
+  but is a multi-entity, multi-file conversion on the scale of a dedicated
+  initiative, not a single-session patch — tracked here rather than rushed,
+  the same way `jospabloh/rumbo`'s own module-3 gap is tracked as a
+  separate initiative in its `CLAUDE.md` instead of attempted piecemeal.
+
+**Verification performed:** `npm run lint`, `npm run build` (incl.
+`permissions-check.mjs`), `npm run validate:rls` all pass. `deno` isn't
+available in this sandbox — the three agent-function fixes get their first
+live Deno check in this PR's CI.
