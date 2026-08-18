@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate } from '@/lib/guardedWrite';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useFamily } from '@/lib/FamilyContext';
 import { X, Check } from 'lucide-react';
@@ -52,9 +52,9 @@ export default function GoalFormModal({ goal, onClose, onSaved }) {
       manual_saved: parseFloat(form.manual_saved) || 0,
     };
     if (goal?.id) {
-      await base44.entities.Goal.update(goal.id, data);
+      await guardedUpdate('Goal', goal.id, data);
     } else {
-      await base44.entities.Goal.create(data);
+      await guardedCreate('Goal', data);
     }
     setSaving(false);
     onSaved();

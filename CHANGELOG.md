@@ -12,6 +12,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.2] - 2026-08-18
+
+### 🔒 Security
+
+Portfolio-standard audit (module 3 — server-side permission/billing
+enforcement), closing the gap tracked in `CLAUDE.md`'s "Read-only billing
+gate" section since the 2026-08-18 AI-assistant fix. `validateMutationAllowed`/
+`_agentGuard.ts`'s `assertBillingAllowed` block writes once a family's
+`billing_status` is `view_only`/`suspended`, and `usePermission()` gates the
+UI by `RolePermission` + `DEFAULT_MATRIX` — but neither was ever enforced
+server-side for the ~80 direct `base44.entities.X.create/update/delete(...)`
+call sites across `src/hooks`, `src/pages`, and `src/components`. A user
+whose `RolePermission` an admin had explicitly restricted, or a family in a
+read-only billing state, could still write via a direct SDK call.
+
+- **Added `base44/functions/guardedEntityWrite`** — the new sanctioned write
+  path for the 15 family-scoped entities the web UI writes directly
+  (`Transaction`, `Category`, `Subcategory`, `Person`, `PaymentMethod`,
+  `CategoryBudget`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`,
+  `MSIPayment`, `RentalProperty`, `RentalPayment`, `ScheduledPayment`,
+  `ScheduledPaymentRecord`, `Trip`). Re-derives the caller's family + role
+  from their own approved `FamilyMembership`, then checks the entity's
+  `RolePermission`/`DEFAULT_MATRIX` permission key (where one is defined)
+  and the billing read-only status, before delegating the write.
+- **Migrated the ~80 real call sites** across 18 files to the new function
+  via a shared client wrapper, `src/lib/guardedWrite.js`.
+- **`registerRentalPaymentSafe`** (already server-mediated, but missing both
+  gates) now checks the same `rental.payments` permission key and billing
+  status before registering a rental payment.
+- No behavior change for anyone whose role/permission combination already
+  granted access. See `CLAUDE.md` for the full writeup, including the exact
+  permission-key mapping used and what was deliberately left out of scope.
+
 ## [2.22.1] - 2026-08-17
 
 ### 🐛 Fixed

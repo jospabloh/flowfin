@@ -10,6 +10,7 @@ import ApplyPaymentModal from '@/components/ApplyPaymentModal';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { getExchangeRate } from '@/services/exchangeRateService';
 import CalculatorWidget from '@/components/CalculatorWidget';
+import { guardedUpdate } from '@/lib/guardedWrite';
 
 const REQUIRED_TYPES = ['Necesario', 'Gusto', 'Urgente', 'Inversión', 'Otro'];
 
@@ -72,7 +73,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Transaction.update(id, data),
+    mutationFn: ({ id, data }) => guardedUpdate('Transaction', id, data),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });

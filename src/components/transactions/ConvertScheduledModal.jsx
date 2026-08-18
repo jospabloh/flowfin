@@ -9,6 +9,7 @@
  */
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -71,7 +72,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
     if (!canSave) return;
     setSaving(true);
     try {
-      const scheduledPayment = await base44.entities.ScheduledPayment.create({
+      const scheduledPayment = await guardedCreate('ScheduledPayment', {
         family_id: familyId,
         name: form.name.trim(),
         description: form.description.trim() || undefined,
@@ -91,7 +92,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
       let linkedThisMonth = false;
       if (markCurrentPaid && canMarkPaid && scheduledPayment?.id) {
         const selectedPerson = (persons || []).find((p) => p.id === form.person_id);
-        const record = await base44.entities.ScheduledPaymentRecord.create({
+        const record = await guardedCreate('ScheduledPaymentRecord', {
           scheduled_payment_id: scheduledPayment.id,
           family_id: familyId,
           month: txMonth,
@@ -104,7 +105,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
           linked_transaction_id: transaction.id,
         });
         // Reuse the existing movement as this month's payment.
-        await base44.entities.Transaction.update(transaction.id, {
+        await guardedUpdate('Transaction', transaction.id, {
           scheduled_payment_id: scheduledPayment.id,
           scheduled_payment_record_id: record.id,
           status: 'reconciled',
@@ -115,7 +116,7 @@ export default function ConvertScheduledModal({ transaction, categories = [], pa
         try {
           const linkedTxs = await base44.entities.Transaction.filter({ scheduled_payment_record_id: record.id });
           for (const dup of linkedTxs || []) {
-            if (dup.id !== transaction.id) await base44.entities.Transaction.delete(dup.id);
+            if (dup.id !== transaction.id) await guardedDelete('Transaction', dup.id);
           }
         } catch { /* best-effort cleanup */ }
         linkedThisMonth = true;

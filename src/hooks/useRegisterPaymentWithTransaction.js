@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate } from '@/lib/guardedWrite';
 import { useFamily } from '@/lib/FamilyContext';
 
 function getWeekNumber(dateStr) {
@@ -70,7 +71,7 @@ export async function findMatchingScheduledPaymentTransaction({
  * Usage:
  *   const registerPayment = useRegisterPaymentWithTransaction();
  *   await registerPayment(
- *     () => base44.entities.ScheduledPaymentRecord.create(data),
+ *     () => guardedCreate('ScheduledPaymentRecord', data),
  *     { amount, date, description, category_id, payment_method_id, person_id }
  *   );
  */
@@ -108,16 +109,16 @@ export function useRegisterPaymentWithTransaction() {
         scheduled_payment_record_id: scheduledPaymentRecordId,
       };
       if (matchingTx.status !== 'reconciled') updates.status = 'reconciled';
-      await base44.entities.Transaction.update(matchingTx.id, updates);
+      await guardedUpdate('Transaction', matchingTx.id, updates);
       if (primaryResult?.scheduled_payment_id) {
-        await base44.entities.ScheduledPaymentRecord.update(primaryResult.id, { linked_transaction_id: matchingTx.id, status: 'reconciled' });
+        await guardedUpdate('ScheduledPaymentRecord', primaryResult.id, { linked_transaction_id: matchingTx.id, status: 'reconciled' });
       }
     }
 
     // 2. Create a Transaction only if required fields are present
     if (!matchingTx && category_id && person_id) {
       const week = getWeekNumber(date);
-      const txResult = await base44.entities.Transaction.create({
+      const txResult = await guardedCreate('Transaction', {
         family_id: familyId,
         date,
         type,
@@ -134,7 +135,7 @@ export function useRegisterPaymentWithTransaction() {
       });
 
       if (primaryResult?.id && txResult?.id && primaryResult?.scheduled_payment_id) {
-        await base44.entities.ScheduledPaymentRecord.update(primaryResult.id, { linked_transaction_id: txResult.id });
+        await guardedUpdate('ScheduledPaymentRecord', primaryResult.id, { linked_transaction_id: txResult.id });
       }
     }
 

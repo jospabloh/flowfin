@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate } from '@/lib/guardedWrite';
 import { useCreateTransaction } from '@/hooks/useCreateTransaction';
 import { Mic, MicOff, Camera, Check, Receipt, AlertTriangle, Sparkles, BookOpen, Loader2, Plane, X, Users, CalendarDays, Calculator } from 'lucide-react';
 import CalculatorWidget from '@/components/CalculatorWidget';
@@ -256,7 +257,7 @@ export default function Capture() {
 
   const handleAddSubcategory = async (name) => {
     if (!categoryId) { toast({ title: 'Selecciona primero un Rubro', variant: 'destructive' }); return; }
-    await base44.entities.Subcategory.create({
+    await guardedCreate('Subcategory', {
       name,
       family_id: familyId,
       category_id: categoryId,
@@ -268,7 +269,7 @@ export default function Capture() {
   };
 
   const handleAddCategory = async (name) => {
-    const cat = await base44.entities.Category.create({
+    const cat = await guardedCreate('Category', {
       name,
       family_id: familyId,
       icon: '📁',
@@ -441,7 +442,7 @@ export default function Capture() {
       split_total_amount: totalAmount,
     }));
     try {
-      await Promise.all(rows.map(r => base44.entities.Transaction.create(r)));
+      await Promise.all(rows.map(r => guardedCreate('Transaction', r)));
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
       if (subcategoryId) increment(subcategoryId);
