@@ -48,6 +48,33 @@ export async function handle(req: Request): Promise<Response> {
       return Response.json({ error: 'No perteneces a ninguna familia activa.' }, { status: 403 });
     }
     const familyId = membership.family_id;
+    const role = membership.role || 'member';
+
+    // 3b. Permission + billing gate. This handler was already server-mediated
+    // (never a direct client write), but — unlike the rest of this app's
+    // direct-entity-write call sites this PR closes — it never actually
+    // checked RolePermission or Family.billing_status either. Mirrors
+    // guardedEntityWrite's own checks for the 'rental.payments' key
+    // (create -> can_write) — see that function's logic.ts for why this key,
+    // not a leaf key. Platform owner bypasses both, same as everywhere else.
+    if (user.role !== 'admin') {
+      const permRows = await base44.asServiceRole.entities.RolePermission.filter({
+        family_id: familyId,
+        role,
+        permission_key: 'rental.payments',
+      });
+      const permRow = permRows?.[0] || null;
+      const canWrite = permRow ? permRow.can_write === true : role === 'admin';
+      if (!canWrite) {
+        return Response.json({ error: 'No tienes permiso para registrar pagos de renta.' }, { status: 403 });
+      }
+
+      const fam = await base44.asServiceRole.entities.Family.get(familyId).catch(() => null);
+      const billingStatus = fam?.billing_status ?? 'active';
+      if (billingStatus === 'view_only' || billingStatus === 'suspended') {
+        return Response.json({ error: 'Tu suscripción está en modo solo lectura; no puedes registrar pagos ahora.' }, { status: 403 });
+      }
+    }
 
     // 4. Load rental property
     let property = null;

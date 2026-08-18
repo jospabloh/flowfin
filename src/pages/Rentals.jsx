@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { Plus } from 'lucide-react';
 import Spinner from '@/components/Spinner';
 import PageHeader from '@/components/PageHeader';
@@ -61,7 +62,7 @@ export default function Rentals() {
   });
 
   const savePropMutation = useMutation({
-    mutationFn: (data) => editingProp ? base44.entities.RentalProperty.update(editingProp.id, data) : base44.entities.RentalProperty.create(data),
+    mutationFn: (data) => editingProp ? guardedUpdate('RentalProperty', editingProp.id, data) : guardedCreate('RentalProperty', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rentalProperties', familyId] });
       setShowPropForm(false); setEditingProp(null); setPropForm(EMPTY_PROP_FORM);
@@ -71,7 +72,7 @@ export default function Rentals() {
   });
 
   const deletePropMutation = useMutation({
-    mutationFn: (id) => base44.entities.RentalProperty.delete(id),
+    mutationFn: (id) => guardedDelete('RentalProperty', id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['rentalProperties', familyId] }); toast({ title: '🗑️ Propiedad eliminada', duration: 3000 }); },
     onError: (err) => toast({ title: 'Error al eliminar', description: err?.message, variant: 'destructive' }),
   });
@@ -126,8 +127,8 @@ export default function Rentals() {
     setUnmarkingId(payRecord.id);
     try {
       const linked = await base44.entities.Transaction.filter({ rental_payment_id: payRecord.id });
-      for (const tx of linked) await base44.entities.Transaction.delete(tx.id);
-      await base44.entities.RentalPayment.delete(payRecord.id);
+      for (const tx of linked) await guardedDelete('Transaction', tx.id);
+      await guardedDelete('RentalPayment', payRecord.id);
       queryClient.invalidateQueries({ queryKey: ['rentalPayments', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });

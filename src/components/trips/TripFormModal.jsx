@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Check } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { guardedCreate } from '@/lib/guardedWrite';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import { todayISO } from '@/lib/formatters';
@@ -97,7 +97,7 @@ export default function TripFormModal({ onClose, onSaved }) {
     if (!validate()) return;
     setSaving(true);
     try {
-      await base44.entities.Trip.create({
+      await guardedCreate('Trip', {
         family_id: familyId,
         name: name.trim(),
         start_date: startDate,

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, todayISO } from '@/lib/formatters';
+import { guardedUpdate } from '@/lib/guardedWrite';
 import { Pencil, AlertTriangle, X, Check } from 'lucide-react';
 
 function daysBetween(dateA, dateB) {
@@ -45,7 +46,7 @@ function EditModal({ card, snapshot, onClose, onSaved, familyId }) {
           snapshot_date: todayISO(),
           notes: notes || undefined,
         }),
-        base44.entities.PaymentMethod.update(card.id, {
+        guardedUpdate('PaymentMethod', card.id, {
           cut_day: parsedCutDay,
           payment_day: parsedPaymentDay,
         }),

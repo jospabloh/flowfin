@@ -6,9 +6,18 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.2',
+    date: '2026-08-18',
+    label: 'Actual',
+    changes: [
+      'Seguridad: los ~80 puntos donde la app escribía directo a Movimientos, Rubros/SubRubros/Personas/Formas de pago, Metas, Inversiones, MSI, Rentas, Pagos del Mes y Viajes ahora pasan por una función del servidor que revisa tus permisos por rol y si tu cuenta está en modo solo lectura, antes de guardar — antes esa doble revisión solo existía del lado de la app, así que en teoría una llamada directa a la API la podía saltar. No cambia nada para el uso normal de la app.',
+      'Registrar un pago de renta (`registerRentalPaymentSafe`) ahora también respeta esos mismos dos candados — antes no revisaba ninguno.',
+    ],
+  },
+  {
     version: '2.22.1',
     date: '2026-08-17',
-    label: 'Actual',
+    label: '',
     changes: [
       'Mensajes: se corrigió que el destinatario de un mensaje no pudiera marcarlo como leído (RLS solo lo permitía al remitente) — el popup de mensajes quedaba abierto para siempre; ya aplicado en vivo y ahora también en el schema versionado',
       'Auditoría periódica: se revisaron los cambios de la última semana, seguridad, RLS, permisos y dependencias — sin hallazgos críticos o altos nuevos (ver SECURITY_AUDIT_REPORT.md)',

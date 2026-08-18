@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { Plus, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -47,7 +48,7 @@ export default function Investments() {
   const { data: allPayments = [] } = useQuery({ queryKey: ['investmentPayments'], queryFn: () => base44.entities.InvestmentPayment.list('-date') });
 
   const createInvestmentMutation = useMutation({
-    mutationFn: (data) => base44.entities.Investment.create(data),
+    mutationFn: (data) => guardedCreate('Investment', data),
     onMutate: async (newInv) => {
       await queryClient.cancelQueries({ queryKey: ['investments', familyId] });
       const previous = queryClient.getQueryData(['investments', familyId]);
@@ -59,7 +60,7 @@ export default function Investments() {
   });
 
   const updatePaymentMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.InvestmentPayment.update(id, data),
+    mutationFn: ({ id, data }) => guardedUpdate('InvestmentPayment', id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['investmentPayments'] });
       const previous = queryClient.getQueryData(['investmentPayments']);
@@ -71,7 +72,7 @@ export default function Investments() {
   });
 
   const deletePaymentMutation = useMutation({
-    mutationFn: (id) => base44.entities.InvestmentPayment.delete(id),
+    mutationFn: (id) => guardedDelete('InvestmentPayment', id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['investmentPayments'] });
       const previous = queryClient.getQueryData(['investmentPayments']);
@@ -102,7 +103,7 @@ export default function Investments() {
     const payData = { investment_id: selected.id, family_id: selected.family_id || familyId, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
     let savedPayment;
     try {
-      savedPayment = await base44.entities.InvestmentPayment.create(payData);
+      savedPayment = await guardedCreate('InvestmentPayment', payData);
       if (payForm.category_id && payForm.person_id) {
         const week = (() => {
           try {
@@ -114,7 +115,7 @@ export default function Investments() {
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
           } catch { return 1; }
         })();
-        await base44.entities.Transaction.create({
+        await guardedCreate('Transaction', {
           family_id: familyId,
           date: payForm.date,
           type: 'expense',
@@ -136,7 +137,7 @@ export default function Investments() {
       // here either, since InvestmentPayment doesn't store category_id/person_id for
       // it to resolve. Roll back the payment and surface the failure inline instead.
       if (savedPayment?.id) {
-        try { await base44.entities.InvestmentPayment.delete(savedPayment.id); } catch { /* best-effort rollback */ }
+        try { await guardedDelete('InvestmentPayment', savedPayment.id); } catch { /* best-effort rollback */ }
       }
       setPayError(error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.');
       setIsSavingPayment(false);

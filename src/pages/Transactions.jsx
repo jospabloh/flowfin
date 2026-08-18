@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedDelete } from '@/lib/guardedWrite';
 import { useToast } from '@/components/ui/use-toast';
 import Spinner from '@/components/Spinner';
 import { Download, AlertTriangle, MessageCircle } from 'lucide-react';
@@ -76,7 +77,7 @@ export default function Transactions() {
   const { refreshing } = usePullToRefresh(refetchTx);
 
   const deleteTransactionMutation = useMutation({
-    mutationFn: (id) => base44.entities.Transaction.delete(id),
+    mutationFn: (id) => guardedDelete('Transaction', id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['transactions'] });
       const previous = queryClient.getQueryData(['transactions']);

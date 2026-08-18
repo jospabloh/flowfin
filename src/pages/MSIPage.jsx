@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { Plus, X, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
@@ -54,7 +55,7 @@ export default function MSIPage() {
   const nextPayment = selected ? getNextMSIPayment(selected, selectedPayments) : null;
 
   const createMSIMutation = useMutation({
-    mutationFn: (data) => base44.entities.MSI.create(data),
+    mutationFn: (data) => guardedCreate('MSI', data),
     onMutate: async (newMSI) => {
       await queryClient.cancelQueries({ queryKey: ['msi', familyId] });
       const previous = queryClient.getQueryData(['msi', familyId]);
@@ -70,7 +71,7 @@ export default function MSIPage() {
   });
 
   const updatePaymentMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.MSIPayment.update(id, data),
+    mutationFn: ({ id, data }) => guardedUpdate('MSIPayment', id, data),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['msiPayments'] });
       const previous = queryClient.getQueryData(['msiPayments']);
@@ -85,7 +86,7 @@ export default function MSIPage() {
   });
 
   const deletePaymentMutation = useMutation({
-    mutationFn: (id) => base44.entities.MSIPayment.delete(id),
+    mutationFn: (id) => guardedDelete('MSIPayment', id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['msiPayments'] });
       const previous = queryClient.getQueryData(['msiPayments']);
@@ -100,7 +101,7 @@ export default function MSIPage() {
   });
 
   const toggleMSIStatusMutation = useMutation({
-    mutationFn: (msi) => base44.entities.MSI.update(msi.id, { is_active: !msi.is_active }),
+    mutationFn: (msi) => guardedUpdate('MSI', msi.id, { is_active: !msi.is_active }),
     onMutate: async (msi) => {
       await queryClient.cancelQueries({ queryKey: ['msi', familyId] });
       const previous = queryClient.getQueryData(['msi', familyId]);
@@ -145,7 +146,7 @@ export default function MSIPage() {
       paid_date: today,
     };
     await registerPayment(
-      () => base44.entities.MSIPayment.create(payData),
+      () => guardedCreate('MSIPayment', payData),
       {
         amount: msi.monthly_amount,
         date: today,

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import { formatCurrency } from '@/lib/formatters';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { PlusCircle, Trash2, Pencil, Check, X } from 'lucide-react';
 
 export default function CategoryBudgetConfig() {
@@ -27,17 +28,17 @@ export default function CategoryBudgetConfig() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.CategoryBudget.create(data),
+    mutationFn: (data) => guardedCreate('CategoryBudget', data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['category_budgets', familyId] }); setShowAdd(false); setNewCatId(''); setNewAmount(''); },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, amount }) => base44.entities.CategoryBudget.update(id, { amount }),
+    mutationFn: ({ id, amount }) => guardedUpdate('CategoryBudget', id, { amount }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['category_budgets', familyId] }); setEditingId(null); },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.CategoryBudget.delete(id),
+    mutationFn: (id) => guardedDelete('CategoryBudget', id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['category_budgets', familyId] }),
   });
 

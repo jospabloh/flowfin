@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedDelete } from '@/lib/guardedWrite';
 import { useFamily } from '@/lib/FamilyContext';
 import PageHeader from '@/components/PageHeader';
 import GoalCard from '@/components/goals/GoalCard';
@@ -45,7 +46,7 @@ export default function Goals() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Goal.delete(id),
+    mutationFn: (id) => guardedDelete('Goal', id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['goals', familyId] }),
   });
 

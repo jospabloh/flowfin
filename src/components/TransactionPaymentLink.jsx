@@ -1,13 +1,13 @@
 import { Link as LinkIcon, X } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { guardedUpdate } from '@/lib/guardedWrite';
 
 export default function TransactionPaymentLink({ transaction, onUnlink }) {
   const queryClient = useQueryClient();
-  
+
   const unlinkMutation = useMutation({
     mutationFn: async (fieldName) => {
-      return await base44.entities.Transaction.update(transaction.id, { [fieldName]: null });
+      return await guardedUpdate('Transaction', transaction.id, { [fieldName]: null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });

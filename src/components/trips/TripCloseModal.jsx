@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Download, FileArchive, AlertTriangle, Check } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { guardedUpdate } from '@/lib/guardedWrite';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { useToast } from '@/components/ui/use-toast';
@@ -102,7 +102,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
     setClosing(true);
     try {
       // 1. Update trip status
-      await base44.entities.Trip.update(trip.id, {
+      await guardedUpdate('Trip', trip.id, {
         status: 'closed',
         closed_at: new Date().toISOString(),
       });
@@ -113,7 +113,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
           notes: `${t.notes ? t.notes + ' ' : ''}[Viaje: ${trip.name}]`,
         };
         if (t.receipt_image) update.receipt_image = null;
-        await base44.entities.Transaction.update(t.id, update);
+        await guardedUpdate('Transaction', t.id, update);
       }
 
       toast({ title: 'Viaje cerrado. Los gastos quedaron en tus movimientos.' });

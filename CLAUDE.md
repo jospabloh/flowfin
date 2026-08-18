@@ -204,7 +204,7 @@ already surfaces it globally post-login via `TrialBanner.jsx`
 handle `view_only`/`suspended` with upgrade/support links. An earlier
 audit pass flagged this as a gap before checking for that; it isn't one.
 
-## Read-only billing gate: closed the AI-assistant gap, direct-entity-write gap tracked separately (2026-08-18)
+## Read-only billing gate: AI-assistant gap fixed 2026-08-18, direct-entity-write gap closed 2026-08-18 (same day, follow-up pass)
 
 `validateMutationAllowed`/`_agentGuard.ts`'s `assertBillingAllowed` exist to
 block writes once a family's `billing_status` is `view_only`/`suspended`,
@@ -219,32 +219,94 @@ but neither was actually wired everywhere a write can originate:
   in Deno deploy" convention — see `resolveFamily`/`assertRefInFamily`,
   already duplicated the same way) that checks `Family.billing_status` via
   `asServiceRole` before any write, mirroring `_agentGuard.ts`'s own logic.
-- **Partially mitigated, not closed:** the web UI's own direct
-  `base44.entities.Transaction/Category/.../create/update/delete()` calls
-  (~81 call sites across `src/hooks/`, `src/pages/`, `src/components/` —
-  `Catalogs.jsx`, `Transactions.jsx`, `Capture.jsx`, and more) still write
-  straight to the entity with no billing check, client- or server-side.
-  `useCreateTransaction.js` (the shared hook behind `Capture.jsx` and
-  `QuickCaptureSheet.jsx`, the two highest-traffic creation paths) now
-  rejects client-side when `useFamily().isReadOnly` is true — real UX
-  improvement (no more silently-accepted writes that later 404 or vanish),
-  **but not real enforcement**: it only blocks the UI's own code path, not
-  a direct SDK call from devtools or a script.
-- **Why this isn't fully closed:** true server-side enforcement needs
-  either (a) converting each of those ~81 call sites into a Safe-function
-  write (the same `asServiceRole` + billing-gate pattern this section's
-  fixed items and the wider portfolio's Safe-function convention already
-  use — see `jospabloh/stockflow`'s `CLAUDE.md` for the reference pattern),
-  or (b) a per-entity RLS write gate — not expressible today, since Base44's
-  RLS rule language has no join/lookup: it can only match a field on the
-  entity itself or the caller's own `user.data.*`, and `billing_status`
-  lives on `Family`, not on `User` or on each row. (a) is the correct fix
-  but is a multi-entity, multi-file conversion on the scale of a dedicated
-  initiative, not a single-session patch — tracked here rather than rushed,
-  the same way `jospabloh/rumbo`'s own module-3 gap is tracked as a
-  separate initiative in its `CLAUDE.md` instead of attempted piecemeal.
+- **Fixed (follow-up pass, same day):** the web UI's own direct
+  `base44.entities.Transaction/Category/.../create/update/delete()` calls —
+  ~80 call sites across 18 files in `src/hooks/`, `src/pages/`,
+  `src/components/` (`Catalogs.jsx`, `Transactions.jsx`, `Capture.jsx`, and
+  more) — now go through **`base44/functions/guardedEntityWrite`**, a new
+  Safe function covering the 16 family-scoped entities those call sites
+  write: `Transaction`, `Category`, `Subcategory`, `Person`,
+  `PaymentMethod`, `CategoryBudget`, `Goal`, `Investment`,
+  `InvestmentPayment`, `MSI`, `MSIPayment`, `RentalProperty`,
+  `RentalPayment`, `ScheduledPayment`, `ScheduledPaymentRecord`, `Trip`.
+  `src/lib/guardedWrite.js` is the client-side wrapper
+  (`guardedCreate`/`guardedUpdate`/`guardedDelete`) every migrated call site
+  now uses instead of `base44.entities.X.*` directly — same calling shape
+  (data in, record out via axios's `.data`), so each migration was a
+  near-mechanical swap. `useCreateTransaction.js`'s pre-existing client-side
+  `isReadOnly` check (added earlier the same day) is now a fast first-line
+  check backed by the same real server-side gate everywhere else, not the
+  only thing standing between a read-only family and a write.
+
+  **What `guardedEntityWrite` actually checks**, for any non-platform-owner
+  caller (platform owner — `user.role === 'admin'` — bypasses both, same as
+  every other privileged path in this app):
+  1. **Tenant match.** The caller's family is always re-derived from their
+     own approved `FamilyMembership` — never trusted from the request. For
+     `create`, the resolved family is force-set onto the record regardless
+     of what the client sent; for `update`/`delete`, the *existing* record's
+     `family_id` is what's checked against the caller's family (a client
+     can't submit a foreign id to sidestep this), and a client-submitted
+     `family_id` in an update patch is always stripped before the write.
+  2. **`RolePermission` + `DEFAULT_MATRIX`**, for entities that have a
+     defined permission key (all except `CategoryBudget` — see below) —
+     mirrors `usePermission.js`'s own three-layer resolution
+     (platform-admin → DB row → client default). The entity→key mapping and
+     the "member" role's default `PermRow` per key are duplicated inline in
+     `guardedEntityWrite/logic.ts` (Deno can't import across function
+     directories, and can't import from `src/` at all — same constraint
+     `_agentGuard.ts` already documents), sourced directly from each
+     module's `src/**/permissions.js` manifest. **Keys are checked at
+     SECTION granularity** (e.g. `catalog.categories`, not the leaf
+     `catalog.categories.create`) even though a few client call sites check
+     a leaf key for their own UI gating — every manifest's leaf-level
+     default is identical to its parent section's default, so this produces
+     the same effective permission in every case *except* if an admin ever
+     sets a `RolePermission` override at a leaf key without also setting one
+     at the section key, which `guardedEntityWrite` wouldn't see. Accepted
+     precision trade-off, not attempted to close further in this pass.
+  3. **Billing read-only status** (`view_only`/`suspended`), same as the
+     AI-assistant fix above.
+  - **`CategoryBudget` has no permission key at all** — `budget.permissions.js`
+    only defines a `view` section, no create/edit/delete action exists in
+    the permission system for it (confirmed: no page checks `usePermission`
+    before writing it either). `guardedEntityWrite` still applies the
+    tenant + billing gates to it, but doesn't newly restrict who can write
+    it — preserves current behavior exactly (any family member already
+    could, and still can).
+  - Unlike some other apps in this portfolio, none of these 16 entities has
+    an RLS-level carve-out that grants a non-admin role write access beyond
+    what `RolePermission`/`DEFAULT_MATRIX` already model (e.g. LIUMA's
+    parent/`ChargeItem` exception) — every one maps to `admin`/`member`
+    cleanly, so `guardedEntityWrite` didn't need an entity-specific carve-out.
+  - **`registerRentalPaymentSafe`** (an existing Safe function, already
+    server-mediated — not one of the ~80 direct-write call sites) was found
+    to have neither gate either, in the same area of the codebase. Given it
+    already resolves `familyId`/`membership` for its own tenant check, it
+    got the same two checks added inline (permission key `'rental.payments'`,
+    capability `create`→`can_write`; billing read-only) rather than left as
+    an obviously-related loose end right next to this fix.
 
 **Verification performed:** `npm run lint`, `npm run build` (incl.
-`permissions-check.mjs`), `npm run validate:rls` all pass. `deno` isn't
-available in this sandbox — the three agent-function fixes get their first
-live Deno check in this PR's CI.
+`permissions-check.mjs`), `npm run validate:rls` all pass — 0 new
+`permissions:check` orphans/missing introduced (the check only scans
+`usePermission()` call sites in `src/`, unaffected by the new backend
+function). `npm run typecheck` was already failing on `origin/main` before this PR (443
+pre-existing errors — this repo's typecheck has never been clean and is not
+part of CI, which only runs `permissions:check`/`validate:rls`/
+`deno lint`/`deno test`); confirmed by diffing error output before/after
+that this PR introduces zero *new* errors (426 after — fewer, not more; the
+same pre-existing `ScheduledPayments.jsx` errors just shifted a couple of
+lines and are now attributed to `guardedCreate`/`guardedUpdate` call sites
+instead of `base44.entities.X.*` ones). `deno` isn't available in this sandbox — the new
+`guardedEntityWrite/logic.ts` + `logic.test.ts` (a real Deno unit-test file,
+same pattern as `_agentGuard.test.ts`) get their first live `deno
+lint`/`deno test` in this PR's CI, same limitation as the earlier
+AI-assistant fix. **Not verified:** an actual browser session as a
+permission-restricted family member or a suspended family (not achievable in
+this environment) — risk is bounded the same way as every other module-3
+fix in this portfolio: every migrated call site preserves identical behavior
+for anyone whose role/permission combination already granted access: only a
+user an admin explicitly denied, or a family in a read-only billing state,
+now correctly gets rejected server-side instead of the write silently
+succeeding.

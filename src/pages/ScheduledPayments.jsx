@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { useFamily } from '@/lib/FamilyContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import PageHeader from '@/components/PageHeader';
@@ -128,12 +129,12 @@ export default function ScheduledPayments() {
   // is exactly what was happening to "Pausar 1 mes" (paused_until/pause_reason/
   // audit_events were never declared on the ScheduledPayment entity schema).
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ScheduledPayment.create(data),
+    mutationFn: (data) => guardedCreate('ScheduledPayment', data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
     onError: (err) => toast({ title: 'Error al guardar', description: err?.message || 'No se pudo crear el pago programado.', variant: 'destructive' }),
   });
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ScheduledPayment.update(id, data),
+    mutationFn: ({ id, data }) => guardedUpdate('ScheduledPayment', id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
     onError: (err) => toast({ title: 'Error al guardar', description: err?.message || 'No se pudo actualizar el pago programado.', variant: 'destructive' }),
   });
@@ -154,13 +155,13 @@ export default function ScheduledPayments() {
         throw new Error(`"${item.name}" tiene historial de pagos vinculado — ya está archivado y no se puede eliminar del todo sin borrar ese historial.`);
       }
       if (hasHistory) {
-        return base44.entities.ScheduledPayment.update(item.id, {
+        return guardedUpdate('ScheduledPayment', item.id, {
           is_active: false,
           archived_at: new Date().toISOString(),
           archived_by: currentUser?.full_name || currentUser?.email || 'Usuario',
         });
       }
-      return base44.entities.ScheduledPayment.delete(item.id);
+      return guardedDelete('ScheduledPayment', item.id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scheduledPayments', familyId] }),
     onError: (err) => toast({ title: 'No se pudo eliminar', description: err?.message || 'No se pudo eliminar el pago programado.', variant: 'destructive' }),
@@ -230,7 +231,7 @@ export default function ScheduledPayments() {
     const selectedPerson = persons.find(p => p.id === primaryPersonId);
     const recordData = { scheduled_payment_id: payingItem.id, family_id: familyId, month: CURRENT_MONTH, paid_date: payDate, amount_paid: amount, notes: payNotes, paid_by: selectedPerson?.name || currentUser?.full_name || currentUser?.email || 'Usuario', status: 'reconciled', origin: 'manual' };
     try {
-      await registerPayment(() => base44.entities.ScheduledPaymentRecord.create(recordData), {
+      await registerPayment(() => guardedCreate('ScheduledPaymentRecord', recordData), {
         amount, date: payDate, description: `${payingItem.icon || ''} ${payingItem.name}${payNotes ? ` — ${payNotes}` : ''}`.trim(),
         category_id: payingItem.category_id || undefined, payment_method_id: payPaymentMethodId || payingItem.payment_method_id || undefined, person_id: primaryPersonId,
         scheduled_payment_id: payingItem.id,
@@ -255,8 +256,8 @@ export default function ScheduledPayments() {
       const record = freshRecords?.[0];
       if (record) {
         const linkedTxs = await base44.entities.Transaction.filter({ scheduled_payment_record_id: record.id });
-        for (const tx of linkedTxs) await base44.entities.Transaction.delete(tx.id);
-        await base44.entities.ScheduledPaymentRecord.delete(record.id);
+        for (const tx of linkedTxs) await guardedDelete('Transaction', tx.id);
+        await guardedDelete('ScheduledPaymentRecord', record.id);
         queryClient.invalidateQueries({ queryKey: ['scheduledPaymentRecords', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
         queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
