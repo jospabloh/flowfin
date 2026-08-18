@@ -224,7 +224,7 @@ but neither was actually wired everywhere a write can originate:
   ~80 call sites across 18 files in `src/hooks/`, `src/pages/`,
   `src/components/` (`Catalogs.jsx`, `Transactions.jsx`, `Capture.jsx`, and
   more) — now go through **`base44/functions/guardedEntityWrite`**, a new
-  Safe function covering the 15 family-scoped entities those call sites
+  Safe function covering the 16 family-scoped entities those call sites
   write: `Transaction`, `Category`, `Subcategory`, `Person`,
   `PaymentMethod`, `CategoryBudget`, `Goal`, `Investment`,
   `InvestmentPayment`, `MSI`, `MSIPayment`, `RentalProperty`,
@@ -274,7 +274,7 @@ but neither was actually wired everywhere a write can originate:
     tenant + billing gates to it, but doesn't newly restrict who can write
     it — preserves current behavior exactly (any family member already
     could, and still can).
-  - Unlike some other apps in this portfolio, none of these 15 entities has
+  - Unlike some other apps in this portfolio, none of these 16 entities has
     an RLS-level carve-out that grants a non-admin role write access beyond
     what `RolePermission`/`DEFAULT_MATRIX` already model (e.g. LIUMA's
     parent/`ChargeItem` exception) — every one maps to `admin`/`member`

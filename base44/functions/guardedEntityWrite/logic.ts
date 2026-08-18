@@ -42,7 +42,7 @@ const CAP_FIELD: Record<Operation, keyof PermRow> = {
   delete: "can_delete",
 };
 
-// The 15 family-scoped entities this function guards, and the permission key
+// The 16 family-scoped entities this function guards, and the permission key
 // (from src/lib/permissions/*.permissions.js) that governs each operation on
 // them. A single string applies to all three operations (create=can_write,
 // update=can_modify, delete=can_delete on that one key); a per-operation map

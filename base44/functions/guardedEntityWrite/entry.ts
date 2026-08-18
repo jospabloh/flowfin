@@ -1,4 +1,4 @@
-// guardedEntityWrite — server-authoritative write gate for the 15
+// guardedEntityWrite — server-authoritative write gate for the 16
 // family-scoped entities the web UI writes directly (Transaction, Category,
 // Subcategory, Person, PaymentMethod, CategoryBudget, Goal, Investment,
 // InvestmentPayment, MSI, MSIPayment, RentalProperty, RentalPayment,
@@ -18,7 +18,7 @@
 // AI-assistant tools had before that fix, just on the human UI's own writes
 // instead of Finia's.
 //
-// This function is now the sanctioned write path for those 15 entities. It
+// This function is now the sanctioned write path for those 16 entities. It
 // re-derives the caller's family + role from their own approved
 // FamilyMembership (never from the request), then checks: billing read-only
 // status (mirrors assertBillingAllowed) -> the entity's RolePermission +

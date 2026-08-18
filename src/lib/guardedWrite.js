@@ -2,7 +2,7 @@ import { base44 } from '@/api/base44Client';
 
 /**
  * Thin client wrapper around the guardedEntityWrite Safe function — the
- * sanctioned write path for the 15 family-scoped entities the web UI writes
+ * sanctioned write path for the 16 family-scoped entities the web UI writes
  * directly (Transaction, Category, Subcategory, Person, PaymentMethod,
  * CategoryBudget, Goal, Investment, InvestmentPayment, MSI, MSIPayment,
  * RentalProperty, RentalPayment, ScheduledPayment, ScheduledPaymentRecord,

@@ -28,7 +28,7 @@ whose `RolePermission` an admin had explicitly restricted, or a family in a
 read-only billing state, could still write via a direct SDK call.
 
 - **Added `base44/functions/guardedEntityWrite`** — the new sanctioned write
-  path for the 15 family-scoped entities the web UI writes directly
+  path for the 16 family-scoped entities the web UI writes directly
   (`Transaction`, `Category`, `Subcategory`, `Person`, `PaymentMethod`,
   `CategoryBudget`, `Goal`, `Investment`, `InvestmentPayment`, `MSI`,
   `MSIPayment`, `RentalProperty`, `RentalPayment`, `ScheduledPayment`,

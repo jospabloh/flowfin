@@ -48,8 +48,8 @@ Deno.test("permissionKeyFor: CategoryBudget has no key (no defined permission fo
   assertEquals(permissionKeyFor("ScheduledPaymentRecord", "delete"), null);
 });
 
-Deno.test("all 15 guarded entities are covered and every mapped key has a member default (except the one null entity)", () => {
-  assertEquals(GUARDED_ENTITIES.length, 15, "expected 15 guarded entities");
+Deno.test("all 16 guarded entities are covered and every mapped key has a member default (except the one null entity)", () => {
+  assertEquals(GUARDED_ENTITIES.length, 16, "expected 16 guarded entities");
   for (const entity of GUARDED_ENTITIES) {
     for (const op of ["create", "update", "delete"] as const) {
       const key = permissionKeyFor(entity, op);
