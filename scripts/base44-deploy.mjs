@@ -59,10 +59,15 @@ if (!config.appId || !config.name) die('base44.app.json necesita `appId` y `name
 if (!existsSync(path.join(ROOT, 'base44'))) die(`${ROOT} no tiene un directorio base44/.`);
 
 const pushEntities = argv.includes('--entities');
-// Mergear a main NO redeploya el sitio. Se creía que sí, y por eso el fix del
-// tutorial estuvo mergeado y sin servir cinco días (ver CLAUDE.md). El deploy
-// del frontend es un paso propio, y por eso vive aquí en vez de en la memoria
-// de quien mergea.
+// Mergear a `main` NO redeploya el sitio. Durante mucho tiempo se creyó que sí
+// — flowfin lo tenía escrito así en su CLAUDE.md — y por eso un fix de frontend
+// llegó a estar mergeado, verde en CI y cinco días sin servir, con el bug vivo
+// en producción. El deploy del frontend es un paso propio, y vive aquí en vez
+// de en la memoria de quien mergea.
+//
+// Comprueba el resultado por CONTENIDO, no por hashes: el checkpoint del app
+// puede reportar un `git_commit_hash` igual al HEAD de `main` mientras el árbol
+// que realmente se sirve está atrasado.
 const deploySite = argv.includes('--site');
 if (deploySite && pushEntities) {
   die('`--site` y `--entities` no van juntos.', 'Corre uno y después el otro, para leer el resultado de cada uno.');

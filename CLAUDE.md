@@ -446,6 +446,14 @@ npm run deploy:entities   # schema — DESTRUCTIVO, pide escribir "FlowFin"
 npm run functions:audit   # quién llama a cada endpoint
 ```
 
+**Mergear a `main` no deploya el sitio.** Se creyó lo contrario durante meses,
+y en flowfin eso dejó un fix de frontend mergeado, verde en CI y **cinco días sin
+servir**, con el bug vivo en producción (detalle en el CLAUDE.md de flowfin). El
+frontend se deploya a mano con `npm run deploy:site`, igual que las funciones.
+Y comprueba el resultado por **contenido**, no por hashes: el checkpoint del app
+puede reportar un `git_commit_hash` igual al HEAD de `main` mientras el árbol que
+de verdad se sirve está atrasado.
+
 `scripts/base44-deploy.mjs` **rechaza** un `--app-id` por argumento, así que el
 directorio y la app destino no pueden desalinearse. `deploy:entities` imprime la
 lista de entidades y el nombre de la app antes de pedir confirmación — ver
