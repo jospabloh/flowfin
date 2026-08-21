@@ -59,6 +59,14 @@ if (!config.appId || !config.name) die('base44.app.json necesita `appId` y `name
 if (!existsSync(path.join(ROOT, 'base44'))) die(`${ROOT} no tiene un directorio base44/.`);
 
 const pushEntities = argv.includes('--entities');
+// Mergear a main NO redeploya el sitio. Se creía que sí, y por eso el fix del
+// tutorial estuvo mergeado y sin servir cinco días (ver CLAUDE.md). El deploy
+// del frontend es un paso propio, y por eso vive aquí en vez de en la memoria
+// de quien mergea.
+const deploySite = argv.includes('--site');
+if (deploySite && pushEntities) {
+  die('`--site` y `--entities` no van juntos.', 'Corre uno y después el otro, para leer el resultado de cada uno.');
+}
 
 // --- Guard 3: never start a deploy that cannot finish. Over the cap, the CLI
 // errors partway and skips its own prune phase, stranding foreign functions.
@@ -75,12 +83,16 @@ console.log(`\n  App:        ${config.name}`);
 console.log(`  App id:     ${config.appId}`);
 console.log(`  Directorio: ${ROOT}`);
 console.log(`  Endpoints:  ${endpoints.length} (techo ${ceiling}, límite Base44 ${HARD_CAP})`);
+if (deploySite) console.log('  Modo:       SITIO (frontend) — no toca funciones ni entidades');
 
 // --- Preflight: what is on the remote that is not here? Those occupy slots
 // and, if the total would exceed the cap, the deploy dies before pruning them.
-const listed = spawnSync('npx', ['base44', 'functions', 'list', '--app-id', config.appId], {
-  encoding: 'utf8',
-});
+// Irrelevante para un deploy de sitio, que no despliega ni poda funciones.
+const listed = deploySite
+  ? { status: 0, stdout: '' }
+  : spawnSync('npx', ['base44', 'functions', 'list', '--app-id', config.appId], {
+    encoding: 'utf8',
+  });
 if (listed.status === 0) {
   const local = new Set(endpoints.map((e) => e.split(path.sep)[0]));
   const remote = (listed.stdout.match(/^\s*│\s{4}(\S+)/gm) || [])
@@ -115,7 +127,12 @@ function run(args) {
   return result.status ?? 1;
 }
 
-const steps = [['functions', 'deploy', '--app-id', config.appId, '--force']];
+// `--site` es el frontend y nada más: un cambio de UI no tiene por qué volver a
+// recorrer 45 funciones, y separarlo hace que el paso que faltaba sea el que se
+// corre a propósito.
+const steps = deploySite
+  ? [['site', 'deploy', '--app-id', config.appId]]
+  : [['functions', 'deploy', '--app-id', config.appId, '--force']];
 
 if (pushEntities) {
   // `entities push` deletes every remote entity absent locally — this is what
