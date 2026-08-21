@@ -323,3 +323,67 @@ for anyone whose role/permission combination already granted access: only a
 user an admin explicitly denied, or a family in a read-only billing state,
 now correctly gets rejected server-side instead of the write silently
 succeeding.
+
+## El tutorial reaparecía después de "Omitir" (fixed 2026-08-21)
+
+Reportado en producción por Mochi Family: el admin pulsaba **"Omitir el
+tutorial por completo"** una y otra vez y el tutorial volvía a abrirse en cada
+sesión. `handleSkip` en `TutorialController.jsx` estaba bien escrito —
+escribía el flag local, cerraba el overlay y llamaba a `markSkipped` — así que
+el bug no estaba a la vista en el controlador.
+
+**Evidencia (leída de la app en vivo, no inferida):** la membresía del admin
+(`69b9a0aee2f1661c23b14f63`) tenía `tutorial_state.status: "in_progress"` con
+`updated_at: 2026-04-19`, mientras que el `updated_date` de la fila era de ese
+mismo día. Es decir: la fila **sí** se escribía, pero el estado terminal
+`skipped` nunca llegaba a ella.
+
+**Causa raíz: `enqueuePersist` podía tirar un estado a la basura en silencio.**
+El worker se arrancaba sólo si `workerPromiseRef.current` era null, pero esa ref
+sigue siendo no-nula durante el microtask que va desde que `drainPersistQueue`
+sale de su `while` hasta que su `.finally()` la limpia. Un `enqueuePersist` que
+cayera en esa ventana escribía `pendingStateRef` y **no arrancaba worker**,
+mientras el worker vivo ya había salido del bucle: nadie vaciaba la cola. Para
+un estado no terminal daba igual (el siguiente paso lo reintentaba), pero el
+write de `skipped` llega justo después del persist del paso actual — que es
+exactamente cuando esa ventana está abierta.
+
+**Arreglo, en tres capas, para que "omitir" no dependa de que la red coopere:**
+
+1. **La cola ya no pierde nada.** `enqueuePersist` arranca worker según
+   `isPersistingRef` (que sí refleja "hay alguien vaciando ahora"), y
+   `drainPersistQueue` vuelve a vaciar al final si algo entró mientras se
+   apagaba.
+2. **Un estado terminal se reintenta.** El `catch` seguía sin re-encolar por
+   diseño (evitar el loop de PUTs que este archivo ya documenta). Ahora
+   distingue: un `in_progress`/`postponed` perdido no importa; un
+   `skipped`/`completed` perdido significa que el usuario vuelve a ver el
+   tutorial, así que se re-encola una vez, y si vuelve a fallar queda para el
+   self-heal del próximo arranque.
+3. **Terminal es una puerta de un solo sentido.** `applyTutorialUpdate` ahora
+   rechaza cualquier update **no** terminal cuando el flag local ya dice
+   "omitido/completado". Sin esto, cualquier `setCurrentStep`/`startOrResume`
+   tardío o en vuelo — y hay varios, porque los efectos de paso corren en
+   render — podía devolver el registro a `in_progress` y el tutorial reabría
+   como si nunca lo hubieran cerrado. `markSkipped`/`markCompleted` además
+   escriben el flag local ellos mismos, para que la garantía no dependa de que
+   cada call site se acuerde de hacerlo.
+
+`restartFromBeginning` (el "volver a ver el tutorial" desde Mi Familia) es la
+única salida: limpia el flag y pasa `allowAfterTerminal`.
+
+**"Para luego" sigue siendo temporal a propósito** — `markPostponed` no es
+terminal y el tutorial vuelve en la siguiente sesión, que es el comportamiento
+pedido. La "X" de la cabecera comparte esa semántica (ver el comentario en
+`TutorialController.jsx`), no la de "Omitir".
+
+**Dato en vivo corregido:** la membresía de Mochi Family se puso a
+`status: "skipped"` vía el MCP de Base44, así que el tutorial deja de salir ya
+mismo sin esperar al deploy. Cualquier otra familia atrapada por el mismo bug
+se detecta con `tutorial_state.status: "in_progress"` y un `updated_at` viejo.
+
+**Verificado:** `npm run lint`, `npm run validate:rls` (36 entidades) y
+`npm run build` pasan. Este repo no tiene runner de tests de frontend, así que
+no hay test de regresión: el arreglo es en `src/hooks/useTutorialState.js`
+únicamente (ningún cambio en `base44/`, así que **no requiere deploy de
+funciones** — sólo el redeploy del sitio que ya ocurre al mergear).

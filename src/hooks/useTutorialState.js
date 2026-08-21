@@ -113,6 +113,17 @@ function isTutorialDone(membershipId) {
   return !!readLocalTerminalStatus(membershipId);
 }
 
+// SKIPPED and COMPLETED are terminal: once the user has said "never again",
+// nothing may walk that back. IN_PROGRESS/POSTPONED are not.
+const TERMINAL_STATUSES = new Set([
+  FLOWFIN_TUTORIAL_STATUS.SKIPPED,
+  FLOWFIN_TUTORIAL_STATUS.COMPLETED,
+]);
+
+function isTerminal(status) {
+  return TERMINAL_STATUSES.has(status);
+}
+
 export function markTutorialDone(membershipId, status) {
   if (!membershipId) return;
   try {
@@ -125,6 +136,16 @@ export function markTutorialDone(membershipId, status) {
   }
 }
 
+// The ONLY way out of the terminal state: an explicit restart from Mi Familia.
+export function clearTutorialDone(membershipId) {
+  if (!membershipId) return;
+  try {
+    localStorage.removeItem(TUTORIAL_DONE_PREFIX + membershipId);
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
 export function useTutorialState() {
   const { membership, currentUser } = useFamily();
   const [tutorialState, setTutorialState] = useState(INITIAL_TUTORIAL_STATE);
@@ -134,6 +155,11 @@ export function useTutorialState() {
   const pendingStateRef = useRef(null);
   const isPersistingRef = useRef(false);
   const workerPromiseRef = useRef(null);
+  const drainPersistQueueRef = useRef(null);
+  const terminalRetriedRef = useRef(false);
+  // Mirror of tutorialState, so the terminal guard in applyTutorialUpdate can
+  // evaluate a candidate update without going through setState.
+  const tutorialStateRef = useRef(INITIAL_TUTORIAL_STATE);
 
   const saveToFamilyMembership = useCallback(async (stateToSave) => {
     if (!membership?.id) return;
@@ -180,31 +206,57 @@ export function useTutorialState() {
           lastPersistedSerializedRef.current = dedupKey;
           writeFallbackTutorialState(currentUser?.id, nextState);
         } catch {
-          // Si falla (p.ej. 429 tras todos los retries), NO re-encolamos ni recursamos.
-          // El estado real vive en React + localStorage; el próximo cambio de paso
-          // volverá a intentar persistir. Re-encolar aquí solo alimentaría el loop.
+          // Un estado NO terminal (in_progress / postponed) se puede perder sin
+          // consecuencias: el próximo cambio de paso vuelve a intentarlo, y
+          // re-encolar aquí solo alimentaría el loop de PUTs que este archivo ya
+          // documenta. Un estado TERMINAL es otra cosa: si se pierde, el usuario
+          // que pulsó "Omitir" vuelve a ver el tutorial. Se re-encola una sola
+          // vez — el `while` lo reintentará — y si vuelve a fallar queda para el
+          // self-heal del próximo arranque, que sí lo reintenta con el flag local.
+          if (isTerminal(nextState?.status) && !terminalRetriedRef.current) {
+            terminalRetriedRef.current = true;
+            pendingStateRef.current = nextState;
+            continue;
+          }
           break;
         }
       }
     } finally {
       isPersistingRef.current = false;
-      // Nota: no reenganchamos drainPersistQueue desde aquí. Si una nueva llamada
-      // a `enqueuePersist` entra mientras corríamos, ella se encarga de arrancar
-      // un nuevo worker cuando `workerPromiseRef` quede en null. Evita recursión
-      // implícita que pudo contribuir al ciclo de PUTs.
+    }
+
+    // Algo entró mientras vaciábamos la cola (o mientras el worker se apagaba):
+    // hay que vaciarla otra vez. Sin esto, un enqueue que caía en esa ventana se
+    // perdía en silencio — `enqueuePersist` no arrancaba un worker nuevo porque
+    // `workerPromiseRef` todavía no era null, y el worker vivo ya había salido
+    // del `while`. Ese era exactamente el camino por el que se perdía el
+    // "Omitir": el write de SKIPPED llegaba mientras el persist del paso actual
+    // se estaba apagando, y nunca se escribía.
+    if (pendingStateRef.current) {
+      await drainPersistQueueRef.current?.();
     }
   }, [currentUser?.id, saveToFamilyMembership]);
+
+  // Mantiene una referencia estable a la última versión de drainPersistQueue,
+  // para poder re-entrar sin crear una dependencia circular en el useCallback.
+  drainPersistQueueRef.current = drainPersistQueue;
 
   const enqueuePersist = useCallback((stateToPersist) => {
     pendingStateRef.current = stateToPersist;
 
-    if (!workerPromiseRef.current) {
+    // Se arranca un worker cuando NO hay uno vaciando la cola. Antes esto miraba
+    // `workerPromiseRef`, que sigue siendo no-nulo durante el microtask entre que
+    // el worker sale de su `while` y su `.finally()` lo limpia — así que un
+    // enqueue en esa ventana no arrancaba worker y su estado moría en la cola.
+    // `isPersistingRef` sí refleja "hay alguien vaciando ahora mismo", y el
+    // re-drain al final de drainPersistQueue cubre el resto de la ventana.
+    if (!isPersistingRef.current) {
       workerPromiseRef.current = drainPersistQueue().finally(() => {
         workerPromiseRef.current = null;
       });
     }
 
-    return workerPromiseRef.current;
+    return workerPromiseRef.current || Promise.resolve();
   }, [drainPersistQueue]);
 
   useEffect(() => {
@@ -225,7 +277,25 @@ export function useTutorialState() {
     setIsHydrated(true);
   }, [membership, currentUser?.id]);
 
-  const applyTutorialUpdate = useCallback((updater) => {
+  const applyTutorialUpdate = useCallback((updater, { allowAfterTerminal = false } = {}) => {
+    // Terminal is a ONE-WAY DOOR. Once this device knows the user chose
+    // "Omitir" (or finished), no later update may write a non-terminal status
+    // over it. Without this, any still-in-flight or late-firing
+    // setCurrentStep/startOrResume — and there are several, since the step
+    // effects run on render — could put the record back to `in_progress`, and
+    // the tutorial would reopen on the next load exactly as if the user had
+    // never dismissed it. Only restartFromBeginning (which clears the flag
+    // first) is allowed through.
+    if (
+      !allowAfterTerminal
+      && isTutorialDone(membership?.id)
+    ) {
+      const candidate = sanitizeTutorialState(
+        typeof updater === 'function' ? updater(sanitizeTutorialState(tutorialStateRef.current)) : updater
+      );
+      if (!isTerminal(candidate.status)) return;
+    }
+
     let nextState;
     setTutorialState((prevState) => {
       const currentState = sanitizeTutorialState(prevState);
@@ -266,6 +336,10 @@ export function useTutorialState() {
     }));
   }, [isHydrated, membership?.id, membership?.tutorial_state?.status, applyTutorialUpdate]);
 
+  useEffect(() => {
+    tutorialStateRef.current = tutorialState;
+  }, [tutorialState]);
+
   const shouldAutoOpen = useMemo(() => {
     if (membership === undefined) return false; // Still loading
     // Primary check: synchronous localStorage flag keyed on membership.id.
@@ -292,13 +366,17 @@ export function useTutorialState() {
   }, [applyTutorialUpdate]);
 
   const restartFromBeginning = useCallback(() => {
+    // The explicit "volver a ver el tutorial" action from Mi Familia — the one
+    // sanctioned way back out of the terminal state.
+    clearTutorialDone(membership?.id);
+    terminalRetriedRef.current = false;
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.IN_PROGRESS,
       current_step: FLOWFIN_TUTORIAL_FIRST_STEP,
       updated_at: new Date().toISOString(),
-    }));
-  }, [applyTutorialUpdate]);
+    }), { allowAfterTerminal: true });
+  }, [applyTutorialUpdate, membership?.id]);
 
   const setCurrentStep = useCallback((stepId) => {
     if (!stepId) return;
@@ -320,21 +398,25 @@ export function useTutorialState() {
   }, [applyTutorialUpdate]);
 
   const markSkipped = useCallback((stepId) => {
+    // Written here as well as in the controller, so the "never again"
+    // guarantee doesn't depend on every call site remembering to do it.
+    markTutorialDone(membership?.id, FLOWFIN_TUTORIAL_STATUS.SKIPPED);
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.SKIPPED,
       current_step: stepId || prev.current_step,
       updated_at: new Date().toISOString(),
-    }));
-  }, [applyTutorialUpdate]);
+    }), { allowAfterTerminal: true });
+  }, [applyTutorialUpdate, membership?.id]);
 
   const markCompleted = useCallback(() => {
+    markTutorialDone(membership?.id, FLOWFIN_TUTORIAL_STATUS.COMPLETED);
     return applyTutorialUpdate((prev) => ({
       ...prev,
       status: FLOWFIN_TUTORIAL_STATUS.COMPLETED,
       updated_at: new Date().toISOString(),
-    }));
-  }, [applyTutorialUpdate]);
+    }), { allowAfterTerminal: true });
+  }, [applyTutorialUpdate, membership?.id]);
 
   return {
     tutorialState,
