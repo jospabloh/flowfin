@@ -226,3 +226,13 @@ body {
     scroll-behavior: auto !important;
   }
 }
+/* Corner theme switcher (src/components/ThemeSwitcher.jsx) — placement only.
+   On mobile the bottom tab bar owns the bottom edge, so lift the control clear
+   of it; on desktop it sits in the plain bottom-right corner. */
+:root {
+  --theme-switcher-bottom: 1rem;
+  --theme-switcher-right: 1rem;
+}
+@media (max-width: 767px) {
+  :root { --theme-switcher-bottom: 5.5rem; }
+}

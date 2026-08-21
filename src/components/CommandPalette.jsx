@@ -6,7 +6,7 @@ import {
   CommandGroup, CommandItem, CommandSeparator, CommandShortcut,
 } from '@/components/ui/command';
 import {
-  Plus, Sparkles, Target, Plane, Sun, Moon, Search as SearchIcon,
+  Plus, Sparkles, Target, Plane, Sun, Moon, Monitor, Search as SearchIcon,
 } from 'lucide-react';
 
 /**
@@ -22,7 +22,7 @@ import {
  */
 export default function CommandPalette({ open, onOpenChange, navGroups = [], onNavigate }) {
   const navigate = useNavigate();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   const go = (path) => {
     onOpenChange(false);
@@ -58,17 +58,25 @@ export default function CommandPalette({ open, onOpenChange, navGroups = [], onN
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onOpenChange]);
 
-  const isDark = resolvedTheme === 'dark';
+  // The palette offers the three modes as separate commands rather than one
+  // toggle: a toggle can only ever reach two of them, and "seguir al
+  // dispositivo" is the one people look for by name.
+  const themeActions = [
+    { id: 'theme-light', label: 'Tema: claro', icon: Sun, value: 'light' },
+    { id: 'theme-dark', label: 'Tema: oscuro', icon: Moon, value: 'dark' },
+    { id: 'theme-system', label: 'Tema: seguir al dispositivo', icon: Monitor, value: 'system' },
+  ].map((action) => ({
+    ...action,
+    keywords: 'tema theme oscuro claro dark light modo sistema dispositivo automatico',
+    run: () => { setTheme(action.value); onOpenChange(false); },
+  }));
+
   const quickActions = [
     { id: 'capture', label: 'Registrar movimiento', icon: Plus, keywords: 'gasto ingreso nuevo agregar capturar expense income add', run: () => go('/Capture') },
     { id: 'assistant', label: 'Preguntar a Finia (Asistente IA)', icon: Sparkles, keywords: 'ia ai chat asistente finia ayuda pregunta', run: () => go('/Assistant') },
     { id: 'goal', label: 'Crear una meta de ahorro', icon: Target, keywords: 'meta ahorro objetivo goal saving nueva', run: () => go('/Goals') },
     { id: 'trip', label: 'Planear un viaje', icon: Plane, keywords: 'viaje trip vacaciones nuevo', run: () => go('/Trips') },
-    {
-      id: 'theme', label: isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
-      icon: isDark ? Sun : Moon, keywords: 'tema theme oscuro claro dark light modo',
-      run: () => { setTheme(isDark ? 'light' : 'dark'); onOpenChange(false); },
-    },
+    ...themeActions,
   ];
 
   return (

@@ -2,7 +2,6 @@ import Spinner from '@/components/Spinner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import PageHeader from '@/components/PageHeader';
-import ThemeToggle from '@/components/ThemeToggle';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import DashboardFilters from '@/components/dashboard/DashboardFilters';
 import DashboardPendingBanners from '@/components/dashboard/DashboardPendingBanners';
@@ -51,7 +50,6 @@ export default function Dashboard() {
       <PageHeader
         title={format(new Date(), 'MMMM yyyy', { locale: es }).replace(/^\w/, c => c.toUpperCase())}
         subtitle="Resumen familiar"
-        action={<div className="md:hidden"><ThemeToggle /></div>}
       />
 
       {canViewFilters && (

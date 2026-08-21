@@ -11,6 +11,7 @@ import { FamilyProvider, useFamily } from '@/lib/FamilyContext';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingFallback from '@/components/LoadingFallback';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import TutorialController from '@/components/tutorial/TutorialController';
 import DowngradeNotice from '@/components/billing/DowngradeNotice';
 import { useCanView } from '@/lib/permissions/usePermission';
@@ -217,7 +218,7 @@ const AuthenticatedApp = () => {
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
@@ -225,6 +226,7 @@ function App() {
             <AuthenticatedApp />
           </Router>
           <Toaster />
+          <ThemeSwitcher />
         </QueryClientProvider>
       </AuthProvider>
     </ThemeProvider>
