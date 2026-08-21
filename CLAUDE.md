@@ -88,11 +88,48 @@ untouched. Deploying this change requires `npx base44 functions deploy
 the deployed functions or any cron schedule already registered in the Base44
 dashboard — check the scheduler panel too).
 
-## Base44 — las funciones NO se auto-deployan desde GitHub
+## Base44 — mergear a `main` no deploya NADA, ni funciones ni sitio
 
-**Mergear un PR a `main` NO deploya las funciones de Base44.** Al mergear se
-rebuildea/redeploya solo el **sitio** (frontend). Las funciones bajo
-`base44/functions/` se deployan **aparte y a mano** con la CLI de Base44.
+**Mergear un PR a `main` NO deploya las funciones de Base44** — eso ya estaba
+documentado. Lo que este archivo afirmaba de más es que *el sitio* sí se
+redeployaba al mergear. **No es cierto: mergear no deploya nada.**
+
+Evidencia (2026-08-21): el fix del tutorial se mergeó en el PR #213 y llegó a
+`main` como `5922916` a las 17:14 UTC. **Cuatro horas después**, el árbol de
+trabajo del app en Base44 seguía sirviendo `src/hooks/useTutorialState.js` con
+**352 líneas y cero rastros del fix** — el `enqueuePersist` con el
+`workerPromiseRef` que provoca la carrera seguía ahí, tal cual. Es una ventana
+corta sólo porque se fue a comprobar; nada indica que fuera a cerrarse sola, y
+un fix que se merge un viernes se queda así hasta que alguien lo note.
+
+El caso realmente caro de esta misma clase fue el backend, no el frontend:
+`guardedEntityWrite` estuvo en `main` desde el 2026-08-18 con
+`src/lib/guardedWrite.js` y sus 19 llamadores ya sirviéndose en el app,
+llamando a una función que no existía en el backend — **tres días de 404 en los
+writes principales**, cerrados con el deploy del 2026-08-21.
+
+Detalle que engaña: el checkpoint del app reporta `git_commit_hash` igual al
+HEAD de `main` en GitHub. **Ese hash no prueba que el código servido sea ese.**
+Base44 espeja los commits en su metadata, pero lo que se buildea y se sirve es
+el árbol de trabajo del app, y los dos pueden estar desalineados. Comprueba
+contenido, no hashes:
+
+```bash
+# desde el MCP de Base44, o abriendo el archivo en el panel del app
+wc -l src/hooks/<archivo-que-cambiaste>
+grep -c "<identificador que SOLO existe en el fix>" src/<archivo>
+```
+
+Tras mergear cualquier cambio de frontend, **corre el deploy del sitio a mano**
+igual que ya se hace con las funciones:
+
+```
+git pull origin main
+npx base44 site deploy --app-id 69b97ea9c9a713486b5a01fd
+```
+
+Las funciones bajo `base44/functions/` se deployan **aparte** con la CLI (ver
+abajo). Ninguno de los dos pasos ocurre solo.
 
 Tras cualquier cambio en `base44/functions/` (agregar, borrar, renombrar o
 editar una función) hay que correr, desde una máquina con salida a Base44:
@@ -385,8 +422,18 @@ se detecta con `tutorial_state.status: "in_progress"` y un `updated_at` viejo.
 **Verificado:** `npm run lint`, `npm run validate:rls` (36 entidades) y
 `npm run build` pasan. Este repo no tiene runner de tests de frontend, así que
 no hay test de regresión: el arreglo es en `src/hooks/useTutorialState.js`
-únicamente (ningún cambio en `base44/`, así que **no requiere deploy de
-funciones** — sólo el redeploy del sitio que ya ocurre al mergear).
+únicamente (ningún cambio en `base44/`, así que no requiere deploy de
+funciones).
+
+**Corrección 2026-08-21 — el mergeo no bastó.** La versión anterior de este
+párrafo daba por hecho "el redeploy del sitio que ya ocurre al mergear". No
+ocurre (ver "Base44 — mergear a `main` no deploya NADA" arriba): cuatro horas
+después del merge, el app seguía sirviendo el archivo sin el fix. Se corrigió
+escribiendo el archivo directo en el app — verificado
+byte a byte contra `main` (`md5sum` idéntico), `eslint` limpio y `npm run build`
+en verde dentro del propio sandbox del app. **Un fix de frontend no está
+entregado hasta que `npx base44 site deploy` corre y el archivo servido lo
+tiene.**
 
 ## Deploy: el id de la app vive en el repo (módulo 11, 2026-08-21)
 
@@ -401,9 +448,19 @@ Por eso este repo ya no se deploya a mano:
 
 ```bash
 npm run deploy            # funciones — lee el appId de base44.app.json
+npm run deploy:site       # frontend — mergear a main NO lo hace por ti
 npm run deploy:entities   # schema — DESTRUCTIVO, pide escribir "FlowFin"
 npm run functions:audit   # quién llama a cada endpoint
 ```
+
+**Mergear a `main` no deploya el sitio.** Se creyó lo contrario durante meses.
+Se comprobó al revés arriba: un fix mergeado a `main` seguía sin servirse cuatro
+horas después, y la misma clase de fallo en el backend costó tres días de 404 en
+los writes principales. El
+frontend se deploya a mano con `npm run deploy:site`, igual que las funciones.
+Y comprueba el resultado por **contenido**, no por hashes: el checkpoint del app
+puede reportar un `git_commit_hash` igual al HEAD de `main` mientras el árbol que
+de verdad se sirve está atrasado.
 
 `scripts/base44-deploy.mjs` **rechaza** un `--app-id` por argumento, así que el
 directorio y la app destino no pueden desalinearse. `deploy:entities` imprime la
