@@ -31,3 +31,7 @@ dist-ssr
 .vite
 .github_pat
 base44/.app.jsonc
+
+# Playwright smoke-test output (tests/smoke) — local run artefacts
+test-results/
+playwright-report/
