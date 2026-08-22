@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ThemeToggle from './ThemeToggle';
 import CommandPalette from './CommandPalette';
 import InternetBanner from './InternetBanner';
 import TrialBanner from './TrialBanner';
@@ -516,7 +515,6 @@ export default function Layout() {
       <div className={`border-t border-border ${collapsed && !inDrawer ? 'p-2 space-y-2' : 'p-4 space-y-2'}`}>
         {(!collapsed || inDrawer) ? (
           <>
-            <ThemeToggle showLabel />
             <button onClick={() => { handleNavClick('/Capture'); if (inDrawer) setMobileOpen(false); }}
               className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
               <Plus className="w-4 h-4" />
@@ -525,9 +523,6 @@ export default function Layout() {
           </>
         ) : (
           <>
-            <NavTooltip label="Tema" collapsed>
-              <div className="flex justify-center"><ThemeToggle /></div>
-            </NavTooltip>
             <NavTooltip label="Registrar" collapsed>
               <button onClick={() => handleNavClick('/Capture')}
                 className="flex items-center justify-center w-full bg-primary text-primary-foreground rounded-xl p-2.5 hover:bg-primary/90 transition-colors shadow-sm">
@@ -708,8 +703,7 @@ export default function Layout() {
                 </div>
 
                 <div className="px-4 pt-2 pb-1">
-                  <ThemeToggle showLabel />
-                </div>
+                      </div>
 
                 {/* Grouped items */}
                 {MORE_GROUPS.map((group, gi) => {
