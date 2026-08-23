@@ -572,3 +572,144 @@ portafolio llegó a desplegar eran **sintácticamente válidos**: la rama de rol
 motor descartaba la cláusula hermana de `user_condition`, los campos de licencia
 escribibles por el propio inquilino en puntos y rumbo, y el `PermissionProfile`
 que ningún RLS puede consultar porque vive en otra fila.
+
+### Resultado — 2026-08-23, contra el esquema desplegado
+
+Contra `list_entity_schemas` (appId `69b97ea9c9a713486b5a01fd`), no contra los
+`.jsonc`, más los 47 grupos de funciones. **FlowFin es la app con más datos
+reales del portafolio** —6 familias, cientos de transacciones— así que aquí
+"latente" casi nunca aplica.
+
+**Las funciones son las mejores del portafolio.** No encontré en ellas ninguna
+lectura ni escritura cruzada. El problema está una capa más abajo, en la RLS de
+entidad, y en un campo que esta app —única entre sus hermanas— nunca declaró.
+
+#### 1. El campo del que cuelga todo el aislamiento no tiene candado
+
+Cada entidad operativa se llavea **sólo** a `{{user.data.family_id}}`. Ejemplo
+literal del esquema desplegado de `Transaction`, y las cuatro operaciones son
+iguales:
+
+```json
+"read": {"$or":[
+  {"user_condition":{"role":"admin"}},
+  {"data.family_id":"{{user.data.family_id}}"},
+  {"data.family_id":"{{user.data.data.family_id}}"}
+]}
+```
+
+Ahora la parte incómoda. En el esquema desplegado, `User` declara **dos**
+propiedades —`role` y `preferences`— y **ni una sola regla `rls.write` a nivel de
+campo**. Su regla de entidad es
+`"update": {"$or":[{"user_condition":{"role":"admin"}},{"id":"{{user.id}}"}]}`:
+cada quien puede escribir su propia fila. Y `family_id` **no está declarado**:
+vive suelto en la bolsa `data`.
+
+Compárese con las hermanas. stockflow, puntos y ctrlhq **sí declaran**
+`business_id` en `User`, y lo declaran precisamente para poder colgarle
+`rls.write: {"user_condition":{"role":"admin"}}`. FlowFin no declaró el campo, y
+por tanto no tiene dónde poner el candado.
+
+Si un usuario puede escribir su propio `data.family_id`, entonces por esa regla
+de arriba puede leer las transacciones, categorías, personas, métodos de pago,
+metas, inversiones y pagos programados de **cualquier** familia cuyo id conozca
+— y `Family.read`, `FamilyMembership.read` y `RolePermission.read` cuelgan del
+mismo hilo, así que también el padrón de integrantes con sus correos.
+
+**Esto es exactamente lo que no pude verificar, y es la pregunta más
+importante de esta auditoría.** No hay forma desde este entorno de abrir una
+sesión como usuario final restringido, y el rol de servicio no sirve para
+probarlo porque salta la RLS por definición. Lo que sí es verificable y está
+verificado: el candado que todas las demás apps del portafolio ponen sobre este
+campo, aquí no existe. Una sola prueba lo resuelve —`auth.updateMe({data:{
+family_id: '<otra familia>'}})` desde una cuenta de prueba y luego leer una
+`Transaction` ajena— y vale la pena hacerla antes que cualquier otra cosa de
+esta lista.
+
+Nota: las escrituras **no** dependen de ese hilo. `guardedEntityWrite` deriva la
+familia de `FamilyMembership` con `status: 'approved'`, así que un `family_id`
+falseado no habilita escribir. El riesgo, si existe, es de **lectura**.
+
+#### 2. `Family` no tiene candados de licencia
+
+`"update": {"$or":[{"user_condition":{"role":"admin"}},{"data.admin_user_id":"{{user.id}}"}]}`
+y ninguno de `billing_status`, `license_plan`, `licensed_member_limit`,
+`license_expires_at`, `trial_end_at`, `auto_renewal`, `payment_reference`,
+`activation_notes`, `activated_by_admin` ni los cuatro `last_payment_*` lleva
+`rls.write`.
+
+Es el defecto del módulo 1 que puntos cerró el 21 de agosto y rumbo el 19. Más
+estrecho que en stockflow —aquí hay que ser el `admin_user_id` de la familia, no
+cualquier miembro— pero **el motivo está vivo**: de las seis familias, tres están
+`suspended` y una en `view_only`. Son justamente los cuatro administradores con
+una razón para poner `active` a mano.
+
+#### 3. `removeMember` acepta un `target_user_id` que nadie ata
+
+`family/handlers/removeMember.ts` comprueba bien lo que le importa: saca el
+`family_id` de la membresía **almacenada** y exige que el solicitante sea admin
+de **esa** familia. Pero después:
+
+```js
+await sr.entities.FamilyMembership.delete(membership_id);
+if (target_user_id) {
+  const users = await sr.entities.User.filter({ id: target_user_id });
+  ...update(target_user_id, { data: { ...users[0].data, family_id: null } });
+}
+```
+
+`target_user_id` llega del cuerpo y **nunca se compara con `membership.user_id`**.
+Un admin que borra legítimamente a alguien de su propia familia puede, en la
+misma llamada, poner `family_id: null` al usuario que quiera, de la familia que
+sea. La víctima aterriza en onboarding.
+
+Se cura solo —`syncUserFamily` vuelve a derivar el `family_id` de las membresías
+propias, que siguen intactas— así que es una molestia, no una pérdida. Pero es
+una escritura cruzada entre inquilinos, y es la forma que este módulo busca: el
+guardia mira un id y el daño lo hace el segundo id del mismo cuerpo.
+
+### Lo que está bien, y por qué
+
+- **`guardedEntityWrite` cubre las tres mitades.** En create, `family_id:
+  familyId` va **después** del spread, así que lo que mande el cliente pierde; en
+  update/delete relee el registro y compara contra el **almacenado**
+  (`CROSS_TENANT`, 403); y en update hace `delete patch.family_id`. Igual de
+  completo que liuma y rumbo.
+- **`resolveFamilyAccess` sólo mira membresías `status: 'approved'`**, y cuando
+  hay varias elige de forma determinista: la que coincide con el `family_id`
+  activo, si no la de `last_active_at` más reciente.
+- **Aquí no está el defecto de liuma.** FlowFin también es multi-membresía, pero
+  las funciones que reciben una familia pedida la **validan contra las membresías
+  del solicitante** y responden 403 si no está (`analytics/handlers/*`
+  `resolveAccess`), en vez de resolver por su cuenta. Es la respuesta correcta a
+  la pregunta que en liuma tenía tres respuestas distintas.
+- **`_agentGuard.ts` dice por escrito que `body.family_id` nunca se usa para
+  resolver inquilino** — lo registra para trazas y lo ignora. Con un LLM del otro
+  lado del tubo, eso es lo único sensato.
+- **Las handlers de `family/` comprueban por los dos lados**: `approveMember` y
+  `linkPersonToMember` exigen que el solicitante sea admin de la familia
+  reclamada **y** que la membresía objetivo pertenezca de verdad a esa familia.
+  `getMyFamily` lleva un comentario explicando que sin su comprobación cualquiera
+  leería otra familia. `selfJoin` exige que el correo coincida con el autenticado.
+- **`setUserFamilyId`** —el cambio de inquilino a mano— es sólo del dueño de
+  plataforma y **falla cerrado** sin `APP_OWNER_EMAIL`.
+- **`RolePermission` es create/update/delete de `role: admin` puro.** Un admin de
+  familia **no** puede reescribir sus propios permisos. Es lo contrario de lo que
+  encontré en stockflow el mismo día, y aquí está bien.
+
+### Una cosa menor
+
+`syncUserFamily` toma `memberships[0]` sin preferir la familia activa, así que a
+un usuario con dos membresías puede dejarlo en la otra. No concede acceso —todo
+camino de lectura valida la familia pedida contra las membresías— sólo mueve el
+puntero. Y de paso: hay transacciones con `family_id`
+`69e944d5a12d470e9affdfea`, que no corresponde a ninguna de las seis familias
+vivas. Huérfanas, no alcanzables por nadie salvo el rol de plataforma.
+
+### Lo que no pude verificar
+
+Lo dicho en el punto 1, que es lo que más importa: si un usuario final puede
+escribir su propio `data.family_id`. Y, como en el resto del portafolio, una
+sesión autenticada como miembro de una segunda familia. No sembré datos ni
+escribí en producción para averiguarlo: seis familias reales con su contabilidad
+dentro no son un laboratorio.
