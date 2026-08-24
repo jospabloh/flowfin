@@ -28,7 +28,13 @@ export async function handle(req: Request): Promise<Response> {
 
     await base44.asServiceRole.entities.FamilyMembership.delete(membership_id);
 
-    if (target_user_id) {
+    // target_user_id is client-supplied and must never be trusted on its own:
+    // it must match the user_id of the membership we just verified belongs to
+    // this family, or a caller could null out family_id on an arbitrary user
+    // of ANY family by passing the membership_id they're entitled to delete
+    // alongside an unrelated target_user_id (module 14 multi-tenant isolation
+    // audit, 2026-08-23 — finding #3).
+    if (target_user_id && target_user_id === membership.user_id) {
       const users = await base44.asServiceRole.entities.User.filter({ id: target_user_id });
       if (users && users[0]) {
         const newData = { ...(users[0].data || {}), family_id: null };

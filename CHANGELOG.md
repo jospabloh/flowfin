@@ -12,6 +12,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.3] - 2026-08-24
+
+### 🔒 Security
+
+Scheduled full-portfolio audit (multi-tenant isolation, module 14 follow-up).
+The 2026-08-23 module-14 audit flagged `User.family_id` as the one thing it
+could not verify from this environment — it confirmed the *lock* was missing
+from the schema but had no way to open an end-user session and prove the
+field was actually writable. This pass closes that gap directly against the
+deployed Base44 schema rather than leaving it as an open question.
+
+- **Critical — cross-tenant read via an unlocked `User.family_id`.**
+  `base44/entities/User.jsonc` declared only `role` and `preferences`;
+  `family_id` was never declared, so there was nowhere to attach an
+  `rls.write` restriction — unlike stockflow/puntos/ctrlhq, which declare
+  their equivalent `business_id` on `User` specifically so they can lock it.
+  Every family-scoped entity's RLS (`Transaction`, `Category`, `Person`,
+  `PaymentMethod`, `Goal`, `Investment`, `Family`, `FamilyMembership`,
+  `RolePermission`, …) trusts `{{user.data.family_id}}` for `read`. Declared
+  `family_id` on `User` and locked it to `rls.write: {user_condition:
+  {role: admin}}`. Verified first that no client code writes this field
+  (only server functions do, all via `asServiceRole`, which bypasses RLS by
+  design and is unaffected by this lock) before applying it — both to the
+  repo schema and to the live deployed schema (a schema file merged to
+  `main` does not change what Base44 actually serves; see CLAUDE.md).
+- **`Family`'s license/billing fields had no write lock**, so a family's own
+  admin (`data.admin_user_id === user.id`) could, in theory, write
+  `billing_status`, `license_plan`, `license_expires_at`,
+  `licensed_member_limit`, `auto_renewal`, `payment_reference`, and the
+  other ACACIA-internal license fields directly — the same class of gap
+  puntos and rumbo closed on 2026-08-21 and 2026-08-19 respectively. Locked
+  all 17 license/billing fields to platform-admin write; `name`, `currency`,
+  `currency_symbol`, `join_code`, `admin_user_id`, `is_active` and
+  `default_person_id` are unaffected — confirmed the only direct client
+  write to `Family` (`FamilySettings.jsx`) only ever touches `name`.
+- **`family/handlers/removeMember.ts` didn't tie `target_user_id` to the
+  membership being deleted.** A family admin removing a member from their
+  own family could, in the same call, pass an unrelated `target_user_id`
+  and null out that *other* user's `family_id` — a cross-tenant write, not
+  a read. Self-healing (`syncUserFamily` re-derives `family_id` from the
+  victim's still-intact memberships) so it was a nuisance rather than data
+  loss, but it's the exact shape module 14 looks for: the guard checks one
+  id in the body and the damage comes from a second, unchecked id in the
+  same body. Now requires `target_user_id === membership.user_id`.
+- Patched `react-router`/`react-router-dom` to 6.30.6 (moderate open-redirect
+  advisory, GHSA-wrjc-x8rr-h8h6 / GHSA-337j-9hxr-rhxg) — a non-breaking
+  `npm audit fix`, not the `--force` major bump to v7 that would be required
+  to clear the advisory report entirely; deferred, since a router major
+  bump is out of scope for an audit pass and needs its own regression pass.
+
+**Verified:** `npm run lint`, `npm run validate:rls` (36 entities),
+`npm run build`, `deno lint base44/functions/`, `deno test
+base44/functions/` (26/26 passing) all green. Confirmed via the Base44 MCP
+that both schema changes are live on the deployed app (not just committed —
+re-fetched `list_entity_schemas` after applying) and that all 6 families'
+data is still readable end-to-end (service-role query, unaffected by RLS
+either way, used only to confirm nothing broke). **Not verified:** an actual
+end-user session forging `data.family_id` (still not achievable from this
+environment — six real families' finances are not a lab) — this fix removes
+the only path that finding needs, so it stays closed regardless. The
+`removeMember.ts` fix is committed and code-reviewed here but **not yet
+deployed to the live functions** — a functions deploy redeploys all 45
+endpoints and this repo's own CLAUDE.md requires confirming `CRON_SECRET` is
+set beforehand; left for a deliberate `npm run deploy` rather than bundled
+into this pass.
+
 ## [2.22.2] - 2026-08-18
 
 ### 🔒 Security
