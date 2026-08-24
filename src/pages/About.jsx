@@ -6,9 +6,20 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.3',
+    date: '2026-08-24',
+    label: 'Actual',
+    changes: [
+      'Seguridad (crítico): tu cuenta de usuario nunca declaraba el campo de familia (`family_id`) en su modelo de datos, así que no había forma de bloquear su escritura — un usuario podía en teoría reasignarse a sí mismo a otra familia y, con eso, leer los movimientos, categorías, personas, formas de pago, metas e inversiones de esa familia ajena. Ya está bloqueado tanto en el repositorio como en el esquema que realmente sirve la app: ese campo ahora solo lo puede escribir el equipo de ACACIA.',
+      'Los campos de licencia y facturación de tu familia (estado de la cuenta, plan, fecha de vencimiento, referencias de pago, etc.) tampoco tenían candado propio — en teoría el administrador de una familia podía escribirlos directo. Ahora, igual que en el resto del portafolio ACACIA, solo el equipo de ACACIA puede cambiarlos.',
+      'Al eliminar a un integrante de la familia, la función del servidor no comprobaba que la cuenta a "desvincular" fuera realmente la del integrante eliminado — quedaba abierta a que, en teoría, se desvinculara por error a una cuenta ajena. Ahora se verifica antes de escribir.',
+      'Se actualizó una dependencia con un aviso de seguridad de severidad moderada (react-router) a su última versión compatible.',
+    ],
+  },
+  {
     version: '2.22.2',
     date: '2026-08-18',
-    label: 'Actual',
+    label: '',
     changes: [
       'Seguridad: los ~80 puntos donde la app escribía directo a Movimientos, Rubros/SubRubros/Personas/Formas de pago, Metas, Inversiones, MSI, Rentas, Pagos del Mes y Viajes ahora pasan por una función del servidor que revisa tus permisos por rol y si tu cuenta está en modo solo lectura, antes de guardar — antes esa doble revisión solo existía del lado de la app, así que en teoría una llamada directa a la API la podía saltar. No cambia nada para el uso normal de la app.',
       'Registrar un pago de renta (`registerRentalPaymentSafe`) ahora también respeta esos mismos dos candados — antes no revisaba ninguno.',

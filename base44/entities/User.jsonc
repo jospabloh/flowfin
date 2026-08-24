@@ -14,6 +14,17 @@
       "type": "object",
       "description": "Preferencias personales del usuario (UI, filtros, etc.)",
       "additionalProperties": true
+    },
+    "family_id": {
+      "type": "string",
+      "description": "ID de la familia (tenant) a la que pertenece el usuario. Sólo se escribe desde funciones de servidor vía asServiceRole (selfJoin, approveMember, createFamily, removeMember, setUserFamilyId, fixUserFamilyId/fixUserData) — esas escrituras evaden RLS por diseño. El candado de abajo existe para que un cliente no pueda ponerse a sí mismo en la familia de otro (auditoría de aislamiento multi-tenant, módulo 14, 2026-08-23: este campo nunca se declaró aquí, así que no tenía dónde colgar un rls.write, a diferencia de stockflow/puntos/ctrlhq que sí declaran su equivalente business_id).",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     }
   },
   "required": [

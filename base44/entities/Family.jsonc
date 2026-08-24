@@ -8,7 +8,7 @@
     },
     "join_code": {
       "type": "string",
-      "description": "C\u00f3digo \u00fanico para unirse a la familia (ej: GARCIA24)"
+      "description": "Código único para unirse a la familia (ej: GARCIA24)"
     },
     "admin_user_id": {
       "type": "string",
@@ -28,11 +28,25 @@
     },
     "trial_start_at": {
       "type": "string",
-      "description": "Fecha de inicio del per\u00edodo de prueba (ISO datetime, servidor)"
+      "description": "Fecha de inicio del período de prueba (ISO datetime, servidor)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "trial_end_at": {
       "type": "string",
-      "description": "Fecha de fin del per\u00edodo de prueba (ISO datetime, servidor)"
+      "description": "Fecha de fin del período de prueba (ISO datetime, servidor)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "billing_status": {
       "type": "string",
@@ -43,7 +57,14 @@
         "suspended"
       ],
       "default": "trial",
-      "description": "Estado comercial de la familia: trial, active, view_only, suspended"
+      "description": "Estado comercial de la familia: trial, active, view_only, suspended",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "license_plan": {
       "type": "string",
@@ -53,61 +74,159 @@
         "circle"
       ],
       "default": "home",
-      "description": "Plan de licencia: home (4), family_plus (10), circle (20)"
+      "description": "Plan de licencia: home (4), family_plus (10), circle (20)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "licensed_member_limit": {
       "type": "number",
       "default": 4,
-      "description": "N\u00famero m\u00e1ximo de integrantes permitidos seg\u00fan el plan"
+      "description": "Número máximo de integrantes permitidos según el plan",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "license_activated_at": {
       "type": "string",
-      "description": "Fecha en que se activ\u00f3 la licencia (ISO datetime)"
+      "description": "Fecha en que se activó la licencia (ISO datetime)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "license_expires_at": {
       "type": "string",
-      "description": "Fecha de vencimiento de la licencia (ISO datetime, null si no aplica)"
+      "description": "Fecha de vencimiento de la licencia (ISO datetime, null si no aplica)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "payment_reference": {
       "type": "string",
-      "description": "Referencia de pago del cliente (folio, transacci\u00f3n, etc.)"
+      "description": "Referencia de pago del cliente (folio, transacción, etc.)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "activation_notes": {
       "type": "string",
-      "description": "Notas internas de activaci\u00f3n (uso ACACIA)"
+      "description": "Notas internas de activación (uso ACACIA)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "activated_by_admin": {
       "type": "string",
-      "description": "Email del administrador ACACIA que activ\u00f3 la licencia"
+      "description": "Email del administrador ACACIA que activó la licencia",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "support_contacted_at": {
       "type": "string",
-      "description": "\u00daltima vez que el cliente contact\u00f3 soporte (ISO datetime)"
+      "description": "Última vez que el cliente contactó soporte (ISO datetime)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "auto_renewal": {
       "type": "boolean",
       "default": false,
-      "description": "Indica si la familia tiene suscripci\u00f3n Mercado Pago activa (cobro externo, validaci\u00f3n manual por ACACIA)"
+      "description": "Indica si la familia tiene suscripción Mercado Pago activa (cobro externo, validación manual por ACACIA)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "last_payment_confirmed_at": {
       "type": "string",
-      "description": "ISO datetime cuando ACACIA confirm\u00f3 el \u00faltimo pago dentro de FlowFin"
+      "description": "ISO datetime cuando ACACIA confirmó el último pago dentro de FlowFin",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "last_payment_confirmed_by": {
       "type": "string",
-      "description": "Email del admin de plataforma que confirm\u00f3 el \u00faltimo pago"
+      "description": "Email del admin de plataforma que confirmó el último pago",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "last_payment_period": {
       "type": "string",
-      "description": "Per\u00edodo de facturaci\u00f3n confirmado por ACACIA, formato YYYY-MM"
+      "description": "Período de facturación confirmado por ACACIA, formato YYYY-MM",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "last_payment_reference": {
       "type": "string",
-      "description": "Referencia del \u00faltimo pago confirmado (Mercado Pago ID, folio, nota manual)"
+      "description": "Referencia del último pago confirmado (Mercado Pago ID, folio, nota manual)",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "last_payment_notes": {
       "type": "string",
-      "description": "Notas internas ACACIA del \u00faltimo pago confirmado"
+      "description": "Notas internas ACACIA del último pago confirmado",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "default_person_id": {
       "type": "string",
