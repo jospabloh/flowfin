@@ -740,12 +740,12 @@ Aquí lo usa `acaciaControl` para **verificar** lo que llega de Mission Control.
 acepta las dos llaves mientras `ACCEPT_LEGACY_MASTER` sea `true`, así que da
 igual quién despliegue primero. Pero Mission Control despliega al mergear y las
 apps a mano, así que MC siempre va primero — por eso MC sigue **firmando** con
-el maestro hasta que las nueve apps acepten derivada. Falta el paso que cierra
-el agujero de verdad: poner `ACCEPT_LEGACY_MASTER` en `false` en todas partes y
-cambiar la firma de salida de MC a `signFor`. Mientras tanto una firma con el
-maestro se sigue aceptando. Falta además poner `ACACIA_APP_SLUG=flowfin` en los secrets de esta app: sin
-él la verificación degrada a legacy en vez de rechazar, que es lo correcto
-durante el despliegue pero deja de serlo en cuanto se apague el flag.
+el maestro hasta que las nueve apps acepten derivada. **Los dos pasos ya están hechos** (2026-08-24): MC firma con `signFor` y
+`ACCEPT_LEGACY_MASTER` está en `false` en los once sitios, así que una firma con
+el maestro **ya no se acepta** — que es exactamente lo que cierra el agujero. `ACACIA_APP_SLUG=flowfin` está puesto en los secrets de esta app y
+verificado: la sincronización de las 16:29 UTC del 2026-08-24 no registró ni una
+advertencia contra ella. Importa que sea exacto ahora más que nunca — con el
+flag en `false` un valor ausente o mal escrito ya no degrada a legacy, falla.
 
 **Y ahora hay una prueba, que es lo que faltaba.** El helper no lo comprobaba
 nada: cada PR de este módulo decía que recibía su primer type-check al
