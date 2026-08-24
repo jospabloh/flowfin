@@ -8,15 +8,15 @@
     },
     "category_id": {
       "type": "string",
-      "description": "ID de la categoría"
+      "description": "ID de la categor\u00eda"
     },
     "amount": {
       "type": "number",
-      "description": "Presupuesto máximo mensual para esta categoría"
+      "description": "Presupuesto m\u00e1ximo mensual para esta categor\u00eda"
     },
     "period": {
       "type": "string",
-      "description": "Período YYYY-MM al que aplica (null = siempre activo)"
+      "description": "Per\u00edodo YYYY-MM al que aplica (null = siempre activo)"
     }
   },
   "required": [
@@ -34,9 +34,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -49,9 +46,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -64,9 +58,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -79,9 +70,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

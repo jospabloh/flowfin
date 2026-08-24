@@ -8,7 +8,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Nombre de la categoría (Rubro)"
+      "description": "Nombre de la categor\u00eda (Rubro)"
     },
     "icon": {
       "type": "string",
@@ -17,7 +17,7 @@
     "color": {
       "type": "string",
       "default": "#059669",
-      "description": "Color hex para visualización"
+      "description": "Color hex para visualizaci\u00f3n"
     },
     "type": {
       "type": "string",
@@ -32,7 +32,7 @@
     "exclude_from_totals": {
       "type": "boolean",
       "default": false,
-      "description": "Si es true, las transacciones de esta categoría no se suman en totales ni reportes (ej: Pago TDC)"
+      "description": "Si es true, las transacciones de esta categor\u00eda no se suman en totales ni reportes (ej: Pago TDC)"
     }
   },
   "required": [
@@ -48,9 +48,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -63,9 +60,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -78,9 +72,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -93,9 +84,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

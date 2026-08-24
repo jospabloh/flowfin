@@ -12,7 +12,7 @@
     },
     "concept": {
       "type": "string",
-      "description": "Descripción de la compra"
+      "description": "Descripci\u00f3n de la compra"
     },
     "total_amount": {
       "type": "number",
@@ -33,7 +33,7 @@
     },
     "billing_day": {
       "type": "number",
-      "description": "Día de cobro mensual"
+      "description": "D\u00eda de cobro mensual"
     },
     "notes": {
       "type": "string"
@@ -60,9 +60,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -75,9 +72,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -90,9 +84,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -105,9 +96,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

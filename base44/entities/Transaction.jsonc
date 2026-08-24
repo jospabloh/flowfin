@@ -9,7 +9,7 @@
     "date": {
       "type": "string",
       "format": "date",
-      "description": "Fecha de la transacción"
+      "description": "Fecha de la transacci\u00f3n"
     },
     "type": {
       "type": "string",
@@ -22,19 +22,19 @@
     },
     "amount": {
       "type": "number",
-      "description": "Monto de la transacción"
+      "description": "Monto de la transacci\u00f3n"
     },
     "description": {
       "type": "string",
-      "description": "Descripción o concepto"
+      "description": "Descripci\u00f3n o concepto"
     },
     "category_id": {
       "type": "string",
-      "description": "ID de categoría (Rubro)"
+      "description": "ID de categor\u00eda (Rubro)"
     },
     "subcategory_id": {
       "type": "string",
-      "description": "ID de subcategoría (SubRubro)"
+      "description": "ID de subcategor\u00eda (SubRubro)"
     },
     "person_id": {
       "type": "string",
@@ -42,7 +42,7 @@
     },
     "payment_method_id": {
       "type": "string",
-      "description": "ID del método de pago"
+      "description": "ID del m\u00e9todo de pago"
     },
     "required_type": {
       "type": "string",
@@ -50,7 +50,7 @@
         "Necesario",
         "Gusto",
         "Urgente",
-        "Inversión",
+        "Inversi\u00f3n",
         "Otro"
       ],
       "default": "Necesario"
@@ -120,11 +120,11 @@
     },
     "split_group_id": {
       "type": "string",
-      "description": "Groups the N Transaction rows created from one shared expense split across several people (e.g. $100 total, $80/$20). Distinct from is_split/split_with_person_ids, which is trip-only and always splits evenly — this supports any uneven split, not just trips. Each row keeps its own amount/person_id, so existing reports/budgets need no changes; rows sharing a split_group_id are purely a display grouping."
+      "description": "Groups the N Transaction rows created from one shared expense split across several people (e.g. $100 total, $80/$20). Distinct from is_split/split_with_person_ids, which is trip-only and always splits evenly \u2014 this supports any uneven split, not just trips. Each row keeps its own amount/person_id, so existing reports/budgets need no changes; rows sharing a split_group_id are purely a display grouping."
     },
     "split_total_amount": {
       "type": "number",
-      "description": "The original shared total before splitting (e.g. 100, when this row's own amount is only 80). Only set on rows that have a split_group_id — lets the UI show 'tu parte: $80 de $100' without re-summing sibling rows."
+      "description": "The original shared total before splitting (e.g. 100, when this row's own amount is only 80). Only set on rows that have a split_group_id \u2014 lets the UI show 'tu parte: $80 de $100' without re-summing sibling rows."
     }
   },
   "required": [
@@ -145,9 +145,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -160,9 +157,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -175,9 +169,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -190,9 +181,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

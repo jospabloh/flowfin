@@ -23,7 +23,7 @@
     },
     "payment_day": {
       "type": "number",
-      "description": "Día de pago esperado"
+      "description": "D\u00eda de pago esperado"
     },
     "concepts": {
       "type": "array",
@@ -54,9 +54,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -69,9 +66,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -84,9 +78,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -99,9 +90,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

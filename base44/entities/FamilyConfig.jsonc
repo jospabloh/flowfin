@@ -13,7 +13,7 @@
     "locale": {
       "type": "string",
       "default": "es-MX",
-      "description": "Idioma y región (ej: es-MX, en-US)"
+      "description": "Idioma y regi\u00f3n (ej: es-MX, en-US)"
     },
     "currency": {
       "type": "string",
@@ -50,7 +50,7 @@
     },
     "smart_rules": {
       "type": "object",
-      "description": "Reglas y asociaciones aprendidas por la familia (sin créditos IA)",
+      "description": "Reglas y asociaciones aprendidas por la familia (sin cr\u00e9ditos IA)",
       "additionalProperties": true
     }
   },
@@ -65,9 +65,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -80,9 +77,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -95,9 +89,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -110,9 +101,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

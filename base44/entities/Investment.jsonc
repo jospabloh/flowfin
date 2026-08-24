@@ -8,7 +8,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Nombre de la inversión"
+      "description": "Nombre de la inversi\u00f3n"
     },
     "type": {
       "type": "string",
@@ -16,11 +16,11 @@
     },
     "total_amount": {
       "type": "number",
-      "description": "Monto total de la inversión"
+      "description": "Monto total de la inversi\u00f3n"
     },
     "total_payments": {
       "type": "number",
-      "description": "Número total de pagos/mensualidades"
+      "description": "N\u00famero total de pagos/mensualidades"
     },
     "payment_amount": {
       "type": "number",
@@ -33,7 +33,7 @@
     },
     "payment_day": {
       "type": "number",
-      "description": "Día del mes para el pago (1-28)"
+      "description": "D\u00eda del mes para el pago (1-28)"
     },
     "notes": {
       "type": "string"
@@ -58,9 +58,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -73,9 +70,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -88,9 +82,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -103,9 +94,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

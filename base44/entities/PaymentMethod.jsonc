@@ -19,27 +19,27 @@
         "transfer"
       ],
       "default": "cash",
-      "description": "Tipo de método de pago"
+      "description": "Tipo de m\u00e9todo de pago"
     },
     "bank": {
       "type": "string",
-      "description": "Banco o institución"
+      "description": "Banco o instituci\u00f3n"
     },
     "identifier": {
       "type": "string",
-      "description": "Últimos 4 dígitos u otro identificador"
+      "description": "\u00daltimos 4 d\u00edgitos u otro identificador"
     },
     "cut_day": {
       "type": "integer",
       "minimum": 1,
       "maximum": 31,
-      "description": "Día del mes en que cierra el ciclo de facturación (fecha de corte)"
+      "description": "D\u00eda del mes en que cierra el ciclo de facturaci\u00f3n (fecha de corte)"
     },
     "payment_day": {
       "type": "integer",
       "minimum": 1,
       "maximum": 31,
-      "description": "Día del mes en que vence el pago (fecha límite de pago)"
+      "description": "D\u00eda del mes en que vence el pago (fecha l\u00edmite de pago)"
     }
   },
   "required": [
@@ -55,9 +55,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -70,9 +67,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -85,9 +79,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -100,9 +91,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

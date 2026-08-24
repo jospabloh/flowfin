@@ -12,7 +12,7 @@
     },
     "description": {
       "type": "string",
-      "description": "Descripción opcional de la meta"
+      "description": "Descripci\u00f3n opcional de la meta"
     },
     "target_amount": {
       "type": "number",
@@ -21,31 +21,31 @@
     "deadline": {
       "type": "string",
       "format": "date",
-      "description": "Fecha límite para alcanzar la meta"
+      "description": "Fecha l\u00edmite para alcanzar la meta"
     },
     "icon": {
       "type": "string",
       "description": "Emoji representativo",
-      "default": "🎯"
+      "default": "\ud83c\udfaf"
     },
     "color": {
       "type": "string",
-      "description": "Color hex para identificación visual",
+      "description": "Color hex para identificaci\u00f3n visual",
       "default": "#059669"
     },
     "category_id": {
       "type": "string",
-      "description": "Categoría de transacciones vinculada a esta meta (opcional)"
+      "description": "Categor\u00eda de transacciones vinculada a esta meta (opcional)"
     },
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Si la meta está activa"
+      "description": "Si la meta est\u00e1 activa"
     },
     "manual_saved": {
       "type": "number",
       "default": 0,
-      "description": "Monto guardado manualmente (además del calculado automáticamente)"
+      "description": "Monto guardado manualmente (adem\u00e1s del calculado autom\u00e1ticamente)"
     }
   },
   "required": [
@@ -63,9 +63,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -78,9 +75,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -93,9 +87,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -108,9 +99,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }

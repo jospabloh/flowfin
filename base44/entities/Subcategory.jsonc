@@ -12,14 +12,14 @@
     },
     "category_id": {
       "type": "string",
-      "description": "ID de la categoría padre"
+      "description": "ID de la categor\u00eda padre"
     },
     "keywords": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Palabras clave para autodetección"
+      "description": "Palabras clave para autodetecci\u00f3n"
     },
     "usage_count": {
       "type": "number",
@@ -40,9 +40,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -55,9 +52,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -70,9 +64,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     },
@@ -85,9 +76,6 @@
         },
         {
           "data.family_id": "{{user.data.family_id}}"
-        },
-        {
-          "data.family_id": "{{user.data.data.family_id}}"
         }
       ]
     }
