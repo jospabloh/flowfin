@@ -1,6 +1,7 @@
 import { handle as backfillDefaultPerson } from './backfillDefaultPerson.ts';
 import { handle as backfillModulePermissions } from './backfillModulePermissions.ts';
 import { handle as backfillPaymentFamilyId } from './backfillPaymentFamilyId.ts';
+import { handle as backfillUserFamilyId } from './backfillUserFamilyId.ts';
 import { handle as debugFiniaData } from './debugFiniaData.ts';
 import { handle as fixCategories } from './fixCategories.ts';
 import { handle as fixUserData } from './fixUserData.ts';
@@ -16,6 +17,7 @@ const HANDLERS: Record<string, Handler> = {
   backfillDefaultPerson,
   backfillModulePermissions,
   backfillPaymentFamilyId,
+  backfillUserFamilyId,
   debugFiniaData,
   fixCategories,
   fixUserData,

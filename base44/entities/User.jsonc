@@ -17,14 +17,7 @@
     },
     "family_id": {
       "type": "string",
-      "description": "ID de la familia (tenant) a la que pertenece el usuario. Sólo se escribe desde funciones de servidor vía asServiceRole (selfJoin, approveMember, createFamily, removeMember, setUserFamilyId, fixUserFamilyId/fixUserData, switchFamily) — esas escrituras evaden RLS por diseño. El candado de abajo existe para que un cliente no pueda ponerse a sí mismo en la familia de otro (auditoría de aislamiento multi-tenant, módulo 14, 2026-08-23: este campo nunca se declaró aquí, así que no tenía dónde colgar un rls.write, a diferencia de stockflow/puntos/ctrlhq que sí declaran su equivalente business_id).",
-      "rls": {
-        "write": {
-          "user_condition": {
-            "role": "admin"
-          }
-        }
-      }
+      "description": "ID de la familia (tenant) a la que pertenece el usuario. S\u00f3lo se escribe desde funciones de servidor v\u00eda asServiceRole (selfJoin, approveMember, createFamily, removeMember, setUserFamilyId, fixUserFamilyId/fixUserData, switchFamily) \u2014 esas escrituras evaden RLS por dise\u00f1o. El aislamiento multi-tenant se protege con un guard server-side en setUserFamilyId (rechaza cambiar family_id a una familia en la que el usuario no tiene membres\u00eda aprobada) en lugar de un candado field-level rls.write: ese candado (a\u00f1adido 2026-08-23) stripping family_id de lecturas de no-admins y romp\u00eda la resoluci\u00f3n de FamilyContext + la regla RLS `id === {{user.data.family_id}}`, dejando a todos los usuarios no-admin en Onboarding \u2014 revertido 2026-08-25."
     }
   },
   "required": [
