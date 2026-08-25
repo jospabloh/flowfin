@@ -826,3 +826,59 @@ mismo límite que ya documentó el fix del tutorial. No requiere deploy de
 entidades (no se tocó `base44/entities/`); si toca desplegarse, requiere tanto
 `npm run deploy` (la función) como `npm run deploy:site` (el frontend) — ver
 "Base44 — mergear a `main` no deploya NADA" arriba.
+
+## Multi-family account switcher (module 18, 2026-08-25)
+
+Closes the `acacia-app-standard` STANDARD.md §18 gap: FlowFin already allows
+one email to hold approved `FamilyMembership` rows in more than one
+`Family`, but nothing surfaced that to the user or let them choose — the
+resolver (`FamilyContext.jsx`) took `results[0]` of the caller's approved
+memberships and never even looked at `User.data.family_id`, the persisted
+"active family" pointer every *write* path already respects
+(`guardedEntityWrite`'s `resolveFamilyAccess`). A user with 2+ approved
+memberships could have reads display one family while writes landed in
+another, silently, with no error and no way out short of a support ticket —
+found while grounding this feature's design, not separately reported.
+
+**Fix, in three pieces:**
+
+1. `FamilyContext.jsx`'s membership query now fetches *every* approved
+   membership. If `User.data.family_id` matches one, that's active (no
+   behavior change for the single-family case — the overwhelming majority).
+   If nothing persisted matches and there's exactly one candidate, that one
+   auto-activates. If nothing persisted matches and there are 2+ candidates,
+   the query resolves `active: null` instead of guessing — the new
+   `familyCandidates` array on context is what the switcher reads.
+2. New `family` action `switchFamily`
+   (`base44/functions/family/handlers/switchFamily.ts` +
+   `switchFamilyLogic.ts`, the latter pure and deno-tested, same split as
+   `guardedEntityWrite/logic.ts`): re-derives the caller's approved
+   memberships from scratch server-side (never trusts the client), denies a
+   `family_id` outside that set identically whether it belongs to someone
+   else or doesn't exist, and on success writes `User.data.family_id` via
+   `asServiceRole` — the field's already-locked, already-deployed write
+   path (module 14 finding #1's fix, `ec2b435`, 2026-08-24) — plus bumps
+   `last_active_at` on the newly-active membership so `resolveFamilyAccess`
+   agrees going forward.
+3. `src/components/family/FamilySwitcher.jsx`: one component, two entry
+   points, both gated on `familyCandidates.length > 1` so a single-family
+   user never sees it render anything. Compact, inside
+   `AccountSettings.jsx`. Full-screen, from `App.jsx`'s `FamilyGate`, when
+   resolution is ambiguous — replacing `Onboarding`'s "crea tu familia o
+   únete a una existente" (actively wrong copy for someone who already
+   belongs to at least one family) with "elige tu familia" for that specific
+   case only. Family names for candidates come from the existing
+   `getMyFamily` action, which already authorizes a caller against any of
+   their approved memberships (not just the current active one) — a direct
+   client read of `Family` would be blocked by its own RLS
+   (`id === user.data.family_id` OR `admin_user_id === user.id`) for a
+   candidate that isn't currently active and wasn't created by that user.
+
+**Verified:** `npm run lint`, `npm run build` (incl. `permissions-check.mjs`),
+`npm run validate:rls` (36 entities), `deno lint base44/functions/`, `deno
+test base44/functions/` all green. **Not verified:** an actual dual-membership
+login exercising the switcher end-to-end — this sandbox has no seeded
+account approved on two families, same limitation this repo's module 14
+audit already flags for its own unverifiable claims. Deploying requires both
+`npm run deploy` (the new `switchFamily` function) and `npm run deploy:site`
+(the frontend) — see "Base44 — mergear a `main` no deploya NADA" above.
