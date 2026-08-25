@@ -32,6 +32,7 @@ const UserManual = lazy(() => import('@/pages/UserManual'));
 const About = lazy(() => import('@/pages/About'));
 const SupportTickets = lazy(() => import('@/pages/SupportTickets'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const FamilySwitcher = lazy(() => import('@/components/family/FamilySwitcher'));
 const FamilyAdmin = lazy(() => import('@/pages/FamilyAdmin'));
 const LicenseAdmin = lazy(() => import('@/pages/LicenseAdmin'));
 const Assistant = lazy(() => import('@/pages/Assistant'));
@@ -65,7 +66,7 @@ function PermissionRoute({ permission, element }) {
 }
 
 const FamilyGate = ({ children }) => {
-  const { isLoading, membership, family, membershipError, refetchMembership } = useFamily();
+  const { isLoading, membership, family, membershipError, refetchMembership, familyCandidates } = useFamily();
   const { isLoadingAuth } = useAuth();
 
   // Safety timeout: if loading takes too long AND there's an error, show retry UI (not Onboarding)
@@ -110,17 +111,33 @@ const FamilyGate = ({ children }) => {
   }
 
   // Only show Onboarding if we got a confirmed null result (no error) — user genuinely has no family
-  if (!membership || !family) return (
-    <Suspense fallback={
+  if (!membership || !family) {
+    const loadingFallback = (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="w-16 h-16 rounded-3xl overflow-hidden shadow-lg animate-pulse-ring">
           <img src="https://media.base44.com/images/public/69b97ea9c9a713486b5a01fd/5dd910449_97d3fb29c_logo.png" alt="FlowFin" className="w-full h-full object-cover" />
         </div>
       </div>
-    }>
-      <Onboarding />
-    </Suspense>
-  );
+    );
+
+    // Ambiguous resolution — 2+ approved memberships, none persisted as
+    // active yet: offer the switcher instead of "crea tu familia o únete a
+    // una existente," which would be actively wrong for someone who already
+    // belongs to (at least) one. See docs/MULTI_FAMILY_SWITCHER_DESIGN.md.
+    if (!membership && familyCandidates.length > 1) {
+      return (
+        <Suspense fallback={loadingFallback}>
+          <FamilySwitcher fullScreen />
+        </Suspense>
+      );
+    }
+
+    return (
+      <Suspense fallback={loadingFallback}>
+        <Onboarding />
+      </Suspense>
+    );
+  }
   return children;
 };
 
