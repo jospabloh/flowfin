@@ -17,7 +17,14 @@
     },
     "family_id": {
       "type": "string",
-      "description": "ID de la familia (tenant) a la que pertenece el usuario. S\u00f3lo se escribe desde funciones de servidor v\u00eda asServiceRole (selfJoin, approveMember, createFamily, removeMember, setUserFamilyId, fixUserFamilyId/fixUserData, switchFamily) \u2014 esas escrituras evaden RLS por dise\u00f1o. El aislamiento multi-tenant se protege con un guard server-side en setUserFamilyId (rechaza cambiar family_id a una familia en la que el usuario no tiene membres\u00eda aprobada) en lugar de un candado field-level rls.write: ese candado (a\u00f1adido 2026-08-23) stripping family_id de lecturas de no-admins y romp\u00eda la resoluci\u00f3n de FamilyContext + la regla RLS `id === {{user.data.family_id}}`, dejando a todos los usuarios no-admin en Onboarding \u2014 revertido 2026-08-25."
+      "description": "ID de la familia (tenant) a la que pertenece el usuario. Sólo se escribe desde funciones de servidor vía asServiceRole (selfJoin, approveMember, createFamily, removeMember, setUserFamilyId, fixUserFamilyId/fixUserData, switchFamily) — esas escrituras evaden RLS por diseño. RESTORED 2026-08-25: this field-level rls.write lock (added 2026-08-23, module 14 finding #1) was incorrectly removed by an independent agent session that misdiagnosed a user-facing 'stuck on Onboarding' symptom as caused by this WRITE lock. A write lock cannot affect a READ outcome -- RLS write and read rules are independent; stripping the write lock could not have fixed (and did not fix) the reported symptom, but it did reopen the exact self-service tenant-hop hole this lock exists to close (any authenticated user could set their own family_id to any value via a direct client update and read that family's data via Family/Transaction/etc.'s own family_id-keyed RLS). Restored the lock; the setUserFamilyId server-side membership guard added in the same incident is complementary defense-in-depth and was left in place.",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     }
   },
   "required": [

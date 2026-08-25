@@ -13,6 +13,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 // matches their current family_id (if any), else the most recently active —
 // mirroring guardedEntityWrite.resolveFamilyAccess so reads and writes
 // agree on which family is "current".
+
+// The only fields this function reads off a membership record.
+interface MembershipForBackfill {
+  family_id: string;
+  last_active_at?: string;
+}
+
 export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -53,14 +60,13 @@ export async function handle(req: Request): Promise<Response> {
       const currentFid = (u.data as { family_id?: string } | undefined)?.family_id
         ?? (u as { family_id?: string }).family_id
         ?? null;
-      // deno-lint-ignore no-explicit-any
-      let target: any = approved.find((m: any) => m.family_id === currentFid);
+      let target = (approved as MembershipForBackfill[]).find((m) => m.family_id === currentFid);
       if (!target) {
-        target = [...approved].sort((a: any, b: any) =>
+        target = [...(approved as MembershipForBackfill[])].sort((a, b) =>
           String(b.last_active_at ?? '').localeCompare(String(a.last_active_at ?? ''))
         )[0];
       }
-      const wantFid = target.family_id as string;
+      const wantFid = target.family_id;
 
       // Only data.family_id is checked/written: it's the field FamilyContext
       // and the Family RLS rule `id === {{user.data.family_id}}` actually
@@ -81,7 +87,7 @@ export async function handle(req: Request): Promise<Response> {
       fixed.push({ id: u.id, email: u.email, from: dataFid, to: wantFid });
     }
 
-    return Response.json({ success: true, scanned, fixed: fixed.length, skipped, fixed });
+    return Response.json({ success: true, scanned, fixed_count: fixed.length, skipped, fixed });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return Response.json({ error: message }, { status: 500 });
