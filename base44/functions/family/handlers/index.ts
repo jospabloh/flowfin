@@ -8,6 +8,7 @@ import { handle as getMyMembership } from './getMyMembership.ts';
 import { handle as linkPersonToMember } from './linkPersonToMember.ts';
 import { handle as removeMember } from './removeMember.ts';
 import { handle as selfJoin } from './selfJoin.ts';
+import { handle as switchFamily } from './switchFamily.ts';
 import { handle as verifyFamilyAccess } from './verifyFamilyAccess.ts';
 
 type Handler = (req: Request) => Promise<Response>;
@@ -23,6 +24,7 @@ const HANDLERS: Record<string, Handler> = {
   linkPersonToMember,
   removeMember,
   selfJoin,
+  switchFamily,
   verifyFamilyAccess,
 };
 

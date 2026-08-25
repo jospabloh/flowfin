@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { usePermission } from '@/lib/permissions/usePermission';
+import FamilySwitcher from '@/components/family/FamilySwitcher';
 
 const DELETION_STEPS = ['Selecciona', 'Confirma email', 'Verifica', 'Completo'];
 
@@ -178,6 +179,9 @@ export default function AccountSettings() {
             </div>
           </div>
         </div>
+
+        {/* Family switcher — renders nothing unless the caller belongs to 2+ families */}
+        <FamilySwitcher />
 
         {/* License Info Card */}
         {billingStatus && (
