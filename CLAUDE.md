@@ -882,3 +882,50 @@ account approved on two families, same limitation this repo's module 14
 audit already flags for its own unverifiable claims. Deploying requires both
 `npm run deploy` (the new `switchFamily` function) and `npm run deploy:site`
 (the frontend) — see "Base44 — mergear a `main` no deploya NADA" above.
+
+## `functions deploy --force` puede reportar "unchanged" para una función que sí cambió (2026-08-25)
+
+Al desplegar el módulo 18 de arriba, `npx base44 functions deploy --app-id ... --force`
+reportó `family unchanged` — **dos veces**, en dos corridas separadas — aunque
+`switchFamily.ts` y `switchFamilyLogic.ts` eran archivos nuevos dentro de
+`family/handlers/` y `family/handlers/index.ts` se había editado para
+registrar la nueva acción.
+
+**No era un falso positivo del reporte: el `unknown action 'switchFamily'` era
+real.** Se verificó contra el sitio desplegado — no contra el sandbox del app,
+que sí traía los archivos nuevos (el sandbox se reconstruye desde el último
+commit, así que confirmar ahí no prueba que el runtime de funciones se haya
+re-publicado). La prueba decisiva fue una petición POST sin autenticar
+directamente al endpoint de funciones desplegado:
+
+```bash
+curl -s -X POST "https://<tu-dominio>.base44.app/api/apps/<app-id>/functions/family" \
+  -H "Content-Type: application/json" -H "X-App-Id: <app-id>" \
+  -d '{"action":"switchFamily","family_id":"probe"}'
+# {"error":"family: unknown action 'switchFamily'"}
+```
+
+(Nota la URL: el SDK del cliente pasa `serverUrl: ''` en `base44Client.js`, así
+que las llamadas de `functions.invoke` van a una ruta **relativa**
+`/api/apps/<app-id>/functions/<nombre>` contra el dominio del sitio
+desplegado — no a `base44.app` directamente. Un primer intento contra
+`https://base44.app/apps/.../functions/family` dio `405`, que no prueba nada:
+es la URL equivocada, no una señal sobre el deploy.)
+
+Una acción ya desplegada desde antes (`getMyMembership`) respondía `401`
+(pasó el ruteo, falló el `auth.me()`) contra el mismo endpoint — así que el
+ruteo del sitio funcionaba; specficamente la acción nueva nunca llegó al
+bundle publicado.
+
+**El arreglo:** tocar `family/entry.ts` (el archivo con `Deno.serve`, el punto
+de entrada real de la función) con un cambio de contenido — un comentario
+basta — y volver a correr `npm run deploy`. El detector de cambios de la CLI
+parece comparar contra el archivo de entrada y no recorre recursivamente
+`handlers/`, así que agregar o modificar un handler sin tocar `entry.ts`
+puede no disparar un redeploy real, con el reporte "unchanged" ocultándolo.
+
+**Lección general, van dos veces con este mismo patrón** (la primera fue
+"mergear no deploya nada" — ver arriba): un reporte de éxito de la
+herramienta de deploy no es evidencia de que el runtime cambió. Verificar
+contra el endpoint desplegado, no contra el mensaje de la CLI ni contra el
+sandbox del app.
