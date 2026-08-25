@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Send, Mic, MicOff, Paperclip, X, Loader2, Camera, Image, FileText, ClipboardPaste } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
@@ -774,7 +775,14 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
         </p>
       </div>
 
-      {/* Attach sheet — Cámara / Fotos / Archivos as three distinct pickers */}
+      {/* Attach sheet — Cámara / Fotos / Archivos as three distinct pickers.
+          Portaled to document.body: this component's own root div carries
+          backdrop-blur-sm, and a backdrop-filter (like transform/filter) on
+          an ancestor establishes a new containing block for `position:fixed`
+          descendants — without the portal, "fixed inset-0" here resolves
+          against that small composer-bar box instead of the real viewport,
+          the same bug the Cámara portal below fixes. */}
+      {createPortal(
       <AnimatePresence>
         {showAttachSheet && (
           <>
@@ -835,12 +843,23 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
 
       {/* Cámara — in-page capture (see openCameraCapture above for why).
           Uses the same theme tokens as the rest of the app (bg-background,
           text-foreground, border-border) instead of a hardcoded dark
-          camera-app look, so it follows the user's light/dark setting. */}
+          camera-app look, so it follows the user's light/dark setting.
+          Portaled to document.body — this component's root div has
+          backdrop-blur-sm, and a backdrop-filter on an ancestor establishes
+          a new containing block for `position:fixed` descendants. Without
+          this, "fixed inset-0" resolved against that ancestor's own box —
+          just the composer bar's height, not the screen — so the modal
+          rendered squashed into that sliver: video preview collapsed to
+          near-zero height and the capture button landed below it, off the
+          visible screen. That's the reported bug. */}
+      {createPortal(
       <AnimatePresence>
         {showCameraCapture && (
           <motion.div
@@ -875,7 +894,9 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </div>
   );
 }
