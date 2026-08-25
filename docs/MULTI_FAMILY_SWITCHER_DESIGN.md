@@ -80,9 +80,15 @@ that unit-tests without a server.
   `family_id` field description's list of legitimate writers) and bumps
   `last_active_at` on the newly-active membership row, so the resolver above
   and `resolveFamilyAccess`'s write-side fallback stay in agreement.
-- The auto-assign-the-only-candidate case (resolver step 3 above) also
-  calls this same endpoint under the hood rather than writing the pointer
-  through a second path — one write path, always validated the same way.
+- The auto-assign-the-only-candidate case (resolver step 3 above) is a
+  deliberate exception to that single-write-path idea, not an oversight: it
+  does NOT round-trip through `switchFamily` — it resolves purely
+  client-side in `FamilyContext.jsx`. Adding a network write on every cold
+  start for every single-family user (the overwhelming majority) wasn't
+  worth it for a case with nothing to actually choose between.
+  `User.data.family_id` for these users may remain unset/stale until their
+  next real switch (if they ever have one) — harmless, since every backend
+  resolver already falls back correctly when nothing persisted matches.
 
 ### 3. `FamilySwitcher` component — one component, two entry points
 

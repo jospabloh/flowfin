@@ -78,7 +78,7 @@ export function FamilyProvider({ children }) {
       // persisted matches, leave `active` null rather than guessing —
       // FamilyGate shows the switcher in that case instead of silently
       // picking one.
-      const activeFamilyId = currentUser?.data?.family_id || null;
+      const activeFamilyId = currentUser?.data?.family_id || currentUser?.data?.data?.family_id || null;
       const active = approved.find(m => m.family_id === activeFamilyId) || null;
       return { active, candidates: approved };
     },

@@ -77,6 +77,7 @@ export default function FamilySwitcher({ fullScreen = false }) {
           <div className="space-y-2">
             <p className="text-xs text-destructive">No se pudieron cargar tus familias.</p>
             <button
+              type="button"
               onClick={() => refetchNames()}
               className="text-xs font-semibold text-primary underline hover:text-primary/80"
             >

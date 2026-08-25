@@ -38,7 +38,7 @@ export async function handle(req: Request): Promise<Response> {
     // guardedEntityWrite's resolveFamilyAccess (which falls back to the
     // most-recently-active membership when nothing persisted matches)
     // agrees with this switch going forward.
-    const target = memberships.find((m) => m.family_id === family_id);
+    const target = memberships.find((m) => m.status === 'approved' && m.family_id === family_id);
     if (target) {
       await base44.asServiceRole.entities.FamilyMembership.update(target.id, {
         last_active_at: new Date().toISOString(),

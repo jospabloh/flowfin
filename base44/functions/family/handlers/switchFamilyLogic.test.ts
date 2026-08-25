@@ -40,3 +40,11 @@ Deno.test("decideSwitchFamily: a rejected membership does not grant access", () 
   const memberships = [{ family_id: "fam_a", status: "rejected" }];
   assertEquals(decideSwitchFamily(memberships, "fam_a"), { allowed: false, reason: "not_a_member" });
 });
+
+Deno.test("decideSwitchFamily: allows when the caller has both a rejected and an approved row for the same family", () => {
+  const memberships = [
+    { family_id: "fam_a", status: "rejected" },
+    { family_id: "fam_a", status: "approved" },
+  ];
+  assertEquals(decideSwitchFamily(memberships, "fam_a"), { allowed: true });
+});
