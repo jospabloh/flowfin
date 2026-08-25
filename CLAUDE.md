@@ -782,3 +782,47 @@ Lo que de verdad está bloqueado es `deno.land` y `jsr.io`, así que un test que
 importe de ahí no resuelve; uno que no importe nada corre igual que en CI. Es la
 misma lección que el `000` del proxy en Mission Control: **que una vía esté
 bloqueada no significa que la pregunta no tenga respuesta.**
+
+## Onboarding volvía a "crear o unirte" con una solicitud pendiente (fixed 2026-08-25)
+
+Reportado por una usuaria de Mochi Family: envió una solicitud para unirse a una
+familia por código, y en cada recarga (frecuente en iOS — un PWA/tab en
+background se mata y se repinta al volver del sistema) la app la devolvía a la
+pantalla en blanco de "crea tu familia o únete a una existente", como si nunca
+hubiera pedido acceso.
+
+**Causa raíz:** `Onboarding.jsx` guarda `pendingApproval` en estado local de
+React — se pierde en cualquier remount. Para sobrevivir a un reload, su efecto
+de montaje llama a `family.getMyMembership` (`asServiceRole`, bypassa RLS) y
+sólo reacciona si encuentra membresía **aprobada**. El propio handler filtraba
+`status: 'approved'` en la query — una fila `pending` (la que `selfJoin.ts` crea
+al pedir acceso) no aparecía en el resultado, así que el "self-heal" no tenía
+nada que heal-ear: `membership` salía `null` y la pantalla volvía al choose
+inicial en vez de "Solicitud enviada".
+
+En cuentas verificadas contra Base44 en vivo esto **no** era el caso — la
+usuaria que lo reportó ya tenía una fila `approved` limpia (probablemente
+alcanzó a ser aprobada entre el reporte y la revisión) — pero el bug es real y
+reproducible independientemente: cualquier usuario entre "pedí acceso" y "el
+admin me aprobó" que recargue la app cae en el mismo hueco. iOS lo hace más
+probable, no exclusivo — un remount ahí es rutina, no una excepción.
+
+**Arreglo:** `getMyMembership.ts` ahora trae **todas** las membresías del
+usuario (sin filtrar `status` en la query) y elige la aprobada si existe; si no,
+reporta `pending: true` cuando hay una fila `pending` entre las suyas.
+`Onboarding.jsx` usa ese flag para llamar `setPendingApproval(true)` en vez de
+no hacer nada, así que un reload durante la espera muestra "Solicitud enviada"
+otra vez, no el choose inicial. Sin cambio de forma para el caso ya cubierto
+(`membership` aprobada sigue funcionando idéntico); `pending` es un campo nuevo,
+aditivo.
+
+**Verificado:** `npm run lint` (incl. `validate:functions`), `npm run build`
+(incl. `permissions-check.mjs`), `npm run validate:rls` (36 entidades) y
+`deno lint` sobre el handler tocado — todo en verde. Sin test de regresión
+automatizado: como el resto de `family/handlers/*.ts`, `getMyMembership.ts`
+importa el SDK de Base44 por red (`npm:@base44/sdk`), así que no es candidato a
+un `logic.ts` puro al estilo `guardedEntityWrite` sin mockear esa dependencia —
+mismo límite que ya documentó el fix del tutorial. No requiere deploy de
+entidades (no se tocó `base44/entities/`); si toca desplegarse, requiere tanto
+`npm run deploy` (la función) como `npm run deploy:site` (el frontend) — ver
+"Base44 — mergear a `main` no deploya NADA" arriba.
