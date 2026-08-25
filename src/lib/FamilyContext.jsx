@@ -67,6 +67,15 @@ export function FamilyProvider({ children }) {
         // Fallback to email
         approved = await base44.entities.FamilyMembership.filter({ user_email: currentUser.email, status: 'approved' });
       }
+      if (!approved.length) {
+        // Fallback: if RLS blocked the direct read (same root cause as the
+        // Family read fallback below), use the backend function which reads
+        // via asServiceRole. Returns only the single approved membership.
+        try {
+          const res = await base44.functions.invoke('family', { action: 'getMyMembership' });
+          if (res.data?.membership) approved = [res.data.membership];
+        } catch { /* keep approved empty — genuine no-membership case */ }
+      }
 
       if (approved.length <= 1) {
         return { active: approved[0] || null, candidates: approved };
@@ -106,7 +115,19 @@ export function FamilyProvider({ children }) {
     queryKey: ['family', familyId],
     queryFn: async () => {
       const results = await base44.entities.Family.filter({ id: familyId });
-      return results[0] || null;
+      if (results[0]) return results[0];
+      // Fallback for non-admin users whose {{user.data.family_id}} doesn't
+      // resolve in the Family RLS read rule (the field-level rls.write added
+      // 2026-08-23 stripped family_id from non-admin reads and broke the
+      // `id === {{user.data.family_id}}` condition). getMyFamily reads via
+      // asServiceRole after authorizing through FamilyMembership, so it
+      // returns the family reliably regardless of RLS resolution.
+      try {
+        const res = await base44.functions.invoke('family', { action: 'getMyFamily', family_id: familyId });
+        return res.data?.family || null;
+      } catch {
+        return null;
+      }
     },
     enabled: !!familyId,
     staleTime: 5 * 60 * 1000,
