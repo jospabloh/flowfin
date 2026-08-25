@@ -20,7 +20,7 @@ export default function FamilySwitcher({ fullScreen = false }) {
   // a direct client read of a family that isn't the caller's current active
   // one, which is exactly why this goes through the function instead of
   // base44.entities.Family.filter() directly.
-  const { data: namedCandidates, isLoading } = useQuery({
+  const { data: namedCandidates, isLoading, isError: namesError, refetch: refetchNames } = useQuery({
     queryKey: ['family-switcher-names', familyCandidates.map(c => c.family_id).sort().join(',')],
     queryFn: async () => {
       const results = await Promise.all(familyCandidates.map(async (c) => {
@@ -72,6 +72,16 @@ export default function FamilySwitcher({ fullScreen = false }) {
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : namesError ? (
+          <div className="space-y-2">
+            <p className="text-xs text-destructive">No se pudieron cargar tus familias.</p>
+            <button
+              onClick={() => refetchNames()}
+              className="text-xs font-semibold text-primary underline hover:text-primary/80"
+            >
+              Reintentar
+            </button>
           </div>
         ) : (
           <div className="space-y-2">
