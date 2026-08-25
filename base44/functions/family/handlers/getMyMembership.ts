@@ -8,22 +8,24 @@ export async function handle(req: Request): Promise<Response> {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Single filter by user_id
+    // Fetch every membership row for this user (any status), not just
+    // approved ones — a 'pending' row (awaiting admin approval) must still
+    // be visible here so Onboarding can show "solicitud enviada" instead of
+    // resetting to the bare create/join screen on reload. See CLAUDE.md.
     let memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
       user_id: user.id,
-      status: 'approved',
     });
 
     if (!memberships.length) {
       memberships = await base44.asServiceRole.entities.FamilyMembership.filter({
         user_email: user.email,
-        status: 'approved',
       });
     }
 
-    const membership = memberships[0] || null;
+    const membership = memberships.find(m => m.status === 'approved') || null;
     if (!membership) {
-      return Response.json({ membership: null, family: null, familyConfig: null });
+      const hasPending = memberships.some(m => m.status === 'pending');
+      return Response.json({ membership: null, family: null, familyConfig: null, pending: hasPending });
     }
 
     const [families, configs] = await Promise.all([

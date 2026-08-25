@@ -33,14 +33,20 @@ export default function Onboarding() {
   const [pendingApproval, setPendingApproval] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
 
-  // On mount, check via backend function (bypasses RLS/token caching)
+  // On mount, check via backend function (bypasses RLS/token caching).
+  // A 'pending' join request has no `membership` (that filter only ever
+  // matches 'approved'), so without this branch a reload while awaiting
+  // approval silently dropped the user back on the bare create/join
+  // screen instead of "solicitud enviada" — see CLAUDE.md.
   useEffect(() => {
     if (!currentUser) return;
     base44.functions.invoke('family', { action: 'getMyMembership',})
       .then(res => {
-        const { membership } = res.data || {};
+        const { membership, pending } = res.data || {};
         if (membership) {
           refetchMembership();
+        } else if (pending) {
+          setPendingApproval(true);
         }
       })
       .catch(() => {})
