@@ -17,6 +17,7 @@ import { parseISO, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRegisterPaymentWithTransaction } from '@/hooks/useRegisterPaymentWithTransaction';
+import { useCatalog } from '@/hooks/useCatalog';
 import { usePermission } from '@/lib/permissions/usePermission';
 import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
 import PaywallPrompt from '@/components/billing/PaywallPrompt';
@@ -41,12 +42,13 @@ export default function MSIPage() {
   const { confirmDelete, ConfirmDialog } = useDeleteConfirm();
   const { toast } = useToast();
   const registerPayment = useRegisterPaymentWithTransaction();
+  const { categories, paymentMethods, persons } = useCatalog(familyId);
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [editPayForm, setEditPayForm] = useState({ amount: '', paid_date: '' });
-  const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1' });
+  const [form, setForm] = useState({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1', category_id: '', payment_method_id: '', person_id: '' });
 
   const { data: msiList = [], isLoading } = useQuery({ queryKey: ['msi', familyId], queryFn: () => base44.entities.MSI.filter({ family_id: familyId }, '-created_date'), enabled: !!familyId });
   const { data: allPayments = [] } = useQuery({ queryKey: ['msiPayments'], queryFn: () => base44.entities.MSIPayment.list('-paid_date') });
@@ -129,7 +131,7 @@ export default function MSIPage() {
     setShowForm(false);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
-    setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1' });
+    setForm({ store: '', concept: '', total_amount: '', monthly_amount: '', total_months: '', start_date: todayISO(), billing_day: '1', category_id: '', payment_method_id: '', person_id: '' });
   };
 
   const sheetStyle = useBottomSheetStyle(0.90);
@@ -137,6 +139,21 @@ export default function MSIPage() {
   const handleMarkPaid = async (msi, payments) => {
     const next = getNextMSIPayment(msi, payments);
     if (!next) return;
+    // registerPayment only creates the matching Transaction when category_id AND
+    // person_id are present. These used to be hardcoded `undefined` below, so every
+    // MSI payment ever recorded saved the MSIPayment row and silently created no
+    // movement — the mensualidad never reached Movimientos or any report. Block
+    // before writing anything rather than reporting a success that never happened.
+    const personId = msi.person_id || persons[0]?.id;
+    if (!msi.category_id || !personId) {
+      toast({
+        title: 'Faltan datos para registrar el movimiento',
+        description: `"${msi.store}" no tiene ${!msi.category_id ? 'rubro' : 'persona'} asignado. Edítalo y complétalo antes de marcar la mensualidad — si no, el pago no se reflejaría en Movimientos.`,
+        variant: 'destructive',
+        duration: 7000,
+      });
+      return;
+    }
     const today = new Date().toISOString().slice(0, 10);
     const payData = {
       msi_id: msi.id,
@@ -151,12 +168,15 @@ export default function MSIPage() {
         amount: msi.monthly_amount,
         date: today,
         description: `MSI ${msi.store}${msi.concept ? ` — ${msi.concept}` : ''} · Mes ${next.number}/${msi.total_months}`,
-        category_id: undefined,
-        payment_method_id: undefined,
-        person_id: undefined,
+        category_id: msi.category_id,
+        payment_method_id: msi.payment_method_id || undefined,
+        person_id: personId,
+        link_field_from_primary: 'msi_payment_id',
       }
     );
     queryClient.invalidateQueries({ queryKey: ['msiPayments'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+    queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
   };
 
   if (gate.status === 'loading') {
@@ -395,6 +415,26 @@ export default function MSIPage() {
                   <input type="number" placeholder="Día de cargo" value={form.billing_day} onChange={e => setForm(f => ({...f, billing_day: e.target.value}))} className="bg-muted rounded-xl px-4 py-2.5 text-sm outline-none" />
                 </div>
                 <input type="date" value={form.start_date} onChange={e => setForm(f => ({...f, start_date: e.target.value}))} onClick={e => e.target.showPicker?.()} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none cursor-pointer" />
+                {/* Rubro y persona son obligatorios para que cada mensualidad
+                    genere su movimiento: sin ellos handleMarkPaid se bloquea. */}
+                <select value={form.category_id} onChange={e => setForm(f => ({...f, category_id: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none">
+                  <option value="">Rubro (necesario para el movimiento)</option>
+                  {(categories || []).filter(c => c.type === 'both' || c.type === 'expense').map(c => (
+                    <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</option>
+                  ))}
+                </select>
+                <select value={form.person_id} onChange={e => setForm(f => ({...f, person_id: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none">
+                  <option value="">Persona responsable</option>
+                  {(persons || []).map(pp => (
+                    <option key={pp.id} value={pp.id}>{pp.name}</option>
+                  ))}
+                </select>
+                <select value={form.payment_method_id} onChange={e => setForm(f => ({...f, payment_method_id: e.target.value}))} className="w-full bg-muted rounded-xl px-4 py-2.5 text-sm outline-none">
+                  <option value="">Forma de pago</option>
+                  {(paymentMethods || []).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
               </div>
               <button onClick={handleCreate} className="w-full mt-4 py-3 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm">Crear MSI</button>
             </motion.div>

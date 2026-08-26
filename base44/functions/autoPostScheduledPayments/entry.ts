@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     });
 
     let createdRecords = 0;
-    let updatedRecords = 0;
+    let skippedRecords = 0;
     let createdTransactions = 0;
     const postedItems = []; // for email summary
     const familyNameCache = new Map();
@@ -102,29 +102,38 @@ Deno.serve(async (req) => {
         month,
       });
 
-      const baseRecord = {
-        family_id: scheduledPayment.family_id,
-        month,
-        paid_date: todayIso(),
-        amount_paid: Number(scheduledPayment.amount || 0),
-        notes: `Autopost ${month}${scheduledPayment.match_hint ? ` · hint:${scheduledPayment.match_hint}` : ''}`,
-        paid_by: 'Sistema (auto)',
-      };
-
       let record = existingRecords?.[0];
-      let recordStatus = 'sin cambios';
+      let recordStatus;
       if (!record) {
         record = await base44.asServiceRole.entities.ScheduledPaymentRecord.create({
-          ...baseRecord,
           scheduled_payment_id: scheduledPayment.id,
+          family_id: scheduledPayment.family_id,
+          month,
+          paid_date: todayIso(),
+          amount_paid: Number(scheduledPayment.amount || 0),
+          notes: `Autopost ${month}${scheduledPayment.match_hint ? ` · hint:${scheduledPayment.match_hint}` : ''}`,
+          paid_by: 'Sistema (auto)',
+          status: 'reconciled',
+          origin: 'auto',
         });
         createdRecords += 1;
         recordStatus = 'creado';
       } else {
-        record = await base44.asServiceRole.entities.ScheduledPaymentRecord.update(record.id, baseRecord);
-        updatedRecords += 1;
-        recordStatus = 'actualizado';
+        // NEVER rewrite a record that already exists for this month. This runs
+        // every day from due_day to the end of the month, and the record is far
+        // more likely to have been filed by hand from "Pagos del Mes" (with the
+        // real paid_date, the real amount, the payer's name and their notes)
+        // than by a previous autopost run. Overwriting it destroyed all four.
+        // The month is already covered either way, so there is nothing to do
+        // but make sure the movement exists (below).
+        skippedRecords += 1;
+        recordStatus = 'ya registrado (sin tocar)';
       }
+
+      // Always read the amounts/date back off the record itself, so a hand-filed
+      // record drives the movement instead of the scheduled payment's nominal values.
+      const recordPaidDate = record.paid_date || todayIso();
+      const recordAmount = Number(record.amount_paid ?? scheduledPayment.amount ?? 0);
 
       // Resolve family name (cached)
       let familyName = familyNameCache.get(scheduledPayment.family_id);
@@ -152,7 +161,7 @@ Deno.serve(async (req) => {
             familyName,
             name: scheduledPayment.name,
             icon: scheduledPayment.icon,
-            amount: baseRecord.amount_paid,
+            amount: recordAmount,
             type: scheduledPayment.type || 'expense',
             status: `⚠️ registro ${recordStatus}, faltan datos para crear transacción`,
           });
@@ -161,15 +170,16 @@ Deno.serve(async (req) => {
 
         await base44.asServiceRole.entities.Transaction.create({
           family_id: scheduledPayment.family_id,
-          date: baseRecord.paid_date,
+          date: recordPaidDate,
           type: scheduledPayment.type === 'income' ? 'income' : 'expense',
-          amount: baseRecord.amount_paid,
+          amount: recordAmount,
           description: `${scheduledPayment.icon || '📅'} ${scheduledPayment.name}`,
           category_id: scheduledPayment.category_id,
           person_id: personId,
           payment_method_id: scheduledPayment.payment_method_id,
           notes: `Creado automáticamente (${month})`,
           scheduled_payment_record_id: record.id,
+          scheduled_payment_id: scheduledPayment.id,
         });
         createdTransactions += 1;
         txStatus = '✅ transacción creada';
@@ -179,7 +189,7 @@ Deno.serve(async (req) => {
         familyName,
         name: scheduledPayment.name,
         icon: scheduledPayment.icon,
-        amount: baseRecord.amount_paid,
+        amount: recordAmount,
         type: scheduledPayment.type || 'expense',
         status: `${recordStatus} · ${txStatus}`,
       });
@@ -210,7 +220,7 @@ Deno.serve(async (req) => {
       ok: true,
       month,
       createdRecords,
-      updatedRecords,
+      skippedRecords,
       createdTransactions,
       emailSent,
       emailError,

@@ -36,6 +36,26 @@ Deno.serve(async (req) => {
       return Response.json({ message: 'Record already linked to an existing transaction' }, { status: 200 });
     }
 
+    // Every caller that sets `origin` creates its own movement, with data this hook
+    // does not have (the payment method picked at pay time, the user's notes, the
+    // icon in the description):
+    //   manual    → ScheduledPayments.jsx "Pagos del Mes"  (useRegisterPaymentWithTransaction)
+    //   converted → ConvertScheduledModal.jsx              (reuses the existing movement)
+    //   auto      → autoPostScheduledPayments              (creates its own)
+    // This hook fires on record creation, i.e. concurrently with those callers, and
+    // both sides used to race on a "does a movement exist yet?" check that neither
+    // could win reliably — which is why identical payments ended up described
+    // sometimes as "🎬 Apple TV" and sometimes as "Apple TV / Pago programado: …".
+    // Standing down for known origins makes the owner deterministic. The hook stays
+    // as the safety net for records created any other way (direct API, imports).
+    const KNOWN_ORIGINS = ['manual', 'converted', 'auto'];
+    if (KNOWN_ORIGINS.includes(scheduledPaymentRecord.origin)) {
+      return Response.json(
+        { message: `Origin '${scheduledPaymentRecord.origin}' creates its own transaction; hook standing down` },
+        { status: 200 },
+      );
+    }
+
     // Fetch ScheduledPayment details
     const scheduledPaymentRecords = await base44.asServiceRole.entities.ScheduledPayment.filter({ 
       id: scheduledPaymentRecord.scheduled_payment_id,
@@ -89,6 +109,10 @@ Deno.serve(async (req) => {
       payment_method_id: scheduledPayment.payment_method_id || '',
       notes: `Pago programado: ${scheduledPayment.name}. Registrado por: ${scheduledPaymentRecord.paid_by || 'Sistema'}${scheduledPaymentRecord.notes ? '. ' + scheduledPaymentRecord.notes : ''}`,
       scheduled_payment_record_id: scheduledPaymentRecord.id,
+      // findMatchingScheduledPaymentTransaction() filters on scheduled_payment_id;
+      // without it, a movement created here is invisible to reconciliation.
+      scheduled_payment_id: scheduledPaymentRecord.scheduled_payment_id,
+      required_type: scheduledPayment.type === 'income' ? 'Otro' : 'Necesario',
       week: getWeekNumber(scheduledPaymentRecord.paid_date),
     };
 

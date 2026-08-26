@@ -12,7 +12,7 @@
     },
     "concept": {
       "type": "string",
-      "description": "Descripci\u00f3n de la compra"
+      "description": "Descripción de la compra"
     },
     "total_amount": {
       "type": "number",
@@ -33,10 +33,22 @@
     },
     "billing_day": {
       "type": "number",
-      "description": "D\u00eda de cobro mensual"
+      "description": "Día de cobro mensual"
     },
     "notes": {
       "type": "string"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "Rubro al que se cargan las mensualidades"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "Forma de pago con la que se liquidan las mensualidades"
+    },
+    "person_id": {
+      "type": "string",
+      "description": "Persona responsable del MSI"
     },
     "is_active": {
       "type": "boolean",

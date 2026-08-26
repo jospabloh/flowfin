@@ -3,6 +3,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Entity hook — triggered by Base44 when MSIPayment is created.
 // Uses asServiceRole for all DB operations (hook runs in system context,
 // not tied to any specific user session).
+//
+// ⚠️ INTENTIONALLY INERT — do not "fix" the empty ids below.
+// The `category_id: ''` / `person_id: ''` literals mean the guard further down
+// always returns early, so this hook has never created a single movement (0 rows
+// in production carry one). That is not a bug to repair: `MSIPage.jsx` via useRegisterPaymentWithTransaction already creates
+// the movement itself, and wiring real values in here would double-count every
+// payment. Kept deployed only because the entity hook is still registered in the
+// Base44 panel — removing it means unregistering it there first, then redeploying
+// with --force. Track that as its own task; see CLAUDE.md.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
