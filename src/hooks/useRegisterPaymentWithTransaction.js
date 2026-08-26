@@ -93,7 +93,18 @@ export function useRegisterPaymentWithTransaction() {
     // 1. Always save the primary record first
     const primaryResult = await primarySaveFn();
 
-    const scheduledPaymentRecordId = txFields.scheduled_payment_record_id || (primaryResult?.id && !txFields.rental_payment_id ? primaryResult.id : undefined);
+    // Which Transaction column points back at the row we just created. This used to
+    // be "primaryResult.id unless a rental_payment_id was passed", which quietly
+    // stamped an MSIPayment id into scheduled_payment_record_id for the MSI flow.
+    // A ScheduledPaymentRecord identifies itself by carrying scheduled_payment_id;
+    // every other caller has to name its column explicitly.
+    const linkField = txFields.link_field_from_primary
+      || (primaryResult?.scheduled_payment_id ? 'scheduled_payment_record_id' : undefined);
+    const scheduledPaymentRecordId = txFields.scheduled_payment_record_id
+      || (linkField === 'scheduled_payment_record_id' ? primaryResult?.id : undefined);
+    const primaryLink = linkField && linkField !== 'scheduled_payment_record_id' && primaryResult?.id
+      ? { [linkField]: primaryResult.id }
+      : {};
     const matchingTx = await findMatchingScheduledPaymentTransaction({
       family_id: familyId,
       scheduled_payment_record_id: scheduledPaymentRecordId,
@@ -132,6 +143,7 @@ export function useRegisterPaymentWithTransaction() {
         scheduled_payment_record_id: scheduledPaymentRecordId,
         rental_payment_id: txFields.rental_payment_id || undefined,
         scheduled_payment_id: txFields.scheduled_payment_id || primaryResult?.scheduled_payment_id,
+        ...primaryLink,
       });
 
       if (primaryResult?.id && txResult?.id && primaryResult?.scheduled_payment_id) {

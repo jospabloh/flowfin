@@ -28,7 +28,29 @@
     },
     "paid_by": {
       "type": "string",
-      "description": "Nombre o email de quien marc\u00f3 el pago"
+      "description": "Nombre o email de quien marcó el pago"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reconciled"
+      ],
+      "default": "reconciled",
+      "description": "Estado de conciliación del registro"
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "converted",
+        "auto"
+      ],
+      "description": "Quién creó el registro: manual (Pagos del Mes), converted (Convertir en domiciliado) o auto (autopost)"
+    },
+    "linked_transaction_id": {
+      "type": "string",
+      "description": "ID del movimiento ya vinculado a este registro. Si viene poblado, la automatización NO debe crear otro"
     }
   },
   "required": [

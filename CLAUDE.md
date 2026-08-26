@@ -929,3 +929,130 @@ puede no disparar un redeploy real, con el reporte "unchanged" ocultándolo.
 herramienta de deploy no es evidencia de que el runtime cambió. Verificar
 contra el endpoint desplegado, no contra el mensaje de la CLI ni contra el
 sandbox del app.
+
+## Las automatizaciones que convierten pagos en movimientos (revisión 2026-08-26)
+
+Revisión pedida tras notar movimientos raros. Cinco cosas estaban mal; todas
+salieron de leer los datos en vivo, no de leer el código.
+
+### El campo del que dependía el anti-duplicado no existía
+
+`ScheduledPaymentRecord` declaraba **siete** propiedades. El frontend escribía
+tres más —`status`, `origin`, `linked_transaction_id`— y Base44 las descartaba
+en silencio, porque un campo no declarado no se persiste.
+
+La consecuencia estaba en `createTransactionFromScheduledPaymentRecord`, cuya
+primera guarda es:
+
+```js
+if (scheduledPaymentRecord.linked_transaction_id) return;  // nunca se cumplía
+```
+
+**Ese `if` jamás pudo dispararse.** `ConvertScheduledModal` pasa
+`linked_transaction_id` en el `create` precisamente para que el hook se
+abstenga, y el campo se caía por el camino. Lo único que evitaba el movimiento
+duplicado ahí era la limpieza defensiva que el propio modal hace *después*
+—borrar cualquier otra transacción que apunte al registro—, es decir, un
+parche a un síntoma cuya causa llevaba meses invisible.
+
+Los tres campos ya están declarados, en el repo y en el esquema desplegado
+(vía `update_entity_schema`, aditivo, RLS preservada — **no** con
+`deploy:entities`, que es destructivo y pide confirmación interactiva).
+
+### Quién crea el movimiento ahora es determinista
+
+El hook y el frontend corrían en paralelo sobre la misma pregunta —«¿ya existe
+un movimiento para este registro?»— y ninguno podía ganarla de forma fiable: el
+hook dispara al crearse el registro, que es exactamente cuando el frontend
+todavía no ha creado su transacción. Ambos chequeaban duplicados y aun así la
+carrera se resolvía distinto cada vez. Se ve en agosto de Mochi Family: de seis
+registros, cinco tienen el movimiento del frontend (`"🎬 Apple TV"`, notas
+vacías) y uno el del hook (`"Apple TV"`, notas `"Pago programado: …"`). El mismo
+pago descrito de dos maneras según quién llegó primero.
+
+`origin` resuelve esto sin tocar el panel: cada camino que lo declara crea su
+propio movimiento, y el hook se aparta.
+
+| `origin` | Quién crea el movimiento |
+|---|---|
+| `manual` | `ScheduledPayments.jsx` → `useRegisterPaymentWithTransaction` |
+| `converted` | `ConvertScheduledModal.jsx` (reusa el movimiento existente) |
+| `auto` | `autoPostScheduledPayments` |
+
+El hook sigue desplegado como red para registros creados de cualquier otra
+forma (API directa, importaciones), y ahora el movimiento que sí llega a crear
+lleva `scheduled_payment_id` y `required_type`, que antes le faltaban — sin
+`scheduled_payment_id`, `findMatchingScheduledPaymentTransaction` no lo ve.
+
+### El autopost borraba los pagos capturados a mano
+
+`autoPostScheduledPayments` hacía `update()` **incondicional** sobre el registro
+del mes si ya existía, y corre **todos los días** desde `due_day` hasta fin de
+mes. Pisaba `paid_date` con hoy, `amount_paid` con el monto nominal, `paid_by`
+con `"Sistema (auto)"` y `notes` con `"Autopost <mes>"`. Un pago que capturaste
+el día 12 por $540 amanecía el 13 como pagado hoy por el monto de catálogo, por
+el sistema, sin tus notas — y otra vez al día siguiente.
+
+Ahora un registro existente **no se toca**: el mes ya está cubierto, así que lo
+único pendiente es asegurar que el movimiento exista. Y el movimiento se
+construye leyendo `record.paid_date` / `record.amount_paid`, no los valores
+nominales del domiciliado, para que mande el dato real.
+
+**Esto nunca llegó a ocurrir en producción, y por una razón incómoda: el
+autopost jamás ha corrido.** Cero registros con `paid_by: "Sistema (auto)"`,
+cero movimientos con notas `"Creado automáticamente"`, en toda la base — pese a
+ocho domiciliados con `automation_mode: auto` y `autopost_enabled: true` cuyos
+días de vencimiento ya pasaron varias veces. Su `guardInternal` exige
+`CRON_SECRET` + header `x-cron-secret`, o un admin autenticado; un scheduler sin
+el header recibe **403**. Falta comprobar en el panel de Base44 si la automation
+existe y si el secreto está puesto — **no es verificable desde el sandbox**.
+Arreglar el clobbering primero es deliberado: encender el cron con el `update()`
+anterior habría destruido el historial de los seis registros de agosto.
+
+### MSI no generaba movimientos, nunca
+
+37 `MSIPayment` en producción, **0** transacciones con `msi_payment_id`. Doble
+falla, y cada mitad tapaba a la otra:
+
+- `MSIPage.handleMarkPaid` pasaba `category_id: undefined, person_id: undefined`
+  a `registerPayment`, cuya guarda es `if (!matchingTx && category_id &&
+  person_id)`. Nunca creaba nada, y la UI reportaba éxito igual.
+- El hook `createTransactionFromMSIPayment` leía `msi.category_id` y
+  `msi.payment_method_id`, campos que **no existían** en la entidad `MSI`, y
+  además hardcodeaba `person_id: ''` contra su propia guarda.
+
+`MSI` ahora declara `category_id`, `payment_method_id` y `person_id` (repo +
+esquema desplegado); el formulario los pide y `handleMarkPaid` bloquea con un
+toast explicativo si faltan, en vez de fingir que registró el pago — mismo
+patrón que `ScheduledPayments.jsx` ya usaba.
+
+### `registerPayment` stampaba el id en la columna equivocada
+
+`scheduledPaymentRecordId` se derivaba como «`primaryResult.id` salvo que venga
+un `rental_payment_id`», así que para MSI habría escrito un id de `MSIPayment`
+dentro de `scheduled_payment_record_id`. Estaba latente sólo porque MSI nunca
+creaba transacciones; al arreglar MSI se habría activado el mismo día. Ahora un
+`ScheduledPaymentRecord` se reconoce por llevar `scheduled_payment_id`, y
+cualquier otro llamador nombra su columna con `link_field_from_primary`.
+
+### Los tres hooks de Investment/Rental/MSI son inertes a propósito
+
+Los tres hardcodean `category_id: ''` / `person_id: ''` y acto seguido se
+auto-descartan. **No son un bug a reparar:** `Investments.jsx`, `Rentals.jsx` y
+`MSIPage.jsx` ya crean el movimiento, y darles valores reales duplicaría cada
+pago. Llevan un comentario que lo dice, porque el siguiente que los lea va a
+querer "arreglarlos".
+
+Siguen desplegados porque el entity hook está **registrado en el panel** —
+`npm run functions:audit` los marca `hook/cron (declarado)`. Borrarlos exige
+desregistrarlos ahí primero y luego redeployar con `--force`; no se hizo en este
+cambio. Vale la pena: estamos en **45/45 endpoints, margen 0**.
+
+### Verificado
+
+`npm run lint` (incl. `validate:functions`), `npm run build` (incl.
+`permissions-check`), `npm run validate:rls` (36 entidades), `deno lint` (126
+archivos) y `deno test` (32 tests) — todo en verde. **No verificado:** una
+sesión real marcando un MSI o un domiciliado como pagado; este repo no tiene
+runner de tests de frontend. Requiere `npm run deploy` (funciones) **y**
+`npm run deploy:site` (frontend) — mergear no deploya nada.
