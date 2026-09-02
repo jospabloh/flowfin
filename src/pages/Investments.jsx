@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { base44 } from '@/api/base44Client';
 import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
+import { countPaidInstallments } from '@/lib/investmentSchedule';
+import { useRegisterInvestmentPayment } from '@/hooks/useRegisterInvestmentPayment';
 import { Plus, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
@@ -28,7 +30,7 @@ export default function Investments() {
   const { familyId } = useFamily();
   const { toast } = useToast();
   const gate = useFeatureGate('page.Investments');
-  // registerPayment hook kept for other payment types; investments use direct creation below
+  const registerInvestmentPayment = useRegisterInvestmentPayment();
 
   const { can_write: canCreate }        = usePermission('investment.crud.create');
   const { categories, persons, paymentMethods } = useCatalog(familyId);
@@ -99,46 +101,10 @@ export default function Investments() {
     if (!payForm.amount || !selected || isSavingPayment) return;
     setIsSavingPayment(true);
     setPayError('');
-    const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
-    const payData = { investment_id: selected.id, family_id: selected.family_id || familyId, payment_number: selectedPayments.length + 1, amount: +payForm.amount, date: payForm.date, notes: payForm.notes };
-    let savedPayment;
+    const paymentNumber = countPaidInstallments(allPayments, selected.id) + 1;
     try {
-      savedPayment = await guardedCreate('InvestmentPayment', payData);
-      if (payForm.category_id && payForm.person_id) {
-        const week = (() => {
-          try {
-            const date = new Date(payForm.date + 'T12:00:00');
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-          } catch { return 1; }
-        })();
-        await guardedCreate('Transaction', {
-          family_id: familyId,
-          date: payForm.date,
-          type: 'expense',
-          amount: +payForm.amount,
-          description: `Inversión: ${selected.name} — Pago #${selectedPayments.length + 1}${payForm.notes ? ` — ${payForm.notes}` : ''}`,
-          category_id: payForm.category_id,
-          payment_method_id: payForm.payment_method_id || undefined,
-          person_id: payForm.person_id,
-          required_type: 'Inversión',
-          week,
-          investment_payment_id: savedPayment.id,
-        });
-      }
+      await registerInvestmentPayment({ investment: selected, familyId, paymentNumber, form: payForm });
     } catch (error) {
-      // InvestmentPayment.create can succeed while the follow-up Transaction.create
-      // throws (network blip, RLS rejection). Left alone, that orphans a payment
-      // that shows as registered in Historial de pagos with nothing in Movimientos —
-      // the entity hook backstop (createTransactionFromInvestmentPayment) can't help
-      // here either, since InvestmentPayment doesn't store category_id/person_id for
-      // it to resolve. Roll back the payment and surface the failure inline instead.
-      if (savedPayment?.id) {
-        try { await guardedDelete('InvestmentPayment', savedPayment.id); } catch { /* best-effort rollback */ }
-      }
       setPayError(error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.');
       setIsSavingPayment(false);
       return;
@@ -215,7 +181,7 @@ export default function Investments() {
       <InvestmentPayFormModal show={showPayForm} title="Registrar Pago" form={payForm} setForm={setPayForm}
         onSave={handlePayment} onClose={closePayForm} error={payError} isSaving={isSavingPayment}
         investmentName={selected?.name}
-        paymentNumber={selected ? allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO)).length + 1 : undefined}
+        paymentNumber={selected ? countPaidInstallments(allPayments, selected.id) + 1 : undefined}
         totalPayments={selected?.total_payments}
         persons={persons} categories={categories} paymentMethods={paymentMethods} />
 

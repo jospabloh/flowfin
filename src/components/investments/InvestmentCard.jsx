@@ -5,18 +5,8 @@ import InvestmentTimeline from '@/components/investments/InvestmentTimeline';
 import StatusBadge from '@/components/StatusBadge';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
+import { countPaidInstallments, getNextInstallment } from '@/lib/investmentSchedule';
 import { usePermission } from '@/lib/permissions/usePermission';
-
-function getNextPayment(inv, paymentsMade) {
-  const n = paymentsMade.length;
-  if (n >= inv.total_payments) return null;
-  const base = new Date(inv.start_date);
-  const next = new Date(base);
-  next.setMonth(next.getMonth() + n);
-  if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
-  const diff = Math.ceil((next - new Date()) / 86400000);
-  return { number: n + 1, date: next, diff, remaining: inv.total_payments - n };
-}
 
 function StatusPill({ done, next }) {
   if (done) return <StatusBadge variant="success">Completado</StatusBadge>;
@@ -26,15 +16,12 @@ function StatusPill({ done, next }) {
   return <StatusBadge variant="neutral">Al día</StatusBadge>;
 }
 
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
-
 export default function InvestmentCard({ inv, allPayments, onSelect, onQuickPay }) {
   const { currency, familyConfig } = useFamily();
   const locale = familyConfig?.locale || 'es-MX';
   const fmt = v => formatCurrency(v, { locale, currency });
-  const investmentPayments = allPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= TODAY_ISO));
-  const paid = investmentPayments.length;
-  const next = getNextPayment(inv, investmentPayments);
+  const paid = countPaidInstallments(allPayments, inv.id);
+  const next = getNextInstallment(inv, paid);
   const done = paid >= inv.total_payments;
   const isDue = !done && next && next.diff <= 7;
   const { can_write: canPay } = usePermission('investment.payments.add');

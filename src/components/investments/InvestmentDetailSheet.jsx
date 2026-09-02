@@ -1,6 +1,6 @@
 import { X, Pencil, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { format, addMonths, parseISO, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import AmountDisplay from '@/components/AmountDisplay';
 import StatusBadge from '@/components/StatusBadge';
@@ -8,6 +8,7 @@ import InvestmentTimeline from '@/components/investments/InvestmentTimeline';
 import { useBottomSheetStyle } from '@/hooks/useBottomSheetStyle';
 import { useFamily } from '@/lib/FamilyContext';
 import { formatCurrency } from '@/lib/formatters';
+import { getNextInstallment } from '@/lib/investmentSchedule';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
 function relativeDay(dateStr) {
@@ -17,18 +18,6 @@ function relativeDay(dateStr) {
   if (days < 7) return `Hace ${days}d`;
   return format(parseISO(dateStr), "dd 'de' MMM", { locale: es });
 }
-
-function getNextPayment(inv, paymentsMade) {
-  const n = paymentsMade.length;
-  if (n >= inv.total_payments) return null;
-  const base = parseISO(inv.start_date);
-  const next = addMonths(base, n);
-  if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
-  const diff = Math.ceil((next - new Date()) / 86400000);
-  return { number: n + 1, date: next, diff };
-}
-
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 export default function InvestmentDetailSheet({ selected, allPayments, onClose, onPay, onEditPayment, onDeletePayment }) {
   const { currency, familyConfig } = useFamily();
@@ -42,8 +31,8 @@ export default function InvestmentDetailSheet({ selected, allPayments, onClose, 
     if (await confirmDelete('¿Eliminar este pago?')) onDeletePayment(id);
   };
 
-  const selectedPayments = allPayments.filter(p => p.investment_id === selected.id && (!p.date || p.date <= TODAY_ISO));
-  const nextPayment = getNextPayment(selected, selectedPayments);
+  const selectedPayments = allPayments.filter(p => p.investment_id === selected.id);
+  const nextPayment = getNextInstallment(selected, selectedPayments.length);
 
   return (
     <AnimatePresence>

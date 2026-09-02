@@ -13,11 +13,18 @@ import ScheduledPaymentItem from '@/components/scheduled/ScheduledPaymentItem';
 import ScheduledPaymentMarkPaidSheet from '@/components/scheduled/ScheduledPaymentMarkPaidSheet';
 import ScheduledPaymentForm from '@/components/scheduled/ScheduledPaymentForm';
 import PauseUntilSheet from '@/components/scheduled/PauseUntilSheet';
+import InvestmentInstallmentItem from '@/components/scheduled/InvestmentInstallmentItem';
+import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
+import { useRegisterInvestmentPayment } from '@/hooks/useRegisterInvestmentPayment';
+import { countPaidInstallments, getNextInstallment } from '@/lib/investmentSchedule';
 import { todayISO } from '@/lib/formatters';
 import { usePermission } from '@/lib/permissions/usePermission';
 
 const TODAY = new Date();
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}`;
+
+const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const EMPTY_INV_FORM = { amount: '', date: todayISO(), notes: '', person_id: '', category_id: '', payment_method_id: '' };
 
 function parsePausedUntil(value) {
   if (!value) return null;
@@ -68,6 +75,7 @@ export default function ScheduledPayments() {
   const { categories, paymentMethods, persons } = useCatalog(familyId);
   const queryClient = useQueryClient();
   const registerPayment = useRegisterPaymentWithTransaction();
+  const registerInvestmentPayment = useRegisterInvestmentPayment();
   const { toast } = useToast();
   const { can_write: canCreate }       = usePermission('scheduled.create.form');
 
@@ -85,6 +93,10 @@ export default function ScheduledPayments() {
   const [activeView, setActiveView] = useState('active'); // 'active' | 'paused' | 'archived'
   const [activeFilter, setActiveFilter] = useState('pending'); // 'pending' | 'paid' | 'auto' | 'manual' — only applies within Activos
   const [pausingItem, setPausingItem] = useState(null);
+  const [payingInstallment, setPayingInstallment] = useState(null); // { inv, next }
+  const [invForm, setInvForm] = useState(EMPTY_INV_FORM);
+  const [invError, setInvError] = useState('');
+  const [isSavingInstallment, setIsSavingInstallment] = useState(false);
 
   const { data: payments = [] } = useQuery({
     queryKey: ['scheduledPayments', familyId],
@@ -94,6 +106,21 @@ export default function ScheduledPayments() {
   const { data: records = [] } = useQuery({
     queryKey: ['scheduledPaymentRecords', familyId],
     queryFn: () => base44.entities.ScheduledPaymentRecord.filter({ family_id: familyId }),
+    enabled: !!familyId,
+  });
+
+  // Las cuotas de inversión son compromisos del mes igual que un pago
+  // programado manual: vencen un día concreto y alguien tiene que confirmarlas.
+  // Vivían sólo en la página de Inversiones, así que no aparecían en la lista
+  // que la familia revisa para saber qué falta pagar este mes.
+  const { data: investments = [] } = useQuery({
+    queryKey: ['investments', familyId],
+    queryFn: () => base44.entities.Investment.filter({ family_id: familyId }),
+    enabled: !!familyId,
+  });
+  const { data: investmentPayments = [] } = useQuery({
+    queryKey: ['investmentPayments', familyId],
+    queryFn: () => base44.entities.InvestmentPayment.filter({ family_id: familyId }),
     enabled: !!familyId,
   });
 
@@ -113,6 +140,30 @@ export default function ScheduledPayments() {
   const manualPayments = useMemo(() => activePayments.filter(p => p.automation_mode !== 'auto'), [activePayments]);
   const paidPayments = useMemo(() => activePayments.filter(p => paidThisMonth.has(p.id)), [activePayments, paidThisMonth]);
   const pendingPayments = useMemo(() => activePayments.filter(p => !paidThisMonth.has(p.id) && !skippedThisMonth.has(p.id)), [activePayments, paidThisMonth, skippedThisMonth]);
+
+  // Pendiente = la siguiente cuota vence este mes o ya venció. Pagada este mes
+  // = existe una fila de InvestmentPayment fechada en el mes en curso. No hay
+  // "pausada" ni "archivada": esos estados son del ScheduledPayment, y una
+  // inversión se administra desde su propia página.
+  const pendingInstallments = useMemo(() => investments
+    .filter(inv => inv.is_active !== false)
+    .map(inv => ({ inv, next: getNextInstallment(inv, countPaidInstallments(investmentPayments, inv.id), TODAY) }))
+    .filter(row => row.next && monthKey(row.next.date) <= CURRENT_MONTH)
+    .sort((a, b) => a.next.date - b.next.date),
+  [investments, investmentPayments]);
+
+  const paidInstallments = useMemo(() => investments
+    .filter(inv => inv.is_active !== false)
+    .map(inv => ({ inv, paidPayment: investmentPayments.find(p => p.investment_id === inv.id && p.date?.slice(0, 7) === CURRENT_MONTH) }))
+    .filter(row => row.paidPayment),
+  [investments, investmentPayments]);
+
+  // Una cuota de inversión siempre se confirma a mano — nunca es domiciliada —
+  // así que cuenta en "Manuales" y nunca en "Automáticos".
+  const installmentsForFilter = activeView !== 'active' ? []
+    : activeFilter === 'paid' ? paidInstallments
+    : activeFilter === 'auto' ? []
+    : pendingInstallments;
 
   const filteredActive = activeFilter === 'paid' ? paidPayments
     : activeFilter === 'auto' ? automatedPayments
@@ -248,6 +299,31 @@ export default function ScheduledPayments() {
     }
   };
 
+  const handleMarkInstallmentPaid = async () => {
+    if (!payingInstallment || isSavingInstallment) return;
+    setIsSavingInstallment(true);
+    setInvError('');
+    const { inv } = payingInstallment;
+    try {
+      // El número de cuota se recalcula aquí y no se toma de `next`: entre que
+      // se pintó la lista y se confirma, el pago pudo registrarse desde la
+      // página de Inversiones.
+      const paymentNumber = countPaidInstallments(investmentPayments, inv.id) + 1;
+      await registerInvestmentPayment({ investment: inv, familyId, paymentNumber, form: invForm });
+      queryClient.invalidateQueries({ queryKey: ['investmentPayments', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['investmentPayments'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
+      queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+      toast({ title: '✅ Cuota registrada', description: `"${inv.name}" — cuota ${paymentNumber} de ${inv.total_payments}.`, duration: 5000 });
+      setPayingInstallment(null);
+      setInvForm(EMPTY_INV_FORM);
+    } catch (error) {
+      setInvError(error?.message || 'No se pudo registrar el movimiento. Intenta de nuevo.');
+    } finally {
+      setIsSavingInstallment(false);
+    }
+  };
+
   const handleUnmark = async (item) => {
     if (unmarkingId) return;
     setUnmarkingId(item.id);
@@ -274,7 +350,7 @@ export default function ScheduledPayments() {
 
   return (
     <div className="pb-24">
-      <PageHeader title="Pagos Programados" subtitle={`${pendingPayments.length} pendiente${pendingPayments.length !== 1 ? 's' : ''} este mes`}
+      <PageHeader title="Pagos Programados" subtitle={`${pendingPayments.length + pendingInstallments.length} pendiente${pendingPayments.length + pendingInstallments.length !== 1 ? 's' : ''} este mes`}
         action={(isAdmin || canCreate) && (
           <button onClick={() => { setEditingItem(null); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold shadow-sm">
             <Plus className="w-3.5 h-3.5" /> Agregar
@@ -299,10 +375,10 @@ export default function ScheduledPayments() {
         {activeView === 'active' && (
           <div className="flex gap-1.5 flex-wrap">
             {[
-              { key: 'pending', label: 'Pendientes', count: pendingPayments.length },
-              { key: 'paid', label: 'Pagados este mes', count: paidPayments.length, icon: CheckCircle2 },
+              { key: 'pending', label: 'Pendientes', count: pendingPayments.length + pendingInstallments.length },
+              { key: 'paid', label: 'Pagados este mes', count: paidPayments.length + paidInstallments.length, icon: CheckCircle2 },
               { key: 'auto', label: 'Automáticos', count: automatedPayments.length, icon: Zap },
-              { key: 'manual', label: 'Manuales', count: manualPayments.length, icon: Hand },
+              { key: 'manual', label: 'Manuales', count: manualPayments.length + pendingInstallments.length, icon: Hand },
             ].map(f => {
               const Icon = f.icon;
               const selected = activeFilter === f.key;
@@ -316,7 +392,7 @@ export default function ScheduledPayments() {
           </div>
         )}
 
-        {sorted.length === 0 ? (
+        {sorted.length === 0 && installmentsForFilter.length === 0 ? (
           (() => {
             const empty = getEmptyState({ activeView, activeFilter, isAdmin });
             return (
@@ -344,6 +420,15 @@ export default function ScheduledPayments() {
             );
           })
         )}
+
+        {installmentsForFilter.map(({ inv, next, paidPayment }) => (
+          <InvestmentInstallmentItem key={inv.id} inv={inv} next={next} paidPayment={paidPayment}
+            onMarkPaid={(investment, installment) => {
+              setInvError('');
+              setInvForm({ ...EMPTY_INV_FORM, amount: investment.payment_amount ? String(investment.payment_amount) : '', date: todayISO() });
+              setPayingInstallment({ inv: investment, next: installment });
+            }} />
+        ))}
       </div>
 
       <ScheduledPaymentMarkPaidSheet payingItem={payingItem} payAmount={payAmount} setPayAmount={setPayAmount}
@@ -351,6 +436,16 @@ export default function ScheduledPayments() {
         payPaymentMethodId={payPaymentMethodId} setPayPaymentMethodId={setPayPaymentMethodId}
         payNotes={payNotes} setPayNotes={setPayNotes} isSaving={isSavingPayment}
         persons={persons} paymentMethods={paymentMethods} onConfirm={handleMarkPaid} onClose={() => setPayingItem(null)} />
+
+      <InvestmentPayFormModal show={!!payingInstallment} title="Registrar cuota"
+        form={invForm} setForm={setInvForm}
+        onSave={handleMarkInstallmentPaid}
+        onClose={() => { if (!isSavingInstallment) { setPayingInstallment(null); setInvError(''); } }}
+        investmentName={payingInstallment?.inv?.name}
+        paymentNumber={payingInstallment?.next?.number}
+        totalPayments={payingInstallment?.inv?.total_payments}
+        error={invError} isSaving={isSavingInstallment}
+        persons={persons} categories={categories} paymentMethods={paymentMethods} />
 
       <PauseUntilSheet item={pausingItem} onConfirm={handleConfirmPause} onClose={() => setPausingItem(null)} />
 

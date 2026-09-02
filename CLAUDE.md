@@ -1056,3 +1056,62 @@ archivos) y `deno test` (32 tests) — todo en verde. **No verificado:** una
 sesión real marcando un MSI o un domiciliado como pagado; este repo no tiene
 runner de tests de frontend. Requiere `npm run deploy` (funciones) **y**
 `npm run deploy:site` (frontend) — mergear no deploya nada.
+
+## Las cuotas de inversión se registraban solas (2026-09-02)
+
+Reportado por Mochi Family: la cuota 16 de LOCAL 09 ALBASERRADA apareció como
+pagada sin que nadie la confirmara, y nunca salió en los pendientes del mes.
+
+**No fue un cron ni una automatización.** Las 18 cuotas existen como filas de
+`InvestmentPayment` desde el 2026-03-26 — se sembraron todas juntas, con notas
+`"m16 - pablo - pendiente"`, `"m17 - …"`, `"m18 - …"`. Es el calendario
+completo, no pagos. Y la UI de Inversiones **no tenía noción de pendiente vs.
+pagado**: contaba como pagada toda fila con `date <= hoy`. La cuota 16 tiene
+fecha 2026-09-02, que era ese día. Se registró sola porque le llegó su fecha, y
+17 (02 oct) y 18 (02 nov) habrían hecho lo mismo.
+
+Es la clase de fallo que este archivo ya documenta dos veces en la sección de
+automatizaciones de pago: **el estado se estaba infiriendo en vez de
+almacenarse**, y el criterio vivía copiado en cuatro pantallas. La prueba de
+que la 16 no estaba pagada es que las cuotas 12–15 sí tienen `Transaction`
+vinculada y la 16, 17 y 18 no tienen ninguna.
+
+**Arreglo, en dos mitades:**
+
+1. **Una fila de `InvestmentPayment` ES una cuota confirmada, sin filtro por
+   fecha** — el mismo modelo que `MSIPayment` y `ScheduledPaymentRecord` ya
+   usan. `src/lib/investmentSchedule.js` (`countPaidInstallments` /
+   `getNextInstallment`) reemplaza las **cuatro** copias del cálculo que había
+   en `InvestmentCard`, `InvestmentDetailSheet`, `Investments.jsx` y
+   `useDashboardData.js` — y era justo en esas copias donde vivía el filtro por
+   fecha. Un pago futuro registrado a propósito (una prórroga, un adelanto)
+   ahora cuenta, que es lo correcto.
+2. **Las cuotas del mes salen en "Pagos del Mes"**, junto a los pagos
+   programados manuales, con su propio botón de confirmar
+   (`src/components/scheduled/InvestmentInstallmentItem.jsx`). Cuentan en los
+   chips "Pendientes", "Pagados este mes" y "Manuales" — nunca en
+   "Automáticos": una cuota de inversión no es domiciliada, siempre la confirma
+   una persona. No participan de Pausados/Archivados, que son estados del
+   `ScheduledPayment`; una inversión se administra desde su propia página.
+   `src/hooks/useRegisterInvestmentPayment.js` extrae el par
+   `InvestmentPayment` + `Transaction` (con su rollback) que antes estaba
+   inline en `Investments.jsx`, para que las dos pantallas escriban lo mismo.
+
+**Los datos hay que limpiarlos a mano, y sin eso el arreglo empeora las cosas:**
+sin filtro de fecha, las tres filas sembradas (cuotas 16, 17 y 18, ids
+`69c48c71c16008057e9d0816/0817/0818`) cuentan como pagadas de inmediato y la
+inversión se lee 18/18 "Completado". Hay que borrarlas desde Inversiones →
+LOCAL 09 → Historial de pagos → papelera. Quedan 15 pagadas y la cuota #16 sale
+como pendiente para que su dueño la confirme — cosa que además crea el
+movimiento en Movimientos, que hoy no existe para esa cuota. El MCP de Base44
+**no tiene herramienta de borrado** (sólo `create_entities` /
+`update_entities`), así que esto no se puede hacer desde un sandbox.
+
+**Verificado:** `npm run lint` (incl. `validate:functions`), `npm run build`
+(incl. `permissions-check`) y `npm run validate:rls` (36 entidades) en verde,
+más una comprobación aparte del cálculo del calendario contra los datos reales
+de LOCAL 09 (15 pagadas → siguiente cuota #16 el 2026-09-02; con las 3 filas
+sembradas dentro → `null`, o sea "Completado"). **No verificado:** una sesión
+real confirmando la cuota desde Pagos del Mes; este repo no tiene runner de
+tests de frontend. Sólo frontend — no se tocó `base44/`, así que requiere
+`npm run deploy:site` y **no** `npm run deploy`.

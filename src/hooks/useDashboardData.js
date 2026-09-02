@@ -7,6 +7,7 @@ import { useMemory } from '@/hooks/useMemory';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { isWithinInterval, parseISO, startOfMonth } from 'date-fns';
 import { PERIODS, getRange, CURRENT_MONTH } from '@/lib/dashboardConstants';
+import { countPaidInstallments, getNextInstallment } from '@/lib/investmentSchedule';
 
 function parsePausedUntil(value) {
   if (!value) return null;
@@ -71,17 +72,12 @@ export function useDashboardData() {
   }, [rentalProperties, rentalPayments]);
 
   const pendingInvestments = useMemo(() => {
-    const localToday = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ, no UTC drift
     const now = new Date();
     return investments.filter(inv => {
       if (inv.is_active === false) return false;
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= localToday)).length;
-      if (paid >= inv.total_payments) return false;
-      const next = new Date(inv.start_date);
-      next.setMonth(next.getMonth() + paid);
-      if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
-      const diff = Math.ceil((next - now) / 86400000);
-      return diff <= 7;
+      const paid = countPaidInstallments(investmentPayments, inv.id);
+      const next = getNextInstallment(inv, paid, now);
+      return !!next && next.diff <= 7;
     });
   }, [investments, investmentPayments]);
 
@@ -136,16 +132,9 @@ export function useDashboardData() {
   const upcoming = useMemo(() => {
     const items = [];
     const today = new Date();
-    const localToday = today.toLocaleDateString('en-CA'); // YYYY-MM-DD in local TZ, no UTC drift
     investments.filter(i => i.is_active !== false).forEach(inv => {
-      const paid = investmentPayments.filter(p => p.investment_id === inv.id && (!p.date || p.date <= localToday)).length;
-      if (paid < inv.total_payments) {
-        const next = new Date(inv.start_date);
-        next.setMonth(next.getMonth() + paid);
-        if (inv.payment_day) next.setDate(Math.min(inv.payment_day, 28));
-        const diff = Math.ceil((next - today) / 86400000);
-        items.push({ type: 'investment', name: inv.name, amount: inv.payment_amount, date: next, diff, icon: '📈' });
-      }
+      const next = getNextInstallment(inv, countPaidInstallments(investmentPayments, inv.id), today);
+      if (next) items.push({ type: 'investment', name: inv.name, amount: inv.payment_amount, date: next.date, diff: next.diff, icon: '📈' });
     });
     msiList.filter(m => m.is_active !== false).forEach(msi => {
       const paid = msiPayments.filter(p => p.msi_id === msi.id).length;
