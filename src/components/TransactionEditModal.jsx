@@ -61,16 +61,22 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
   const set = (key, val) => setForm(f => {
     const updated = { ...f, [key]: val };
-    // Auto-recalculate MXN amount when original_amount or exchange_rate changes
+    // Auto-recalculate the family-currency amount when original_amount or
+    // exchange_rate changes. When the pair can't be multiplied the amount is
+    // CLEARED, not left alone: a stale number here is indistinguishable from a
+    // converted one, which is exactly how an unconverted figure gets saved.
     if ((key === 'original_amount' || key === 'exchange_rate') && updated.original_currency && updated.original_currency !== familyCurrency) {
       const origAmt = parseFloat(key === 'original_amount' ? val : updated.original_amount);
       const rate = parseFloat(key === 'exchange_rate' ? val : updated.exchange_rate);
-      if (!isNaN(origAmt) && !isNaN(rate) && rate > 0) {
-        updated.amount = String((origAmt * rate).toFixed(2));
-      }
+      updated.amount = (!isNaN(origAmt) && rate > 0) ? String((origAmt * rate).toFixed(2)) : '';
     }
     return updated;
   });
+
+  // A trip expense in a currency that isn't the family's, with no usable rate:
+  // its `amount` cannot be trusted, so the save is refused.
+  const isForeignCurrency = Boolean(form.trip_id && form.original_currency && form.original_currency !== familyCurrency);
+  const missingRate = isForeignCurrency && !(parseFloat(form.exchange_rate) > 0);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => guardedUpdate('Transaction', id, data),
@@ -83,7 +89,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
   const selectedCategory = categories.find(c => c.id === form.category_id);
 
   const handleSave = () => {
-    if (!form.amount) return;
+    if (!form.amount || missingRate) return;
     setSaving(true);
     const data = {
       ...form,
@@ -401,6 +407,11 @@ export default function TransactionEditModal({ transaction, categories, subcateg
                       </button>
                     </div>
                   )}
+                  {missingRate && (
+                    <p className="text-[11px] text-destructive">
+                      Sin tipo de cambio no se puede convertir a {familyCurrency}, y no se puede guardar.
+                    </p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">
                     El monto en {familyCurrency} se recalcula automáticamente al cambiar el monto o tipo de cambio.
                   </p>
@@ -447,7 +458,7 @@ export default function TransactionEditModal({ transaction, categories, subcateg
 
           {/* Save — extra bottom padding so it clears the safe area + nav bar */}
           <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}>
-            <button onClick={handleSave} disabled={saving || !form.amount}
+            <button onClick={handleSave} disabled={saving || !form.amount || missingRate}
               className="w-full py-3.5 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 disabled:opacity-50 transition-all touch-target">
               {saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
