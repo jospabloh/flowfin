@@ -1115,3 +1115,81 @@ sembradas dentro → `null`, o sea "Completado"). **No verificado:** una sesión
 real confirmando la cuota desde Pagos del Mes; este repo no tiene runner de
 tests de frontend. Sólo frontend — no se tocó `base44/`, así que requiere
 `npm run deploy:site` y **no** `npm run deploy`.
+
+## Un gasto en moneda extranjera se guardaba sin convertir (2026-09-03)
+
+Reportado por Mochi Family: el movimiento del día, `PANADERIA MARACAIBO`, salía
+como **−$1,300.00 MXN / CRC 1,300.00**, mientras que el del sábado anterior
+(`Comida`, −$193.24 / CRC 5,176.99) sí estaba convertido. El mismo formulario,
+cuatro días de diferencia.
+
+**Evidencia, leída de la base en vivo:**
+
+| fecha | descripción | amount | original_amount | exchange_rate |
+|---|---|---|---|---|
+| 2026-08-29 | Comida | 193.24 | 5176.99 CRC | 0.037327 |
+| 2026-08-29 | Cuidado personal | 403.90 | 10820 CRC | 0.037329 |
+| **2026-09-03** | **PANADERIA MARACAIBO** | **1300** | **1300 CRC** | **null** |
+
+`exchange_rate: null` con `amount === original_amount` es la firma exacta del
+fallo. No es que la conversión se hiciera mal: **no se hizo, y se guardó igual.**
+
+**Causa raíz — un `return` que dejaba en su sitio un número ajeno.** En
+`Capture.jsx` el efecto que convierte empezaba así:
+
+```js
+if (!tripId || !originalAmount || !exchangeRate) return;   // ← el bug
+```
+
+`getExchangeRate` (`src/services/exchangeRateService.js`) devuelve `null` cuando
+`open.er-api.com` no responde — no lanza, no avisa: devuelve `null`. Con eso el
+efecto salía por arriba y **`amount` conservaba lo que ya tuviera**, que en un
+ticket costarricense es la cifra en colones: la pone el escaneo del recibo
+(`aiExtract` hace `setAmount(String(data.amount))` con el número que lee del
+papel) o el propio usuario. La única señal era una línea de texto gris —
+*"No se pudo obtener el TC. Ingresa el monto manualmente."*— debajo del campo, y
+nada impedía guardar. Un gasto de $48 entró a la contabilidad como $1,300.
+
+**Arreglo, en tres partes, y la primera es la que importa:**
+
+1. **El efecto ahora BORRA `amount` cuando no puede calcularlo**, en vez de
+   `return`. Mientras la moneda es extranjera ese efecto es el **único**
+   escritor de `amount` (el campo pasa a `readOnly`), así que un TC que no llega
+   deja el monto vacío — visible— en lugar de dejar la cifra extranjera
+   disfrazada de pesos.
+2. **El TC se puede escribir a mano**, como ya se podía en
+   `TransactionEditModal`. Que el formulario de captura no tuviera esa salida
+   siendo que el de edición sí, era la asimetría de fondo.
+3. **Guardar está bloqueado sin TC usable**, con un toast que dice qué falta.
+   `exchange_rate` ya no puede salir `undefined` para una moneda extranjera.
+
+`TransactionEditModal` tenía el mismo agujero en su mitad —su recálculo también
+se saltaba en silencio, y `handleSave` escribía `exchange_rate: undefined` sin
+protestar— y se cerró igual: limpia el monto, marca el error en rojo y
+deshabilita el botón. Es justo la pantalla a la que uno va a corregir una fila
+así, y no servía de nada si repetía el fallo.
+
+**Dato en vivo corregido:** la fila `6a997b49777496b1ba7658ca` quedó en
+`amount: 48.53`, `exchange_rate: 0.037329`. **El TC no es el del 3 de septiembre:
+es el último observado en sus propios datos (29 de agosto)** — el proxy de este
+sandbox no alcanza ningún endpoint de divisas (`http=000` contra
+`open.er-api.com`, `frankfurter.app` y `exchangerate.host`), así que no había
+forma de leer el real. En un par tan estable son centavos sobre $48, y dejar
+$1,300 fantasma en septiembre era peor; aun así, si el TC del día importa, se
+edita desde el movimiento y el monto se recalcula solo.
+
+**Queda una fila con la misma firma y NO se tocó:** `6a08e50974db489cbdedaed3`
+(2026-05-16, *Spotify AB via Google Play*, `amount: 239`, `original_amount: 239
+USD`, `exchange_rate: null`, familia `69b9a0ad4e71f9e2d7f7fc32`). Aquí lo
+probable es lo contrario: $239 **MXN** es un cargo de Spotify plausible y $239
+USD no, así que el monto está bien y lo que sobra es la etiqueta `USD`. Corregir
+el monto la habría roto. Es de otra familia y hace falta que su dueño diga cuál
+de los dos campos es el equivocado.
+
+**Verificado:** `npm run lint` (incl. `validate:functions`), `npm run build`
+(incl. `permissions-check`) y `npm run validate:rls` (36 entidades) en verde, más
+la relectura de la fila corregida contra la base. **No verificado:** una captura
+real con el TC caído; este repo no tiene runner de tests de frontend y el
+endpoint de divisas no es alcanzable desde aquí, así que la rama de fallo se
+razonó del código, no se ejercitó. Sólo frontend — no se tocó `base44/`, así que
+requiere `npm run deploy:site` y **no** `npm run deploy`.

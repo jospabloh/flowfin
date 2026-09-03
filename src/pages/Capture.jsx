@@ -93,8 +93,18 @@ export default function Capture() {
   const [tripDismissed, setTripDismissed] = useState(false);
   const [originalCurrency, setOriginalCurrency] = useState('');
   const [originalAmount, setOriginalAmount] = useState('');
+  // Holds whatever the rate box shows: a number from the auto-fetch, or the
+  // string the user typed when that fetch came back empty. Always read it
+  // through parseFloat.
   const [exchangeRate, setExchangeRate] = useState(null);
   const [fetchingRate, setFetchingRate] = useState(false);
+  // "This expense happened in a currency that isn't the family's." From here on
+  // `amount` is DERIVED (originalAmount × rate) and nothing else may write it —
+  // see the read-only amount input and the save guard below.
+  const isForeignCurrency = Boolean(tripId && originalCurrency && currency && originalCurrency !== currency);
+  const parsedRate = parseFloat(exchangeRate);
+  const hasUsableRate = parsedRate > 0;
+
   // Split state (trip-only, always an even split — see is_split/split_with_person_ids on Transaction)
   const [isSplit, setIsSplit] = useState(false);
   const [splitWithPersonIds, setSplitWithPersonIds] = useState([]);
@@ -146,14 +156,20 @@ export default function Capture() {
     return () => { cancelled = true; };
   }, [tripId, originalCurrency, date, currency]);
 
-  // Auto-calculate amount from originalAmount × exchangeRate
+  // Auto-calculate amount from originalAmount × exchangeRate.
+  //
+  // While the currency is foreign this is the ONLY writer of `amount`, and it
+  // CLEARS it when the product can't be computed. It used to `return` instead,
+  // which left behind whatever number was already in the box — usually the
+  // foreign figure itself, put there by the receipt scanner or typed by hand.
+  // That is how 1,300 CRC was saved as $1,300 MXN on 2026-09-03: the rate fetch
+  // failed, the effect bailed out, and the only warning was a line of grey text.
   useEffect(() => {
-    if (!tripId || !originalAmount || !exchangeRate) return;
+    if (!tripId || !isForeignCurrency) return;
     const val = parseFloat(originalAmount);
-    if (!isNaN(val) && exchangeRate > 0) {
-      setAmount((val * exchangeRate).toFixed(2));
-    }
-  }, [originalAmount, exchangeRate, tripId]);
+    if (!originalAmount || isNaN(val) || !hasUsableRate) { setAmount(''); return; }
+    setAmount((val * parsedRate).toFixed(2));
+  }, [originalAmount, tripId, isForeignCurrency, hasUsableRate, parsedRate]);
 
   // Shared-expense participants: the already-selected `personId` plus
   // whoever else is checked in the "Gasto compartido" picker. Requires a
@@ -468,6 +484,16 @@ export default function Capture() {
 
   const handleSave = async () => {
     if (isReadOnly) { setShowUpgrade(true); return; }
+    // A foreign-currency expense without a rate has no amount in the family's
+    // currency — refuse it out loud instead of storing the foreign figure.
+    if (isForeignCurrency && !hasUsableRate) {
+      toast({
+        title: 'Falta el tipo de cambio',
+        description: `Escribe cuántos ${currency} vale 1 ${originalCurrency} para convertir el monto.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!amount || isNaN(parseFloat(amount))) return;
     if (!categoryId) return;
     if (!personId) return;
@@ -493,10 +519,12 @@ export default function Capture() {
       ...(tripId && originalCurrency
         ? {
             original_currency: originalCurrency,
-            original_amount: originalCurrency === currency
-              ? parseFloat(amount) || undefined
-              : parseFloat(originalAmount) || undefined,
-            exchange_rate: originalCurrency === currency ? 1 : (exchangeRate || undefined),
+            original_amount: isForeignCurrency
+              ? parseFloat(originalAmount) || undefined
+              : parseFloat(amount) || undefined,
+            // Never undefined for a foreign currency: handleSave refuses to get
+            // here without a usable rate.
+            exchange_rate: isForeignCurrency ? parsedRate : 1,
           }
         : {}),
       ...(tripId && isSplit ? { is_split: true, split_with_person_ids: splitWithPersonIds } : {}),
@@ -626,8 +654,14 @@ export default function Capture() {
             <span className="text-2xl font-light text-muted-foreground">{currencySymbol}</span>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
               placeholder="0.00" inputMode="decimal"
-              className="flex-1 font-display text-4xl font-black tracking-tight nums-money bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30" />
+              readOnly={isForeignCurrency}
+              className={`flex-1 font-display text-4xl font-black tracking-tight nums-money bg-transparent border-none outline-none text-foreground placeholder-muted-foreground/30 ${isForeignCurrency ? 'opacity-70' : ''}`} />
           </div>
+          {isForeignCurrency && (
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Se calcula solo: monto en {originalCurrency} × tipo de cambio.
+            </p>
+          )}
           {showCalculator && (
             <CalculatorWidget
               onCalculate={(result) => setAmount(String(result))}
@@ -693,7 +727,6 @@ export default function Capture() {
               ...(selectedTrip.currencies || []),
               currency,
             ].filter(Boolean)));
-            const isForeign = originalCurrency && originalCurrency !== currency;
             return (
               <div className="mt-2 space-y-2 pl-1">
                 <div className="flex gap-2">
@@ -707,7 +740,7 @@ export default function Capture() {
                       {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
-                  {isForeign && (
+                  {isForeignCurrency && (
                     <div className="flex-1">
                       <label className="text-[10px] text-muted-foreground mb-1 block">Monto en {originalCurrency}</label>
                       <input
@@ -721,12 +754,28 @@ export default function Capture() {
                     </div>
                   )}
                 </div>
-                {isForeign && (
-                  <p className="text-[11px] text-muted-foreground">
-                    {fetchingRate ? 'Obteniendo TC...' : exchangeRate
-                      ? `TC: 1 ${originalCurrency} = ${exchangeRate} ${currency} · ${date || 'Hoy'}`
-                      : 'No se pudo obtener el TC. Ingresa el monto manualmente.'}
-                  </p>
+                {isForeignCurrency && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground block">
+                      Tipo de cambio (1 {originalCurrency} = ? {currency})
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={exchangeRate ?? ''}
+                      onChange={e => setExchangeRate(e.target.value)}
+                      placeholder="0.0000"
+                      inputMode="decimal"
+                      className={`w-full bg-card border rounded-xl px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30 ${hasUsableRate ? 'border-border' : 'border-destructive'}`}
+                    />
+                    <p className={`text-[11px] ${hasUsableRate ? 'text-muted-foreground' : 'text-destructive'}`}>
+                      {fetchingRate
+                        ? 'Obteniendo TC...'
+                        : hasUsableRate
+                          ? `1 ${originalCurrency} = ${parsedRate} ${currency} · ${date || 'Hoy'}`
+                          : `No se pudo obtener el TC. Escríbelo para convertir a ${currency}; sin él no se puede guardar.`}
+                    </p>
+                  </div>
                 )}
                 {/* Split button — only when trip has multiple participants */}
                 {(selectedTrip.participant_person_ids?.length || 0) > 1 && (
