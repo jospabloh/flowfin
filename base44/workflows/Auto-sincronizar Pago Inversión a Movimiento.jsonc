@@ -1,0 +1,37 @@
+{
+  "name": "Auto-sincronizar Pago Inversi\u00f3n a Movimiento",
+  "description": "Al crear un pago de inversi\u00f3n, intenta crear autom\u00e1ticamente una Transaction vinculada\"",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "InvestmentPayment"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_sincronizar_pago_inversi_n_a_movimiento",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "createTransactionFromInvestmentPayment",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "createTransactionFromInvestmentPayment"
+  }
+}

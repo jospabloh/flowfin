@@ -1,0 +1,37 @@
+{
+  "name": "Auto-sincronizar Pago Programado a Movimiento",
+  "description": "Al registrar un pago programado, intenta crear autom\u00e1ticamente una Transaction vinculada\"",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "ScheduledPaymentRecord"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_sincronizar_pago_programado_a_movimiento",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "createTransactionFromScheduledPaymentRecord",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "createTransactionFromScheduledPaymentRecord"
+  }
+}
