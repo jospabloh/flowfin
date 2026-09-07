@@ -6,9 +6,17 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.4',
+    date: '2026-09-07',
+    label: 'Actual',
+    changes: [
+      'Auditoría periódica: se revisaron seguridad, RLS, permisos y dependencias — sin hallazgos nuevos críticos o altos. Se corrigieron dos vulnerabilidades de dependencias de severidad menor/moderada (actualización no disruptiva); una tercera (react-router, moderada) sigue diferida a propósito porque su arreglo exige una migración de versión mayor que este repo no puede verificar automáticamente todavía.',
+    ],
+  },
+  {
     version: '2.22.3',
     date: '2026-08-24',
-    label: 'Actual',
+    label: '',
     changes: [
       'Seguridad (crítico): tu cuenta de usuario nunca declaraba el campo de familia (`family_id`) en su modelo de datos, así que no había forma de bloquear su escritura — un usuario podía en teoría reasignarse a sí mismo a otra familia y, con eso, leer los movimientos, categorías, personas, formas de pago, metas e inversiones de esa familia ajena. Ya está bloqueado tanto en el repositorio como en el esquema que realmente sirve la app: ese campo ahora solo lo puede escribir el equipo de ACACIA.',
       'Los campos de licencia y facturación de tu familia (estado de la cuenta, plan, fecha de vencimiento, referencias de pago, etc.) tampoco tenían candado propio — en teoría el administrador de una familia podía escribirlos directo. Ahora, igual que en el resto del portafolio ACACIA, solo el equipo de ACACIA puede cambiarlos.',
