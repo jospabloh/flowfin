@@ -1193,3 +1193,57 @@ real con el TC caído; este repo no tiene runner de tests de frontend y el
 endpoint de divisas no es alcanzable desde aquí, así que la rama de fallo se
 razonó del código, no se ejercitó. Sólo frontend — no se tocó `base44/`, así que
 requiere `npm run deploy:site` y **no** `npm run deploy`.
+
+### Seguimiento (2026-09-09): «el único escritor» no era cierto
+
+Al releer el arreglo de arriba ya mergeado, el comentario que dejé afirmaba que
+mientras la moneda es extranjera el efecto de conversión es **el único escritor
+de `amount`**. No lo era. Quedaban cuatro:
+
+```
+aiExtract        setAmount(String(data.amount))      // el escaneo del recibo
+startVoice       setAmount(String(parsedAmount))     // el dictado
+PredictiveChips  setAmount(String(chip.amount))      // el chip predictivo
+CalculatorWidget setAmount(String(result))           // la calculadora
+```
+
+**Ninguno de los cuatro toca una dependencia del efecto**, así que el efecto no
+vuelve a correr para corregirlos: lo que escriben se queda. Y `readOnly` no los
+frena — bloquea el teclado del usuario, no un `setState`.
+
+La secuencia que lo reproduce es sólo cuestión de orden:
+
+1. eliges el viaje y CRC → el efecto limpia el monto (el arreglo funciona);
+2. **después** escaneas el ticket → el OCR mete 1300 directo en `amount`;
+3. el TC sí se obtuvo, así que `hasUsableRate` es verdadero y la guarda de
+   guardado **no** dispara;
+4. se guarda `amount: 1300`, y encima con `original_amount: undefined`.
+
+Es el bug del 3 de septiembre otra vez, con el mismo desenlace en el mismo
+campo. Sobrevivió al arreglo porque escanear-primero era el orden que probé
+mentalmente y ahí sí se corrige (elegir el viaje cambia `isForeignCurrency` y el
+efecto corre); viaje-primero no lo probé.
+
+**Arreglo:** los cuatro pasan por `setCapturedAmount`, que cuando la moneda es
+extranjera escribe en `originalAmount` y no en `amount`. No es sólo una guarda:
+es lo que esos números **son**. La cifra impresa en un ticket costarricense son
+colones, no pesos — mandarla al campo de colones y dejar que el efecto la
+convierta es la lectura correcta, y de paso el monto en pesos aparece solo.
+
+Lee `isForeignCurrency` de un ref, no del closure: `aiExtract` es `async` y
+resuelve bastante después del clic, así que el valor capturado en su render
+puede estar viejo si eliges el viaje mientras el escaneo va en vuelo.
+
+**La lección, y es la que vale más que el arreglo:** escribí «el único escritor»
+como comentario y no lo comprobé con un `grep setAmount(`. Un invariante que se
+afirma en prosa y no se verifica contra el archivo es una suposición con tipografía
+de hecho — y aquí el `grep` cabía en una línea y devolvía los cuatro
+contraejemplos de inmediato.
+
+**Verificado:** `npm run lint` (incl. `validate:functions`), `npm run build`
+(incl. `permissions-check`) y `npm run validate:rls` (36 entidades) en verde,
+más `grep -n "setAmount("` para confirmar que ya sólo quedan como escritores el
+propio efecto, los dos reseteos de después de guardar y el `onChange` del input
+(que es `readOnly` mientras la moneda es extranjera). **No verificado:** la
+secuencia en un navegador real — este repo sigue sin runner de tests de
+frontend. Sólo frontend: requiere `npm run deploy:site`.

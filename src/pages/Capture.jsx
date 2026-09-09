@@ -104,6 +104,25 @@ export default function Capture() {
   const isForeignCurrency = Boolean(tripId && originalCurrency && currency && originalCurrency !== currency);
   const parsedRate = parseFloat(exchangeRate);
   const hasUsableRate = parsedRate > 0;
+  // Read by the capture helpers below, which run from async callbacks (the
+  // receipt scan resolves long after the click) where a closed-over
+  // `isForeignCurrency` would be whatever it was when the scan started.
+  const isForeignRef = useRef(false);
+  isForeignRef.current = isForeignCurrency;
+
+  // Every amount that arrives from a capture aid — receipt scan, voice,
+  // predictive chip, calculator — goes through here. While the currency is
+  // foreign these all quote the FOREIGN figure (the number printed on a
+  // Costa Rican ticket is colones), so it belongs in `originalAmount` and the
+  // conversion effect turns it into the family-currency `amount`.
+  //
+  // Writing it straight to `amount` is exactly the 2026-09-03 bug: none of
+  // these writers touches the effect's dependencies, so the effect never runs
+  // to correct them and the foreign figure is saved as if it were pesos.
+  const setCapturedAmount = useCallback((value) => {
+    if (isForeignRef.current) setOriginalAmount(String(value));
+    else setAmount(String(value));
+  }, []);
 
   // Split state (trip-only, always an even split — see is_split/split_with_person_ids on Transaction)
   const [isSplit, setIsSplit] = useState(false);
@@ -331,7 +350,7 @@ export default function Capture() {
         if (data.subcategoryId) setSubcategoryId(data.subcategoryId);
         if (data.personId) setPersonId(data.personId);
         if (data.paymentMethodId) setPaymentMethodId(data.paymentMethodId);
-        if (data.amount !== undefined) setAmount(String(data.amount));
+        if (data.amount !== undefined) setCapturedAmount(data.amount);
         if (data.date) setDate(data.date);
       }
     } catch {
@@ -355,7 +374,7 @@ export default function Capture() {
       const text = e.results[0][0].transcript;
       const knownPersonNames = persons.map(p => p.name).filter(Boolean);
       const { amount: parsedAmount, description: parsedDesc, date: parsedDate, methodHint, personHint } = parseVoiceText(text, { knownPersonNames });
-      if (parsedAmount) setAmount(String(parsedAmount));
+      if (parsedAmount) setCapturedAmount(parsedAmount);
       if (parsedDate) setDate(parsedDate);
       if (personHint) {
         const match = persons.find(p => p.name?.toLowerCase() === personHint.toLowerCase());
@@ -615,7 +634,7 @@ export default function Capture() {
         <PredictiveChips
           familyId={familyId}
           onSelect={chip => {
-            if (chip.amount) setAmount(String(chip.amount));
+            if (chip.amount) setCapturedAmount(chip.amount);
             if (chip.label) setDescription(chip.label);
             if (chip.categoryId) setCategoryId(chip.categoryId);
             if (chip.subcategoryId) setSubcategoryId(chip.subcategoryId);
@@ -664,7 +683,7 @@ export default function Capture() {
           )}
           {showCalculator && (
             <CalculatorWidget
-              onCalculate={(result) => setAmount(String(result))}
+              onCalculate={(result) => setCapturedAmount(result)}
               onClose={() => setShowCalculator(false)}
             />
           )}
