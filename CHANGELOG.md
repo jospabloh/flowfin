@@ -12,6 +12,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.4] - 2026-09-07
+
+### 🔒 Security
+
+Scheduled full-portfolio audit. Verification suite (`npm run lint` incl.
+`validate:functions`, `npm run build` incl. `permissions-check`, `npm run
+validate:rls` — 36 entities, `deno lint`/`deno test` — 126 files / 32 tests)
+all green against `main` before and after this pass; no regressions found.
+
+- Two dependency vulnerabilities (`fflate`, `postcss-selector-parser` —
+  transitive) fixed via `npm audit fix` (non-breaking, lockfile-only).
+  `react-router` remains on the documented, deferred moderate advisory (see
+  the 2.22.0/2.22.3 entries below) — the fix requires a major-version jump
+  to 7.x with no frontend test runner in this repo to verify it, so it's
+  left as tracked technical debt rather than force-upgraded.
+- Reviewed two `base44-builder[bot]` commits pushed directly to `main`
+  since the last audit (`aa93a29` dependency bump, `d7a331a` "Migrated 3
+  workflow(s)"): the latter re-registers the existing
+  `createTransactionFromInvestmentPayment` / `createTransactionFromMSIPayment`
+  / `createTransactionFromScheduledPaymentRecord` entity hooks under
+  Base44's newer workflow format with no logic change — the first two are
+  the intentionally-inert hooks documented in the 2026-08-26 entry below,
+  the third is the documented ScheduledPaymentRecord safety net. No RLS or
+  entity schema touched by either commit.
+- Re-confirmed the module-14 `removeMember` cross-tenant fix (`target_user_id
+  === membership.user_id`) is still in place and unchanged.
+- No open, draft, or stale pull requests found on this repo at audit time.
+
+**Not verified** (same standing limitation this file already documents
+repeatedly): a live end-user or second-tenant browser session, and the
+Base44 admin panel (scheduler/secrets/automations) — this environment has
+no authenticated Base44 MCP connection this run, so panel-side items
+(cron schedules, `CRON_SECRET`, registered automations) could not be
+re-checked and are assumed unchanged from their last documented state.
+
 ## [2.22.3] - 2026-08-24
 
 ### 🔒 Security
