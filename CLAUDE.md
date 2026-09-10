@@ -827,7 +827,11 @@ entidades (no se tocó `base44/entities/`); si toca desplegarse, requiere tanto
 `npm run deploy` (la función) como `npm run deploy:site` (el frontend) — ver
 "Base44 — mergear a `main` no deploya NADA" arriba.
 
-## Multi-family account switcher (module 18, 2026-08-25)
+## Multi-family account switcher (module 18, 2026-08-25) — RETIRADO 2026-09-10
+
+> **Retirado.** Lo que sigue describe cómo funcionaba mientras existió, y el
+> bug de resolución que se encontró construyéndolo (ese sí sigue arreglado).
+> Ver la sección final de este archivo.
 
 Closes the `acacia-app-standard` STANDARD.md §18 gap: FlowFin already allows
 one email to hold approved `FamilyMembership` rows in more than one
@@ -1247,3 +1251,60 @@ propio efecto, los dos reseteos de después de guardar y el `onChange` del input
 (que es `readOnly` mientras la moneda es extranjera). **No verificado:** la
 secuencia en un navegador real — este repo sigue sin runner de tests de
 frontend. Sólo frontend: requiere `npm run deploy:site`.
+
+## Retirado: el selector de familia (módulo 18) — 2026-09-10
+
+**`FamilyMembership` SE QUEDA.** No es el feature: es el registro de
+pertenencia central de esta app, anterior al módulo 18, y por él pasa todo —
+`resolveFamilyAccess` de `guardedEntityWrite`, `selfJoin`, `approveMember`,
+`removeMember`, `getMyMembership`. Borrarla tumbaría FlowFin entero. Lo que se
+retiró es la capa que dejaba a un email **elegir** entre varias familias.
+
+Lo que se fue: `base44/functions/family/handlers/switchFamily.ts` y
+`switchFamilyLogic.ts` (+ su test, 6 casos), la acción `switchFamily` del
+router, `src/components/family/FamilySwitcher.jsx`, sus dos puntos de montaje
+(`FamilyGate` en `App.jsx` y `AccountSettings.jsx`), `familyCandidates` del
+contexto, y los dos documentos de diseño/plan de `docs/`.
+
+**El bug que se encontró construyéndolo NO se revirtió, y merece decirlo
+aparte.** Al diseñar el switcher se descubrió que `FamilyContext` tomaba
+`results[0]` de las membresías aprobadas y **nunca miraba
+`User.data.family_id`** — el puntero que el camino de ESCRITURA
+(`resolveFamilyAccess`) sí respeta. Con dos membresías, las lecturas podían
+mostrar una familia mientras las escrituras aterrizaban en otra, en silencio.
+La resolución de hoy **sigue prefiriendo la familia persistida** y sólo cae a
+`approved[0]` si ninguna coincide. Esa mitad no es el selector: es lo que
+mantiene lecturas y escrituras de acuerdo, y quitarla reabriría un fallo que
+nadie reportó nunca porque no daba error.
+
+`FamilyGate` vuelve a tener dos salidas: hay membresía → la app; no hay → el
+onboarding de "crea tu familia o únete a una existente".
+
+**Lo que NO se tocó:** `selfJoin` sigue permitiendo pedir entrada a una familia
+por código, y `approveMember` sigue aprobando. Un usuario puede acumular más de
+una fila `approved` por esa vía; lo que ya no hay es forma de moverse entre
+ellas desde la app, así que la persistida manda. Cerrar esa puerta (rechazar un
+`selfJoin` de quien ya tiene familia) es un cambio de producto aparte y no se
+hizo aquí — a diferencia del resto del portafolio, aquí unirse **no** sobrescribe
+el puntero activo por sí solo, así que no deja la familia anterior inalcanzable.
+
+**Conteos:** `validate:rls` sigue en **36 entidades** (no se tocó ningún
+esquema). `validate:functions` sigue en **45/45, margen 0** — `switchFamily` era
+una acción del router `family`, no un endpoint propio.
+
+**Verificado:** `npm run lint` (incl. `validate:functions` 45/45),
+`npm run build`, `npm run validate:rls` (36 entidades),
+`deno lint base44/functions/` (123 archivos) y `deno test base44/functions/`
+(**26/26** — eran 32; los 6 que faltan son exactamente los de
+`switchFamilyLogic.test.ts`, borrado con su módulo). `npm run typecheck`:
+**424 errores antes y después**, ninguno nuevo (nunca ha estado limpio en este
+repo y no está en CI).
+
+**No verificado:** el deploy (`npm run deploy` **y** `npm run deploy:site` —
+mergear no deploya nada) ni una sesión de navegador. Y ojo con la lección de
+este mismo archivo: `functions deploy --force` puede reportar `unchanged` para
+una función que sí cambió cuando lo que cambió está en `handlers/` y no en
+`entry.ts`. Aquí cambió `handlers/index.ts`, así que **toca `family/entry.ts`
+con un comentario si el deploy reporta `unchanged`** — y comprueba contra el
+endpoint desplegado que `{"action":"switchFamily"}` ya responde
+`unknown action`.
