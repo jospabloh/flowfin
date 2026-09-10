@@ -19,7 +19,6 @@ const FamilyContext = createContext({
   familyId: null,
   familyConfigId: null,
   membership: null,
-  familyCandidates: [],
   isAdmin: false,
   isLoading: true,
   membershipError: false,
@@ -53,11 +52,13 @@ export function FamilyProvider({ children }) {
   }, []);
 
   // ── Step 1: Load membership directly from entity SDK (no backend function) ──
-  // Fetches EVERY approved membership, not just the first — a user approved
-  // on 2+ families gets a real switcher instead of being silently pinned to
-  // whichever row the API returns first. See
-  // docs/MULTI_FAMILY_SWITCHER_DESIGN.md and acacia-app-standard's
-  // STANDARD.md §18 ("Multi-tenant account switching").
+  // One user, one family: the family switcher was retired 2026-09-10, so this
+  // resolves to a single membership. It still prefers whichever approved row
+  // matches the PERSISTED `data.family_id` — that half is not the switcher,
+  // it is what keeps reads agreeing with writes (`guardedEntityWrite`'s
+  // `resolveFamilyAccess` reads the same persisted pointer). Taking
+  // `approved[0]` blindly is how a user with a stale extra membership row
+  // ends up reading one family while writing to another, silently.
   const { data: membershipResolution, isError: membershipError, refetch: refetchMembership } = useQuery({
     queryKey: ['my-membership', currentUser?.id],
     queryFn: async () => {
@@ -77,19 +78,13 @@ export function FamilyProvider({ children }) {
         } catch { /* keep approved empty — genuine no-membership case */ }
       }
 
-      if (approved.length <= 1) {
-        return { active: approved[0] || null, candidates: approved };
-      }
+      if (approved.length <= 1) return approved[0] || null;
 
-      // 2+ approved memberships: prefer whichever matches the persisted
-      // active family_id (mirrors guardedEntityWrite's resolveFamilyAccess,
-      // so reads and writes agree on which family is "current"). If nothing
-      // persisted matches, leave `active` null rather than guessing —
-      // FamilyGate shows the switcher in that case instead of silently
-      // picking one.
+      // 2+ approved rows (a leftover from when a user could join several
+      // families): prefer whichever matches the persisted active family_id so
+      // reads and writes agree, and fall back to the first otherwise.
       const activeFamilyId = currentUser?.data?.family_id || currentUser?.data?.data?.family_id || null;
-      const active = approved.find(m => m.family_id === activeFamilyId) || null;
-      return { active, candidates: approved };
+      return approved.find(m => m.family_id === activeFamilyId) || approved[0];
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,  // 5 min — don't re-fetch on every navigation
@@ -102,11 +97,8 @@ export function FamilyProvider({ children }) {
     retryDelay: (attempt) => Math.min(2000 * 3 ** attempt, 15000),
   });
 
-  // Preserve the exact isLoading semantics every consumer already relies on
-  // (membership === undefined while the query is pending) while unwrapping
-  // the {active, candidates} shape above.
-  const membership = membershipResolution === undefined ? undefined : membershipResolution.active;
-  const familyCandidates = membershipResolution?.candidates || [];
+  // Consumers rely on `membership === undefined` while the query is pending.
+  const membership = membershipResolution;
 
   // ── Step 2: Load family once we have membership ──
   const familyId = membership?.family_id || null;
@@ -230,7 +222,6 @@ export function FamilyProvider({ children }) {
       familyId,
       familyConfigId,
       membership,
-      familyCandidates,
       isAdmin,
       isLoading,
       membershipError,
