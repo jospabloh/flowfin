@@ -8,6 +8,7 @@ import { Mail, Lock, Loader2, LogIn } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { getRememberedIdentity, clearRememberedIdentity } from "@/lib/lastIdentity";
+import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
   const [remembered, setRemembered] = useState(() => getRememberedIdentity());
@@ -28,7 +29,7 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
+      window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Correo o contraseña incorrectos");
     } finally {
@@ -37,7 +38,11 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+    // Read before the redirect fires: a page reached via OAuthConsent's
+    // signed-out bounce carries ?returnTo=/oauth-consent?ctx=… here, and
+    // without this the MCP authorization handle is lost after Google sign-in
+    // lands the user on "/" instead of back on the consent screen.
+    base44.auth.loginWithProvider("google", safeReturnTo());
   };
 
   return (

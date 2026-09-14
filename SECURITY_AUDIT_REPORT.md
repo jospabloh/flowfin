@@ -1,15 +1,22 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: August 17, 2026 (Updated — v2.22.1 Audit)
-**Version Audited**: 2.22.1
+**Date**: September 14, 2026 (Updated — v2.22.5 Audit)
+**Version Audited**: 2.22.5
 **Auditor**: Claude Code Automated Security Review
 **Overall Risk Level**: **LOW** — periodic review found no new critical or
-high application-level finding since v2.22.0. One application-level bug
-(recipient unable to mark a `Message` read, RLS too narrow) was fixed and
-deployed live this cycle. `react-router` (moderate) remains deferred
-pending a major-version migration, unchanged since v2.20.3. CSP deployed;
-CI gate active (`lint`, `validate:rls`, `permissions:check`, `npm audit
---audit-level=critical`); RLS enforced across all 36 entities; permission
-deny-by-default enforced.
+high application-level finding. One real application-level bug (the
+`?returnTo=` auth resume path was written but never wired into `Login.jsx`/
+`Register.jsx`, breaking the MCP OAuth-consent flow for a signed-out user)
+was found and fixed this cycle. `react-router` (moderate) remains deferred
+pending a major-version migration, unchanged since v2.20.3 — this cycle
+confirmed the app's one redirect-target parser already blocks the specific
+backslash bypass the latest advisory covers, independently of the library.
+CSP deployed; CI gate active (`lint`, `validate:rls`, `permissions:check`,
+`npm audit --audit-level=critical`); RLS enforced across all 36 entities;
+permission deny-by-default enforced.
+
+*(Note: the v2.22.4 cycle (2026-09-07) recorded its findings in
+`CHANGELOG.md` only and did not add a dated section to this file — its
+summary is folded into the v2.22.5 entry below for continuity.)*
 
 **Open operational items carried over, unverifiable from this repository
 alone (no Base44 deploy/secrets access from this environment):**
@@ -39,6 +46,96 @@ read-receipt RLS fix below is an entity-schema change, not a
 `base44/functions/` change), so neither blocks this release's merge — both
 are pre-existing operational verification gaps, not regressions, and are
 repeated here only so they are not lost between audit cycles.
+
+---
+
+## v2.22.5 Audit Cycle (2026-09-14)
+
+Scope: security, tenant isolation, RLS, granular permissions, dependencies,
+CI/CD health, critical-flow spot checks. Reviewed all commits landed since
+the v2.22.4 audit (`6e3b205`..`2757f35`): `2529d39`/`aad8fce` and their
+merge commits — the currency-conversion writer fix and the module-18
+multi-family-switcher retirement, both already fully documented in
+`CLAUDE.md` at the time they landed. Re-confirmed neither touched
+`base44/entities/` RLS or introduced a new write path outside
+`guardedEntityWrite`.
+
+- **Fixed — broken post-auth redirect on the MCP OAuth-consent flow.**
+  `src/lib/authReturnTo.js` exports `safeReturnTo()`, a same-origin-only,
+  backslash/`//`-rejecting resolver of `?returnTo=`, with a header comment
+  saying it is "shared by the auth pages (Login, Register, and any page
+  that resumes a flow after sign-in, e.g. the MCP OAuth consent page)".
+  `grep -rn safeReturnTo src/` found exactly one hit: its own definition.
+  `Login.jsx` (email/password submit, and the Google button's
+  `loginWithProvider("google", "/")` call) and `Register.jsx` (OTP-verify
+  success, and its own Google button) all hardcoded a post-auth redirect to
+  `"/"`. `OAuthConsent.jsx` — the page that renders an AI client's MCP
+  authorization request — redirects a signed-out user to
+  `/login?returnTo=<path>?ctx=<handle>&from_url=<same>` specifically so the
+  login page can send them back to finish approving; instead they always
+  landed on the Dashboard, the one-time `ctx` handle was gone, and the AI
+  client's authorization request could never complete. Not exploitable as a
+  vulnerability (the redirect target is same-origin and never used to leak
+  anything), but a genuine functional break in a security-adjacent flow —
+  fixed by wiring `safeReturnTo()` into all four post-auth redirects.
+- **Dependencies**: `npm audit` — 1 high (`js-yaml`, transitive via
+  `eslint`), 2 moderate (`react-router`/`react-router-dom`). `js-yaml`
+  fixed via `npm audit fix` (non-breaking, lockfile-only; the dependency
+  chain is `eslint → @eslint/eslintrc → js-yaml`, a dev-only tool with no
+  production/runtime exposure). `react-router` — installed `6.30.6`, inside
+  the vulnerable `6.0.0–7.17.x` range for both GHSA-wrjc-x8rr-h8h6
+  (CVE-2026-53669, a backslash bypass of the earlier open-redirect fix in
+  `<Link>`/`useNavigate`) and GHSA-337j-9hxr-rhxg (SSR hydration — doesn't
+  apply, this is a client-only SPA). Fix requires the same major-version
+  jump to `react-router-dom@7.18.3+` deferred since v2.20.3, still with no
+  frontend test runner in this repo to verify a major bump safely. Checked
+  this app's actual exposure to the open-redirect half specifically (rather
+  than only citing the SSR carve-out as before): `authReturnTo.js`'s
+  `safeReturnTo()` is the only place a redirect target is parsed from a
+  query string, and it already rejects a `path.includes("\\")` value before
+  ever reaching `window.location.href` — the same backslash class the new
+  CVE bypasses `<Link>`/`useNavigate` with. No other call site passes
+  request-controlled input into `navigate()` or `<Link to=…>`. The advisory
+  stays deferred, but the deferral no longer rests solely on "SSR doesn't
+  apply here."
+- **Secrets scan**: grepped `src/`, `base44/`, `scripts/` for hardcoded
+  key/token/password/secret literal patterns — none found beyond
+  `process.env`/`import.meta.env` references.
+- **RLS**: `validate:rls` — 36/36 entities OK.
+- **Permissions**: `permissions:check` — 215 declared keys, 90 used, 0
+  missing, 75 orphans (materially unchanged from v2.22.4's 89 used / 76
+  orphans — pre-existing reserved keys for modules not yet exposed in the
+  UI).
+- **Functions**: `validate:functions` — 45/45 endpoints, margin 0
+  (unchanged).
+- **CI/CD**: `ci.yml`'s jobs re-verified locally: `npm run lint` (0
+  errors), `npm run validate:rls`, `npm run permissions:check`, `npm run
+  build` (green; confirmed `git status` clean immediately after, per the
+  `CLAUDE.md` build-mutation fix). `deno lint base44/functions/` (123
+  files, 0 issues) and `deno test base44/functions/` (26/26 passed) — both
+  run locally this cycle (the `deno` binary is downloadable in this sandbox
+  from GitHub's release CDN; see `CLAUDE.md`), not left for CI to see
+  first.
+- Re-confirmed the module-14 `removeMember` cross-tenant fix
+  (`target_user_id === membership.user_id`) is still in place, unchanged.
+- No open, draft, or stale pull requests found on this repo at audit time;
+  no leftover audit branches from a prior incomplete run.
+
+**Not verified** (same standing limitation as every prior cycle): a live
+end-user or second-tenant browser session, and the Base44 admin panel
+(scheduler/secrets/automations) — this environment has no Base44
+deploy/secrets access. The auth-redirect fix is reasoned from the code path
+end-to-end, not exercised against a real signed-out MCP authorization
+request from this sandbox. This PR only touches `src/` (no
+`base44/entities/` or `base44/functions/` changes), so per `CLAUDE.md`
+("Base44 — mergear a `main` no deploya NADA") it requires `npm run
+deploy:site` after merge before the fix reaches production — merging alone
+does not.
+
+The two operational items carried over from the v2.22.1 entry below
+(`CRON_SECRET` presence, `base44/functions/` deploy status) remain
+unverifiable from this environment for the same reason stated there, and
+are not repeated a third time here — see that section.
 
 ---
 

@@ -6,9 +6,18 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.5',
+    date: '2026-09-14',
+    label: 'Actual',
+    changes: [
+      'Auditoría periódica: se revisaron seguridad, RLS, permisos y dependencias — sin hallazgos nuevos críticos. Se corrigió una vulnerabilidad de dependencia de severidad alta (`js-yaml`, transitiva de las herramientas de desarrollo, sin efecto en producción); react-router sigue diferida por la misma razón que en el ciclo anterior.',
+      'Iniciar sesión o registrarse desde un enlace que debía devolverte a una pantalla específica (por ejemplo, autorizar el acceso de un asistente de IA vía MCP) te dejaba en el Inicio en vez de esa pantalla — el parámetro que indica a dónde volver existía pero ninguna de las cuatro rutas de inicio de sesión (correo/contraseña, Google, y sus equivalentes en Registro) lo leía. Ya se corrigió.',
+    ],
+  },
+  {
     version: '2.22.4',
     date: '2026-09-07',
-    label: 'Actual',
+    label: '',
     changes: [
       'Auditoría periódica: se revisaron seguridad, RLS, permisos y dependencias — sin hallazgos nuevos críticos o altos. Se corrigieron dos vulnerabilidades de dependencias de severidad menor/moderada (actualización no disruptiva); una tercera (react-router, moderada) sigue diferida a propósito porque su arreglo exige una migración de versión mayor que este repo no puede verificar automáticamente todavía.',
     ],
