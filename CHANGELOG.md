@@ -12,6 +12,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.5] - 2026-09-14
+
+### 🔒 Security
+
+Scheduled full-portfolio audit. Verification suite (`npm run lint` incl.
+`validate:functions` — 45/45 endpoints, `npm run build` incl.
+`permissions-check`, `npm run validate:rls` — 36 entities, `deno lint`/`deno
+test` — 123 files / 26 tests) all green against `main` before and after this
+pass.
+
+- `js-yaml` (high severity, transitive via `eslint`/`@eslint/eslintrc` — a
+  dev-only dependency, no production/runtime exposure) fixed via `npm audit
+  fix` (non-breaking, lockfile-only). `react-router` remains on the same
+  documented, deferred moderate advisory as the 2.22.0/2.22.3/2.22.4 entries
+  (now also covering CVE-2026-53669, a backslash-based bypass of the earlier
+  fix) — still requires a major-version jump to 7.x with no frontend test
+  runner in this repo to verify it. Checked FlowFin's own exposure to the
+  specific bug (an open redirect via `<Link>`/`useNavigate`): the one place
+  in this app that resolves a redirect target from a query string
+  (`src/lib/authReturnTo.js`'s `safeReturnTo()`) already rejects backslashes
+  and `//`-prefixed values independently of the library, so the deferral
+  doesn't leave an open path here today.
+- **Fixed a real bug found while reviewing that same file**: `safeReturnTo()`
+  was written specifically for the auth pages to resume a flow after
+  sign-in (its own header comment says so) but was never actually imported
+  by any of them. `Login.jsx` and `Register.jsx` hardcoded a redirect to `/`
+  on every successful sign-in path (email/password, Google OAuth, and OTP
+  verification) instead of honoring `?returnTo=`. Concretely this broke the
+  MCP OAuth-consent flow (`OAuthConsent.jsx`) for a user who wasn't already
+  signed in: it bounces them to `/login?returnTo=/oauth-consent?ctx=…`
+  expecting to land back on the consent screen after auth, but they landed
+  on the Dashboard instead with the one-time `ctx` handle gone — the AI
+  client's authorization request could never be completed. All four
+  post-auth redirects now call `safeReturnTo()`.
+- Reviewed the two commits landed since the 2.22.4 audit: `aad8fce`
+  (module 18 retirement — see the `CLAUDE.md`/About entries) removes the
+  multi-family switcher UI while deliberately keeping the
+  `User.data.family_id`-preference fix it uncovered; the merge commit only.
+  No RLS or entity schema touched by either.
+- Re-confirmed the module-14 `removeMember` cross-tenant fix (`target_user_id
+  === membership.user_id`) is still in place and unchanged.
+- No open, draft, or stale pull requests found on this repo at audit time.
+
+**Not verified** (same standing limitation as every prior cycle): a live
+end-user or second-tenant browser session, the Base44 admin panel
+(scheduler/secrets/automations), and the actual deployed frontend/functions
+— merging this PR does not deploy either; see `CLAUDE.md`. The MCP
+OAuth-consent fix above is reasoned from the code path (`OAuthConsent.jsx` →
+`Login.jsx`/`Register.jsx` → `safeReturnTo()`), not exercised against a real
+AI-client authorization request from this sandbox.
+
 ## [2.22.4] - 2026-09-07
 
 ### 🔒 Security
