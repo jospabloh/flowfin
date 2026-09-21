@@ -1,16 +1,22 @@
 # FlowFin Security and Code Quality Audit Report
-**Date**: September 14, 2026 (Updated — v2.22.5 Audit)
-**Version Audited**: 2.22.5
+**Date**: September 21, 2026 (Updated — v2.22.6 Audit)
+**Version Audited**: 2.22.6
 **Auditor**: Claude Code Automated Security Review
-**Overall Risk Level**: **LOW** — periodic review found no new critical or
-high application-level finding. One real application-level bug (the
-`?returnTo=` auth resume path was written but never wired into `Login.jsx`/
-`Register.jsx`, breaking the MCP OAuth-consent flow for a signed-out user)
-was found and fixed this cycle. `react-router` (moderate) remains deferred
-pending a major-version migration, unchanged since v2.20.3 — this cycle
-confirmed the app's one redirect-target parser already blocks the specific
-backslash bypass the latest advisory covers, independently of the library.
-CSP deployed; CI gate active (`lint`, `validate:rls`, `permissions:check`,
+**Overall Risk Level**: **LOW** — periodic review found no new critical,
+high, or application-code finding this cycle; `main` had not moved since
+the v2.22.5 audit a week earlier, and the full verification suite was
+already green before this cycle began. The one substantive finding this
+cycle is a documentation gap, not a live vulnerability: `CLAUDE.md`'s
+module-14 multi-tenant isolation write-up (2026-08-23) still described its
+three findings (`User.family_id`'s RLS write lock, `Family`'s fifteen
+license/billing field write locks, `removeMember`'s `target_user_id` check)
+as unresolved/not-verified, even though all three were fixed and deployed
+the next day (v2.22.3, 2026-08-24). Re-verified this cycle directly against
+the **deployed** Base44 schema (`list_entity_schemas`, not the repo's
+`.jsonc`) that all three are still in place, and closed the gap in
+`CLAUDE.md` with a dated follow-up. `react-router` (moderate) remains
+deferred pending a major-version migration, unchanged since v2.20.3. CSP
+deployed; CI gate active (`lint`, `validate:rls`, `permissions:check`,
 `npm audit --audit-level=critical`); RLS enforced across all 36 entities;
 permission deny-by-default enforced.
 
@@ -41,11 +47,64 @@ alone (no Base44 deploy/secrets access from this environment):**
    functions list --app-id 69b97ea9c9a713486b5a01fd` that the deployed
    function set and behavior match `main`.
 
-Neither item was touched by this cycle's code changes (the recipient
-read-receipt RLS fix below is an entity-schema change, not a
-`base44/functions/` change), so neither blocks this release's merge — both
-are pre-existing operational verification gaps, not regressions, and are
-repeated here only so they are not lost between audit cycles.
+Neither item was touched by this cycle's code changes — this cycle changed
+only `CLAUDE.md`, `CHANGELOG.md`, `About.jsx`'s version history, and the two
+regenerated snapshot files under `base44/functions/*Audit/` (content
+regenerated from `src/`, no logic changed). Both remain pre-existing
+operational verification gaps, not regressions, and are repeated here only
+so they are not lost between audit cycles.
+
+---
+
+## v2.22.6 Audit Cycle (2026-09-21)
+
+Scope: security, tenant isolation, RLS, granular permissions, dependencies,
+CI/CD health, critical-flow spot checks. `git log origin/main..origin/main`
+— no commits landed since the v2.22.5 audit (`0fab17f`), so there was
+nothing new to review in application code.
+
+- **Verified (deployed schema), not just fixed-in-repo**: called
+  `list_entity_schemas` on the live Base44 app (`69b97ea9c9a713486b5a01fd`)
+  directly, rather than reading `base44/entities/*.jsonc`. Confirmed
+  `User.family_id` carries `rls.write: {"user_condition":{"role":"admin"}}`
+  and all fifteen `Family` license/billing fields (`billing_status`,
+  `license_plan`, `licensed_member_limit`, `license_expires_at`,
+  `trial_end_at`, `auto_renewal`, `payment_reference`, the four
+  `last_payment_*` fields, etc.) carry the same lock. Also re-read
+  `base44/functions/family/handlers/removeMember.ts` and confirmed the
+  `target_user_id === membership.user_id` guard (module-14 finding #3) is
+  unchanged. All three close as **Fixed** — they were actually fixed and
+  deployed back on 2026-08-24 (v2.22.3); what was missing was `CLAUDE.md`
+  reflecting that, which this cycle corrected with a dated follow-up so the
+  module-14 write-up stops reading as an open question a month after it
+  closed.
+- **Dependencies**: `npm audit` — no advisories beyond the same deferred
+  `react-router` moderate CVE tracked since v2.20.3 (needs a 6.x→7.x major
+  migration; no frontend test runner in this repo to verify it against).
+  FlowFin's own exposure was already checked and closed in the v2.22.5
+  cycle below (`safeReturnTo()` rejects the backslash/`//` pattern
+  independently of the library) — re-confirmed no new redirect-target
+  parsing was added anywhere in `src/` since.
+- **Verification suite**: `npm run lint` (incl. `validate:functions` —
+  45/45 endpoints, margin 0), `npm run build` (incl. `permissions-check`),
+  `npm run validate:rls` (36 entities), `deno lint base44/functions/` (123
+  files), `deno test base44/functions/` (26/26) — all green before and
+  after this cycle's (documentation-only) changes.
+- No open, draft, or stale pull requests found at audit time. Six
+  pre-existing `claude/*` audit branches from earlier cycles share no git
+  history with current `main` (an earlier history rewrite orphaned them);
+  left untouched — deleting a branch is a destructive action out of scope
+  for a routine audit pass, and none of them carry anything main is missing
+  (each one's content already landed under a different commit lineage, per
+  the version-history entries above).
+
+**Not verified** (same standing limitation as every prior cycle, and as the
+two open operational items above): a live end-user or second-tenant browser
+session, and the Base44 admin panel (scheduler/secrets/automations). No
+`base44/functions/` or `base44/entities/` code changed this cycle, so no
+`npm run deploy` is required; the frontend still needs `npm run deploy:site`
+after merge to serve the new version string — merging alone deploys nothing
+in this repo (see `CLAUDE.md`).
 
 ---
 
