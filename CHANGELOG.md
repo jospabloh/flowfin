@@ -12,6 +12,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.6] - 2026-09-21
+
+### 🔒 Security
+
+Scheduled full-portfolio audit. Verification suite (`npm run lint` incl.
+`validate:functions` — 45/45 endpoints, `npm run build` incl.
+`permissions-check`, `npm run validate:rls` — 36 entities, `deno lint`/`deno
+test` — 123 files / 26 tests) all green against `main` before and after this
+pass; no regressions.
+
+- No new commits landed on `main` since the 2.22.5 audit — this cycle found
+  nothing to fix in application code.
+- `npm audit`: no new advisories. `react-router` remains on the same
+  documented, deferred moderate advisory as every cycle since 2.22.0 (still
+  needs a major-version jump to 7.x with no frontend test runner in this
+  repo to verify it); FlowFin's own exposure was already checked and closed
+  in the 2.22.5 entry below (`safeReturnTo()` rejects the backslash/`//`
+  pattern independently of the library).
+- Re-verified, against the **deployed** Base44 schema (`list_entity_schemas`,
+  not the repo's `.jsonc`) rather than the repo alone: the module-14
+  multi-tenant audit's three findings (`User.family_id` write lock, the
+  fifteen `Family` license/billing fields' write locks, and `removeMember`'s
+  `target_user_id` check) are all still in place. These were fixed and
+  deployed back on 2026-08-24 (`2.22.3`), but `CLAUDE.md`'s module-14
+  write-up still read as unresolved/not-verified — updated it with a dated
+  follow-up closing all three as Fixed, since undated "not verified" prose
+  is indistinguishable from "still broken" a month later.
+- No open, draft, or stale pull requests found on this repo at audit time.
+  Six pre-existing `claude/*` audit branches from earlier cycles share no
+  git history with current `main` (a prior history rewrite orphaned them);
+  left untouched, not part of this PR.
+
+**Not verified** (same standing limitation as every prior cycle): a live
+end-user or second-tenant browser session, and the Base44 admin panel
+(scheduler/secrets/automations). Deploying this PR's `CLAUDE.md`/changelog
+changes requires no `base44/functions/` or `base44/entities/` deploy — no
+runtime code changed, only documentation and the version bump — but the
+frontend still needs `npm run deploy:site` to actually serve the new
+version string (merging alone does not deploy; see `CLAUDE.md`).
+
 ## [2.22.5] - 2026-09-14
 
 ### 🔒 Security
