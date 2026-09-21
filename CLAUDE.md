@@ -714,6 +714,36 @@ sesión autenticada como miembro de una segunda familia. No sembré datos ni
 escribí en producción para averiguarlo: seis familias reales con su contabilidad
 dentro no son un laboratorio.
 
+### Seguimiento — hallazgos #1 y #2 cerrados, confirmado contra el esquema desplegado (2026-08-24, re-verificado 2026-09-21)
+
+El punto 1 de arriba —el campo del que cuelga todo el aislamiento sin
+candado— y el punto 2 —`Family` sin candados de licencia— se cerraron al día
+siguiente, **2026-08-24**, y quedaron documentados en el changelog público
+(entrada `2.22.3`): `User.family_id` se declaró en el esquema con
+`rls.write: {"user_condition":{"role":"admin"}}`, y los quince campos de
+licencia/facturación de `Family` (`billing_status`, `license_plan`,
+`licensed_member_limit`, `license_expires_at`, `trial_end_at`,
+`auto_renewal`, `payment_reference`, los cuatro `last_payment_*`, etc.)
+llevan el mismo candado. El hallazgo #3 (`removeMember` sin atar
+`target_user_id` a la membresía) también se cerró el mismo día — el handler
+ahora exige `target_user_id === membership.user_id` antes de tocar el
+`User` ajeno.
+
+Lo que faltaba era que **este archivo** lo reflejara — el módulo 14 se quedó
+escrito como si los tres siguieran abiertos casi un mes después de
+cerrados, y "no pude verificar" sin fecha de revisión es indistinguible de
+"sigue roto" para quien lo lea después. Re-verificado hoy directamente
+contra `list_entity_schemas` del app desplegado (no contra los `.jsonc` del
+repo): `User.family_id` y los quince campos de `Family` siguen llevando su
+`rls.write` de admin, y `removeMember.ts` sigue con la comprobación. Los
+tres hallazgos del módulo 14 cierran como **Fixed**, verificados contra el
+esquema y las funciones que de verdad sirven la app, no sólo contra el
+código del repo.
+
+Sigue sin poder verificarse desde este entorno una sesión autenticada como
+usuario final restringido o como miembro de una segunda familia — mismo
+límite que el resto del portafolio.
+
 ## Módulo 15 — el puente con Mission Control: una llave por app (2026-08-23)
 
 `INGEST_HMAC_SECRET` es **un solo valor compartido por todo el portafolio**, así
