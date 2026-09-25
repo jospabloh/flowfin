@@ -462,6 +462,23 @@ Y comprueba el resultado por **contenido**, no por hashes: el checkpoint del app
 puede reportar un `git_commit_hash` igual al HEAD de `main` mientras el árbol que
 de verdad se sirve está atrasado.
 
+**`deploy:site` construye y publica sin preguntar** (desde el 2026-09-25). El
+script le pasa `--build --yes` a `base44 site deploy`. Antes no los pasaba, y el
+CLI pregunta si construir y si confirmar: en una terminal eso sólo era un paso
+más, pero sin terminal interactiva (una sesión remota, CI) abortaba con
+`Error: --yes is required in non-interactive mode`, sin desplegar nada.
+`--build` además garantiza que se sube el `main` que acabas de jalar y no un
+`dist/` viejo, que es la misma clase de fallo que "mergeado pero sin servir".
+Saltarse la confirmación sólo aplica al sitio, que no borra nada remoto:
+`deploy:entities` sigue pidiendo escribir el nombre de la app.
+
+La forma de comprobarlo por contenido, sin navegador: el HTML servido nombra el
+bundle principal (`/assets/index-*.js`), ese bundle nombra los chunks por página,
+y el chunk de la página que cambiaste (`assets/Transactions-*.js`, por ejemplo)
+tiene que llamarse igual que el de tu `dist/` local y contener un texto que sólo
+exista en el cambio. `curl` al dominio `*.base44.app` sí pasa por el proxy del
+sandbox.
+
 `scripts/base44-deploy.mjs` **rechaza** un `--app-id` por argumento, así que el
 directorio y la app destino no pueden desalinearse. `deploy:entities` imprime la
 lista de entidades y el nombre de la app antes de pedir confirmación — ver
