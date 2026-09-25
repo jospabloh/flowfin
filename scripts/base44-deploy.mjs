@@ -135,8 +135,14 @@ function run(args) {
 // `--site` es el frontend y nada más: un cambio de UI no tiene por qué volver a
 // recorrer 45 funciones, y separarlo hace que el paso que faltaba sea el que se
 // corre a propósito.
+//
+// `--build --yes`: sin ellos el CLI pregunta si construir y si confirmar, y sin
+// terminal interactiva (una sesión remota, CI) aborta con "--yes is required in
+// non-interactive mode". `--build` además garantiza que se sube el `main` que
+// acabas de jalar y no un `dist/` viejo. El sitio no borra nada remoto, así que
+// saltarse la confirmación aquí no es como en `--entities`.
 const steps = deploySite
-  ? [['site', 'deploy', '--app-id', config.appId]]
+  ? [['site', 'deploy', '--app-id', config.appId, '--build', '--yes']]
   : [['functions', 'deploy', '--app-id', config.appId, '--force']];
 
 if (pushEntities) {
