@@ -19,6 +19,7 @@ import TransactionGroup from '@/components/transactions/TransactionGroup';
 import ConvertScheduledModal from '@/components/transactions/ConvertScheduledModal';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 import { usePermission, useCanView } from '@/lib/permissions/usePermission';
+import { buildTransactionMatcher } from '@/lib/transactionSearch';
 
 function groupByDate(transactions) {
   const groups = {};
@@ -88,17 +89,15 @@ export default function Transactions() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['transactions'] }),
   });
 
-  const filtered = useMemo(() => (allTransactions || []).filter(t => {
-    if (filterType !== 'all' && t.type !== filterType) return false;
-    if (filterCat && t.category_id !== filterCat) return false;
-    if (filterPerson && t.person_id !== filterPerson) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const cat = (categories || []).find(c => c.id === t.category_id);
-      return (t.description || '').toLowerCase().includes(q) || (cat?.name || '').toLowerCase().includes(q);
-    }
-    return true;
-  }), [allTransactions, filterType, filterCat, filterPerson, search, categories]);
+  const filtered = useMemo(() => {
+    const matchesSearch = buildTransactionMatcher(search, { categories, subcategories, persons, paymentMethods });
+    return (allTransactions || []).filter(t => {
+      if (filterType !== 'all' && t.type !== filterType) return false;
+      if (filterCat && t.category_id !== filterCat) return false;
+      if (filterPerson && t.person_id !== filterPerson) return false;
+      return matchesSearch(t);
+    });
+  }, [allTransactions, filterType, filterCat, filterPerson, search, categories, subcategories, persons, paymentMethods]);
 
   const groups = useMemo(() => groupByDate(filtered), [filtered]);
   const activeFilters = [filterType !== 'all', filterCat, filterPerson].filter(Boolean).length;
