@@ -7,7 +7,7 @@ export default function TransactionFilters({ search, setSearch, showFilters, set
       <div className="flex gap-2 px-4 mb-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..."
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar concepto, monto, fecha, rubro, quién…"
             className="w-full pl-9 pr-3 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center touch-target">
