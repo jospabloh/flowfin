@@ -74,7 +74,16 @@
           }
         },
         {
-          "data.family_id": "{{user.data.family_id}}"
+          "$and": [
+            {
+              "data.family_id": "{{user.data.family_id}}"
+            },
+            {
+              "data.is_internal_note": {
+                "$ne": true
+              }
+            }
+          ]
         }
       ]
     },
