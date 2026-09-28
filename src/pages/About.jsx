@@ -6,9 +6,17 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.7',
+    date: '2026-09-28',
+    label: 'Actual',
+    changes: [
+      'Auditoría periódica completa: seguridad, aislamiento entre familias, calidad de código, permisos, dependencias y pruebas automatizadas — sin errores de aplicación nuevos que corregir. Se confirmó, directamente contra el esquema desplegado (no solo el repositorio), que los candados de aislamiento entre familias siguen en su sitio, y que el ajuste de permisos que Base44 aplicó automáticamente el 25 de septiembre (las notas internas de soporte dejan de ser visibles para la familia, sólo las ve el equipo de soporte) es correcto y ya está desplegado.',
+    ],
+  },
+  {
     version: '2.22.6',
     date: '2026-09-21',
-    label: 'Actual',
+    label: '',
     changes: [
       'Auditoría periódica: se revisaron seguridad, RLS, permisos y dependencias — sin código nuevo que corregir esta vez (nada cambió en `main` desde la auditoría anterior). Se re-confirmó, directamente contra el esquema desplegado, que los tres candados de aislamiento entre familias del 24 de agosto siguen en su sitio.',
     ],
