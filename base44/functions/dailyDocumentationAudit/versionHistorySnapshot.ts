@@ -60,25 +60,9 @@ export const USER_MANUAL_SECTIONS_COUNT = 25;
 export const USER_MANUAL_LAST_REVIEWED = '2026-06-22';
 
 // Git commits since last version tag — used by dailyDocumentationAudit to generate changelog.
-export const GIT_LOG_SNAPSHOT = `5dbc833 CLAUDE.md: document deploy:site --build --yes and how to verify by content
+export const GIT_LOG_SNAPSHOT = `a3f80eb release(2.22.7): scheduled full audit — no code fixes needed
+5dbc833 CLAUDE.md: document deploy:site --build --yes and how to verify by content
 fe3250a Apply RLS security recommendations
 f2acc11 deploy:site: pass --build --yes so it works without an interactive terminal
 04dae51 Search movements by amount, date, type, payment method, person, rubro and subrubro
-e532482 Update base44 packages
-9f8f75b release(2.22.6): scheduled full audit — no code fixes needed (#239)
-0fab17f chore(security): scheduled audit — fix broken MCP OAuth-consent redirect, patch js-yaml, bump to 2.22.5 (#238)
-aad8fce Retirar el selector de familia (módulo 18): una cuenta, una familia
-2529d39 fix: el escaneo y el dictado seguían escribiendo el monto sin convertir
-6e3b205 chore(security): scheduled audit — patch fflate/postcss-selector-parser, bump to 2.22.4
-d7a331a Migrated 3 workflow(s)
-aa93a29 Update base44 packages
-30202f2 fix: no guardar un gasto en moneda extranjera sin convertir
-ad950ba Update base44 packages
-09b7f9e fix: una cuota de inversión sólo cuenta si alguien la confirma
-6339722 fix: hacer deterministas las automatizaciones de pago → movimiento
-2d126ff Update base44 packages
-86f48a8 Fix: Finia camera capture overlay clipped to composer bar on mobile
-6b9a4bf Fix deno lint errors in backfillUserFamilyId: two 'any', one dupe-key bug
-4573b89 Fix: previous commit wrote base64-encoded text as the file's literal content
-2fa3d91 Restore User.family_id RLS write-lock reverted by an independent agent session
-222b1b1 Add service-role fallback to FamilyContext to fix dashboard loading`;
+e532482 Update base44 packages`;
