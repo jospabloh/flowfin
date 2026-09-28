@@ -12,6 +12,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.7] - 2026-09-28
+
+### 🔒 Security
+
+Scheduled full-portfolio audit (security, RLS/tenant isolation, code quality,
+granular permissions, dependencies, automated tests, UI/UX conventions,
+changelog/versioning). Verification suite (`npm run lint` incl.
+`validate:functions` — 45/45 endpoints, margin 0; `npm run build` incl.
+`permissions-check.mjs`; `npm run validate:rls` — 36 entities; `deno lint
+base44/functions/` — 123 files; `deno test base44/functions/` — 26/26
+passed) all green before and after this pass; no regressions.
+
+- **No application-code bugs found this cycle.** Since the 2.22.6 audit
+  (2026-09-21), `main` gained one feature commit (free-text search on
+  Movimientos by amount/date/type/payment method/person/rubro/subrubro —
+  `src/lib/transactionSearch.js`) and one dependency bump
+  (`@base44/sdk`/`@base44/vite-plugin`); both were re-reviewed here and are
+  sound (the accent-stripping regex in `transactionSearch.js` was verified
+  against its actual Unicode range, `U+0300–U+036F`, not just read as
+  plausible).
+- **Re-verified a `base44-builder[bot]` direct-to-`main` RLS commit**
+  (`SupportTicketMessage`, 2026-09-25) against this repo's own standing rule
+  for un-reviewed bot RLS pushes: it *tightens* read access (family members
+  can no longer read `is_internal_note: true` rows — matching the entity's
+  own long-standing description, which said this was already meant to be
+  the behavior) without removing anyone's legitimate access. Confirmed
+  **deployed** via `list_entity_schemas`, not just present in the repo's
+  `.jsonc`.
+- Re-verified, against the **deployed** Base44 schema rather than the
+  repo alone: the module-14 multi-tenant audit's three findings
+  (`User.family_id` write lock, the fifteen `Family` license/billing
+  fields' write locks, and `removeMember`'s `target_user_id` check) are
+  all still in place and correctly locked.
+- Confirmed no removed license-lifecycle function (`checkAccountLifecycle`,
+  `checkTrialExpiration`, etc. — owned by Mission Control since 2.22.0) or
+  the retired multi-family `switchFamily` action (module 18, retired
+  2026-09-10) was reintroduced; the only remaining references are
+  historical comments/changelog text.
+- `npm audit`: no new advisories. `react-router` remains on the same
+  documented, deferred moderate advisory as every cycle since 2.22.0
+  (open redirect / SSR hydration CVEs; needs a major-version jump to 7.x
+  with no frontend test runner in this repo to verify it against —
+  FlowFin's own exposure was already checked and closed in the 2.22.5
+  entry below).
+- Secrets/env hygiene checked: no `.env*` files tracked in git, no
+  hardcoded API keys/passwords/tokens found in application code.
+- No open, draft, or stale pull requests found on this repo at audit time.
+
 ## [2.22.6] - 2026-09-21
 
 ### 🔒 Security

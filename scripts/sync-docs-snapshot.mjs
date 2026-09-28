@@ -55,12 +55,47 @@ function parseManual(src) {
 // ---------------------------------------------------------------------------
 // Capture git log since the last version tag (for Anthropic API context)
 // ---------------------------------------------------------------------------
-function getGitLog(currentVersion) {
+// This repo has never created a `vX.Y.Z` git tag (`git tag -l` is always
+// empty), so the `tagExists` branch below has never once been the path
+// taken — every prior run fell straight to the `HEAD~20` fallback. That
+// window is unrelated to any release boundary: it silently pulled in
+// commits from several versions back. dailyDocumentationAudit/entry.ts
+// uses this exact log to auto-create the AppChangelog row the FIRST time
+// it runs after a version bump with no existing row for that version —
+// and About.jsx's changelog merge lets a DB AppChangelog entry's `changes`
+// override the curated static entry for that same version. So a `HEAD~20`
+// window reaching back past the previous release meant users could see a
+// pile of unrelated older commits mislabeled as "what's new" in the
+// version they're currently running.
+//
+// Fix: bound the log at the commit that last set package.json's `version`
+// field to the PREVIOUS release (found by content, not by a tag that
+// doesn't exist) — i.e. the actual previous-release boundary — falling
+// back to HEAD~20 only if that commit can't be found (e.g. very first run).
+function findPreviousVersionBoundary(previousVersion, run) {
+  if (!previousVersion) return '';
+  const needle = `"version": "${previousVersion}"`;
+  const candidates = run(`git log --format=%H -S${JSON.stringify(needle)} -- package.json`)
+    .split('\n')
+    .filter(Boolean);
+  // -S matches both the commit that INTRODUCED the string and any later
+  // commit that REMOVED it (e.g. this very release's own version bump) —
+  // keep only a commit whose package.json still reads `previousVersion`.
+  for (const sha of candidates) {
+    const content = run(`git show ${sha}:package.json`);
+    if (content.includes(needle)) return sha;
+  }
+  return '';
+}
+
+function getGitLog(currentVersion, previousVersion) {
   function run(cmd) {
     try { return execSync(cmd, { encoding: 'utf8' }).trim(); } catch { return ''; }
   }
   const tagExists = run(`git tag -l "v${currentVersion}"`);
-  const base = tagExists ? `v${currentVersion}` : 'HEAD~20';
+  const base = tagExists
+    ? `v${currentVersion}`
+    : findPreviousVersionBoundary(previousVersion, run) || 'HEAD~20';
   const log = run(`git log ${base}..HEAD --oneline --no-merges`);
   if (log) return log;
   return run('git log HEAD~10..HEAD --oneline --no-merges');
@@ -113,7 +148,7 @@ async function main() {
   const { currentVersion, versionHistory } = parseAbout(aboutSrc);
   const sectionCount = parseManual(manualSrc);
   const syncedAt = new Date().toISOString().slice(0, 10);
-  const gitLog = getGitLog(currentVersion);
+  const gitLog = getGitLog(currentVersion, versionHistory[1]?.version);
 
   // Preserve USER_MANUAL_LAST_REVIEWED if only version changed (don't reset it on every build)
   let lastReviewed = syncedAt;
