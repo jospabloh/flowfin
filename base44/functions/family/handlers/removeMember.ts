@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { wouldLeaveNoAdmin } from './_membershipRules.ts';
 
 export async function handle(req: Request): Promise<Response> {
   try {
@@ -23,6 +24,20 @@ export async function handle(req: Request): Promise<Response> {
       });
       if (!callerMemberships.length) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    // Last-admin guard: the family must keep at least one approved admin. The
+    // platform owner (role 'admin') may still clear a dead family.
+    if (user.role !== 'admin') {
+      const familyRows = await base44.asServiceRole.entities.FamilyMembership.filter({
+        family_id: membership.family_id,
+      });
+      if (wouldLeaveNoAdmin(membership, familyRows || [])) {
+        return Response.json({
+          error: 'No puedes quitar al único administrador. Nombra a otro administrador primero.',
+          code: 'last_admin',
+        }, { status: 409 });
       }
     }
 

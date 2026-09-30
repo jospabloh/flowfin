@@ -98,7 +98,9 @@ export async function handle(req: Request): Promise<Response> {
     // platform staff (see user.role === 'admin' checks across base44/functions
     // and src/pages/WaitlistAdmin.jsx). Family-scoped admin permissions are
     // granted via FamilyMembership.role: 'admin' below (see useFamily().isAdmin).
-    const userData = { ...(user.data || {}), family_id: family.id };
+    // Built from the STORED user, not auth.me()'s cached view (module 22).
+    const storedUsers = await base44.asServiceRole.entities.User.filter({ id: user.id });
+    const userData = { ...(storedUsers?.[0]?.data || user.data || {}), family_id: family.id };
     delete userData.data;
     await base44.asServiceRole.entities.User.update(user.id, { data: userData });
 

@@ -96,3 +96,16 @@ Deno.test("canApprove: still refuses foreign, missing, rejected and cancelled ro
 Deno.test("canDecideOn (used by reject) still refuses an approved row", () => {
   eq((canDecideOn({ family_id: "F1", status: "approved" }, "F1") as { status: number }).status, 409);
 });
+
+Deno.test('wouldLeaveNoAdmin: last admin blocked, second admin or member allowed', async () => {
+  const { wouldLeaveNoAdmin } = await import('./_membershipRules.ts');
+  const a = { id: 'a', status: 'approved', role: 'admin' };
+  const b = { id: 'b', status: 'approved', role: 'admin' };
+  const m = { id: 'm', status: 'approved', role: 'member' };
+  const p = { id: 'p', status: 'pending', role: 'admin' };
+  if (!wouldLeaveNoAdmin(a, [a, m])) throw new Error('last admin must be blocked');
+  if (!wouldLeaveNoAdmin(a, [a, p])) throw new Error('pending admin does not count');
+  if (wouldLeaveNoAdmin(a, [a, b])) throw new Error('second admin allows removal');
+  if (wouldLeaveNoAdmin(m, [a, m])) throw new Error('member removal is fine');
+  if (wouldLeaveNoAdmin(null, [a])) throw new Error('missing row is fine');
+});
