@@ -8,6 +8,7 @@ export default function UserNotRegisteredError() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   const handleJoin = async () => {
     if (!joinCode.trim() || !email.trim()) return;
@@ -20,13 +21,21 @@ export default function UserNotRegisteredError() {
       userName = me.full_name || me.email;
     } catch { /* ignore */ }
 
-    const res = await base44.functions.invoke('family', { action: 'selfJoin',
-      join_code: joinCode.trim().toUpperCase(),
-      user_email: email.trim().toLowerCase(),
-      user_name: userName,
-    });
+    let res;
+    try {
+      res = await base44.functions.invoke('family', { action: 'selfJoin',
+        join_code: joinCode.trim().toUpperCase(),
+        user_email: email.trim().toLowerCase(),
+        user_name: userName,
+      });
+    } catch (err) {
+      setError(err?.response?.data?.error || 'No se pudo enviar la solicitud. Intenta de nuevo.');
+      setLoading(false);
+      return;
+    }
 
     if (res.data?.success) {
+      setPendingOnly(!res.data.already_member);
       setSuccess(true);
       // Reload to re-authenticate with the now-registered account
       setTimeout(() => globalThis.location.reload(), 1500);
@@ -47,8 +56,8 @@ export default function UserNotRegisteredError() {
           <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-primary-foreground font-black text-3xl">F</span>
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">¡Bienvenida!</h2>
-          <p className="text-sm text-muted-foreground">Acceso concedido. Cargando la app...</p>
+          <h2 className="text-xl font-bold text-foreground mb-2">{pendingOnly ? 'Solicitud enviada' : '¡Bienvenida!'}</h2>
+          <p className="text-sm text-muted-foreground">{pendingOnly ? 'El administrador de la familia debe aprobar tu solicitud.' : 'Acceso concedido. Cargando la app...'}</p>
         </div>
       </div>
     );

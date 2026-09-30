@@ -1355,3 +1355,91 @@ una función que sí cambió cuando lo que cambió está en `handlers/` y no en
 con un comentario si el deploy reporta `unchanged`** — y comprueba contra el
 endpoint desplegado que `{"action":"switchFamily"}` ya responde
 `unknown action`.
+
+## Verificación por código en el alta y unión a una familia con aprobación (2026-09-30)
+
+Dos auditorías pedidas en una sola pasada: el código OTP del correo (patrón de
+stockflow #412) y el contrato de tenant/roles/unión por código.
+
+### A. Código de verificación por correo
+
+- `src/components/VerifyEmailStep.jsx` (compartido) + `src/lib/emailVerification.js`
+  (`needsEmailVerification`, `otpErrorMessage`; van en `lib/` porque un archivo con
+  componente y helper rompe react-refresh). Register ya tenía una pantalla de
+  código pero con errores crudos en inglés y un caso roto: si `verifyOtp` no
+  devolvía `access_token`, redirigía a `/` sin sesión. Ahora, sin token, intenta
+  `loginViaEmailPassword`; si tampoco, manda a `/login`.
+- Login: si `loginViaEmailPassword` falla con "verify your email" / "verification
+  code", reenvía un código y abre el mismo paso en vez del error crudo. Los demás
+  errores conservan su mensaje. Textos en español, sin rayas largas.
+
+### B. Familia (tenant), roles y unión por código
+
+Ya cumplía (releído en el repo, no en producción): `User.family_id` con
+`rls.write` de admin (candado del 2026-08-23/25 intacto); `createFamily` fija
+`admin_user_id`/membresía admin desde el token; `selfJoin` sólo crea `pending` y
+no escribe `User.family_id`; `getMyMembership` reporta `pending`; `approveMember`
+relee la membresía y comprueba la familia del admin que llama.
+
+Lo que **no** cumplía, y se corrigió:
+
+1. **`FamilyMembership` se dejaba escribir por su propio usuario.** `create` era
+   `data.user_id == {{user.id}}` y `update` permitía la fila propia sin candados de
+   campo: un solicitante podía crearse una membresía `approved`/`admin` en
+   cualquier familia, o pasar la suya de `pending` a `approved`, saltándose la
+   aprobación. Ahora `create` es sólo `role:admin` (servicio) y `family_id`,
+   `user_id`, `user_email`, `role` y `status` llevan `rls.write` de admin, con su
+   razón en la descripción. `update` de la fila propia se conserva para lo demás
+   (`tutorial_state`, `last_active_at`), y `delete` propio también (`deleteAccount`).
+2. **Rechazar no podía funcionar** para un admin de familia (el cliente actualizaba
+   la fila directo y la RLS sólo permite la propia). Nueva acción `rejectMember`.
+3. **Aprobar no elegía rol** y tomaba `target_user_id` del cliente. Ahora
+   `approveMember` recibe `role`, validado contra `member | admin`
+   (`_membershipRules.ts`, nunca rol de plataforma; omitido = `member`), toma a la
+   persona de `membership.user_id`, exige que siga `pending` (409 si no), y rechaza
+   con 409 si esa persona ya está aprobada en otra familia. Ya no usa REST con
+   `user.api_key`: escribe `User.family_id` como servicio a partir del `User`
+   guardado. UI: `FamilyAdmin.jsx` ofrece el selector de rol junto a cada solicitud.
+4. **Una familia por usuario.** `selfJoin` y `createFamily` responden 409
+   (`already_in_family`) a quien ya tiene membresía aprobada, y 409
+   (`pending_elsewhere`) a quien tiene una solicitud pendiente en otra familia;
+   pendiente en la misma familia sigue idempotente. Nueva acción `cancelJoinRequest`
+   (borra sólo las pendientes propias) con botón "Cancelar solicitud" en la pantalla
+   "Solicitud enviada". **Nadie con varias membresías aprobadas se expulsa**:
+   `decideJoin` las trata como "ya es miembro" de cada una. El dueño de plataforma
+   (`role: admin`) queda exento en `createFamily`. Onboarding y
+   `UserNotRegisteredError` muestran el mensaje del 409 (antes `createFamily`
+   dejaba una excepción sin capturar).
+
+Caminos que escriben `User.family_id`/`FamilyMembership.status`, revisados:
+`selfJoin` (sólo repara la propia familia ya aprobada), `approveMember`,
+`createFamily`, `removeMember` (lo pone en null), `syncUserFamily(+Force)` (sólo
+con membresía `approved`; `updateMe` sobre el campo bloqueado falla para no
+admins), `setUserFamilyId` y `maintenance/*` (dueño de plataforma). Ninguno salta
+la aprobación.
+
+Endpoints: `validate:functions` sigue en 45/45; las tres acciones nuevas viven en
+el router `family`. Pruebas: `base44/functions/family/handlers/_membershipRules.test.ts`
+(8, sin imports externos).
+
+**Verificado:** `npm run lint`, `npm run build`, `npm run validate:rls` (36),
+`deno lint base44/functions/` y `deno test base44/functions/` (34/34).
+
+**No verificado:** nada contra Base44 en vivo. Ni un registro real con código
+(el texto de error de "correo sin verificar" se detecta por regex sobre el
+mensaje), ni `verifyOtp` devolviendo o no `access_token`, ni sesión de admin
+aprobando con rol, ni que la RLS/candados nuevos estén desplegados, ni el flujo
+con un segundo usuario. Los handlers importan `npm:@base44/sdk`, no se ejecutaron
+(sólo la lógica pura tiene prueba).
+
+**Orden de despliegue:**
+1. `npm run deploy` (funciones). `family/entry.ts` se tocó a propósito: si la CLI
+   dice `unchanged`, comprueba por comportamiento (`{"action":"rejectMember"}` sin
+   sesión debe dar 401, no `unknown action`) y publica en el panel.
+2. `npm run deploy:site` (el frontend nuevo llama a `rejectMember` y `approveMember`
+   con `role`; con el sitio viejo y funciones nuevas, aprobar sigue funcionando
+   como `member`).
+3. `npm run deploy:entities` (destructivo, escribe "FlowFin") **al final**: con el
+   candado nuevo y el sitio viejo, "rechazar" ya no podía funcionar de todos modos,
+   pero no debe adelantarse a las funciones. Después relee `FamilyMembership` con
+   `list_entity_schemas` y confirma `create` admin-only y los cinco candados.

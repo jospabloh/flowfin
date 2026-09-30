@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { decideJoin } from './_membershipRules.ts';
+import { loadUserMemberships } from './_userMemberships.ts';
 
+// Joining by code NEVER grants access: it files a `pending` request that a
+// family admin must approve (approveMember, which also chooses the role).
+// One user = one family: 409 if the caller already belongs to (or is waiting
+// on) a different one. The only place this writes User.family_id is the
+// idempotent "you are already an approved member of THIS family" repair.
 export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -31,22 +38,24 @@ export async function handle(req: Request): Promise<Response> {
     }
     const family = families[0];
 
-    // Check for existing membership
-    const existingByEmail = await base44.asServiceRole.entities.FamilyMembership.filter({
-      family_id: family.id,
-      user_email: user_email.trim().toLowerCase(),
-    });
+    const existing = await loadUserMemberships(base44.asServiceRole, user);
+    const decision = decideJoin(existing, family.id);
 
-    const alreadyApproved = existingByEmail.find(m => m.status === 'approved');
-    if (alreadyApproved) {
-      const userData = { ...(user.data || {}), family_id: family.id };
+    if (decision.kind === 'conflict') {
+      return Response.json({ error: decision.message, code: decision.code }, { status: 409 });
+    }
+
+    if (decision.kind === 'already_member') {
+      // Repair the persisted pointer from the STORED user, then answer. Does
+      // not touch the membership: approval already happened.
+      const users = await base44.asServiceRole.entities.User.filter({ id: user.id });
+      const userData = { ...(users?.[0]?.data || user.data || {}), family_id: family.id };
       delete userData.data;
       await base44.asServiceRole.entities.User.update(user.id, { data: userData });
       return Response.json({ success: true, already_member: true });
     }
 
-    const alreadyPending = existingByEmail.find(m => m.status === 'pending');
-    if (alreadyPending) {
+    if (decision.kind === 'already_pending') {
       return Response.json({ success: true, pending: true });
     }
 
@@ -55,7 +64,8 @@ export async function handle(req: Request): Promise<Response> {
       return Response.json({ error: 'Esta familia está suspendida. Contacta al administrador.' }, { status: 403 });
     }
 
-    // Create pending membership (requires admin approval)
+    // Create pending membership (requires admin approval). Role and status
+    // are fixed here: the requester chooses neither.
     await base44.asServiceRole.entities.FamilyMembership.create({
       family_id: family.id,
       user_id: user.id,

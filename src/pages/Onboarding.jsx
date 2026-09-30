@@ -74,12 +74,21 @@ export default function Onboarding() {
       subs.forEach(s => flatSubs.push({ ...s, _category_name: catName }));
     });
 
-    const res = await base44.functions.invoke('family', { action: 'createFamily',
-      family_name: familyName.trim(),
-      default_categories: defaultCategories,
-      default_subcategories: flatSubs,
-      default_payment_methods: defaultPaymentMethods,
-    });
+    let res;
+    try {
+      res = await base44.functions.invoke('family', { action: 'createFamily',
+        family_name: familyName.trim(),
+        default_categories: defaultCategories,
+        default_subcategories: flatSubs,
+        default_payment_methods: defaultPaymentMethods,
+      });
+    } catch (err) {
+      // 409: ya perteneces a una familia / tienes una solicitud pendiente.
+      setError(err?.response?.data?.error || 'No se pudo crear la familia. Intenta de nuevo.');
+      setLoading(false);
+      if (err?.response?.data?.code === 'pending_elsewhere') setPendingApproval(true);
+      return;
+    }
 
     if (res.data?.error) {
       setError(res.data.error);
@@ -98,6 +107,21 @@ export default function Onboarding() {
 
   const finishOnboarding = () => {
     globalThis.location.reload();
+  };
+
+  // Retira la solicitud pendiente propia para poder pedir otra familia o crear la tuya.
+  const handleCancelRequest = async () => {
+    setLoading(true);
+    try {
+      await base44.functions.invoke('family', { action: 'cancelJoinRequest' });
+      setPendingApproval(false);
+      setMode(null);
+      setError('');
+    } catch (err) {
+      setError(err?.response?.data?.error || 'No se pudo cancelar la solicitud.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleJoin = async () => {
@@ -126,8 +150,15 @@ export default function Onboarding() {
         track('invite_join_failed', { had_referrer: Boolean(referrerId), reason: res.data?.error || 'unknown' });
         setError(res.data?.error || 'Código no encontrado. Verifica e intenta de nuevo.');
       }
-    } catch {
-      setError('Error al conectar. Intenta de nuevo.');
+    } catch (err) {
+      const data = err?.response?.data;
+      if (data?.code === 'already_in_family') {
+        // Ya tiene familia aprobada: refrescar para entrar a ella.
+        refetchMembership();
+      } else if (data?.code === 'pending_elsewhere') {
+        setPendingApproval(true);
+      }
+      setError(data?.error || 'Error al conectar. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -144,6 +175,9 @@ export default function Onboarding() {
           <p className="text-muted-foreground text-sm">Tu solicitud fue enviada al administrador de la familia. Una vez que la apruebe, podrás acceder a la app.</p>
           <button onClick={() => refetchMembership()} className="mt-6 w-full py-3 rounded-2xl bg-muted text-muted-foreground font-medium text-sm">
             Ya me aprobaron, recargar
+          </button>
+          <button onClick={handleCancelRequest} disabled={loading} className="mt-2 w-full py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50">
+            Cancelar solicitud
           </button>
         </div>
       </div>

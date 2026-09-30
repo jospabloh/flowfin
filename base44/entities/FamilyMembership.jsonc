@@ -4,15 +4,36 @@
   "properties": {
     "family_id": {
       "type": "string",
-      "description": "ID de la familia"
+      "description": "BLOQUEO (escritura, M\u00f3dulo 14, 2026-09-30): s\u00f3lo servicio. Si se quita, un usuario reasigna su propia membres\u00eda a otra familia por SDK directo. Lo escriben selfJoin/createFamily/approveMember (asServiceRole). | ID de la familia",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "user_id": {
       "type": "string",
-      "description": "ID del usuario"
+      "description": "BLOQUEO (escritura, 2026-09-30): s\u00f3lo servicio. Si se quita, un usuario re-apunta la membres\u00eda a otra persona. | ID del usuario",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "user_email": {
       "type": "string",
-      "description": "Email del usuario"
+      "description": "BLOQUEO (escritura, 2026-09-30): s\u00f3lo servicio. Si se quita, se falsifica a qui\u00e9n pertenece la membres\u00eda. | Email del usuario",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "user_name": {
       "type": "string",
@@ -25,7 +46,14 @@
         "member"
       ],
       "default": "member",
-      "description": "Rol dentro de la familia"
+      "description": "BLOQUEO (escritura, 2026-09-30): s\u00f3lo servicio. Si se quita, cualquier miembro (o solicitante pendiente) se pone admin de su familia por SDK directo. El rol lo fija createFamily (admin) o approveMember (lista blanca member|admin). | Rol dentro de la familia",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "status": {
       "type": "string",
@@ -35,7 +63,14 @@
         "rejected"
       ],
       "default": "pending",
-      "description": "Estado de la membres\u00eda"
+      "description": "BLOQUEO (escritura, 2026-09-30): s\u00f3lo servicio. Si se quita, un solicitante pendiente se auto-aprueba por SDK directo y salta la aprobaci\u00f3n del admin. Lo escriben selfJoin (pending), approveMember (approved) y rejectMember (rejected). | Estado de la membres\u00eda",
+      "rls": {
+        "write": {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      }
     },
     "tutorial_state": {
       "type": "object",
@@ -72,16 +107,9 @@
   ],
   "rls": {
     "create": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "data.user_id": "{{user.id}}"
-        }
-      ]
+      "user_condition": {
+        "role": "admin"
+      }
     },
     "read": {
       "$or": [

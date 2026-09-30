@@ -1,4 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { decideCreate } from './_membershipRules.ts';
+import { loadUserMemberships } from './_userMemberships.ts';
 
 export async function handle(req: Request): Promise<Response> {
   try {
@@ -10,6 +12,17 @@ export async function handle(req: Request): Promise<Response> {
 
     if (!family_name?.trim()) {
       return Response.json({ error: 'family_name requerido' }, { status: 400 });
+    }
+
+    // One user = one family. An approved (or pending) membership blocks
+    // creating another BEFORE anything is written, so a refused call leaves no
+    // orphan family with a live join code. The platform owner (role 'admin',
+    // cross-tenant by design) is exempt.
+    if (user.role !== 'admin') {
+      const decision = decideCreate(await loadUserMemberships(base44.asServiceRole, user));
+      if (decision.kind === 'conflict') {
+        return Response.json({ error: decision.message, code: decision.code }, { status: 409 });
+      }
     }
 
     const clean = family_name.toUpperCase().replace(/\s+/g, '').slice(0, 6);
