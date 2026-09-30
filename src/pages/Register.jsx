@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Loader2 } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
-import { toast } from "@/components/ui/use-toast";
+import VerifyEmailStep from "@/components/VerifyEmailStep";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { otpErrorMessage, needsEmailVerification } from "@/lib/emailVerification";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -18,7 +18,6 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,38 +31,14 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Error al registrarse");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
+      // Cuenta ya creada pero sin verificar: pedir el código en vez de un error.
+      if (needsEmailVerification(err)) {
+        setShowOtp(true);
+      } else {
+        setError(otpErrorMessage(err, "No se pudo crear la cuenta. Revisa los datos e intenta de nuevo."));
       }
-      window.location.href = safeReturnTo();
-    } catch (err) {
-      setError(err.message || "Código incorrecto");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    setError("");
-    try {
-      await base44.auth.resendOtp(email);
-      toast({
-        title: "Código enviado",
-        description: "Revisa tu correo para el nuevo código.",
-      });
-    } catch (err) {
-      setError(err.message || "Error al reenviar el código");
     }
   };
 
@@ -75,53 +50,19 @@ export default function Register() {
 
   if (showOtp) {
     return (
-      <AuthLayout
-        title="Verifica tu correo"
-        subtitle={`Enviamos un código a ${email}`}
-      >
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-            {error}
-          </div>
-        )}
-        <div className="flex justify-center mb-6">
-          <InputOTP
-            maxLength={6}
-            value={otpCode}
-            onChange={setOtpCode}
-            autoFocus
-            autoComplete="one-time-code"
-          >
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
-        <Button
-          className="w-full h-12 font-medium"
-          onClick={handleVerify}
-          disabled={loading || otpCode.length < 6}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verificando...
-            </>
-          ) : (
-            "Verificar"
-          )}
-        </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
-          ¿No recibiste el código?{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
-            Reenviar
-          </button>
-        </p>
+      <AuthLayout title="Verifica tu correo" subtitle={`Enviamos un código a ${email}`}>
+        <VerifyEmailStep
+          email={email}
+          password={password}
+          onVerified={({ needsLogin }) => {
+            window.location.href = needsLogin ? "/login" : safeReturnTo();
+          }}
+          onCancel={() => {
+            setShowOtp(false);
+            setPassword("");
+            setConfirmPassword("");
+          }}
+        />
       </AuthLayout>
     );
   }

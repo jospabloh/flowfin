@@ -94,17 +94,19 @@ export default function FamilyAdmin() {
 
   // Approve membership mutation
   const approveMemberMutation = useMutation({
-    mutationFn: (m) => base44.functions.invoke('family', { action: 'approveMember',
+    // El servidor toma a la persona de la membresía guardada y valida el rol
+    // contra su lista blanca (member | admin).
+    mutationFn: ({ m, role }) => base44.functions.invoke('family', { action: 'approveMember',
       membership_id: m.id,
       family_id: m.family_id,
-      target_user_id: m.user_id,
+      role,
     }),
-    onMutate: async (m) => {
+    onMutate: async ({ m, role }) => {
       await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
       const previous = queryClient.getQueryData(['memberships', familyId]);
       // Optimistic: update membership to approved
       queryClient.setQueryData(['memberships', familyId], (old = []) =>
-        old.map(mem => mem.id === m.id ? { ...mem, status: 'approved' } : mem)
+        old.map(mem => mem.id === m.id ? { ...mem, status: 'approved', role } : mem)
       );
       return { previous };
     },
@@ -112,7 +114,7 @@ export default function FamilyAdmin() {
       if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({
         title: 'Error al aprobar',
-        description: err?.message || 'No se pudo aprobar la solicitud.',
+        description: err?.response?.data?.error || err?.message || 'No se pudo aprobar la solicitud.',
         variant: 'destructive',
       });
     },
@@ -121,7 +123,10 @@ export default function FamilyAdmin() {
 
   // Reject membership mutation
   const rejectMemberMutation = useMutation({
-    mutationFn: (m) => base44.entities.FamilyMembership.update(m.id, { status: 'rejected' }),
+    mutationFn: (m) => base44.functions.invoke('family', { action: 'rejectMember',
+      membership_id: m.id,
+      family_id: m.family_id,
+    }),
     onMutate: async (m) => {
       await queryClient.cancelQueries({ queryKey: ['memberships', familyId] });
       const previous = queryClient.getQueryData(['memberships', familyId]);
@@ -135,7 +140,7 @@ export default function FamilyAdmin() {
       if (ctx?.previous) queryClient.setQueryData(['memberships', familyId], ctx.previous);
       toast({
         title: 'Error al rechazar',
-        description: err?.message || 'No se pudo rechazar la solicitud.',
+        description: err?.response?.data?.error || err?.message || 'No se pudo rechazar la solicitud.',
         variant: 'destructive',
       });
     },
@@ -185,7 +190,9 @@ export default function FamilyAdmin() {
     },
   });
 
-  const handleApprove = (m) => approveMemberMutation.mutate(m);
+  // Rol que tomará cada solicitante al aprobarlo (por defecto, miembro).
+  const [chosenRoles, setChosenRoles] = useState({});
+  const handleApprove = (m) => approveMemberMutation.mutate({ m, role: chosenRoles[m.id] || 'member' });
   const handleReject = (m) => rejectMemberMutation.mutate(m);
   const handleRemoveMember = async (m) => {
     if (await confirmDelete(`¿Eliminar a ${m.user_name || m.user_email} de la familia?`)) {
@@ -340,6 +347,16 @@ export default function FamilyAdmin() {
                   </p>
                   <p className="text-xs text-muted-foreground">{m.user_email}</p>
                 </div>
+
+                <select
+                  aria-label={`Rol de ${m.user_name || m.user_email}`}
+                  value={chosenRoles[m.id] || 'member'}
+                  onChange={e => setChosenRoles(r => ({ ...r, [m.id]: e.target.value }))}
+                  className="text-xs bg-muted rounded-lg px-2 py-1.5 text-foreground outline-none focus:ring-2 focus:ring-primary/30 border border-border"
+                >
+                  <option value="member">Miembro</option>
+                  <option value="admin">Administrador</option>
+                </select>
 
                 <button
                   onClick={() =>

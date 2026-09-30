@@ -12,6 +12,8 @@ import { getHandler } from './handlers/index.ts';
 // `{"error":"family: unknown action 'switchFamily'"}` — the new action was
 // never actually shipped despite two "unchanged" deploy reports. Touching
 // this file forces the CLI to see a real diff. See CLAUDE.md.
+// 2026-09-30: touched again for approveMember (role choice), rejectMember,
+// cancelJoinRequest and the one-family rule in selfJoin/createFamily.
 Deno.serve(async (req) => {
   let action = '';
   try {

@@ -1,43 +1,67 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { canApprove, normalizeAssignableRole } from './_membershipRules.ts';
+import { isFamilyAdmin, loadUserMemberships } from './_userMemberships.ts';
 
+// Approve a pending join request and give the person a role.
+//
+// Trust model: nothing about WHO is being approved comes from the request.
+// The membership is re-read from storage, must belong to the caller's family
+// and still be `pending`; the person is `membership.user_id`, never a
+// client-sent id. `role` comes from the client but only from a closed list
+// (member | admin); the platform role is not on that list.
 export async function handle(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { membership_id, family_id, target_user_id } = await req.json();
+    const { membership_id, family_id, role } = await req.json();
 
-    if (!membership_id || !family_id || !target_user_id) {
+    if (!membership_id || !family_id) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Verify caller is app admin OR family admin
-    if (user.role !== 'admin') {
-      const callerMemberships = await base44.asServiceRole.entities.FamilyMembership.filter({
-        family_id,
-        user_id: user.id,
-        role: 'admin',
-        status: 'approved',
-      });
-      if (!callerMemberships.length) {
-        return Response.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    const chosenRole = normalizeAssignableRole(role);
+    if (!chosenRole) {
+      return Response.json({ error: 'Rol no permitido' }, { status: 400 });
     }
 
-    // Verify the membership actually belongs to the claimed family_id
-    const memberships = await base44.asServiceRole.entities.FamilyMembership.filter({ id: membership_id });
+    const sr = base44.asServiceRole;
+
+    // Verify caller is app admin OR an approved admin of THIS family
+    if (!(await isFamilyAdmin(sr, user, family_id))) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Stored membership: must belong to the claimed family and be pending
+    const memberships = await sr.entities.FamilyMembership.filter({ id: membership_id });
     const targetMembership = memberships?.[0];
-    if (!targetMembership || targetMembership.family_id !== family_id) {
-      return Response.json({ error: 'Forbidden: membership does not belong to this family' }, { status: 403 });
+    // canApprove also lets an already-approved row of this family through, so a
+    // retry after a half-finished approve can complete the pointer write below.
+    // Two admins approving the same request at once is not guarded (no unique
+    // constraint / transaction in Base44): both writes are idempotent and end in
+    // the same state, the second just re-writes the same pointer.
+    const decision = canApprove(targetMembership, family_id);
+    if (!decision.ok) {
+      return Response.json({ error: decision.error }, { status: decision.status });
     }
 
-    // Fetch family to check billing status and member limit
-    const familyRecords = await base44.asServiceRole.entities.Family.filter({ id: family_id });
+    // One user = one family: refuse if the person is already approved in a
+    // different family (they must leave it first).
+    const targetUserId = targetMembership.user_id;
+    const theirs = await loadUserMemberships(sr, { id: targetUserId, email: targetMembership.user_email });
+    if (theirs.some((m) => m.status === 'approved' && m.family_id !== family_id)) {
+      return Response.json({
+        error: 'Esta persona ya pertenece a otra familia. Debe salir de ella antes de unirse.',
+        code: 'already_in_family',
+      }, { status: 409 });
+    }
+
+    // Fetch family to check member limit
+    const familyRecords = await sr.entities.Family.filter({ id: family_id });
     const currentFamily = familyRecords?.[0];
-    if (currentFamily) {
-      // Check member limit
-      const approvedMembers = await base44.asServiceRole.entities.FamilyMembership.filter({
+    if (currentFamily && !decision.alreadyApproved) {
+      const approvedMembers = await sr.entities.FamilyMembership.filter({
         family_id,
         status: 'approved',
       });
@@ -52,41 +76,29 @@ export async function handle(req: Request): Promise<Response> {
       }
     }
 
-    // Update membership status
-    await base44.asServiceRole.entities.FamilyMembership.update(membership_id, { status: 'approved' });
-
-    // Fix user's family_id using direct REST API to avoid SDK deep-merge nesting bug
-    const appId = Deno.env.get('BASE44_APP_ID');
-    const apiBase = `https://api.base44.com/api/apps/${appId}`;
-
-    // Get the current raw user data first
-    const getRes = await fetch(`${apiBase}/entities/User/${target_user_id}`, {
-      headers: { 'X-User-Token': user.api_key || '', 'Content-Type': 'application/json' },
-    });
-
-    // Build flat data payload — role preserved, family_id at correct level
-    let currentRole = 'user';
-    if (getRes.ok) {
-      const rawUser = await getRes.json();
-      // Dig out role regardless of nesting
-      currentRole = rawUser.data?.role || rawUser.data?.data?.role || 'user';
+    // On a retry (already approved) keep the stored role: the retry only
+    // reconciles the User pointer, it must not silently change what the first
+    // approve granted.
+    if (!decision.alreadyApproved) {
+      await sr.entities.FamilyMembership.update(membership_id, { status: 'approved', role: chosenRole });
     }
 
-    // Use REST PATCH directly to write the full data object as a flat replace
-    const patchRes = await fetch(`${apiBase}/entities/User/${target_user_id}`, {
-      method: 'PUT',
-      headers: { 'X-User-Token': user.api_key || '', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { role: currentRole, family_id } }),
-    });
-
-    if (!patchRes.ok) {
-      // Fallback: use SDK (may still nest, but better than nothing)
-      await base44.asServiceRole.entities.User.update(target_user_id, {
-        data: { role: currentRole, family_id }
-      });
+    // Point the person's User at this family. Flat data payload built from the
+    // STORED user (never the caller's view), same pattern as createFamily.
+    if (targetUserId) {
+      const users = await sr.entities.User.filter({ id: targetUserId });
+      if (users?.[0]) {
+        const userData = { ...(users[0].data || {}), family_id };
+        delete userData.data;
+        await sr.entities.User.update(targetUserId, { data: userData });
+      }
     }
 
-    return Response.json({ success: true });
+    return Response.json({
+      success: true,
+      role: decision.alreadyApproved ? (targetMembership.role ?? chosenRole) : chosenRole,
+      ...(decision.alreadyApproved ? { reconciled: true } : {}),
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

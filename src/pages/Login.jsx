@@ -9,6 +9,8 @@ import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
 import { getRememberedIdentity, clearRememberedIdentity } from "@/lib/lastIdentity";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import VerifyEmailStep from "@/components/VerifyEmailStep";
+import { needsEmailVerification } from "@/lib/emailVerification";
 
 export default function Login() {
   const [remembered, setRemembered] = useState(() => getRememberedIdentity());
@@ -16,6 +18,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const useOtherAccount = () => {
     clearRememberedIdentity();
@@ -31,7 +34,13 @@ export default function Login() {
       await base44.auth.loginViaEmailPassword(email, password);
       window.location.href = safeReturnTo();
     } catch (err) {
-      setError(err.message || "Correo o contraseña incorrectos");
+      if (needsEmailVerification(err)) {
+        // Cuenta sin verificar: abrir el paso del código (reenvía uno nuevo).
+        try { await base44.auth.resendOtp(email); } catch { /* el paso permite reenviar a mano */ }
+        setVerifying(true);
+      } else {
+        setError(err.message || "Correo o contraseña incorrectos");
+      }
     } finally {
       setLoading(false);
     }
@@ -44,6 +53,26 @@ export default function Login() {
     // lands the user on "/" instead of back on the consent screen.
     base44.auth.loginWithProvider("google", safeReturnTo());
   };
+
+  if (verifying) {
+    return (
+      <AuthLayout icon={LogIn} title="Verifica tu correo" subtitle="Tu cuenta aún no está activada">
+        <VerifyEmailStep
+          email={email}
+          password={password}
+          onVerified={({ needsLogin }) => {
+            if (needsLogin) {
+              setVerifying(false);
+              setError("Correo verificado. Inicia sesión.");
+            } else {
+              window.location.href = safeReturnTo();
+            }
+          }}
+          onCancel={() => setVerifying(false)}
+        />
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
