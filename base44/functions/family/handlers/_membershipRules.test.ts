@@ -3,6 +3,7 @@
 // `deno test base44/functions/` where deno.land/jsr.io are blocked.
 
 import {
+  canApprove,
   canDecideOn,
   decideCreate,
   decideJoin,
@@ -76,4 +77,22 @@ Deno.test("canDecideOn: only a stored pending row of the same family", () => {
 Deno.test("dedupeMemberships merges rows found by user_id and by e-mail", () => {
   const rows = [{ id: "a" }, { id: "b" }, { id: "a" }];
   eq(dedupeMemberships(rows).length, 2);
+});
+
+Deno.test("canApprove: pending proceeds; an approved row of the same family completes the retry", () => {
+  eq(canApprove({ family_id: "F1", status: "pending" }, "F1"), { ok: true, alreadyApproved: false });
+  eq(canApprove({ family_id: "F1", status: "approved" }, "F1"), { ok: true, alreadyApproved: true });
+});
+
+Deno.test("canApprove: still refuses foreign, missing, rejected and cancelled rows", () => {
+  eq(canApprove(undefined, "F1").ok, false);
+  const foreign = canApprove({ family_id: "F2", status: "approved" }, "F1");
+  eq(foreign.ok, false);
+  eq((foreign as { status: number }).status, 403);
+  eq((canApprove({ family_id: "F1", status: "rejected" }, "F1") as { status: number }).status, 409);
+  eq(canApprove({ family_id: "F1", status: "cancelled" }, "F1").ok, false);
+});
+
+Deno.test("canDecideOn (used by reject) still refuses an approved row", () => {
+  eq((canDecideOn({ family_id: "F1", status: "approved" }, "F1") as { status: number }).status, 409);
 });

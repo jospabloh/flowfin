@@ -1443,3 +1443,18 @@ con un segundo usuario. Los handlers importan `npm:@base44/sdk`, no se ejecutaro
    candado nuevo y el sitio viejo, "rechazar" ya no podía funcionar de todos modos,
    pero no debe adelantarse a las funciones. Después relee `FamilyMembership` con
    `list_entity_schemas` y confirma `create` admin-only y los cinco candados.
+
+### Seguimiento de la revisión de Codex (2026-09-30)
+
+`approveMember` ahora es reintentable: si una aprobación escribió la membresía pero
+falló antes de escribir `User.data.family_id`, el reintento del admin ya no responde
+409 para siempre. `canApprove` (`_membershipRules.ts`) deja pasar una fila ya
+`approved` de la misma familia y el handler solo completa el puntero del usuario
+(sin cambiar el rol guardado y sin revisar el límite, porque esa fila ya cuenta). Las
+filas ajenas, inexistentes, `rejected` y `cancelled` se siguen rechazando, y
+`rejectMember` conserva `canDecideOn`, así que un reintento nunca rechaza una fila
+aprobada. Dos admins aprobando a la vez no está protegido (Base44 no tiene
+transacciones ni restricción única): las escrituras son idempotentes y terminan en el
+mismo estado; queda como comentario. Verificado: `lint` (45/45), `validate:rls`,
+`permissions:check`, `deno lint` y `deno test base44/functions/` (37/0). No verificado
+contra Base44 en vivo.

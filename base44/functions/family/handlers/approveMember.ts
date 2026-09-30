@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
-import { canDecideOn, normalizeAssignableRole } from './_membershipRules.ts';
+import { canApprove, normalizeAssignableRole } from './_membershipRules.ts';
 import { isFamilyAdmin, loadUserMemberships } from './_userMemberships.ts';
 
 // Approve a pending join request and give the person a role.
@@ -36,7 +36,12 @@ export async function handle(req: Request): Promise<Response> {
     // Stored membership: must belong to the claimed family and be pending
     const memberships = await sr.entities.FamilyMembership.filter({ id: membership_id });
     const targetMembership = memberships?.[0];
-    const decision = canDecideOn(targetMembership, family_id);
+    // canApprove also lets an already-approved row of this family through, so a
+    // retry after a half-finished approve can complete the pointer write below.
+    // Two admins approving the same request at once is not guarded (no unique
+    // constraint / transaction in Base44): both writes are idempotent and end in
+    // the same state, the second just re-writes the same pointer.
+    const decision = canApprove(targetMembership, family_id);
     if (!decision.ok) {
       return Response.json({ error: decision.error }, { status: decision.status });
     }
@@ -55,7 +60,7 @@ export async function handle(req: Request): Promise<Response> {
     // Fetch family to check member limit
     const familyRecords = await sr.entities.Family.filter({ id: family_id });
     const currentFamily = familyRecords?.[0];
-    if (currentFamily) {
+    if (currentFamily && !decision.alreadyApproved) {
       const approvedMembers = await sr.entities.FamilyMembership.filter({
         family_id,
         status: 'approved',
@@ -71,7 +76,12 @@ export async function handle(req: Request): Promise<Response> {
       }
     }
 
-    await sr.entities.FamilyMembership.update(membership_id, { status: 'approved', role: chosenRole });
+    // On a retry (already approved) keep the stored role: the retry only
+    // reconciles the User pointer, it must not silently change what the first
+    // approve granted.
+    if (!decision.alreadyApproved) {
+      await sr.entities.FamilyMembership.update(membership_id, { status: 'approved', role: chosenRole });
+    }
 
     // Point the person's User at this family. Flat data payload built from the
     // STORED user (never the caller's view), same pattern as createFamily.
@@ -84,7 +94,11 @@ export async function handle(req: Request): Promise<Response> {
       }
     }
 
-    return Response.json({ success: true, role: chosenRole });
+    return Response.json({
+      success: true,
+      role: decision.alreadyApproved ? (targetMembership.role ?? chosenRole) : chosenRole,
+      ...(decision.alreadyApproved ? { reconciled: true } : {}),
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

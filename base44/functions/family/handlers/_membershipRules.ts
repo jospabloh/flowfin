@@ -104,3 +104,22 @@ export function canDecideOn(
   }
   return { ok: true };
 }
+
+// Approve-specific variant of canDecideOn. An approve that wrote the membership
+// but failed before writing User.data.family_id leaves an `approved` row and a
+// person with no pointer; the admin's retry must be able to finish that
+// reconciliation instead of hitting 409 forever. So a row of the same family that
+// is already `approved` is allowed through, flagged `alreadyApproved`, and the
+// handler then only (re)writes the pointer: no role change, no limit check (the
+// row already counts). `rejected`/`cancelled` rows are still refused. Reject keeps
+// using canDecideOn (an approved row must never be rejected by a retry).
+export function canApprove(
+  membership: MembershipLike | undefined | null,
+  familyId: string,
+): { ok: true; alreadyApproved: boolean } | { ok: false; status: number; error: string } {
+  if (membership && membership.family_id === familyId && membership.status === 'approved') {
+    return { ok: true, alreadyApproved: true };
+  }
+  const d = canDecideOn(membership, familyId);
+  return d.ok ? { ok: true, alreadyApproved: false } : d;
+}
