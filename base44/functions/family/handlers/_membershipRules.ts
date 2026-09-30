@@ -123,3 +123,16 @@ export function canApprove(
   const d = canDecideOn(membership, familyId);
   return d.ok ? { ok: true, alreadyApproved: false } : d;
 }
+
+
+// Would deleting `target` leave its family with no approved admin? Only an
+// approved admin row can do that, and only when no OTHER approved admin row
+// exists among `familyRows` (all rows of that family). Used by removeMember so
+// the last admin cannot be removed (there is no way back in without support).
+export function wouldLeaveNoAdmin(
+  target: MembershipLike | undefined | null,
+  familyRows: MembershipLike[],
+): boolean {
+  if (!target || target.status !== 'approved' || target.role !== 'admin') return false;
+  return !familyRows.some((m) => m.id !== target.id && m.status === 'approved' && m.role === 'admin');
+}
