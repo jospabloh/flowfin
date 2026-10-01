@@ -7,6 +7,7 @@ import { handle as getFamilyLicenseInfo } from './getFamilyLicenseInfo.ts';
 import { handle as getMyFamily } from './getMyFamily.ts';
 import { handle as getMyMembership } from './getMyMembership.ts';
 import { handle as linkPersonToMember } from './linkPersonToMember.ts';
+import { handle as listMemberships } from './listMemberships.ts';
 import { handle as rejectMember } from './rejectMember.ts';
 import { handle as removeMember } from './removeMember.ts';
 import { handle as selfJoin } from './selfJoin.ts';
@@ -24,6 +25,7 @@ const HANDLERS: Record<string, Handler> = {
   getMyFamily,
   getMyMembership,
   linkPersonToMember,
+  listMemberships,
   rejectMember,
   removeMember,
   selfJoin,
