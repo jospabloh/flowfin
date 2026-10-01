@@ -35,7 +35,14 @@ export default function FamilyAdmin() {
 
   const { data: memberships = [] } = useQuery({
     queryKey: ['memberships', familyId],
-    queryFn: () => base44.entities.FamilyMembership.filter({ family_id: familyId }),
+    // Server-side read (not a direct entity filter): the RLS branch this
+    // used to rely on (`data.family_id: {{user.data.family_id}}`) does not
+    // reliably match for the family's own admin — see listMemberships.ts.
+    queryFn: async () => {
+      const res = await base44.functions.invoke('family', { action: 'listMemberships', family_id: familyId });
+      if (res?.data?.error) throw new Error(res.data.error);
+      return res?.data?.memberships || [];
+    },
     enabled: !!familyId,
     staleTime: 30_000,
   });
