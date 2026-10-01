@@ -14,6 +14,12 @@ import { getHandler } from './handlers/index.ts';
 // this file forces the CLI to see a real diff. See CLAUDE.md.
 // 2026-09-30: touched again for approveMember (role choice), rejectMember,
 // cancelJoinRequest and the one-family rule in selfJoin/createFamily.
+// 2026-10-01: touched again for listMemberships — a POST directly against
+// the deployed function right after merging it (via the Base44 platform
+// API's /deploy, not the CLI) answered `unknown action 'listMemberships'`,
+// same symptom as above. The platform API's deploy has the same
+// stale-handlers gap as `functions deploy --force` did.
+
 Deno.serve(async (req) => {
   let action = '';
   try {
