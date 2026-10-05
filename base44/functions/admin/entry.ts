@@ -1,3 +1,8 @@
+// Touched 2026-10-05 to force a real redeploy of handlers/deleteAccount.ts's
+// fix (#248): this repo's `functions deploy --force` change detector only
+// looks at this file's own content, not recursively into handlers/, so an
+// edit confined to a handler can report "unchanged" and skip redeploying —
+// same defect already documented in CLAUDE.md for family/entry.ts (#247).
 import { getHandler } from './handlers/index.ts';
 
 Deno.serve(async (req) => {
