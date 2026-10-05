@@ -1,7 +1,7 @@
 {
   "name": "flowfin",
   "private": true,
-  "version": "2.22.7",
+  "version": "2.22.8",
   "type": "module",
   "description": "FlowFin: AI-powered financial management for families",
   "scripts": {

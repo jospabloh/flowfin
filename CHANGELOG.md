@@ -12,6 +12,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.22.8] - 2026-10-05
+
+### 🐛 Fixed
+
+- **Self-service account deletion was broken for every non-platform-admin
+  user.** `base44/functions/admin/handlers/deleteAccount.ts` cleared the
+  caller's `User.family_id` with `base44.auth.updateMe({ family_id: null,
+  admin_family_ids: null })` — a write made with the caller's own user
+  token. `User.family_id` has carried a field-level `rls.write` lock
+  (`role:admin` only — i.e. service role or the platform owner) since the
+  module-14 fix shipped in 2.22.3 (2026-08-24), precisely so a regular
+  user can't reassign it themselves; that lock applies to `auth.updateMe()`
+  exactly as it does to `entities.User.update()` (already noted for
+  `syncUserFamily`'s own identical call in `CLAUDE.md`, 2026-09-30). So for
+  every real FlowFin account (platform role `user`, not `admin`) that write
+  threw, and the whole request returned a 500 — **after** the handler had
+  already deleted the caller's `FamilyMembership` rows a few lines above,
+  leaving the account half-deleted (no membership, but `family_id` still
+  pointing at the now-orphaned family) with no way to retry cleanly from
+  the UI. Fixed by writing through `asServiceRole` instead, mirroring the
+  same spread-and-strip pattern `removeMember.ts` already uses for the
+  identical field. `admin_family_ids` was also dropped — it isn't a
+  declared property on the `User` schema, so it was a silent no-op.
+  Found during this cycle's review of the recent family/membership RLS
+  tightening (PRs #244–#247); this particular break predates those PRs
+  (it's been live since 2026-08-24) and was never caught before because
+  the handler's own tests don't exercise a live, non-admin RLS write.
+
+### 🔒 Security
+
+Scheduled full-portfolio audit (security, RLS/tenant isolation, code
+quality, granular permissions, dependencies, automated tests,
+changelog/versioning). Verification suite (`npm run lint` incl.
+`validate:functions` — 45/45 endpoints, margin 0; `npm run build` incl.
+`permissions-check.mjs`; `npm run validate:rls` — 36 entities; `deno lint
+base44/functions/` — 129 files; `deno test base44/functions/` — 38/38
+passed) all green before and after this pass, with the fix above included.
+
+- **Dependency vulnerabilities fixed (non-breaking):** `axios` (transitive
+  via `@base44/sdk`, several high-severity advisories — prototype
+  pollution, ReDoS, SSRF-adjacent proxy bypasses), `dompurify` (transitive
+  via `jspdf`/`posthog-js`, DOM XSS via a detached-subtree event handler),
+  `moment` (path traversal via a crafted locale name), and top-level
+  `brace-expansion` (ReDoS/stack-exhaustion) — all resolved by `npm audit
+  fix` within existing semver ranges, no API changes. `braces` (dev-only,
+  transitive via `tailwindcss`'s file watcher, no fix published yet) and
+  `react-router` (moderate, needs a breaking 6.x→7.x jump with no frontend
+  test runner in this repo to verify against) remain deferred, same as
+  every prior cycle; FlowFin's own `react-router` exposure was already
+  checked and closed in the 2.22.5 entry below.
+- **Reviewed the four PRs merged since the 2.22.7 audit** (#244–#247:
+  email-OTP verification on register/login, one-family-per-user
+  enforcement, role selection + reject/cancel on membership approval, new
+  RLS write-locks on all five `FamilyMembership` fields, idempotent
+  `approveMember` retries, a last-admin guard on `removeMember` and
+  `deleteAccount`, and a new service-role `listMemberships` action) for
+  correctness and tenant-isolation risk, beyond what those PRs' own commit
+  messages verified locally:
+  - `listMemberships` re-derives the caller's authorization from storage
+    via `isFamilyAdmin` (approved admin row for the exact requested
+    `family_id`, or platform owner) — a client-supplied `family_id` alone
+    can't read another family's memberships. Confirmed **deployed and
+    routed** against the live endpoint (`{"action":"listMemberships"}`
+    returns "Authentication required", not "unknown action" — the
+    known `functions deploy --force` "unchanged" false-negative this repo's
+    `CLAUDE.md` already documents did not recur here), and confirmed the
+    deployed frontend's `FamilyAdmin` chunk actually calls it.
+  - The new `FamilyMembership` field locks (`family_id`, `user_id`,
+    `user_email`, `role`, `status` → `role:admin` only) are live on the
+    deployed schema (`list_entity_schemas`), matching the repo.
+  - `approveMember`'s retry-idempotency and the last-admin guard
+    (`wouldLeaveNoAdmin`) are covered by `_membershipRules.test.ts` (12
+    tests, all passing) and read correctly: a retry only completes an
+    already-approved same-family row without changing its stored role, and
+    still rejects foreign/missing/rejected/cancelled rows.
+  - The email-OTP step (`VerifyEmailStep.jsx`) only ever proceeds past
+    Base44's own `auth.verifyOtp()` on success; no local bypass path.
+  - No dead code left behind: `FamilyAdmin.jsx` has no remaining direct
+    `FamilyMembership` entity calls after the `listMemberships` migration.
+- `npm audit`: see above — net improvement this cycle (12 → 2 outstanding
+  advisories, both deferred for documented reasons).
+- Secrets/env hygiene checked: no `.env*` files tracked in git, no
+  hardcoded API keys/passwords/tokens found in application code.
+
 ## [2.22.7] - 2026-09-28
 
 ### 🔒 Security
