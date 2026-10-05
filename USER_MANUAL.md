@@ -1,7 +1,7 @@
 # FlowFin User Manual
 
-**Version**: 2.20.0
-**Last Updated**: July 6, 2026
+**Version**: 2.22.8
+**Last Updated**: October 5, 2026
 **Status**: BETA (Development Stage)
 
 ---
@@ -322,13 +322,37 @@ Finia is FlowFin's intelligent financial assistant powered by AI.
 ## Family Features
 
 ### Setting Up Family
-1. Go to Family Settings (requires family admin role)
-2. Click **"Invite Family Members"**
-3. Enter email addresses of family members
-4. Set roles for each member:
-   - **Admin**: Full access, can invite/remove members
-   - **Editor**: Can create/edit transactions and budgets
-   - **Viewer**: Read-only access
+
+FlowFin families are joined **by code**, not by email invite — there is no
+"Invite Family Members" flow. There are only two family-level roles,
+**Administrador** and **Miembro** (a separate platform-level Admin role
+exists only for FlowFin's own operators — see **Waitlist Admin** below).
+
+**Creating a family** (first person, becomes its admin):
+1. After signing up and verifying your email (a 6-digit code is sent — see
+   **Latest Updates (v2.22.8)** below), choose **"Crear familia"**
+   on the onboarding screen and name it.
+2. Your family gets a unique join code (e.g. `GARCIA123`). Find it anytime
+   in **Mi Familia** / Family Admin to share with the people you want to add.
+
+**Joining an existing family:**
+1. On the onboarding screen, choose **"Unirse a una familia"** and enter
+   the join code.
+2. Your request goes to **pending** — you'll see "Solicitud enviada" and
+   can cancel it yourself if you entered the wrong code.
+3. **A family admin must approve you** before you're in. Nothing you do
+   grants yourself access — approval always comes from the family's side.
+4. You can only have one active family at a time, and only one pending
+   request: trying to join or create a second family while you already
+   belong to one (or have a request pending elsewhere) is blocked.
+
+**Approving or rejecting a request** (family admin, in **Mi Familia**):
+- Each pending request shows a role selector (**Miembro** / **Administrador**)
+  next to it — pick the role *before* approving, since that's the role the
+  person gets.
+- The ✅ button approves; the ❌ button rejects. A rejected request doesn't
+  block that person from requesting again.
+- Approving is capped at your family's licensed member limit.
 
 ### Family Dashboard
 - View all family transactions
@@ -630,6 +654,49 @@ Export your financial data.
 - **Email**: support@flowfin.app
 - **In-App**: Settings → Help → Contact Support
 - **Documentation**: https://docs.flowfin.app
+
+---
+
+## Latest Updates (v2.22.8 Release Notes)
+
+### New since v2.22.0
+
+#### 🔐 Email verification code when you sign up or log in
+
+Registering now sends a 6-digit code to your email; you enter it on the
+next screen to activate your account — if you close that screen before
+entering it, logging in will prompt you for a new code automatically.
+Use **"Reenviar código"** if it doesn't arrive.
+
+#### 👪 One family at a time, and roles chosen on approval
+
+You can now only belong to one family: FlowFin blocks creating or
+requesting to join a second one while you already belong to one or have a
+request pending elsewhere (see **Family Features → Setting Up Family**
+above for the full join/approve flow, which was out of date in this manual
+and has been corrected this release). Family admins now choose **Miembro**
+or **Administrador** at the moment they approve a request, and can
+**reject** a request or **cancel** their own pending one — none of that
+was previously possible without going outside the app.
+
+#### 🔎 Search Movimientos by more than description
+
+The search box on **Movimientos** now also matches amount, date, type,
+payment method, person, rubro, and subrubro — every word you type must
+match somewhere, so `gasto pablo` narrows to Pablo's expenses.
+
+#### 🐛 Fixed: deleting your account
+
+Self-service account deletion (**Settings → Danger Zone → Eliminar
+cuenta**) could fail partway through for most accounts. It's fixed — if
+you tried this before and it failed, it will now work; nothing about how
+you use the feature changed.
+
+#### 🔒 Permission model — no change this release
+
+The admin/member permission model and defaults are unchanged. This
+release's changes are to the join/approval workflow itself (who gets in
+and with what role), not to what a role can do once inside.
 
 ---
 
@@ -990,7 +1057,8 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 2.22.0 | 2026-08-10 | Added v2.22.0 release notes (shared/split expenses); added a "Shared / Split Expenses" how-to under Transaction Management; recapped user-facing changes since v2.20.0. Note: this table's 0.8.0–2.21.0 rows were never backfilled at release time — out of scope for this cycle, see [CHANGELOG.md](./CHANGELOG.md) for the complete history in the meantime. |
+| 2.22.8 | 2026-10-05 | Added v2.22.8 release notes (email verification code on signup/login, one-family-per-user + role-on-approval + reject/cancel, Movimientos search, account-deletion fix). Corrected **Family Features → Setting Up Family**, which still documented a nonexistent invite-by-email flow and a three-tier Admin/Editor/Viewer role model — FlowFin has always joined families by code with only Admin/Member roles. Note: this table's 0.8.0–2.21.0 rows were never backfilled at release time — out of scope for this cycle, see [CHANGELOG.md](./CHANGELOG.md) for the complete history in the meantime. |
+| 2.22.0 | 2026-08-10 | Added v2.22.0 release notes (shared/split expenses); added a "Shared / Split Expenses" how-to under Transaction Management; recapped user-facing changes since v2.20.0. |
 | 0.7.0 | 2026-06-22 | Added v0.7.0 release notes: full dependency security sweep, 0 vulnerabilities; moved v0.6.0 to Previous Releases |
 | 0.6.0 | 2026-06-15 | Added v0.6.0 release notes: xlsx replaced, date picker UX improvement, esbuild advisory accepted; moved v0.5.0 to Previous Releases |
 | 0.5.0 | 2026-06-08 | Added v0.5.0 release notes: SavingsDashboard gate, deny-by-default permissions, RLS hardening |
@@ -999,7 +1067,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 ---
 
-**Last Updated**: August 10, 2026
+**Last Updated**: October 5, 2026
 **Next Update**: alongside the next release that changes user-facing behavior, permissions, or licensing
 
 For the latest updates, visit [CHANGELOG.md](./CHANGELOG.md)
