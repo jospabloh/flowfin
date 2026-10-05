@@ -6,9 +6,18 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.22.8',
+    date: '2026-10-05',
+    label: 'Actual',
+    changes: [
+      'Eliminar tu cuenta fallaba para cualquier persona que no fuera administradora de la plataforma: el paso que limpiaba tu familia usaba una escritura que el candado de seguridad de agosto bloquea para cuentas normales, así que la solicitud terminaba en error justo después de borrar tus membresías de familia. Ya se corrigió — el borrado de cuenta ahora funciona de principio a fin.',
+      'Auditoría periódica completa: seguridad, aislamiento entre familias, calidad de código, permisos, dependencias y pruebas automatizadas. Se revisaron a fondo los cuatro cambios recientes de familia/membresías (verificación por código, una familia por usuario, aprobar con rol, los nuevos candados de escritura) y se confirmó que están bien y ya desplegados. Se corrigieron cuatro vulnerabilidades de dependencias (dos de severidad alta) de forma no disruptiva.',
+    ],
+  },
+  {
     version: '2.22.7',
     date: '2026-09-28',
-    label: 'Actual',
+    label: '',
     changes: [
       'Auditoría periódica completa: seguridad, aislamiento entre familias, calidad de código, permisos, dependencias y pruebas automatizadas — sin errores de aplicación nuevos que corregir. Se confirmó, directamente contra el esquema desplegado (no solo el repositorio), que los candados de aislamiento entre familias siguen en su sitio, y que el ajuste de permisos que Base44 aplicó automáticamente el 25 de septiembre (las notas internas de soporte dejan de ser visibles para la familia, sólo las ve el equipo de soporte) es correcto y ya está desplegado.',
     ],
