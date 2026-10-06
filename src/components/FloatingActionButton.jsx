@@ -26,9 +26,18 @@ function getBounds() {
   };
 }
 
+// The corner theme switcher owns the bottom-right corner (index.css:
+// --theme-switcher-bottom is 5.5rem on phones, 1rem from 768px up; the control
+// is up to 44px tall). The FAB's default spot stacks ABOVE it instead of on top
+// of it — a draggable control can always be moved, but nobody should have to.
+const SWITCHER_SIZE = 44;
+const SWITCHER_GAP = 12;
+
 function getDefaultPos() {
   const b = getBounds();
-  return { x: b.maxX - EDGE, y: b.maxY - EDGE };
+  const switcherBottom = globalThis.innerWidth < 768 ? 88 : 16;
+  const y = globalThis.innerHeight - BTN - (switcherBottom + SWITCHER_SIZE + SWITCHER_GAP);
+  return { x: b.maxX, y: clamp(y, b.minY, b.maxY) };
 }
 
 function loadPos() {

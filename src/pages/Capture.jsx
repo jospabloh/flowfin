@@ -844,7 +844,7 @@ export default function Capture() {
         <div className="relative">
           <input type="text" value={description} onChange={e => handleDescriptionChange(e.target.value)}
             placeholder={type === 'expense' ? '¿En qué gastaste? (gasolina, mandado...)' : '¿De dónde viene? (sueldo, renta...)'}
-            className={`w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 ${description.length > 10 && !categoryId ? 'pr-32' : 'pr-24'}`} />
+            className={`w-full bg-card border border-border rounded-xl px-4 py-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 ${description.length > 10 && !categoryId ? 'pr-40' : 'pr-28'}`} />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             {/* F3.5 — AI extraction button: visible when description is long and category is not yet matched */}
             {description.length > 10 && !categoryId && (
@@ -853,11 +853,11 @@ export default function Capture() {
                 {aiExtracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               </button>
             )}
-            <button onClick={isListening ? stopVoice : startVoice}
+            <button onClick={isListening ? stopVoice : startVoice} aria-label={isListening ? 'Detener dictado' : 'Dictar por voz'}
               className={`flex items-center justify-center p-2 rounded-lg transition-all touch-target ${isListening ? 'bg-expense text-white animate-pulse-ring' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
-            <button onClick={() => fileRef.current?.click()} className="flex items-center justify-center p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
+            <button onClick={() => fileRef.current?.click()} aria-label="Adjuntar foto del ticket" className="flex items-center justify-center p-2 rounded-lg bg-muted text-muted-foreground hover:text-foreground touch-target">
               <Camera className="w-4 h-4" />
             </button>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhoto} />
