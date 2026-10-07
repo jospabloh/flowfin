@@ -224,6 +224,16 @@ export default function Layout() {
   }, []);
 
   const isAssistantPage = location.pathname === '/Assistant';
+
+  // On phones /Assistant is a full-screen chat takeover with its own composer on
+  // the bottom edge; the corner theme switcher would sit on top of the starter
+  // cards there, so index.css hides it for that page below 768px.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isAssistantPage) root.dataset.assistantTakeover = '';
+    else delete root.dataset.assistantTakeover;
+    return () => { delete root.dataset.assistantTakeover; };
+  }, [isAssistantPage]);
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
   // Permission checks for nav items — called unconditionally (React hooks rules)
@@ -381,7 +391,7 @@ export default function Layout() {
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar">
+      <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar show-scrollbar-on-desktop">
         {SIDEBAR_GROUPS.map((group, gi) => {
           const sidebarExpanded = !collapsed || inDrawer;
           const isGroupCollapsed = group.label && sidebarExpanded && !!groupCollapsed[group.label];

@@ -102,7 +102,22 @@ async function measure(page) {
     const out = { overlaps: [], covered: [], clipped: [], overflowX: null };
     const sw = document.documentElement.scrollWidth;
     if (sw > innerWidth + 1) out.overflowX = `scrollWidth ${sw} > ${innerWidth}`;
-    const rect = (e) => e.getBoundingClientRect();
+    // The part of an element a person can actually see: its box cut down by every
+    // overflow-clipping ancestor. An item half-scrolled out of a scrolling list is
+    // only compared by its visible half, not by the box hidden past the list edge.
+    const rect = (e) => {
+      const r = e.getBoundingClientRect();
+      let left = r.left, top = r.top, right = r.right, bottom = r.bottom;
+      for (let a = e.parentElement; a && a !== document.body; a = a.parentElement) {
+        const c = getComputedStyle(a);
+        if (/(hidden|auto|scroll|clip)/.test(c.overflowX + c.overflowY)) {
+          const ar = a.getBoundingClientRect();
+          left = Math.max(left, ar.left); top = Math.max(top, ar.top);
+          right = Math.min(right, ar.right); bottom = Math.min(bottom, ar.bottom);
+        }
+      }
+      return { left, top, right, bottom, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+    };
     // Scrolling content passing under a fixed bar is normal; only compare
     // elements living in the same layer (both fixed, or both in the page flow).
     const fixedRoot = (e) => { for (let a = e; a && a !== document.body; a = a.parentElement) if (getComputedStyle(a).position === 'fixed') return a; return null; };
@@ -123,6 +138,7 @@ async function measure(page) {
     }
     for (const el of els) {
       const r = rect(el);
+      if (r.width < 2 || r.height < 2) continue;
       if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
       const cx = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1), cy = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1);
       const at = document.elementFromPoint(cx, cy);

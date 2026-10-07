@@ -238,6 +238,11 @@ body {
 @media (max-width: 767px) {
   :root { --theme-switcher-bottom: 5.5rem; }
 }
+/* /Assistant on phones is a full-screen chat with its own composer; theme
+   changes stay one tap away on every other screen (see Layout.jsx). */
+@media (max-width: 767px) {
+  html[data-assistant-takeover] [data-theme-switcher] { display: none; }
+}
 
 /* mario_style mapping (src/styles/mario_style.css) — live references so the
    theme and any runtime colour change flow through. */
