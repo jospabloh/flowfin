@@ -12,6 +12,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.23.0] - 2026-10-07
+
+### ✨ Added
+
+- **`mario_style`: visual style option from `jospabloh/acacia-app-standard`
+  (module 27).** Rounder corners (`--radius: 1rem`, every `rounded-*` derives
+  from it), light sky-tint / night-blue backgrounds, Baloo 2 + Nunito type,
+  buttons and cards with relief (`play-press` / `play-card`), and a confetti
+  burst (`celebrate()`) when a scheduled payment, an MSI monthly payment or an
+  investment installment is registered. `Investments.jsx` already had its own
+  `canvas-confetti` burst on that moment; it now uses `celebrate()` instead, so
+  there is one celebration, not two. `FamilyAdmin.jsx` shows the member quota
+  as a block "life bar" (one block per seat, tone from `quotaTone()` in
+  `src/lib/quota.js`; plans above 30 seats draw no bar).
+- Canonical copies, not edited here: `src/styles/mario_style.css`,
+  `src/lib/celebrate.js` and `src/lib/__tests__/celebrate.test.js`.
+- **Frontend unit tests.** vitest + jsdom (`vitest.config.js`, `npm test`, a
+  "Unit tests" step in CI). Runs the canonical `celebrate` test and
+  `quota.test.js`, which pins the life-bar tones.
+  vitest 4 needs Node 20, 22 or 24+, so `package.json` now declares that range
+  in `engines` and USER_MANUAL.md's prerequisite moves from "Node.js 16+"
+  (Node 18 reached end of life in April 2025; CI already runs Node 20).
+
+### 🔄 Changed
+
+- **Text on filled green / red / blue buttons and chips is now dark ink
+  (or black), not white**, wherever dark ink clears WCAG AA 4.5:1 (measured):
+  `--primary-foreground`, `--destructive-foreground`, `--success-foreground`,
+  `--info-foreground`, `--sidebar-primary-foreground` in light; primary,
+  secondary, success and sidebar-primary in dark; dark
+  `--destructive-foreground` is pure black (ink gave 4.34:1). Brand colours
+  themselves are unchanged. `Button` variants lost their `shadow*` and hover
+  colour utilities (`.play-press` signals hover by lifting the button).
+- Hand-made `bg-destructive text-white` buttons use `text-destructive-foreground`,
+  like the `Button` component.
+- The desktop/tablet sidebar shows its thin scrollbar from 768px up, so the
+  longer menu visibly scrolls on tablets.
+- On phones, the corner theme switcher is hidden on the full-screen Assistant,
+  where it sat on top of the starter cards.
+- `scripts/layout-overlap-scan.mjs` compares only the visible part of an
+  element (clipped by scrolling containers). It used to flag sidebar items
+  half-scrolled out of the menu as covered.
+- No backend, schema or RLS change: deploy is `npm run deploy:site` only.
+
 ## [2.22.8] - 2026-10-05
 
 ### 🐛 Fixed

@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Unit tests
+        run: npm test
       - name: Validate RLS
         run: npm run validate:rls
       - name: Permission keys check

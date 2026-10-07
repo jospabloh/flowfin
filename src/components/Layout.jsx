@@ -224,6 +224,16 @@ export default function Layout() {
   }, []);
 
   const isAssistantPage = location.pathname === '/Assistant';
+
+  // On phones /Assistant is a full-screen chat takeover with its own composer on
+  // the bottom edge; the corner theme switcher would sit on top of the starter
+  // cards there, so index.css hides it for that page below 768px.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isAssistantPage) root.dataset.assistantTakeover = '';
+    else delete root.dataset.assistantTakeover;
+    return () => { delete root.dataset.assistantTakeover; };
+  }, [isAssistantPage]);
   const showBack = !PRIMARY_TABS.includes(location.pathname);
 
   // Permission checks for nav items — called unconditionally (React hooks rules)
@@ -381,7 +391,7 @@ export default function Layout() {
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar">
+      <nav className="flex-1 py-3 overflow-y-auto overscroll-none hide-scrollbar show-scrollbar-on-desktop">
         {SIDEBAR_GROUPS.map((group, gi) => {
           const sidebarExpanded = !collapsed || inDrawer;
           const isGroupCollapsed = group.label && sidebarExpanded && !!groupCollapsed[group.label];
@@ -429,11 +439,11 @@ export default function Layout() {
                               aria-current={active ? 'page' : undefined}
                               className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 w-full touch-target
                                 ${!sidebarExpanded ? 'justify-center px-2 py-2.5' : 'px-3 py-2 text-left'}
-                                ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+                                ${active ? 'bg-primary text-primary-foreground play-press play-press--primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
                               <div className="relative flex-shrink-0">
                                 <Icon className="w-4 h-4" aria-hidden="true" />
                                 {showBadge && (
-                                  <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-white font-bold flex items-center justify-center">
+                                  <span aria-label={`${pendingCount} pendientes`} className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-destructive text-[8px] text-destructive-foreground font-bold flex items-center justify-center">
                                     {pendingCount > 9 ? '9+' : pendingCount}
                                   </span>
                                 )}
@@ -665,7 +675,7 @@ export default function Layout() {
                   <div className="relative">
                     <Icon className="w-5 h-5" aria-hidden="true" />
                     {showBadge && (
-                      <span aria-label={`${pendingCount} movimientos pendientes`} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
+                      <span aria-label={`${pendingCount} movimientos pendientes`} className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-[9px] text-destructive-foreground font-bold flex items-center justify-center">
                         {pendingCount > 9 ? '9+' : pendingCount}
                       </span>
                     )}

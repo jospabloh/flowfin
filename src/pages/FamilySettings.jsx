@@ -246,7 +246,7 @@ export default function FamilySettings() {
           )}
           <div className="flex gap-2">
             <button onClick={handleDeleteAccount} disabled={deleteAccountMutation.isPending}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-xs font-semibold disabled:opacity-50 transition-colors hover:bg-destructive/90">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-xs font-semibold disabled:opacity-50 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
               {deleteAccountMutation.isPending ? 'Eliminando...' : confirmDelete ? 'Confirmar eliminación' : 'Eliminar mi cuenta'}
             </button>

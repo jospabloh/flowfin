@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
+import { celebrate } from '@/lib/celebrate';
 import { base44 } from '@/api/base44Client';
 import { guardedCreate, guardedUpdate, guardedDelete } from '@/lib/guardedWrite';
 import { countPaidInstallments } from '@/lib/investmentSchedule';
@@ -99,6 +99,7 @@ export default function Investments() {
 
   const handlePayment = async () => {
     if (!payForm.amount || !selected || isSavingPayment) return;
+    const origin = document.activeElement; // captured before the await, for celebrate()
     setIsSavingPayment(true);
     setPayError('');
     const paymentNumber = countPaidInstallments(allPayments, selected.id) + 1;
@@ -114,7 +115,7 @@ export default function Investments() {
     queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
     setIsSavingPayment(false);
     setShowPayForm(false); setShowPayFormSuccess(true);
-    confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 }, colors: ['#059669', '#10B981', '#6EE7B7'] });
+    celebrate(origin); // replaces the old canvas-confetti burst: one celebration, not two
     setTimeout(() => setShowPayFormSuccess(false), 1800);
     setPayForm({ amount: '', date: TODAY_ISO, notes: '', person_id: '', category_id: '', payment_method_id: '' });
   };

@@ -287,7 +287,7 @@ export default function TripCloseModal({ trip, transactions, categories, payment
           <button
             onClick={handleClose}
             disabled={closing}
-            className="flex-1 py-3 rounded-xl bg-destructive text-white text-sm font-semibold hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {closing ? (
               <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />Cerrando...</>

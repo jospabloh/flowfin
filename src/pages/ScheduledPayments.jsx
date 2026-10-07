@@ -16,6 +16,7 @@ import PauseUntilSheet from '@/components/scheduled/PauseUntilSheet';
 import InvestmentInstallmentItem from '@/components/scheduled/InvestmentInstallmentItem';
 import InvestmentPayFormModal from '@/components/investments/InvestmentPayFormModal';
 import { useRegisterInvestmentPayment } from '@/hooks/useRegisterInvestmentPayment';
+import { celebrate } from '@/lib/celebrate';
 import { countPaidInstallments, getNextInstallment } from '@/lib/investmentSchedule';
 import { todayISO } from '@/lib/formatters';
 import { usePermission } from '@/lib/permissions/usePermission';
@@ -260,6 +261,7 @@ export default function ScheduledPayments() {
 
   const handleMarkPaid = async () => {
     if (!payingItem || isSavingPayment) return;
+    const origin = document.activeElement; // captured before the await, for celebrate()
     const amount = parseFloat(payAmount) || payingItem.amount || 0;
     let primaryPersonId = payPersonId || payingItem.person_id || undefined;
     if (!primaryPersonId && persons.length > 0) primaryPersonId = persons[0].id;
@@ -291,6 +293,7 @@ export default function ScheduledPayments() {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
       toast({ title: '✅ Pago registrado', description: `"${payingItem.name}" marcado como pagado.`, duration: 5000 });
+      celebrate(origin);
       setPayingItem(null); setPayAmount(''); setPayNotes(''); setPayPersonId(''); setPayPaymentMethodId(''); setPayDate(todayISO());
     } catch (error) {
       toast({ title: 'Error al registrar pago', description: error?.message || 'Ocurrió un error. Intenta de nuevo.', variant: 'destructive', duration: 5000 });
@@ -301,6 +304,7 @@ export default function ScheduledPayments() {
 
   const handleMarkInstallmentPaid = async () => {
     if (!payingInstallment || isSavingInstallment) return;
+    const origin = document.activeElement; // captured before the await, for celebrate()
     setIsSavingInstallment(true);
     setInvError('');
     const { inv } = payingInstallment;
@@ -315,6 +319,7 @@ export default function ScheduledPayments() {
       queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
       queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
       toast({ title: '✅ Cuota registrada', description: `"${inv.name}" — cuota ${paymentNumber} de ${inv.total_payments}.`, duration: 5000 });
+      celebrate(origin);
       setPayingInstallment(null);
       setInvForm(EMPTY_INV_FORM);
     } catch (error) {

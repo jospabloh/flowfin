@@ -5,17 +5,24 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['"Bricolage Grotesque"', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        // mario_style: Nunito for text, Baloo 2 for headings and big figures.
+        sans: ['Nunito', 'ui-rounded', 'system-ui', 'sans-serif'],
+        body: ['Nunito', 'ui-rounded', 'system-ui', 'sans-serif'],
+        inter: ['Nunito', 'ui-rounded', 'system-ui', 'sans-serif'],
+        display: ['"Baloo 2"', 'Nunito', 'ui-rounded', 'system-ui', 'sans-serif'],
         // Scoped to the Finia draft "receipt" card ledger — a ticket-printer
         // face the rest of the app doesn't use, kept out of Tailwind's `mono`
         // key so it never leaks into markdown code blocks or CSV previews.
         receipt: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
+        // Everything derives from --radius (src/index.css).
+        sm: 'calc(var(--radius) - 10px)',
+        md: 'calc(var(--radius) - 4px)',
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
+        xl: 'calc(var(--radius) + 4px)',
+        '2xl': 'calc(var(--radius) + 8px)',
+        '3xl': 'calc(var(--radius) + 12px)'
       },
       colors: {
         background: 'hsl(var(--background))',

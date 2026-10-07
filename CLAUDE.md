@@ -1458,3 +1458,85 @@ transacciones ni restricción única): las escrituras son idempotentes y termina
 mismo estado; queda como comentario. Verificado: `lint` (45/45), `validate:rls`,
 `permissions:check`, `deno lint` y `deno test base44/functions/` (37/0). No verificado
 contra Base44 en vivo.
+
+## Estilo: `mario_style` (adoptado 2026-10-07, v2.23.0)
+
+FlowFin usa `mario_style`, la opción de estilo de `jospabloh/acacia-app-standard`.
+**La guía completa vive allá** (STANDARD.md §27 y `shared/mario_style/README.md`):
+qué lo compone, cuándo se celebra y cómo se verifica. Aquí va solo lo propio de
+FlowFin. Referencia: `jospabloh/rumbo` (v1.36.0).
+
+- **Copias canónicas, no se editan aquí:** `src/styles/mario_style.css` (importado
+  en `src/main.jsx` justo después de `index.css`) y `src/lib/celebrate.js`.
+  `celebrate.test.js` también es copia canónica, en `src/lib/__tests__/`. Para
+  correrla, FlowFin ganó por fin un runner de pruebas de frontend: **vitest +
+  jsdom** (`vitest.config.js`, aparte de `vite.config.js` para que el plugin de
+  Base44 no cargue en pruebas), `npm test`, y un paso "Unit tests" en `ci.yml`.
+  Ojo al instalar: el npm 10 de los sandboxes truena con `Cannot read properties
+  of null (reading 'edgesOut')` al resolver los peers opcionales de vitest; se
+  instaló con `npx npm@11 install -D …` y se comprobó que `npm ci` con npm 10
+  instala bien desde ese lockfile.
+- **Mapeo propio:** el bloque `--play-*` al final de `src/index.css`, con
+  referencias vivas `hsl(var(--x))`. `--radius` es `1rem` y de él salen todos los
+  `rounded-*` (`tailwind.config.js`). Tipografía: Baloo 2 (`font-display`, y
+  `h1`–`h3` en la capa base) y Nunito (cuerpo); `receipt` (IBM Plex Mono) se queda.
+- **Dónde se celebra** (después del `await` exitoso, con `document.activeElement`
+  capturado antes, nunca en `catch`): `ScheduledPayments.handleMarkPaid`,
+  `ScheduledPayments.handleMarkInstallmentPaid`, `MSIPage.handleMarkPaid` (solo en
+  la ruta de éxito, no cuando sale con el toast de datos faltantes) e
+  `Investments.handlePayment`. Esta última ya tenía su propio `canvas-confetti`;
+  se sustituyó por `celebrate()` para no disparar dos. `Capture` y `Rentals`
+  conservan el suyo (fuera de alcance).
+- **Barra de vida de integrantes:** `FamilyAdmin.jsx`, bajo "N / límite integrantes
+  en tu plan": un bloque por plaza (`.play-hp`), tono de `quotaTone()`
+  (`src/lib/quota.js`, con `src/lib/__tests__/quota.test.js`). Solo si el límite es
+  finito y ≤ 30; si no, no se dibuja barra. Está sobre el fondo de la página, así
+  que `--play-track` queda por defecto; sobre una ficha `bg-secondary` habría que
+  fijarlo a `hsl(var(--card))`.
+- **El texto sobre un relleno no es siempre blanco.** Cada `*-foreground` es el de
+  los dos (blanco o tinta `228 40% 8%`) que supera 4.5:1 sobre ese relleno,
+  medido. Claro: primary, destructive, success, info y sidebar-primary llevan
+  tinta; `secondary-foreground` sigue blanco (5.5:1). Oscuro: primary, secondary,
+  success y sidebar-primary llevan tinta; `destructive-foreground` es negro puro
+  (`0 0% 0%`, la tinta daba 4.34). Los de `warning` y el `info-foreground` oscuro
+  no se tocaron. El color de marca no cambia.
+- **No pongas hover de color sobre algo relleno con `--primary`.** `.play-press`
+  señala el hover subiendo el botón 1 px; un `hover:bg-primary/90` (el default de
+  shadcn) bajaba el contraste del texto y por eso se quitó de los `Button`
+  rellenos. `ghost` y `link` siguen planos. Por lo mismo se quitaron los
+  `hover:bg-destructive/90` de los botones rojos hechos a mano (en oscuro el
+  rojo al 90 % sobre el fondo deja el negro en ~4.1:1) y los `hover:…/80` de las
+  tres variantes de `Badge` (el morado al 80 % en oscuro baja a ~3.4:1). Los
+  `hover:bg-primary/90` que quedan siguen arriba de 4.5:1 en los dos temas,
+  medido; si cambias `--primary`, vuelve a medirlos.
+- Los botones hechos a mano con `bg-destructive text-white` pasaron a
+  `text-destructive-foreground` (ocho, en Layout, TripCloseModal, FiniaComposer,
+  FamilyAdmin y AccountSettings). **Quedan con `text-white`** los rellenos
+  `bg-expense` / `bg-income` (selector Gasto/Ingreso de Capture y
+  TransactionEditModal, el micrófono de Capture, el botón de RentalPaymentSheet):
+  no tienen token de foreground y vienen de antes; blanco sobre `--income` da
+  ~3:1. Arreglarlo es un token nuevo, no parte de este cambio.
+- **Asistente en celular:** es una pantalla completa con su propio compositor
+  abajo, y el selector de tema de la esquina quedaba encima de las tarjetas de
+  inicio. `Layout.jsx` marca `<html data-assistant-takeover>` en `/Assistant` y
+  `index.css` oculta el selector ahí por debajo de 768 px; el tema se cambia desde
+  cualquier otra pantalla.
+- **Menú lateral:** muestra su barra de desplazamiento fina desde 768 px
+  (`show-scrollbar-on-desktop`), porque en tablet la lista no cabe y sin barra no
+  se notaba que había más abajo.
+- **`scripts/layout-overlap-scan.mjs` mide la parte visible**, recortada por los
+  contenedores con scroll. Antes comparaba la caja entera de un elemento medio
+  escondido en la lista del menú y marcaba 67 de 177 estados en tablet
+  ("Pagos del Mes" bajo "Sistema"); `main` daba el mismo 67 de 177 antes de
+  este cambio.
+
+**Verificado:** `npm run lint` (45/45), `npm test` (14/14: los 9 canónicos de
+`celebrate` y 5 de `quotaTone`), `npm run build`, `npm run validate:rls` (36), y
+`cmp` de las dos copias canónicas contra el estándar. Escáner de traslapes:
+**0 de 177 estados** con problemas en claro y en oscuro (320, 390, 768, 834,
+1024×1366, 1024×768 y 1440). Capturas de todas las pantallas a 390, 834 y 1440
+en los dos temas, revisadas a ojo.
+**No verificado:** la tipografía real (el sandbox bloquea Google Fonts, así que
+las capturas salen con la fuente de respaldo), Safari/iOS, pantallas con datos
+reales, y login/registro en oscuro (el escáner abre esas pantallas sin
+preferencia de tema). Mergear no despliega: hace falta `npm run deploy:site`.

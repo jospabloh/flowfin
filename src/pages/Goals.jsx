@@ -167,7 +167,7 @@ export default function Goals() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => { deleteMutation.mutate(goalToDelete.id); setGoalToDelete(null); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground"
             >
               Eliminar
             </AlertDialogAction>
