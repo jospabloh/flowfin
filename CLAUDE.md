@@ -1503,7 +1503,12 @@ FlowFin. Referencia: `jospabloh/rumbo` (v1.36.0).
 - **No pongas hover de color sobre algo relleno con `--primary`.** `.play-press`
   señala el hover subiendo el botón 1 px; un `hover:bg-primary/90` (el default de
   shadcn) bajaba el contraste del texto y por eso se quitó de los `Button`
-  rellenos. `ghost` y `link` siguen planos.
+  rellenos. `ghost` y `link` siguen planos. Por lo mismo se quitaron los
+  `hover:bg-destructive/90` de los botones rojos hechos a mano (en oscuro el
+  rojo al 90 % sobre el fondo deja el negro en ~4.1:1) y los `hover:…/80` de las
+  tres variantes de `Badge` (el morado al 80 % en oscuro baja a ~3.4:1). Los
+  `hover:bg-primary/90` que quedan siguen arriba de 4.5:1 en los dos temas,
+  medido; si cambias `--primary`, vuelve a medirlos.
 - Los botones hechos a mano con `bg-destructive text-white` pasaron a
   `text-destructive-foreground` (ocho, en Layout, TripCloseModal, FiniaComposer,
   FamilyAdmin y AccountSettings). **Quedan con `text-white`** los rellenos

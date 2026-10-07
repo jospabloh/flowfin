@@ -281,7 +281,7 @@ export default function AccountSettings() {
             <button
               onClick={() => setShowDeleteFlow(true)}
               aria-label="Eliminar cuenta de forma permanente"
-              className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold hover:bg-destructive/90 transition-colors touch-target"
+              className="w-full flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold transition-colors touch-target"
             >
               <LogOut className="w-4 h-4" />
               Eliminar cuenta
@@ -367,7 +367,7 @@ export default function AccountSettings() {
                       <button
                         onClick={handleStartDeletion}
                         disabled={startDeletionMutation.isPending}
-                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors touch-target"
+                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium disabled:opacity-50 transition-colors touch-target"
                       >
                         {startDeletionMutation.isPending ? 'Verificando...' : 'Continuar'}
                       </button>
@@ -398,7 +398,7 @@ export default function AccountSettings() {
                       </button>
                       <button
                         onClick={handleConfirmEmail}
-                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 transition-colors touch-target"
+                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium transition-colors touch-target"
                       >
                         Enviar código
                       </button>
@@ -443,7 +443,7 @@ export default function AccountSettings() {
                       <button
                         onClick={handleDeleteAccount}
                         disabled={deleteAccountMutation.isPending || !verificationCode}
-                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 transition-colors touch-target"
+                        className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium disabled:opacity-50 transition-colors touch-target"
                       >
                         {deleteAccountMutation.isPending ? 'Eliminando...' : 'Eliminar cuenta'}
                       </button>
