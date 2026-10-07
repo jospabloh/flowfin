@@ -1468,8 +1468,14 @@ FlowFin. Referencia: `jospabloh/rumbo` (v1.36.0).
 
 - **Copias canónicas, no se editan aquí:** `src/styles/mario_style.css` (importado
   en `src/main.jsx` justo después de `index.css`) y `src/lib/celebrate.js`.
-  `celebrate.test.js` **no se copió**: FlowFin no tiene runner de pruebas de
-  frontend (ni vitest), y eslint tropezaría con `describe`/`it`.
+  `celebrate.test.js` también es copia canónica, en `src/lib/__tests__/`. Para
+  correrla, FlowFin ganó por fin un runner de pruebas de frontend: **vitest +
+  jsdom** (`vitest.config.js`, aparte de `vite.config.js` para que el plugin de
+  Base44 no cargue en pruebas), `npm test`, y un paso "Unit tests" en `ci.yml`.
+  Ojo al instalar: el npm 10 de los sandboxes truena con `Cannot read properties
+  of null (reading 'edgesOut')` al resolver los peers opcionales de vitest; se
+  instaló con `npx npm@11 install -D …` y se comprobó que `npm ci` con npm 10
+  instala bien desde ese lockfile.
 - **Mapeo propio:** el bloque `--play-*` al final de `src/index.css`, con
   referencias vivas `hsl(var(--x))`. `--radius` es `1rem` y de él salen todos los
   `rounded-*` (`tailwind.config.js`). Tipografía: Baloo 2 (`font-display`, y
@@ -1483,7 +1489,7 @@ FlowFin. Referencia: `jospabloh/rumbo` (v1.36.0).
   conservan el suyo (fuera de alcance).
 - **Barra de vida de integrantes:** `FamilyAdmin.jsx`, bajo "N / límite integrantes
   en tu plan": un bloque por plaza (`.play-hp`), tono de `quotaTone()`
-  (`src/lib/quota.js`, sin pruebas por no haber runner). Solo si el límite es
+  (`src/lib/quota.js`, con `src/lib/__tests__/quota.test.js`). Solo si el límite es
   finito y ≤ 30; si no, no se dibuja barra. Está sobre el fondo de la página, así
   que `--play-track` queda por defecto; sobre una ficha `bg-secondary` habría que
   fijarlo a `hsl(var(--card))`.
@@ -1498,9 +1504,34 @@ FlowFin. Referencia: `jospabloh/rumbo` (v1.36.0).
   señala el hover subiendo el botón 1 px; un `hover:bg-primary/90` (el default de
   shadcn) bajaba el contraste del texto y por eso se quitó de los `Button`
   rellenos. `ghost` y `link` siguen planos.
-- Otros `text-white` sueltos sobre `bg-primary` / `bg-destructive` / `bg-success`
-  fuera de `ui/` y del contador del menú **no se barrieron**: revisar con
-  capturas si alguno queda por debajo de 4.5:1.
+- Los botones hechos a mano con `bg-destructive text-white` pasaron a
+  `text-destructive-foreground` (ocho, en Layout, TripCloseModal, FiniaComposer,
+  FamilyAdmin y AccountSettings). **Quedan con `text-white`** los rellenos
+  `bg-expense` / `bg-income` (selector Gasto/Ingreso de Capture y
+  TransactionEditModal, el micrófono de Capture, el botón de RentalPaymentSheet):
+  no tienen token de foreground y vienen de antes; blanco sobre `--income` da
+  ~3:1. Arreglarlo es un token nuevo, no parte de este cambio.
+- **Asistente en celular:** es una pantalla completa con su propio compositor
+  abajo, y el selector de tema de la esquina quedaba encima de las tarjetas de
+  inicio. `Layout.jsx` marca `<html data-assistant-takeover>` en `/Assistant` y
+  `index.css` oculta el selector ahí por debajo de 768 px; el tema se cambia desde
+  cualquier otra pantalla.
+- **Menú lateral:** muestra su barra de desplazamiento fina desde 768 px
+  (`show-scrollbar-on-desktop`), porque en tablet la lista no cabe y sin barra no
+  se notaba que había más abajo.
+- **`scripts/layout-overlap-scan.mjs` mide la parte visible**, recortada por los
+  contenedores con scroll. Antes comparaba la caja entera de un elemento medio
+  escondido en la lista del menú y marcaba 67 de 177 estados en tablet
+  ("Pagos del Mes" bajo "Sistema"); `main` daba el mismo 67 de 177 antes de
+  este cambio.
 
-**Verificado:** _pendiente (lo rellena quien lo verifique)._
-**No verificado:** _pendiente._ Mergear no despliega: hace falta `npm run deploy:site`.
+**Verificado:** `npm run lint` (45/45), `npm test` (14/14: los 9 canónicos de
+`celebrate` y 5 de `quotaTone`), `npm run build`, `npm run validate:rls` (36), y
+`cmp` de las dos copias canónicas contra el estándar. Escáner de traslapes:
+**0 de 177 estados** con problemas en claro y en oscuro (320, 390, 768, 834,
+1024×1366, 1024×768 y 1440). Capturas de todas las pantallas a 390, 834 y 1440
+en los dos temas, revisadas a ojo.
+**No verificado:** la tipografía real (el sandbox bloquea Google Fonts, así que
+las capturas salen con la fuente de respaldo), Safari/iOS, pantallas con datos
+reales, y login/registro en oscuro (el escáner abre esas pantallas sin
+preferencia de tema). Mergear no despliega: hace falta `npm run deploy:site`.

@@ -27,8 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as a block "life bar" (one block per seat, tone from `quotaTone()` in
   `src/lib/quota.js`; plans above 30 seats draw no bar).
 - Canonical copies, not edited here: `src/styles/mario_style.css`,
-  `src/lib/celebrate.js`. The canonical `celebrate.test.js` is not copied:
-  FlowFin has no frontend test runner.
+  `src/lib/celebrate.js` and `src/lib/__tests__/celebrate.test.js`.
+- **Frontend unit tests.** vitest + jsdom (`vitest.config.js`, `npm test`, a
+  "Unit tests" step in CI). Runs the canonical `celebrate` test and
+  `quota.test.js`, which pins the life-bar tones.
 
 ### 🔄 Changed
 
@@ -40,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--destructive-foreground` is pure black (ink gave 4.34:1). Brand colours
   themselves are unchanged. `Button` variants lost their `shadow*` and hover
   colour utilities (`.play-press` signals hover by lifting the button).
+- Hand-made `bg-destructive text-white` buttons use `text-destructive-foreground`,
+  like the `Button` component.
+- The desktop/tablet sidebar shows its thin scrollbar from 768px up, so the
+  longer menu visibly scrolls on tablets.
+- On phones, the corner theme switcher is hidden on the full-screen Assistant,
+  where it sat on top of the starter cards.
+- `scripts/layout-overlap-scan.mjs` compares only the visible part of an
+  element (clipped by scrolling containers). It used to flag sidebar items
+  half-scrolled out of the menu as covered.
 - No backend, schema or RLS change: deploy is `npm run deploy:site` only.
 
 ## [2.22.8] - 2026-10-05
