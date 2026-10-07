@@ -31,7 +31,7 @@ FlowFin is currently in **BETA development stage (v2.20.0)**. This release fixes
 ## Getting Started
 
 ### Prerequisites
-- Node.js 16+ installed
+- Node.js 20, 22 or 24+ installed (`package.json` → `engines`; Node 18 reached end of life in April 2025)
 - npm or yarn package manager
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 

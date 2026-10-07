@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend unit tests.** vitest + jsdom (`vitest.config.js`, `npm test`, a
   "Unit tests" step in CI). Runs the canonical `celebrate` test and
   `quota.test.js`, which pins the life-bar tones.
+  vitest 4 needs Node 20, 22 or 24+, so `package.json` now declares that range
+  in `engines` and USER_MANUAL.md's prerequisite moves from "Node.js 16+"
+  (Node 18 reached end of life in April 2025; CI already runs Node 20).
 
 ### 🔄 Changed
 
