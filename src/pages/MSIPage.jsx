@@ -21,6 +21,7 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { usePermission } from '@/lib/permissions/usePermission';
 import { useFeatureGate } from '@/lib/permissions/useFeatureGate';
 import PaywallPrompt from '@/components/billing/PaywallPrompt';
+import { celebrate } from '@/lib/celebrate';
 
 function getNextMSIPayment(msi, payments) {
   const n = payments.length;
@@ -139,6 +140,7 @@ export default function MSIPage() {
   const handleMarkPaid = async (msi, payments) => {
     const next = getNextMSIPayment(msi, payments);
     if (!next) return;
+    const origin = document.activeElement; // captured before the await, for celebrate()
     // registerPayment only creates the matching Transaction when category_id AND
     // person_id are present. These used to be hardcoded `undefined` below, so every
     // MSI payment ever recorded saved the MSIPayment row and silently created no
@@ -177,6 +179,7 @@ export default function MSIPage() {
     queryClient.invalidateQueries({ queryKey: ['msiPayments'] });
     queryClient.invalidateQueries({ queryKey: ['transactions', familyId] });
     queryClient.invalidateQueries({ queryKey: ['transactions_dashboard', familyId] });
+    celebrate(origin);
   };
 
   if (gate.status === 'loading') {

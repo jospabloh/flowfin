@@ -6,9 +6,20 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.23.0',
+    date: '2026-10-07',
+    label: 'Actual',
+    changes: [
+      'Nuevo aspecto, más redondeado y alegre: esquinas más suaves, fondos con un toque de cielo (y azul noche en modo oscuro) y letras nuevas, más amigables y fáciles de leer.',
+      'Los botones ahora tienen relieve y se hunden al pulsarlos. El texto sobre los botones verdes y rojos ahora es oscuro, para que se lea mejor.',
+      'Al terminar un pago programado, una mensualidad a meses sin intereses o una cuota de inversión, aparece una lluvia de confeti.',
+      'En Familia ahora ves una barra de bloques con los integrantes que usas de los que incluye tu plan, y cambia de color cuando te acercas al límite.',
+    ],
+  },
+  {
     version: '2.22.8',
     date: '2026-10-05',
-    label: 'Actual',
+    label: '',
     changes: [
       'Eliminar tu cuenta fallaba para cualquier persona que no fuera administradora de la plataforma: el paso que limpiaba tu familia usaba una escritura que el candado de seguridad de agosto bloquea para cuentas normales, así que la solicitud terminaba en error justo después de borrar tus membresías de familia. Ya se corrigió — el borrado de cuenta ahora funciona de principio a fin.',
       'Auditoría periódica completa: seguridad, aislamiento entre familias, calidad de código, permisos, dependencias y pruebas automatizadas. Se revisaron a fondo los cuatro cambios recientes de familia/membresías (verificación por código, una familia por usuario, aprobar con rol, los nuevos candados de escritura) y se confirmó que están bien y ya desplegados. Se corrigieron cuatro vulnerabilidades de dependencias (dos de severidad alta) de forma no disruptiva.',

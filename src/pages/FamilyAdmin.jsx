@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Users, Copy, Check, UserPlus, Loader2, Trash2, X,
 import UpgradePlansModal from '@/components/UpgradePlansModal';
 import PageHeader from '@/components/PageHeader';
 import { useState } from 'react';
+import { quotaTone } from '@/lib/quota';
 import { useToast } from '@/components/ui/use-toast';
 import { useDeleteConfirm } from '@/hooks/useDeleteConfirm.jsx';
 
@@ -283,11 +284,23 @@ export default function FamilyAdmin() {
 
       {/* Miembros actuales vs límite */}
       {licensedMemberLimit && (
-        <div className="mx-4 mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Users className="w-3.5 h-3.5" />
-          <span>{approved.length} / {licensedMemberLimit} integrantes en tu plan</span>
-          {approved.length >= licensedMemberLimit && (
-            <span className="text-amber-600 font-semibold ml-1">· Límite alcanzado</span>
+        <div className="mx-4 mt-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Users className="w-3.5 h-3.5" />
+            <span>{approved.length} / {licensedMemberLimit} integrantes en tu plan</span>
+            {approved.length >= licensedMemberLimit && (
+              <span className="text-amber-600 font-semibold ml-1">· Límite alcanzado</span>
+            )}
+          </div>
+          {Number.isFinite(licensedMemberLimit) && licensedMemberLimit <= 30 && (
+            // mario_style life bar: one block per seat; sits on the page background, so --play-track stays default.
+            <div className="play-hp mt-1.5" data-tone={quotaTone(approved.length, licensedMemberLimit)}
+              style={/** @type {React.CSSProperties} */ ({ '--play-hp-total': licensedMemberLimit })}
+              role="img" aria-label={`${approved.length} de ${licensedMemberLimit} integrantes`}>
+              {Array.from({ length: licensedMemberLimit }, (_, i) => (
+                <span key={i} data-on={i < approved.length ? '' : undefined} />
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -333,7 +346,7 @@ export default function FamilyAdmin() {
       {/* Solicitudes pendientes */}
       <div data-tutorial="family-admin-pending-card" className="mx-4 mt-4">
         <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
             {pending.length}
           </span>
           Solicitudes pendientes

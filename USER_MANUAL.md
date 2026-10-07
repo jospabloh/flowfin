@@ -1,7 +1,7 @@
 # FlowFin User Manual
 
-**Version**: 2.22.8
-**Last Updated**: October 5, 2026
+**Version**: 2.23.0
+**Last Updated**: October 7, 2026
 **Status**: BETA (Development Stage)
 
 ---
@@ -1057,6 +1057,7 @@ A: Yes. Family members can only see data you've authorized. Use role-based permi
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.23.0 | 2026-10-07 | Visual refresh only (`mario_style`): rounder look, buttons with relief, new fonts, confetti on finishing a payment, member bar in Familia. No workflow changes. |
 | 2.22.8 | 2026-10-05 | Added v2.22.8 release notes (email verification code on signup/login, one-family-per-user + role-on-approval + reject/cancel, Movimientos search, account-deletion fix). Corrected **Family Features → Setting Up Family**, which still documented a nonexistent invite-by-email flow and a three-tier Admin/Editor/Viewer role model — FlowFin has always joined families by code with only Admin/Member roles. Note: this table's 0.8.0–2.21.0 rows were never backfilled at release time — out of scope for this cycle, see [CHANGELOG.md](./CHANGELOG.md) for the complete history in the meantime. |
 | 2.22.0 | 2026-08-10 | Added v2.22.0 release notes (shared/split expenses); added a "Shared / Split Expenses" how-to under Transaction Management; recapped user-facing changes since v2.20.0. |
 | 0.7.0 | 2026-06-22 | Added v0.7.0 release notes: full dependency security sweep, 0 vulnerabilities; moved v0.6.0 to Previous Releases |

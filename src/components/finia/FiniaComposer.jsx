@@ -742,7 +742,7 @@ export default function FiniaComposer({ onSend, disabled, showChips, lastAssista
               disabled={disabled || isTranscribing}
               className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 ${
                 isRecording
-                  ? 'bg-destructive text-white animate-pulse'
+                  ? 'bg-destructive text-destructive-foreground animate-pulse'
                   : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
               title={isRecording ? 'Detener grabación' : isTranscribing ? 'Transcribiendo…' : 'Grabar audio'}

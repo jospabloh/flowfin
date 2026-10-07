@@ -20,7 +20,7 @@ export default function DashboardSummaryCards({ income, expense, balance }) {
 
   return (
     <section className="px-4 mb-4" aria-label="Balance del mes">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+      <div className="relative overflow-hidden rounded-3xl border-2 border-border bg-card play-card">
         {/* Ambient accent: tinted by whether the family is net positive this month */}
         <div
           aria-hidden="true"
