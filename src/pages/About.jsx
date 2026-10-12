@@ -6,9 +6,17 @@ import { Mail, MessageCircle, Heart, Shield, ChevronDown, ChevronUp } from 'luci
 
 const VERSION_HISTORY = [
   {
+    version: '2.23.1',
+    date: '2026-10-12',
+    label: 'Actual',
+    changes: [
+      'Auditoría periódica completa: seguridad, aislamiento entre familias, calidad de código, permisos, dependencias y pruebas automatizadas — sin errores de aplicación nuevos que corregir. Se revisó a fondo el cambio de estilo mario_style (v2.23.0) y se confirmó que no afectó ningún candado de permisos ni de aislamiento, y que el sitio y las funciones desplegadas ya coinciden con esa versión. Se corrigió una vulnerabilidad de dependencia de severidad alta (source-map-js) de forma no disruptiva.',
+    ],
+  },
+  {
     version: '2.23.0',
     date: '2026-10-07',
-    label: 'Actual',
+    label: '',
     changes: [
       'Nuevo aspecto, más redondeado y alegre: esquinas más suaves, fondos con un toque de cielo (y azul noche en modo oscuro) y letras nuevas, más amigables y fáciles de leer.',
       'Los botones ahora tienen relieve y se hunden al pulsarlos. El texto sobre los botones verdes y rojos ahora es oscuro, para que se lea mejor.',
