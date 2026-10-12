@@ -1540,3 +1540,51 @@ en los dos temas, revisadas a ojo.
 las capturas salen con la fuente de respaldo), Safari/iOS, pantallas con datos
 reales, y login/registro en oscuro (el escáner abre esas pantallas sin
 preferencia de tema). Mergear no despliega: hace falta `npm run deploy:site`.
+
+## Auditoría periódica — 2026-10-12 (v2.23.1)
+
+Ciclo de auditoría completa (seguridad, aislamiento RLS, calidad de código,
+permisos, dependencias, pruebas automatizadas, changelog/versionado). **Sin
+errores de aplicación nuevos.**
+
+- **Revisado el delta completo desde la auditoría de 2.22.8** (`89238b1..HEAD`,
+  casi enteramente la adopción de `mario_style`, v2.23.0): el único archivo de
+  `base44/functions/` tocado en esa ventana (`admin/entry.ts`) es un comentario,
+  no un cambio de lógica; ninguno de los cambios de UI (contraste de hover, la
+  reubicación del FAB, la barra de bloques de cupo de integrantes) debilitó un
+  chequeo de permisos, un estado de error/vacío/carga, ni una propiedad de
+  accesibilidad; los nuevos `celebrate.test.js`/`quota.test.js` afirman lógica
+  de negocio real (umbrales de `quotaTone`, condiciones de disparo de
+  `celebrate`), no una salida tautológica.
+- **Re-verificado el módulo 14 (aislamiento multi-tenant) contra el esquema
+  desplegado** (`list_entity_schemas`, no el `.jsonc` del repo): el candado
+  `rls.write` admin-only de `User.family_id`, los quince candados de
+  licencia/facturación de `Family`, y los cinco candados de campo de
+  `FamilyMembership` (2026-09-30) siguen intactos. Sin regresión.
+- **Re-verificado el estado de deploy contra el sitio en vivo, no sólo el
+  repo:** el bundle desplegado en `loutish-flow-fin-snap.base44.app` ya sirve
+  `2.23.0` (mario_style está en producción, sin la brecha "mergeado pero no
+  desplegado" que este archivo documenta repetidas veces); las funciones
+  `admin` y `family` responden con su candado de autenticación esperado (no
+  `unknown action`), confirmando que los arreglos de 2026-10-05/07
+  (`deleteAccount`, acciones de membresía) ya están en producción.
+- **Arreglado (dependencia, no disruptivo):** `source-map-js` (severidad alta,
+  GHSA-68fv-2mgg-jv7q — DoS de event-loop vía offsets de sección de source-map
+  indexados), vía `npm audit fix`. Quedan 11 vulnerabilidades, todas ya
+  revisadas y diferidas en ciclos previos con su razón documentada
+  (`react-router` necesita un major 6→7 disruptivo sin ruta explotable en el
+  uso que esta app le da — ver el ciclo 2.22.6 arriba; `braces` y
+  `postcss-selector-parser` no tienen fix publicado, ambos sólo de build). CI
+  no se ve afectado — sólo exige `--audit-level=critical`.
+
+**Verificado:** `npm run lint` (45/45 endpoints), `npm test` (14/14),
+`npm run build` (incl. `permissions-check.mjs`), `npm run validate:rls` (36
+entidades), `deno lint base44/functions/` (129 archivos), `deno test
+base44/functions/` (38/38).
+
+**No verificado:** una sesión real como miembro restringido o como un segundo
+inquilino — misma limitación que todos los ciclos anteriores. No se tocó
+ningún esquema, RLS ni lógica de función, así que no hace falta
+`npm run deploy`/`deploy:entities`; el bump de dependencia
+(`package-lock.json` solamente) sí necesita `npm run deploy:site` tras el
+merge para llegar a producción.

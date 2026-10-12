@@ -12,6 +12,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > the update banner all read the same number going forward. Entries at `0.x`
 > below are retained as historical engineering-line records.
 
+## [2.23.1] - 2026-10-12
+
+### 🔍 Scheduled full audit
+
+Periodic full-portfolio audit (security, RLS/tenant isolation, code quality,
+granular permissions, dependencies, automated tests, UI/UX, changelog &
+versioning). No application-code bugs found this cycle.
+
+- **Reviewed the full delta since the 2.22.8 audit** (commits `89238b1..HEAD`,
+  mostly the `mario_style` design-system adoption, v2.23.0). Confirmed: the
+  only `base44/functions/` file touched in that window (`admin/entry.ts`) is a
+  comment-only redeploy trigger, not a logic change; none of the UI changes
+  (hover-contrast fixes, FAB repositioning, the new member-quota life bar)
+  weakened a permission check, an error/empty/loading state, or an
+  accessibility property; the new `celebrate.test.js`/`quota.test.js` vitest
+  files assert real business-logic boundaries, not tautological output.
+- **Re-verified module 14 (multi-tenant isolation) directly against the
+  deployed Base44 schema** (`list_entity_schemas`, not the repo's `.jsonc`):
+  `User.family_id`'s admin-only `rls.write` lock, all `Family` license/billing
+  field locks, and all five `FamilyMembership` field locks (2026-09-30) are
+  still in place. No regression.
+- **Re-verified deploy state against the live site**, not just the repo: the
+  deployed frontend bundle at `loutish-flow-fin-snap.base44.app` already
+  serves `2.23.0` (mario_style is live, no merge-but-not-deployed gap this
+  cycle — see CLAUDE.md's own repeated documentation of that failure mode),
+  and the `admin`/`family` backend functions respond with their expected
+  auth-required gate (not `unknown action`), confirming the 2026-10-05/07
+  fixes (`deleteAccount`, membership actions) are live in production.
+- **Fixed (dependency, non-breaking):** `source-map-js` (high severity,
+  GHSA-68fv-2mgg-jv7q — event-loop DoS via indexed source-map section
+  offsets), via `npm audit fix`. 11 vulnerabilities remain, all previously
+  reviewed and deferred across prior audit cycles with documented reasoning
+  (`react-router` needs a breaking 6→7 major with no non-breaking fix and no
+  exploitable path in this app's own usage of it; `braces` and
+  `postcss-selector-parser` have no upstream fix published yet, both
+  dev/build-time-only). CI remains unaffected since it only gates on
+  `--audit-level=critical`.
+- Bumped `package.json`/`package-lock.json`/in-app version history
+  (`About.jsx`) to **2.23.1**.
+
+**Checks run (all green, before and after):** `npm run lint` (incl.
+`validate:functions` — 45/45 endpoints, margin 0), `npm test` (14/14 vitest),
+`npm run build` (incl. `permissions-check.mjs`), `npm run validate:rls` (36
+entities), `deno lint base44/functions/` (129 files), `deno test
+base44/functions/` (38/38).
+
+**Not verified:** an authenticated browser session as a restricted family
+member or a second tenant (same limitation as every prior cycle — this
+sandbox has no such seeded session). No entity schema, RLS, or backend
+function logic changed, so no `npm run deploy`/`deploy:entities` is required;
+the frontend dependency bump (`package-lock.json` only) needs
+`npm run deploy:site` after merge to reach production — merging alone does
+not deploy anything in this repo.
+
 ## [2.23.0] - 2026-10-07
 
 ### ✨ Added
