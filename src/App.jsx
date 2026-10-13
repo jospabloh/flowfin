@@ -12,6 +12,7 @@ import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LoadingFallback from '@/components/LoadingFallback';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import UpdateBanner from '@/components/UpdateBanner';
 import TutorialController from '@/components/tutorial/TutorialController';
 import DowngradeNotice from '@/components/billing/DowngradeNotice';
 import { useCanView } from '@/lib/permissions/usePermission';
@@ -231,6 +232,7 @@ function App() {
           </Router>
           <Toaster />
           <ThemeSwitcher />
+          <UpdateBanner />
         </QueryClientProvider>
       </AuthProvider>
     </ThemeProvider>
