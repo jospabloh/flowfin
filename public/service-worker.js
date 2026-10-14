@@ -46,6 +46,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // The new-version check (src/lib/useNewVersion.js) fetches index.html with a
+  // unique ?_v=<timestamp> every poll. Caching those would add one entry per
+  // poll forever, and a cached copy is never useful to it.
+  if (new URL(request.url).searchParams.has('_v')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Network first for documents/assets, fallback to cache
   event.respondWith(
     fetch(request)
